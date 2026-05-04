@@ -75,7 +75,7 @@ export const Attivita = () => (
           <div
             key={a.title}
             data-testid={`activity-card-${i}`}
-            className={`${a.bg} ${a.text || "text-tv-green-deep"} ${a.col} col-span-1 md:col-auto rounded-[2rem] p-7 md:p-8 flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 hover:rotate-[-1deg] relative overflow-hidden group`}
+            className={`${a.bg} ${a.text || "text-tv-green-deep"} ${a.col} rounded-[2rem] p-7 md:p-8 flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 hover:rotate-[-1deg] relative overflow-hidden group`}
           >
             <div className="flex items-center justify-between">
               <a.icon size={32} strokeWidth={2.2} />

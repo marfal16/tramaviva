@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -209,6 +209,58 @@ async def create_contact(payload: ContactCreate):
     doc["created_at"] = doc["created_at"].isoformat()
     await db.contacts.insert_one(doc)
     return obj
+
+
+# ---------- Admin (token-protected) ----------
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+
+
+def require_admin(authorization: Optional[str] = Header(default=None)):
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=500, detail="Admin token non configurato")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token mancante")
+    token = authorization.split(" ", 1)[1].strip()
+    if token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Token non valido")
+    return True
+
+
+@api_router.post("/admin/login")
+async def admin_login(payload: dict):
+    token = (payload or {}).get("token", "")
+    if not ADMIN_TOKEN or token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Password non valida")
+    return {"ok": True}
+
+
+@api_router.get("/admin/event-signups", dependencies=[Depends(require_admin)])
+async def admin_event_signups():
+    docs = await db.event_signups.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+
+@api_router.get("/admin/memberships", dependencies=[Depends(require_admin)])
+async def admin_memberships():
+    docs = await db.memberships.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+
+@api_router.get("/admin/contacts", dependencies=[Depends(require_admin)])
+async def admin_contacts():
+    docs = await db.contacts.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+
+@api_router.delete("/admin/{collection}/{doc_id}", dependencies=[Depends(require_admin)])
+async def admin_delete(collection: str, doc_id: str):
+    allowed = {"event-signups": "event_signups", "memberships": "memberships", "contacts": "contacts"}
+    if collection not in allowed:
+        raise HTTPException(status_code=400, detail="Collezione non valida")
+    res = await db[allowed[collection]].delete_one({"id": doc_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Documento non trovato")
+    return {"ok": True}
 
 
 app.include_router(api_router)

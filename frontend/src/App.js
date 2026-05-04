@@ -10,6 +10,7 @@ import Eventi from "./components/Eventi";
 import Iscrizione from "./components/Iscrizione";
 import Contatti from "./components/Contatti";
 import Footer from "./components/Footer";
+import Admin from "./components/Admin";
 
 const Home = () => {
   useEffect(() => {
@@ -45,6 +46,7 @@ function App() {
       <Toaster position="top-center" richColors />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
   );
