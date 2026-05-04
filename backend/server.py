@@ -130,6 +130,37 @@ def make_slug(title: str) -> str:
     return s[:80] or "evento"
 
 
+# ---------- Members (tesserati registry) ----------
+class MemberCreate(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    tessera_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class Member(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    tessera_number: Optional[str] = None
+    notes: Optional[str] = None
+    joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class MemberUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    tessera_number: Optional[str] = None
+    notes: Optional[str] = None
+
+
 # ---------- Seeded events ----------
 EVENTS: List[dict] = [
     {
@@ -285,13 +316,25 @@ async def admin_login(payload: dict):
 @api_router.get("/admin/event-signups", dependencies=[Depends(require_admin)])
 async def admin_event_signups():
     docs = await db.event_signups.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    member_emails = await _get_member_emails()
+    for d in docs:
+        d["is_member"] = (d.get("email") or "").lower() in member_emails
     return docs
 
 
 @api_router.get("/admin/memberships", dependencies=[Depends(require_admin)])
 async def admin_memberships():
     docs = await db.memberships.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    member_emails = await _get_member_emails()
+    for d in docs:
+        d["is_member"] = (d.get("email") or "").lower() in member_emails
     return docs
+
+
+async def _get_member_emails() -> set:
+    cursor = db.members.find({}, {"email": 1, "_id": 0})
+    docs = await cursor.to_list(10000)
+    return {(d.get("email") or "").lower() for d in docs if d.get("email")}
 
 
 @api_router.get("/admin/contacts", dependencies=[Depends(require_admin)])
@@ -307,6 +350,7 @@ async def admin_delete(collection: str, doc_id: str):
         "memberships": "memberships",
         "contacts": "contacts",
         "events": "events",
+        "members": "members",
     }
     if collection not in allowed:
         raise HTTPException(status_code=400, detail="Collezione non valida")
@@ -314,6 +358,64 @@ async def admin_delete(collection: str, doc_id: str):
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Documento non trovato")
     return {"ok": True}
+
+
+# ---------- Admin: Members (tesserati registry) ----------
+@api_router.get("/admin/members", dependencies=[Depends(require_admin)])
+async def admin_get_members():
+    docs = await db.members.find({}, {"_id": 0}).sort("joined_at", -1).to_list(10000)
+    return docs
+
+
+@api_router.post("/admin/members", response_model=Member, dependencies=[Depends(require_admin)])
+async def admin_create_member(payload: MemberCreate):
+    email = payload.email.lower()
+    existing = await db.members.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=409, detail="Esiste già un socio con questa email")
+    obj = Member(**{**payload.model_dump(), "email": email})
+    doc = obj.model_dump()
+    doc["joined_at"] = doc["joined_at"].isoformat()
+    await db.members.insert_one(doc)
+    return obj
+
+
+@api_router.put("/admin/members/{member_id}", response_model=Member, dependencies=[Depends(require_admin)])
+async def admin_update_member(member_id: str, payload: MemberUpdate):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if "email" in update:
+        update["email"] = update["email"].lower()
+    if not update:
+        raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    res = await db.members.update_one({"id": member_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Socio non trovato")
+    doc = await db.members.find_one({"id": member_id}, {"_id": 0})
+    return doc
+
+
+@api_router.post("/admin/members/from-request/{request_id}", response_model=Member, dependencies=[Depends(require_admin)])
+async def admin_member_from_request(request_id: str, body: Optional[dict] = None):
+    """Promote a membership request to a tesserato member."""
+    req = await db.memberships.find_one({"id": request_id}, {"_id": 0})
+    if not req:
+        raise HTTPException(status_code=404, detail="Richiesta non trovata")
+    email = (req.get("email") or "").lower()
+    existing = await db.members.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=409, detail="Già nel registro tesserati")
+    member = Member(
+        first_name=req.get("first_name", ""),
+        last_name=req.get("last_name", ""),
+        email=email,
+        phone=req.get("phone"),
+        tessera_number=(body or {}).get("tessera_number") if body else None,
+        notes=req.get("motivation"),
+    )
+    doc = member.model_dump()
+    doc["joined_at"] = doc["joined_at"].isoformat()
+    await db.members.insert_one(doc)
+    return member
 
 
 # ---------- Admin: Events CRUD ----------

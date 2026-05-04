@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -91,7 +92,8 @@ const Login = ({ onLogin }) => {
 
 const TABS = [
   { key: "events", label: "Eventi", icon: CalendarPlus },
-  { key: "memberships", label: "Iscrizioni soci", icon: Users },
+  { key: "members", label: "Soci tesserati", icon: IdCard },
+  { key: "memberships", label: "Richieste iscrizione", icon: Users },
   { key: "event-signups", label: "Richieste eventi", icon: Calendar },
   { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
@@ -100,22 +102,32 @@ const CATEGORIES = ["Aperitivi Sociali", "Passeggiate", "Screening Salute", "Cor
 
 const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("events");
-  const [data, setData] = useState({ memberships: [], "event-signups": [], contacts: [], events: [] });
+  const [data, setData] = useState({
+    memberships: [], "event-signups": [], contacts: [], events: [], members: [],
+  });
   const [loading, setLoading] = useState(true);
   const [eventEditor, setEventEditor] = useState(null);
+  const [memberEditor, setMemberEditor] = useState(null);
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [m, es, c, ev] = await Promise.all([
+      const [m, es, c, ev, mem] = await Promise.all([
         axios.get(`${API}/admin/memberships`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
         axios.get(`${API}/admin/events`, authHeader),
+        axios.get(`${API}/admin/members`, authHeader),
       ]);
-      setData({ memberships: m.data, "event-signups": es.data, contacts: c.data, events: ev.data });
+      setData({
+        memberships: m.data,
+        "event-signups": es.data,
+        contacts: c.data,
+        events: ev.data,
+        members: mem.data,
+      });
     } catch (err) {
       if (err.response?.status === 401) {
         toast.error("Sessione scaduta, rifai login.");
@@ -139,21 +151,42 @@ const Dashboard = ({ token, onLogout }) => {
     } catch { toast.error("Errore nell'eliminazione."); }
   };
 
-  const exportCsv = () => {
-    const rows = data[tab];
-    if (!rows.length) return toast.error("Nessun dato da esportare.");
-    const keys = Object.keys(rows[0]);
-    const csv = [
-      keys.join(","),
-      ...rows.map((r) => keys.map((k) => JSON.stringify(r[k] ?? "")).join(",")),
-    ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `tramaviva-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportXlsx = () => {
+    const wb = XLSX.utils.book_new();
+    const sheets = [
+      ["Soci tesserati", data.members],
+      ["Richieste iscrizione", data.memberships],
+      ["Richieste eventi", data["event-signups"]],
+      ["Messaggi contatti", data.contacts],
+      ["Eventi", data.events],
+    ];
+    let any = false;
+    for (const [name, rows] of sheets) {
+      if (!rows || rows.length === 0) continue;
+      any = true;
+      const ws = XLSX.utils.json_to_sheet(rows);
+      // Auto-size columns
+      const cols = Object.keys(rows[0] || {}).map((k) => ({
+        wch: Math.min(Math.max(k.length, ...rows.map((r) => String(r[k] ?? "").length)) + 2, 50),
+      }));
+      ws["!cols"] = cols;
+      XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+    }
+    if (!any) return toast.error("Nessun dato da esportare.");
+    const fileName = `tramaviva-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success("Export Excel scaricato!");
+  };
+
+  const promoteToMember = async (req) => {
+    const tessera = window.prompt(`Numero tessera per ${req.first_name} ${req.last_name} (opzionale):`, "");
+    try {
+      await axios.post(`${API}/admin/members/from-request/${req.id}`, { tessera_number: tessera || null }, authHeader);
+      toast.success("Aggiunto al registro tesserati!");
+      loadAll();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore");
+    }
   };
 
   const list = data[tab] || [];
@@ -167,11 +200,11 @@ const Dashboard = ({ token, onLogout }) => {
           </a>
           <div className="flex items-center gap-2">
             <button
-              onClick={exportCsv}
-              data-testid="admin-export-csv"
+              onClick={exportXlsx}
+              data-testid="admin-export-xlsx"
               className="btn-tv hidden sm:inline-flex px-4 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm"
             >
-              Esporta CSV
+              Esporta Excel
             </button>
             <button
               onClick={onLogout}
@@ -220,6 +253,13 @@ const Dashboard = ({ token, onLogout }) => {
             onEdit={(ev) => setEventEditor(ev)}
             onDelete={(id) => remove("events", id)}
           />
+        ) : tab === "members" ? (
+          <MembersManager
+            members={data.members}
+            onCreate={() => setMemberEditor("new")}
+            onEdit={(m) => setMemberEditor(m)}
+            onDelete={(id) => remove("members", id)}
+          />
         ) : list.length === 0 ? (
           <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
             Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
@@ -239,6 +279,21 @@ const Dashboard = ({ token, onLogout }) => {
                         ? `${row.first_name} ${row.last_name || ""}`
                         : row.name || row.event_title}
                     </span>
+                    {row.is_member ? (
+                      <span
+                        data-testid={`badge-member-${row.id}`}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2.5 py-1 rounded-full"
+                      >
+                        <UserCheck size={11} /> Socio tesserato
+                      </span>
+                    ) : (row.email && (tab === "memberships" || tab === "event-signups")) ? (
+                      <span
+                        data-testid={`badge-not-member-${row.id}`}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux/15 text-tv-bordeaux px-2.5 py-1 rounded-full"
+                      >
+                        Non socio
+                      </span>
+                    ) : null}
                     {row.event_title && (
                       <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2.5 py-1 rounded-full">
                         {row.event_title}
@@ -261,14 +316,26 @@ const Dashboard = ({ token, onLogout }) => {
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => remove(tab, row.id)}
-                  data-testid={`admin-delete-${row.id}`}
-                  className="self-start md:self-center p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-                  aria-label="Elimina"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex items-center gap-2 self-start md:self-center">
+                  {tab === "memberships" && !row.is_member && (
+                    <button
+                      onClick={() => promoteToMember(row)}
+                      data-testid={`admin-promote-${row.id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
+                      title="Aggiungi al registro tesserati"
+                    >
+                      <Sparkles size={13} /> Tesseralo
+                    </button>
+                  )}
+                  <button
+                    onClick={() => remove(tab, row.id)}
+                    data-testid={`admin-delete-${row.id}`}
+                    className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+                    aria-label="Elimina"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -281,6 +348,14 @@ const Dashboard = ({ token, onLogout }) => {
           initial={eventEditor === "new" ? null : eventEditor}
           onClose={() => setEventEditor(null)}
           onSaved={() => { setEventEditor(null); loadAll(); }}
+        />
+      )}
+      {memberEditor && (
+        <MemberEditor
+          token={token}
+          initial={memberEditor === "new" ? null : memberEditor}
+          onClose={() => setMemberEditor(null)}
+          onSaved={() => { setMemberEditor(null); loadAll(); }}
         />
       )}
     </div>
@@ -546,6 +621,194 @@ const Field = ({ label, type = "text", value, onChange, required, testid }) => (
     />
   </label>
 );
+
+// ---------- Members Manager ----------
+const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
+  const fmtDay = (d) => {
+    try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
+    catch { return d; }
+  };
+  return (
+    <div data-testid="admin-members-manager">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <button
+          onClick={onCreate}
+          data-testid="admin-member-new"
+          className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold"
+        >
+          <Plus size={18} /> Aggiungi socio
+        </button>
+        <div className="text-sm text-tv-green-deep/70">
+          Registro autorevole dei <b>tesserati</b>. Le richieste iscrizione vanno qui solo se approvate.
+        </div>
+      </div>
+      {members.length === 0 ? (
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+          Nessun socio nel registro. Aggiungi il primo o "Tesseralo" da una richiesta iscrizione.
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {members.map((m) => (
+            <article
+              key={m.id}
+              data-testid={`admin-member-row-${m.id}`}
+              className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
+            >
+              <div className="flex items-center gap-4 flex-1">
+                <div className="w-12 h-12 rounded-2xl bg-tv-green text-tv-cream flex items-center justify-center font-display font-black text-lg">
+                  {(m.first_name?.[0] || "?").toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-display font-black text-lg text-tv-green-deep">
+                      {m.first_name} {m.last_name}
+                    </span>
+                    {m.tessera_number && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
+                        Tessera #{m.tessera_number}
+                      </span>
+                    )}
+                    <span className="text-xs text-tv-green-deep/50">dal {fmtDay(m.joined_at)}</span>
+                  </div>
+                  <div className="mt-1 text-sm text-tv-green-deep/80 flex flex-wrap gap-x-4 gap-y-1">
+                    {m.email && (
+                      <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux">
+                        <Mail size={13} /> {m.email}
+                      </a>
+                    )}
+                    {m.phone && <span>📞 {m.phone}</span>}
+                  </div>
+                  {m.notes && (
+                    <p className="mt-2 text-sm text-tv-green-deep/70 italic">"{m.notes}"</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end md:self-center">
+                <button
+                  onClick={() => onEdit(m)}
+                  data-testid={`admin-member-edit-${m.id}`}
+                  className="p-2.5 rounded-full bg-tv-mint/30 text-tv-green-deep hover:bg-tv-mint transition-colors"
+                  aria-label="Modifica"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  onClick={() => onDelete(m.id)}
+                  data-testid={`admin-member-delete-${m.id}`}
+                  className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+                  aria-label="Elimina"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MemberEditor = ({ token, initial, onClose, onSaved }) => {
+  const isNew = !initial;
+  const [form, setForm] = useState(
+    initial || { first_name: "", last_name: "", email: "", phone: "", tessera_number: "", notes: "" }
+  );
+  const [saving, setSaving] = useState(false);
+  const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.first_name || !form.last_name || !form.email) {
+      toast.error("Nome, cognome ed email obbligatori.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      if (isNew) {
+        await axios.post(`${API}/admin/members`, form, { headers });
+        toast.success("Socio aggiunto al registro!");
+      } else {
+        await axios.put(`${API}/admin/members/${initial.id}`, form, { headers });
+        toast.success("Socio aggiornato!");
+      }
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Errore nel salvataggio.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+      data-testid="admin-member-editor"
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+        className="w-full max-w-xl bg-tv-cream rounded-[2rem] p-7 md:p-9 my-8 relative"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-5 right-5 p-2 rounded-full bg-tv-green-deep text-tv-cream"
+          aria-label="Chiudi"
+        >
+          <X size={16} />
+        </button>
+        <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
+          {isNew ? "Nuovo socio" : "Modifica socio"}
+        </div>
+        <h3 className="mt-1 font-display font-black text-2xl text-tv-green-deep">
+          {isNew ? "Aggiungi al registro tesserati" : `${form.first_name} ${form.last_name}`}
+        </h3>
+
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Nome *" value={form.first_name} onChange={change("first_name")} required testid="member-first-name" />
+          <Field label="Cognome *" value={form.last_name} onChange={change("last_name")} required testid="member-last-name" />
+          <Field label="Email *" type="email" value={form.email} onChange={change("email")} required testid="member-email" />
+          <Field label="Telefono" value={form.phone} onChange={change("phone")} testid="member-phone" />
+          <Field label="Numero tessera" value={form.tessera_number} onChange={change("tessera_number")} testid="member-tessera" />
+        </div>
+        <label className="block mt-4">
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
+            Note interne
+          </div>
+          <textarea
+            data-testid="member-notes"
+            rows={3}
+            value={form.notes ?? ""}
+            onChange={change("notes")}
+            placeholder="Note visibili solo all'admin (opzionali)"
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
+          />
+        </label>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            data-testid="member-save"
+            className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60"
+          >
+            {saving ? "Salvo…" : isNew ? "Aggiungi al registro" : "Salva modifiche"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold"
+          >
+            Annulla
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 export const Admin = () => {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
