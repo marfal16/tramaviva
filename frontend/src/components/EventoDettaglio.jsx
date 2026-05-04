@@ -33,14 +33,19 @@ export const EventoDettaglio = () => {
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [signupCount, setSignupCount] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await axios.get(`${API}/events/${slug}`);
         setEvent(res.data);
-        // dynamic title
         document.title = `${res.data.title} — APS Trama Viva`;
+        // load social proof count (non-blocking)
+        try {
+          const c = await axios.get(`${API}/events/${slug}/signups-count`);
+          setSignupCount(c.data.count);
+        } catch {}
       } catch {
         setError(true);
       } finally {
@@ -64,6 +69,7 @@ export const EventoDettaglio = () => {
         ...form,
       });
       setDone(true);
+      setSignupCount((c) => (typeof c === "number" ? c + 1 : c));
       toast.success("Richiesta inviata! Ti scriviamo presto.");
       setForm({ name: "", email: "", phone: "", message: "" });
     } catch {
@@ -76,10 +82,29 @@ export const EventoDettaglio = () => {
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
   const copy = async () => {
+    // Try modern clipboard API first
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copiato!");
+        return;
+      }
+    } catch {}
+    // Fallback for iframes / older browsers
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = shareUrl;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
       toast.success("Link copiato!");
-    } catch { toast.error("Impossibile copiare."); }
+    } catch {
+      // Last resort: prompt user to copy manually
+      window.prompt("Copia il link qui sotto:", shareUrl);
+    }
   };
 
   if (loading) {
@@ -160,7 +185,7 @@ export const EventoDettaglio = () => {
                   <Copy size={14} /> Copia link
                 </button>
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`${event.title} — ${shareUrl}`)}`}
+                  href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${event.title} — ${shareUrl}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid="share-whatsapp"
@@ -198,6 +223,35 @@ export const EventoDettaglio = () => {
                     <Users size={15} /> {event.spots} posti disponibili
                   </div>
                 </div>
+                {typeof signupCount === "number" && signupCount >= 3 && (
+                  <div
+                    data-testid="event-social-proof"
+                    className="mt-5 pt-5 border-t border-tv-cream/15 flex items-center gap-3"
+                  >
+                    <div className="flex -space-x-2">
+                      {[0,1,2].map((i) => (
+                        <div
+                          key={i}
+                          className="w-8 h-8 rounded-full border-2 border-tv-green-deep flex items-center justify-center text-xs font-bold"
+                          style={{ background: ["#5CB176","#92C8B9","#F59E0B"][i], color: "#052F17" }}
+                        >
+                          {["A","B","C"][i]}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-sm font-semibold">
+                      Già <span className="text-tv-orange font-black">{signupCount}</span> {signupCount === 1 ? "persona iscritta" : "persone iscritte"}
+                    </div>
+                  </div>
+                )}
+                {typeof signupCount === "number" && signupCount > 0 && signupCount < 3 && (
+                  <div
+                    data-testid="event-social-proof-early"
+                    className="mt-5 pt-5 border-t border-tv-cream/15 text-sm opacity-90"
+                  >
+                    🌱 Sii tra i primi a iscriverti
+                  </div>
+                )}
               </div>
 
               {done ? (

@@ -222,6 +222,16 @@ async def get_event(event_id: str):
     return doc
 
 
+@api_router.get("/events/{event_id}/signups-count")
+async def get_event_signups_count(event_id: str):
+    """Public endpoint: returns just the count of signup requests for an event (privacy-safe)."""
+    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"id": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    count = await db.event_signups.count_documents({"event_id": doc["id"]})
+    return {"count": count}
+
+
 @api_router.post("/event-signup", response_model=EventSignup)
 async def create_event_signup(payload: EventSignupCreate):
     obj = EventSignup(**payload.model_dump())

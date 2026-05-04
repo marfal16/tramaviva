@@ -60,7 +60,7 @@ export const Contatti = () => {
               </div>
             </a>
             <a
-              href="https://www.instagram.com/tramavivaaps?igsh=a252bTk2b3F4OTVx&utm_source=qr"
+              href="https://www.instagram.com/tramavivaaps/"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="contact-instagram-link"
