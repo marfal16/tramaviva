@@ -84,6 +84,7 @@ class Contact(BaseModel):
 
 class Event(BaseModel):
     id: str
+    slug: str
     title: str
     category: str
     date: str
@@ -92,6 +93,38 @@ class Event(BaseModel):
     description: str
     emoji: str
     spots: int
+
+
+class EventCreate(BaseModel):
+    title: str
+    category: str
+    date: str  # YYYY-MM-DD
+    time: str  # HH:MM
+    location: str
+    description: str
+    emoji: str = "✨"
+    spots: int = 20
+    slug: Optional[str] = None
+
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    category: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    location: Optional[str] = None
+    description: Optional[str] = None
+    emoji: Optional[str] = None
+    spots: Optional[int] = None
+    slug: Optional[str] = None
+
+
+def make_slug(title: str) -> str:
+    import re, unicodedata
+    s = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode()
+    s = re.sub(r"[^a-zA-Z0-9\s-]", "", s).strip().lower()
+    s = re.sub(r"\s+", "-", s)
+    return s[:80] or "evento"
 
 
 # ---------- Seeded events ----------
@@ -173,15 +206,17 @@ async def root():
 
 @api_router.get("/events", response_model=List[Event])
 async def get_events():
-    return EVENTS
+    docs = await db.events.find({}, {"_id": 0}).sort("date", 1).to_list(1000)
+    return docs
 
 
 @api_router.get("/events/{event_id}", response_model=Event)
 async def get_event(event_id: str):
-    for e in EVENTS:
-        if e["id"] == event_id:
-            return e
-    raise HTTPException(status_code=404, detail="Evento non trovato")
+    # Allow lookup by id or slug
+    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    return doc
 
 
 @api_router.post("/event-signup", response_model=EventSignup)
@@ -254,13 +289,46 @@ async def admin_contacts():
 
 @api_router.delete("/admin/{collection}/{doc_id}", dependencies=[Depends(require_admin)])
 async def admin_delete(collection: str, doc_id: str):
-    allowed = {"event-signups": "event_signups", "memberships": "memberships", "contacts": "contacts"}
+    allowed = {
+        "event-signups": "event_signups",
+        "memberships": "memberships",
+        "contacts": "contacts",
+        "events": "events",
+    }
     if collection not in allowed:
         raise HTTPException(status_code=400, detail="Collezione non valida")
     res = await db[allowed[collection]].delete_one({"id": doc_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Documento non trovato")
     return {"ok": True}
+
+
+# ---------- Admin: Events CRUD ----------
+@api_router.get("/admin/events", dependencies=[Depends(require_admin)])
+async def admin_get_events():
+    docs = await db.events.find({}, {"_id": 0}).sort("date", 1).to_list(1000)
+    return docs
+
+
+@api_router.post("/admin/events", response_model=Event, dependencies=[Depends(require_admin)])
+async def admin_create_event(payload: EventCreate):
+    data = payload.model_dump()
+    data["id"] = str(uuid.uuid4())
+    data["slug"] = (data.get("slug") or make_slug(data["title"])) + "-" + data["id"][:6]
+    await db.events.insert_one(dict(data))
+    return Event(**data)
+
+
+@api_router.put("/admin/events/{event_id}", response_model=Event, dependencies=[Depends(require_admin)])
+async def admin_update_event(event_id: str, payload: EventUpdate):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    res = await db.events.update_one({"id": event_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    doc = await db.events.find_one({"id": event_id}, {"_id": 0})
+    return doc
 
 
 app.include_router(api_router)
@@ -275,6 +343,24 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+@app.on_event("startup")
+async def seed_events_on_startup():
+    """If the events collection is empty, seed it with the default events."""
+    try:
+        count = await db.events.count_documents({})
+        if count == 0:
+            seeded = []
+            for e in EVENTS:
+                doc = dict(e)
+                doc.setdefault("slug", make_slug(doc["title"]) + "-" + doc["id"][-4:])
+                seeded.append(doc)
+            if seeded:
+                await db.events.insert_many(seeded)
+                logger.info(f"Seeded {len(seeded)} events")
+    except Exception as ex:
+        logger.error(f"Event seed failed: {ex}")
 
 
 @app.on_event("shutdown")

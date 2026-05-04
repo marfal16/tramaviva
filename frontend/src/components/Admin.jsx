@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -90,27 +90,32 @@ const Login = ({ onLogin }) => {
 };
 
 const TABS = [
-  { key: "memberships", label: "Iscrizioni soci", icon: Users, path: "memberships" },
-  { key: "event-signups", label: "Richieste eventi", icon: Calendar, path: "event-signups" },
-  { key: "contacts", label: "Messaggi contatti", icon: MessageSquare, path: "contacts" },
+  { key: "events", label: "Eventi", icon: CalendarPlus },
+  { key: "memberships", label: "Iscrizioni soci", icon: Users },
+  { key: "event-signups", label: "Richieste eventi", icon: Calendar },
+  { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
 
+const CATEGORIES = ["Aperitivi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
+
 const Dashboard = ({ token, onLogout }) => {
-  const [tab, setTab] = useState("memberships");
-  const [data, setData] = useState({ memberships: [], "event-signups": [], contacts: [] });
+  const [tab, setTab] = useState("events");
+  const [data, setData] = useState({ memberships: [], "event-signups": [], contacts: [], events: [] });
   const [loading, setLoading] = useState(true);
+  const [eventEditor, setEventEditor] = useState(null);
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [m, es, c] = await Promise.all([
+      const [m, es, c, ev] = await Promise.all([
         axios.get(`${API}/admin/memberships`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
+        axios.get(`${API}/admin/events`, authHeader),
       ]);
-      setData({ memberships: m.data, "event-signups": es.data, contacts: c.data });
+      setData({ memberships: m.data, "event-signups": es.data, contacts: c.data, events: ev.data });
     } catch (err) {
       if (err.response?.status === 401) {
         toast.error("Sessione scaduta, rifai login.");
@@ -208,6 +213,13 @@ const Dashboard = ({ token, onLogout }) => {
 
         {loading ? (
           <div className="text-tv-green-deep/60" data-testid="admin-loading">Caricamento…</div>
+        ) : tab === "events" ? (
+          <EventsManager
+            events={data.events}
+            onCreate={() => setEventEditor("new")}
+            onEdit={(ev) => setEventEditor(ev)}
+            onDelete={(id) => remove("events", id)}
+          />
         ) : list.length === 0 ? (
           <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
             Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
@@ -262,9 +274,254 @@ const Dashboard = ({ token, onLogout }) => {
           </div>
         )}
       </main>
+
+      {eventEditor && (
+        <EventEditor
+          token={token}
+          initial={eventEditor === "new" ? null : eventEditor}
+          onClose={() => setEventEditor(null)}
+          onSaved={() => { setEventEditor(null); loadAll(); }}
+        />
+      )}
     </div>
   );
 };
+
+// ---------- Events Manager ----------
+const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
+  const fmtDay = (d) => {
+    try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
+    catch { return d; }
+  };
+  return (
+    <div data-testid="admin-events-manager">
+      <button
+        onClick={onCreate}
+        data-testid="admin-event-new"
+        className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold mb-6"
+      >
+        <Plus size={18} /> Crea nuovo evento
+      </button>
+      {events.length === 0 ? (
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+          Nessun evento ancora. Crea il primo!
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {events.map((ev) => (
+            <article
+              key={ev.id}
+              data-testid={`admin-event-row-${ev.id}`}
+              className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
+            >
+              <div className="flex items-start gap-4 flex-1">
+                <span className="text-3xl">{ev.emoji}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold uppercase tracking-wider bg-tv-mint/40 text-tv-green-deep px-2.5 py-1 rounded-full">
+                      {ev.category}
+                    </span>
+                    <span className="text-xs text-tv-green-deep/60">
+                      {fmtDay(ev.date)} · {ev.time}
+                    </span>
+                  </div>
+                  <h3 className="mt-1 font-display font-black text-lg text-tv-green-deep">{ev.title}</h3>
+                  <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end md:self-center">
+                <button
+                  onClick={() => onEdit(ev)}
+                  data-testid={`admin-event-edit-${ev.id}`}
+                  className="p-2.5 rounded-full bg-tv-mint/30 text-tv-green-deep hover:bg-tv-mint transition-colors"
+                  aria-label="Modifica"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  onClick={() => onDelete(ev.id)}
+                  data-testid={`admin-event-delete-${ev.id}`}
+                  className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+                  aria-label="Elimina"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---------- Event Editor (create / edit) ----------
+const EMOJI_CHOICES = ["🍹", "🌿", "💚", "💻", "🎬", "🎨", "🎉", "🧘", "🥾", "🎤", "📚", "🍕", "✨"];
+
+const EventEditor = ({ token, initial, onClose, onSaved }) => {
+  const isNew = !initial;
+  const [form, setForm] = useState(
+    initial || {
+      title: "",
+      category: CATEGORIES[0],
+      date: "",
+      time: "19:00",
+      location: "",
+      description: "",
+      emoji: "✨",
+      spots: 20,
+    }
+  );
+  const [saving, setSaving] = useState(false);
+  const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.title || !form.category || !form.date || !form.time || !form.location || !form.description) {
+      toast.error("Compila tutti i campi obbligatori.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = { ...form, spots: Number(form.spots) || 20 };
+      const headers = { Authorization: `Bearer ${token}` };
+      if (isNew) {
+        await axios.post(`${API}/admin/events`, payload, { headers });
+        toast.success("Evento creato!");
+      } else {
+        await axios.put(`${API}/admin/events/${initial.id}`, payload, { headers });
+        toast.success("Evento aggiornato!");
+      }
+      onSaved();
+    } catch (err) {
+      toast.error("Errore nel salvataggio.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+      data-testid="admin-event-editor"
+    >
+      <form
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+        className="w-full max-w-2xl bg-tv-cream rounded-[2rem] p-7 md:p-9 my-8 relative"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-5 right-5 p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+          data-testid="admin-event-editor-close"
+          aria-label="Chiudi"
+        >
+          <X size={16} />
+        </button>
+        <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
+          {isNew ? "Nuovo evento" : "Modifica evento"}
+        </div>
+        <h3 className="mt-1 font-display font-black text-2xl md:text-3xl text-tv-green-deep">
+          {isNew ? "Crea evento" : form.title}
+        </h3>
+
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Titolo *" value={form.title} onChange={change("title")} required testid="event-title" />
+          <label className="block">
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
+              Categoria *
+            </div>
+            <select
+              data-testid="event-category"
+              value={form.category}
+              onChange={change("category")}
+              className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+            >
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <Field label="Data *" type="date" value={form.date} onChange={change("date")} required testid="event-date" />
+          <Field label="Ora *" type="time" value={form.time} onChange={change("time")} required testid="event-time" />
+          <Field label="Luogo *" value={form.location} onChange={change("location")} required testid="event-location" />
+          <Field label="Posti" type="number" value={form.spots} onChange={change("spots")} testid="event-spots" />
+        </div>
+
+        <label className="block mt-4">
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
+            Descrizione *
+          </div>
+          <textarea
+            data-testid="event-description"
+            rows={4}
+            value={form.description}
+            onChange={change("description")}
+            placeholder="Cosa succede in questo evento? Sii ironic*, fresc*, vivac*."
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
+          />
+        </label>
+
+        <div className="mt-4">
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+            Emoji
+          </div>
+          <div className="flex flex-wrap gap-2" data-testid="event-emoji-picker">
+            {EMOJI_CHOICES.map((em) => (
+              <button
+                key={em}
+                type="button"
+                onClick={() => setForm({ ...form, emoji: em })}
+                data-testid={`event-emoji-${em}`}
+                className={`w-11 h-11 rounded-2xl text-xl transition-all ${
+                  form.emoji === em
+                    ? "bg-tv-green-deep ring-2 ring-tv-green-deep scale-110"
+                    : "bg-white border border-tv-green-deep/15 hover:bg-tv-mint/30"
+                }`}
+              >
+                {em}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            data-testid="event-save"
+            className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60"
+          >
+            {saving ? "Salvo…" : isNew ? "Crea evento" : "Salva modifiche"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold"
+          >
+            Annulla
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+const Field = ({ label, type = "text", value, onChange, required, testid }) => (
+  <label className="block">
+    <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
+      {label}
+    </div>
+    <input
+      data-testid={testid}
+      type={type}
+      value={value ?? ""}
+      onChange={onChange}
+      required={required}
+      className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+    />
+  </label>
+);
 
 export const Admin = () => {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
