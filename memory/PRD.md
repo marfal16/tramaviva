@@ -30,8 +30,12 @@ Sito vetrina per APS Trama Viva. Palette: Leaf Green #5CB176 (80%), Soft Cream #
   - POST /api/event-signup
   - POST /api/membership
   - POST /api/contact
-- [2025-12] Frontend React con tutte le 7 sezioni, logo SVG placeholder (ragnetto+ragnatela), navbar sticky glass, marquee, bento tetris attività, modale partecipazione eventi, form iscrizione soci, form contatti, footer bordeaux
-- [2025-12] Testing: 100% backend (13 test), 100% frontend (E2E)
+  - POST /api/admin/login (token-based)
+  - GET /api/admin/memberships, /api/admin/event-signups, /api/admin/contacts (Bearer token)
+  - DELETE /api/admin/{collection}/{id}
+- [2025-12] Frontend React con tutte le 7 sezioni, logo ufficiale (mark + full), navbar sticky glass, marquee, bento tetris attività, modale partecipazione eventi, form iscrizione soci, form contatti, footer bordeaux con logo grande
+- [2025-12] Pagina admin /admin: login a password (ADMIN_TOKEN env), dashboard 3 tab, export CSV, delete per riga
+- [2025-12] Bug fix: card "Aperitivi Sociali" che si restringeva (rimossa classe Tailwind in conflitto md:col-auto)
 
 ## Prioritized Backlog
 
