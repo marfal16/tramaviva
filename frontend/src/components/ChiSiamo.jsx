@@ -24,7 +24,7 @@ const values = [
   {
     icon: Zap,
     title: "Seri ma non seriosi",
-    body: "Un po' APS, un po' zingarata tra amici. Sempre con un motivo per esserci.",
+    body: "Un po' APS, un po' rimpatriata tra amici. Sempre con un motivo per esserci.",
     color: "bg-tv-sky",
     text: "text-tv-cream",
   },
