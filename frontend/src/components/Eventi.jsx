@@ -369,7 +369,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             day: "h-full w-full inline-flex items-center justify-center rounded-2xl text-tv-green-deep hover:bg-tv-mint/40 transition-colors aria-selected:opacity-100",
             day_selected:
               "bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep hover:text-tv-cream",
-            day_today: "ring-2 ring-tv-orange ring-inset",
+            day_today: "bg-tv-green-deep/10 font-bold",
             day_outside: "text-tv-green-deep/25",
             day_disabled: "text-tv-green-deep/25 opacity-50",
             day_hidden: "invisible",
