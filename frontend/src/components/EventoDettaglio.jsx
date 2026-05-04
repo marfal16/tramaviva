@@ -188,6 +188,7 @@ export const EventoDettaglio = () => {
                   href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`${event.title} — ${shareUrl}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
                   data-testid="share-whatsapp"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green text-tv-cream text-sm font-bold"
                 >
@@ -197,6 +198,7 @@ export const EventoDettaglio = () => {
                   href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  referrerPolicy="no-referrer"
                   data-testid="share-telegram"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-sky text-tv-cream text-sm font-bold"
                 >
@@ -239,8 +241,8 @@ export const EventoDettaglio = () => {
                         </div>
                       ))}
                     </div>
-                    <div className="text-sm font-semibold">
-                      Già <span className="text-tv-orange font-black">{signupCount}</span> {signupCount === 1 ? "persona iscritta" : "persone iscritte"}
+                    <div className="text-sm font-semibold leading-tight">
+                      <span className="text-tv-orange font-black">{signupCount}</span> {signupCount === 1 ? "persona ha già" : "persone hanno già"} chiesto di esserci
                     </div>
                   </div>
                 )}
@@ -249,7 +251,7 @@ export const EventoDettaglio = () => {
                     data-testid="event-social-proof-early"
                     className="mt-5 pt-5 border-t border-tv-cream/15 text-sm opacity-90"
                   >
-                    🌱 Sii tra i primi a iscriverti
+                    🌱 Sii tra i primi a chiedere di partecipare
                   </div>
                 )}
               </div>
@@ -273,6 +275,12 @@ export const EventoDettaglio = () => {
                   <p className="mt-1 text-sm text-tv-green-deep/60">
                     Mandaci la tua richiesta, ti rispondiamo noi.
                   </p>
+                  <div className="mt-4 p-3 rounded-2xl bg-tv-mint/30 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
+                    ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
+                    <Link to="/#iscrizione" className="underline font-bold hover:text-tv-bordeaux">
+                      iscriviti prima qui
+                    </Link>: la tessera ti dà accesso a tutti gli eventi dell'anno.
+                  </div>
                   <div className="mt-5 space-y-3">
                     <input
                       data-testid="detail-form-name"

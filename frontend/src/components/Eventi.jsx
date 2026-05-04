@@ -175,6 +175,16 @@ export const Eventi = () => {
             <p className="mt-1 text-sm text-tv-green-deep/60">
               {fmtDate(selected.date)} · {selected.time} · {selected.location}
             </p>
+            <div className="mt-4 p-3 rounded-2xl bg-tv-mint/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
+              ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
+              <a
+                href="#iscrizione"
+                onClick={(e) => { e.preventDefault(); setSelected(null); document.querySelector("#iscrizione")?.scrollIntoView({ behavior: "smooth" }); }}
+                className="underline font-bold hover:text-tv-bordeaux"
+              >
+                iscriviti prima qui
+              </a>.
+            </div>
             <div className="mt-6 space-y-3">
               <input
                 data-testid="event-form-name"

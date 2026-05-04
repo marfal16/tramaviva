@@ -63,6 +63,7 @@ export const Contatti = () => {
               href="https://www.instagram.com/tramavivaaps/"
               target="_blank"
               rel="noopener noreferrer"
+              referrerPolicy="no-referrer"
               data-testid="contact-instagram-link"
               className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green hover:bg-tv-mint/20 transition-colors"
             >

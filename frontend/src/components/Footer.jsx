@@ -64,6 +64,7 @@ export const Footer = () => (
               href="https://www.instagram.com/tramavivaaps/"
               target="_blank"
               rel="noopener noreferrer"
+              referrerPolicy="no-referrer"
               data-testid="footer-instagram"
               className="flex items-center gap-2 hover:text-tv-mint transition-colors"
             >
