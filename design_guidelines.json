@@ -1,0 +1,84 @@
+{
+  "theme": "light",
+  "archetype": "1 (Organic & Earthy) blended with 6 (Vibrant Play)",
+  "vibe": "Fresh, youthful, new, ironic, active, community-driven",
+  "typography": {
+    "heading_font": "Cabinet Grotesk",
+    "body_font": "Manrope",
+    "notes": "Use tracking-tight for large headings. Keep text-5xl/6xl max. Do not center everything; use asymmetry. Use font-light and font-black for contrast."
+  },
+  "colors": {
+    "background": {
+      "primary": "#F9ECD4",
+      "secondary": "#FFFFFF",
+      "tertiary": "#92C8B9"
+    },
+    "text": {
+      "primary": "#052F17",
+      "secondary": "#551118",
+      "muted": "#429DD0"
+    },
+    "brand": {
+      "primary": "#5CB176",
+      "secondary": "#92C8B9",
+      "accent": "#429DD0"
+    },
+    "accents": {
+      "bordeaux": "#551118",
+      "orange": "#F59E0B"
+    },
+    "mapping": {
+      "hero_bg": "#F9ECD4",
+      "buttons_primary": "#5CB176",
+      "buttons_hover": "#92C8B9",
+      "text_main": "#052F17",
+      "navbar_bg": "rgba(249, 236, 212, 0.8)",
+      "footer_bg": "#551118",
+      "footer_text": "#F9ECD4"
+    }
+  },
+  "layout_spacing": {
+    "bento_grid": "MODE A: TETRIS (Asymmetry, tension)",
+    "container_padding": "p-8 md:p-16",
+    "gap_strategy": "gap-8 md:gap-12",
+    "cards": "Subtle border with p-8 inside to avoid text collision, no harsh shadows, soft rounded corners (rounded-3xl)."
+  },
+  "components": {
+    "navbar": "Sticky, glassmorphism (backdrop-blur-xl bg-[#F9ECD4]/80) with clear CTA.",
+    "hero": "Hero overlay: abstract threads_background. Large typography 'Ogni filo conta'. CTA buttons.",
+    "activities_section": "Bento grid overlapping cards. 4 categories: Aperitivi Sociali, Passeggiate, Screening, Corsi IT. Use alternating background colors like #5CB176, #92C8B9, #429DD0, #F59E0B.",
+    "events_list": "List or bento grid with high contrast cards. Clear 'Partecipa' buttons.",
+    "forms": "Use Shadcn customized inputs. Rounded forms with bordeaux or green accents.",
+    "footer": "Large bold text, dark background (#551118), contrasting text (#F9ECD4)."
+  },
+  "motion": {
+    "hover": "-translate-y-1, scale-105 for buttons and cards",
+    "scroll": "Parallax on background images. Staggered fade up for grid items using framer-motion."
+  },
+  "graphics": {
+    "motif": "Intertwining threads and spiderwebs. Use raw SVG paths with stroke-dasharray animations for threads connecting sections."
+  },
+  "media": {
+    "hero_bg": "https://static.prod-images.emergentagent.com/jobs/6850b45b-c6df-4bcc-9abf-2472b2f90327/images/84a3ab8c8d6ad47787000f522c214f6600b42d101211b65bf11d4dd23b48146e.png",
+    "activities": {
+      "aperitivi": "https://images.unsplash.com/photo-1758610840977-8ee55513281c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MTJ8MHwxfHNlYXJjaHwyfHx5b3V0aCUyMHNvY2lhbCUyMGV2ZW50JTIwZ2F0aGVyaW5nfGVufDB8fHx8MTc3NzkwMjU1MHww&ixlib=rb-4.1.0&q=85",
+      "passeggiate": "https://images.unsplash.com/photo-1619133958778-69d3150a1ae6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwyfHxncm91cCUyMGhpa2luZyUyMG5hdHVyZXxlbnwwfHx8fDE3Nzc5MDI1NTB8MA&ixlib=rb-4.1.0&q=85",
+      "corsi_it": "https://images.pexels.com/photos/4709284/pexels-photo-4709284.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "screening": "https://images.unsplash.com/photo-1770223951393-da72d72c173e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MTJ8MHwxfHNlYXJjaHwzfHx5b3V0aCUyMHNvY2lhbCUyMGV2ZW50JTIwZ2F0aGVyaW5nfGVufDB8fHx8MTc3NzkwMjU1MHww&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Install and use 'Cabinet Grotesk' for headings and 'Manrope' for body text. Update tailwind.config.js to include these in fontFamily.",
+    "Implement Lucide React icons, especially for the spider/spiderweb theme. Use `<Network>`, `<Activity>`, `<Share2>` as thread/web decorations.",
+    "Create a custom logo component: Text 'APS Trama Viva' next to an SVG of a spider/spiderweb using #551118 or #5CB176.",
+    "Hero Section: Use the 'hero_bg' image with a glassmorphic or soft cream overlay (#F9ECD4/80). Feature the tagline 'Intrecciamo storie, persone e opportunità. Ogni filo conta.' in large, bold typography.",
+    "Activities Section Layout: Use an asymmetric 'Tetris' bento grid. Do not center everything. Break the conventional grid. Assign alternating background colors to cards: #5CB176, #92C8B9, #429DD0, #F59E0B.",
+    "Forms: Use Shadcn UI for the 'Iscrizione soci' and 'Contatti' forms. Customize them with rounded corners and the brand colors.",
+    "Navbar: Sticky with backdrop-blur-xl and a background of rgba(249, 236, 212, 0.8). Must have a clear 'Iscrizione' CTA.",
+    "Footer: Contrast heavily! Use Night Bordeaux (#551118) for the background with Soft Cream (#F9ECD4) text. Include Instagram link (@tramavivaaps).",
+    "Include 'data-testid' on all interactive elements: buttons, links, form inputs.",
+    "Animate the page using framer-motion: sections should fade and slide up, cards should scale subtly on hover.",
+    "Decorate the negative space with SVG squiggly lines or spiderwebs mimicking 'threads' (fili) spanning across sections.",
+    "Prioritize optical alignment over strict geometric alignment, and use generous padding (e.g. p-12, py-24)."
+  ]
+}
