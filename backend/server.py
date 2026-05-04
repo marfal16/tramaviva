@@ -93,6 +93,7 @@ class Event(BaseModel):
     description: str
     emoji: str
     spots: int
+    featured: bool = False
 
 
 class EventCreate(BaseModel):
@@ -105,6 +106,7 @@ class EventCreate(BaseModel):
     emoji: str = "✨"
     spots: int = 20
     slug: Optional[str] = None
+    featured: bool = False
 
 
 class EventUpdate(BaseModel):
@@ -117,6 +119,7 @@ class EventUpdate(BaseModel):
     emoji: Optional[str] = None
     spots: Optional[int] = None
     slug: Optional[str] = None
+    featured: Optional[bool] = None
 
 
 def make_slug(title: str) -> str:

@@ -11,6 +11,7 @@ import Iscrizione from "./components/Iscrizione";
 import Contatti from "./components/Contatti";
 import Footer from "./components/Footer";
 import Admin from "./components/Admin";
+import EventoDettaglio from "./components/EventoDettaglio";
 
 const Home = () => {
   useEffect(() => {
@@ -47,6 +48,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/eventi/:slug" element={<EventoDettaglio />} />
       </Routes>
     </BrowserRouter>
   );

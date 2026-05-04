@@ -325,7 +325,14 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
                       {fmtDay(ev.date)} · {ev.time}
                     </span>
                   </div>
-                  <h3 className="mt-1 font-display font-black text-lg text-tv-green-deep">{ev.title}</h3>
+                  <h3 className="mt-1 font-display font-black text-lg text-tv-green-deep flex items-center gap-2">
+                    {ev.title}
+                    {ev.featured && (
+                      <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
+                        ⭐ In evidenza
+                      </span>
+                    )}
+                  </h3>
                   <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti</div>
                 </div>
               </div>
@@ -370,6 +377,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
       description: "",
       emoji: "✨",
       spots: 20,
+      featured: false,
     }
   );
   const [saving, setSaving] = useState(false);
@@ -484,6 +492,22 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
             ))}
           </div>
         </div>
+
+        <label className="mt-5 flex items-center gap-3 cursor-pointer p-4 rounded-2xl bg-tv-orange/15 border border-tv-orange/30">
+          <input
+            type="checkbox"
+            data-testid="event-featured"
+            checked={!!form.featured}
+            onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+            className="w-5 h-5 accent-tv-green-deep"
+          />
+          <div className="flex-1">
+            <div className="font-bold text-tv-green-deep text-sm">⭐ Metti in evidenza</div>
+            <div className="text-xs text-tv-green-deep/70">
+              Diventa l'evento principale in homepage. Solo uno alla volta consigliato.
+            </div>
+          </div>
+        </label>
 
         <div className="mt-6 flex gap-3">
           <button

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
 import { it } from "date-fns/locale";
@@ -224,12 +225,65 @@ export const Eventi = () => {
 };
 
 // ---------- List view ----------
-const ListView = ({ events, onParticipate }) => (
-  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-    {events.map((ev) => (
-      <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} />
-    ))}
-  </div>
+const ListView = ({ events, onParticipate }) => {
+  const featured = events.find((e) => e.featured);
+  const others = featured ? events.filter((e) => e.id !== featured.id) : events;
+  return (
+    <>
+      {featured && <FeaturedCard ev={featured} onParticipate={onParticipate} />}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+        {others.map((ev) => (
+          <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} />
+        ))}
+      </div>
+    </>
+  );
+};
+
+const FeaturedCard = ({ ev, onParticipate }) => (
+  <article
+    data-testid={`event-featured-${ev.id}`}
+    className="relative bg-tv-green-deep text-tv-cream rounded-[2.5rem] p-7 md:p-12 mb-6 md:mb-8 overflow-hidden grid md:grid-cols-12 gap-8 items-center"
+  >
+    <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-tv-green/40 blur-3xl pointer-events-none" />
+    <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-tv-mint/30 blur-3xl pointer-events-none" />
+    <div className="relative md:col-span-7">
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tv-orange text-tv-green-deep text-[11px] font-bold uppercase tracking-wider">
+        <Star size={12} fill="currentColor" /> In evidenza · {ev.category}
+      </div>
+      <h3 className="mt-5 font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95]">
+        {ev.title}
+      </h3>
+      <p className="mt-4 text-base md:text-lg opacity-85 max-w-xl">
+        {ev.description}
+      </p>
+      <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <div className="flex items-center gap-2"><CalendarIcon size={15} /> {fmtDate(ev.date)}</div>
+        <div className="flex items-center gap-2"><Clock size={15} /> {ev.time}</div>
+        <div className="flex items-center gap-2"><MapPin size={15} /> {ev.location}</div>
+        <div className="flex items-center gap-2"><Users size={15} /> {ev.spots} posti</div>
+      </div>
+      <div className="mt-7 flex flex-wrap gap-3">
+        <button
+          onClick={() => onParticipate(ev)}
+          data-testid={`event-featured-participate-${ev.id}`}
+          className="btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-orange text-tv-green-deep font-bold"
+        >
+          Partecipa <ArrowRight size={16} />
+        </button>
+        <Link
+          to={`/eventi/${ev.slug || ev.id}`}
+          data-testid={`event-featured-detail-${ev.id}`}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-cream/10 border border-tv-cream/30 text-tv-cream font-bold hover:bg-tv-cream/20"
+        >
+          Vedi dettagli
+        </Link>
+      </div>
+    </div>
+    <div className="relative md:col-span-5 flex items-center justify-center text-[10rem] md:text-[12rem] leading-none">
+      {ev.emoji}
+    </div>
+  </article>
 );
 
 const EventCard = ({ ev, onParticipate, compact = false }) => (
@@ -281,6 +335,13 @@ const EventCard = ({ ev, onParticipate, compact = false }) => (
       Partecipa
       <ArrowRight size={16} />
     </button>
+    <Link
+      to={`/eventi/${ev.slug || ev.id}`}
+      data-testid={`event-detail-${ev.id}`}
+      className="mt-2 text-center text-xs font-semibold text-tv-green-deep/60 hover:text-tv-green-deep underline"
+    >
+      Vedi dettagli e condividi
+    </Link>
   </article>
 );
 
