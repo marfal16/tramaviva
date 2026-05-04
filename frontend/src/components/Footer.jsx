@@ -22,8 +22,10 @@ export const Footer = () => (
     <div className="relative mx-auto max-w-7xl px-6 md:px-10 py-16 md:py-20">
       <div className="grid md:grid-cols-12 gap-10">
         <div className="md:col-span-6">
-          <Logo size={44} textColor="#F9ECD4" />
-          <div className="mt-6 font-display font-black text-4xl md:text-6xl leading-[0.95]">
+          <div className="inline-block bg-tv-cream rounded-[2rem] p-4 md:p-5">
+            <Logo variant="full" size={220} />
+          </div>
+          <div className="mt-8 font-display font-black text-4xl md:text-6xl leading-[0.95]">
             Intrecciamo<br />
             storie, persone,<br />
             <span className="italic font-light">opportunità.</span>
@@ -59,7 +61,7 @@ export const Footer = () => (
           </div>
           <div className="space-y-3">
             <a
-              href="https://instagram.com/tramavivaaps"
+              href="https://www.instagram.com/tramavivaaps?igsh=a252bTk2b3F4OTVx&utm_source=qr"
               target="_blank"
               rel="noopener noreferrer"
               data-testid="footer-instagram"
