@@ -189,6 +189,17 @@ const Dashboard = ({ token, onLogout }) => {
     }
   };
 
+  const confirmSignup = async (row) => {
+  if (!window.confirm(`Confermi la presenza di ${row.name} e scali un posto da "${row.event_title}"?`)) return;
+  try {
+    await axios.post(`${API}/admin/event-signups/${row.id}/confirm`, {}, authHeader);
+    toast.success("Presenza confermata, posto scalato!");
+    loadAll();
+  } catch (e) {
+    toast.error(e.response?.data?.detail || "Errore nella conferma");
+  }
+};
+  
   const list = data[tab] || [];
 
   return (
@@ -327,6 +338,23 @@ const Dashboard = ({ token, onLogout }) => {
                       <Sparkles size={13} /> Tesseralo
                     </button>
                   )}
+                  
+              {tab === "event-signups" && row.is_member && !row.confirmed && (
+                <button
+                  onClick={() => confirmSignup(row)}
+                  data-testid={`admin-confirm-${row.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
+                  title="Conferma presenza e scala posto"
+                >
+                  <UserCheck size={13} /> Conferma
+                </button>
+              )}
+              {row.confirmed && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2.5 py-1 rounded-full">
+                  ✓ Confermato
+                </span>
+              )}
+                  
                   <button
                     onClick={() => remove(tab, row.id)}
                     data-testid={`admin-delete-${row.id}`}
