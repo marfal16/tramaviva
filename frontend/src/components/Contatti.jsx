@@ -84,7 +84,7 @@ export const Contatti = () => {
           <div className="font-display font-black text-2xl md:text-3xl leading-tight">
             Dicci tutto.
           </div>
-          <div className="mt-1 text-sm opacity-75">Rispondiamo di persona, promesso.</div>
+          <div className="mt-1 text-sm opacity-75">Rispondiamo in breve tempo, promesso.</div>
           <div className="mt-6 space-y-3">
             <Field id="name" placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <Field id="email" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
