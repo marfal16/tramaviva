@@ -417,6 +417,30 @@ async def admin_member_from_request(request_id: str, body: Optional[dict] = None
     await db.members.insert_one(doc)
     return member
 
+@api_router.post("/admin/event-signups/{signup_id}/confirm", dependencies=[Depends(require_admin)])
+async def confirm_event_signup(signup_id: str):
+    """Conferma presenza socio tesserato e scala un posto dall'evento."""
+    signup = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Iscrizione non trovata")
+    
+    event = await db.events.find_one({"id": signup["event_id"]}, {"_id": 0})
+    if not event:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    
+    if event.get("spots", 0) <= 0:
+        raise HTTPException(status_code=400, detail="Nessun posto disponibile")
+    
+    await db.events.update_one(
+        {"id": signup["event_id"]},
+        {"$inc": {"spots": -1}}
+    )
+    await db.event_signups.update_one(
+        {"id": signup_id},
+        {"$set": {"confirmed": True}}
+    )
+    return {"ok": True, "spots_remaining": event["spots"] - 1}
+
 
 # ---------- Admin: Events CRUD ----------
 @api_router.get("/admin/events", dependencies=[Depends(require_admin)])
