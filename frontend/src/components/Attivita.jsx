@@ -4,7 +4,7 @@ import { Wine, Mountain, Stethoscope, Laptop } from "lucide-react";
 const activities = [
   {
     icon: Wine,
-    title: "Aperitivi Sociali",
+    title: "Aperitivi & Chiacchiere",
     tag: "Il pretesto migliore",
     desc: "Spritz, tagliere e sconosciuti che diventano amici. Ogni volta un tema diverso, con la stessa energia.",
     bg: "bg-tv-green",
