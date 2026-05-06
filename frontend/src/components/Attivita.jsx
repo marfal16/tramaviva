@@ -29,7 +29,7 @@ const activities = [
   },
   {
     icon: Laptop,
-    title: "Corsi IT Base",
+    title: "Corsi IT",
     tag: "Zero paura del click",
     desc: "Per chi vuole capire, senza sentirsi dire 'ma come, non lo sai?'",
     bg: "bg-tv-sky",
