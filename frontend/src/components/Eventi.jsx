@@ -15,14 +15,14 @@ const fmtDate = (iso) => {
 };
 
 const categoryColor = {
-  "Aperitivi Sociali": "bg-tv-orange text-tv-green-deep",
+  "Aperitivi & Chiacchiere": "bg-tv-orange text-tv-green-deep",
   "Passeggiate": "bg-tv-mint text-tv-green-deep",
   "Screening Salute": "bg-tv-bordeaux text-tv-cream",
   "Corsi IT": "bg-tv-sky text-tv-cream",
 };
 
 const categoryDot = {
-  "Aperitivi Sociali": "#F59E0B",
+  "Aperitivi & Chiacchiere": "#F59E0B",
   "Passeggiate": "#92C8B9",
   "Screening Salute": "#551118",
   "Corsi IT": "#429DD0",
