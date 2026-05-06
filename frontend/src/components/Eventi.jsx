@@ -469,7 +469,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             </div>
             <div className="mt-2 text-sm text-tv-green-deep/70">
               Tocca una data sul calendario per vedere cosa succede quel giorno.
-              I pallini sotto i numeri segnalano gli eventi in programma.
+              I puntini sotto i numeri segnalano gli eventi in programma.
             </div>
           </div>
         ) : eventsForPicked.length === 0 ? (
