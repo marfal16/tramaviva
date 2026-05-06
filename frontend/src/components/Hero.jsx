@@ -36,8 +36,7 @@ export const Hero = () => {
           </h1>
           <p className="mt-8 max-w-xl text-lg md:text-xl text-tv-green-deep/75 font-medium">
             Ogni filo conta. Noi siamo <b className="text-tv-green-deep">Trama Viva</b> —
-            l'APS che tesse relazioni vere con aperitivi, passeggiate, screening salute
-            e corsi che non fanno dormire.
+            l'APS che tesse relazioni autentiche tra persone, per far crescere una comunità viva.
           </p>
           <div className="mt-10 flex flex-wrap gap-3">
             <a
