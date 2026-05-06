@@ -6,7 +6,7 @@ const activities = [
     icon: Wine,
     title: "Aperitivi Sociali",
     tag: "Il pretesto migliore",
-    desc: "Spritz, tagliere e 20 sconosciuti che escono amici. Ogni mese una tema diverso, stessa energia.",
+    desc: "Spritz, tagliere e sconosciuti che diventano amici. Ogni volta un tema diverso, con la stessa energia.",
     bg: "bg-tv-green",
     text: "text-tv-cream",
     col: "md:col-span-5 md:row-span-2",
@@ -30,8 +30,8 @@ const activities = [
   {
     icon: Laptop,
     title: "Corsi IT Base",
-    tag: "Zero paura del clic",
-    desc: "SPID, PEC, smartphone, email. Per chi vuole capire, senza sentirsi dire 'ma come, non lo sai?'",
+    tag: "Zero paura del click",
+    desc: "Per chi vuole capire, senza sentirsi dire 'ma come, non lo sai?'",
     bg: "bg-tv-sky",
     text: "text-tv-cream",
     col: "md:col-span-4",
@@ -65,7 +65,7 @@ export const Attivita = () => (
           </h2>
         </div>
         <div className="max-w-sm text-tv-cream/70 text-base">
-          Le nostre attività cambiano ogni mese, ma la trama resta: farti incontrare persone
+          Le nostre attività variano, ma la trama resta: farti incontrare persone
           vere, fuori dallo schermo.
         </div>
       </div>
