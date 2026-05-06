@@ -60,14 +60,13 @@ export const Iscrizione = () => {
           <p className="mt-6 text-lg text-tv-green-deep/75 leading-relaxed">
             Iscriverti a Trama Viva significa essere parte di una rete che si muove,
             propone, si incontra. Questa è solo la{" "}
-            <b>richiesta di iscrizione</b>: la conferma arriva dopo una chiacchierata con noi.
+            <b>richiesta di iscrizione</b>: la conferma arriva dopo una breve chiacchierata con noi.
           </p>
           <ul className="mt-8 space-y-3 text-tv-green-deep/80">
             {[
               "Accesso prioritario a tutti gli eventi",
               "Proponi le tue attività e iniziative",
-              "Tessera associativa digitale + cartacea",
-              "Sconti convenzioni locali (in arrivo)",
+              "Tessera associativa",
             ].map((t) => (
               <li key={t} className="flex items-center gap-2">
                 <CheckCircle2 size={18} className="text-tv-green shrink-0" />
