@@ -4,7 +4,7 @@ import { Wine, Mountain, Stethoscope, Laptop } from "lucide-react";
 const activities = [
   {
     icon: Wine,
-    title: "Aperitivi & Chiacchiere",
+    title: "Aperitivi",
     tag: "Il pretesto migliore",
     desc: "Spritz, tagliere e sconosciuti che diventano amici. Ogni volta un tema diverso, con la stessa energia.",
     bg: "bg-tv-green",
@@ -29,7 +29,7 @@ const activities = [
   },
   {
     icon: Laptop,
-    title: "Corsi IT",
+    title: "Corsi Informatici",
     tag: "Zero paura del click",
     desc: "Per chi vuole capire, senza sentirsi dire 'ma come, non lo sai?'",
     bg: "bg-tv-sky",
