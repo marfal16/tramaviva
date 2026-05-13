@@ -48,7 +48,8 @@ export const Contatti = () => {
             Scrivici qui o sui nostri canali. 
           </p>
           <div className="mt-8 space-y-3">
-            
+
+            <a
               href="mailto:tramavivaaps@gmail.com"
               data-testid="contact-email-link"
               className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green hover:bg-tv-mint/20 transition-colors"
@@ -59,7 +60,8 @@ export const Contatti = () => {
                 <div className="font-semibold text-tv-green-deep">tramavivaaps@gmail.com</div>
               </div>
             </a>
-            
+
+            <a
               href="https://www.instagram.com/tramavivaaps/"
               target="_blank"
               rel="noopener noreferrer"
@@ -73,7 +75,8 @@ export const Contatti = () => {
                 <div className="font-semibold text-tv-green-deep">@tramavivaaps</div>
               </div>
             </a>
-            
+
+            <a
               href="https://www.facebook.com/share/1DfEqcoruN/?mibextid=wwXIfr"
               target="_blank"
               rel="noopener noreferrer"
@@ -87,7 +90,8 @@ export const Contatti = () => {
                 <div className="font-semibold text-tv-green-deep">Trama Viva APS</div>
               </div>
             </a>
-            
+
+            <a
               href="https://www.tiktok.com/@tramavivaaps"
               target="_blank"
               rel="noopener noreferrer"
