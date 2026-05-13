@@ -5,8 +5,8 @@ const activities = [
   {
     icon: Wine,
     title: "Aperitivi",
-    tag: "Il pretesto migliore",
-    desc: "Spritz, tagliere e sconosciuti che diventano amici. Ogni volta un tema diverso, con la stessa energia.",
+    tag: "4 chiacchiere",
+    desc: "Quante volte hai visto un posto perfetto per la colazione o l'aperitivo dei tuoi sogni, ed hai cercato amici che ti somigliano per andarci insieme ? Uniamo luoghi e persone belle per quattro chiacchiere e socialità.",
     bg: "bg-tv-green",
     text: "text-tv-cream",
     col: "md:col-span-5 md:row-span-2",
@@ -23,15 +23,15 @@ const activities = [
     icon: Stethoscope,
     title: "Screening Salute",
     tag: "Prevenire è intrecciare",
-    desc: "Giornate con medici volontari. Controlli gratuiti senza file infinite.",
+    desc: "Giornate con medici volontari. Prevenzione e benessere vicini alle persone.",
     bg: "bg-tv-orange",
     col: "md:col-span-3 md:row-span-2",
   },
   {
     icon: Laptop,
-    title: "Corsi Informatici",
+    title: "Intelligenza Artificiale",
     tag: "Zero paura del click",
-    desc: "Per chi vuole capire, senza sentirsi dire 'ma come, non lo sai?'",
+    desc: "Per chi vuole capire, senza sentirsi dire “ma come, non lo sai fare?” ci siamo noi, con corsi e formazione sulle nuove tecnologie informatiche e non.",
     bg: "bg-tv-sky",
     text: "text-tv-cream",
     col: "md:col-span-4",
@@ -60,12 +60,12 @@ export const Attivita = () => (
             ② Cosa facciamo
           </div>
           <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-cream">
-            Quattro modi per<br />
+            Creiamo occasioni per<br />
             <span className="italic font-light text-tv-mint">smetterla di scrollare</span>.
           </h2>
         </div>
         <div className="max-w-sm text-tv-cream/70 text-base">
-          Le nostre attività variano, ma la trama resta: farti incontrare persone
+          Le nostre attività variano, ma la trama resta la stessa: farti incontrare persone
           vere, fuori dallo schermo.
         </div>
       </div>
