@@ -101,13 +101,22 @@ export const Hero = () => {
         <div className="flex marquee-track whitespace-nowrap text-tv-cream font-display font-black text-2xl md:text-4xl tracking-tight">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-10 px-6">
-              <span>Aperitivi Sociali</span>
+              <span>Passeggiamo in gruppo</span>
               <span className="text-tv-orange">✦</span>
-              <span>Passeggiate di Gruppo</span>
+              <span>Chiacchieriamo al bar</span>
               <span className="text-tv-mint">✦</span>
-              <span>Screening Salute</span>
+              <span>Facciamo colazione insieme</span>
               <span className="text-tv-orange">✦</span>
-              <span>Corsi IT Base</span>
+              <span>Riqualifichiamo spazi</span>
+
+              <span>Formiamo sulla tecnologia</span>
+              <span className="text-tv-orange">✦</span>
+              <span>Scopriamo musei</span>
+              <span className="text-tv-mint">✦</span>
+              <span>Creiamo Musica</span>
+              <span className="text-tv-orange">✦</span>
+              <span>Abbiamo a cuore la salute</span>
+              
               <span className="text-tv-mint">✦</span>
               <span className="italic font-light">Ogni filo conta</span>
               <span className="text-tv-orange">✦</span>
