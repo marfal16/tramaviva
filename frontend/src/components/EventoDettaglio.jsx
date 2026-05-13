@@ -279,7 +279,7 @@ export const EventoDettaglio = () => {
                     ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
                     <Link to="/#iscrizione" className="underline font-bold hover:text-tv-bordeaux">
                       iscriviti prima qui
-                    </Link>: la tessera ti dà accesso a tutti gli eventi dell'anno.
+                    </Link>
                   </div>
                   <div className="mt-5 space-y-3">
                     <input
