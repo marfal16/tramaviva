@@ -108,7 +108,6 @@ export const Hero = () => {
               <span>Facciamo colazione insieme</span>
               <span className="text-tv-orange">✦</span>
               <span>Riqualifichiamo spazi</span>
-
               <span>Formiamo sulla tecnologia</span>
               <span className="text-tv-orange">✦</span>
               <span>Scopriamo musei</span>
@@ -116,7 +115,6 @@ export const Hero = () => {
               <span>Creiamo Musica</span>
               <span className="text-tv-orange">✦</span>
               <span>Abbiamo a cuore la salute</span>
-              
               <span className="text-tv-mint">✦</span>
               <span className="italic font-light">Ogni filo conta</span>
               <span className="text-tv-orange">✦</span>
