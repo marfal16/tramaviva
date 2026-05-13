@@ -58,9 +58,8 @@ export const Iscrizione = () => {
             <span className="italic font-light text-tv-bordeaux">filo</span> alla trama.
           </h2>
           <p className="mt-6 text-lg text-tv-green-deep/75 leading-relaxed">
-            Iscriverti a Trama Viva significa essere parte di una rete che si muove,
-            propone, si incontra. Questa è solo la{" "}
-            <b>richiesta di iscrizione</b>: la conferma arriva dopo una breve chiacchierata con noi.
+            Iscriverti a Trama Viva significa essere parte di una rete che si muove, propone, si incontra. Invia subito la tua{" "}
+            <b>richiesta di iscrizione</b>: ti ricontatteremo a breve.
           </p>
           <ul className="mt-8 space-y-3 text-tv-green-deep/80">
             {[
