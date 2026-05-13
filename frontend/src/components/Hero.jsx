@@ -54,7 +54,7 @@ export const Hero = () => {
               data-testid="hero-cta-iscrizione"
               className="btn-tv inline-flex items-center gap-2 px-7 py-4 rounded-full bg-tv-orange text-tv-green-deep font-bold text-base hover:bg-tv-orange/90"
             >
-              Diventa socio: unisciti alla trama.
+              Diventa socio: unisciti alla trama
             </a>
           </div>
         </div>
