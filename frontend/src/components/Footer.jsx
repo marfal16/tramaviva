@@ -1,6 +1,6 @@
 import React from "react";
 import { Logo } from "./Logo";
-import { Instagram, Mail } from "lucide-react";
+import { Instagram, Mail, Send, Facebook } from "lucide-react";
 
 export const Footer = () => (
   <footer
