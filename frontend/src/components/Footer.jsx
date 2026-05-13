@@ -70,6 +70,34 @@ export const Footer = () => (
             >
               <Instagram size={18} /> @tramavivaaps
             </a>
+
+          {/* Facebook */}
+              <a
+                href="https://www.facebook.com/share/1DfEqcoruN/?mibextid=wwXIfr"
+                target="_blank"
+                rel="noopener noreferrer"
+                referrerPolicy="no-referrer"
+                data-testid="footer-facebook"
+                className="flex items-center gap-2 hover:text-tv-mint transition-colors text-sm"
+              >
+                <Facebook size={18} /> Trama Viva APS
+              </a>
+          
+              {/* TikTok */}
+              <a
+                href="https://www.tiktok.com/@tramavivaaps"
+                target="_blank"
+                rel="noopener noreferrer"
+                referrerPolicy="no-referrer"
+                data-testid="footer-tiktok"
+                className="flex items-center gap-2 hover:text-tv-mint transition-colors text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+                </svg> 
+                @tramavivaaps
+              </a>
+            
             <a
               href="mailto:tramavivaaps@gmail.com"
               data-testid="footer-email"
@@ -82,7 +110,7 @@ export const Footer = () => (
       </div>
       <div className="mt-14 pt-6 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-4 text-xs opacity-70">
         <div>© {new Date().getFullYear()} APS Trama Viva — Ogni filo conta.</div>
-        <div>Fatto con cura, caffè e qualche cammino.</div>
+        <div>Fatto con cura, amore e qualche caffè.</div>
       </div>
     </div>
   </footer>
