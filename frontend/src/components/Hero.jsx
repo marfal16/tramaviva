@@ -97,8 +97,8 @@ export const Hero = () => {
       </div>
 
       {/* Marquee */}
-      <div className="relative mt-20 border-y-2 border-tv-green-deep/15 py-5 overflow-hidden bg-tv-green-deep">
-        <div className="flex marquee-track whitespace-nowrap text-tv-cream font-display font-black text-2xl md:text-4xl tracking-tight">
+      <div className="relative mt-20 border-y border-tv-green-deep/15 py-3 overflow-hidden bg-tv-green-deep">
+        <div className="flex marquee-track whitespace-nowrap text-tv-cream font-display font-black text-xl md:text-2xl lg:text-3xl tracking-tight uppercase">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-10 px-6">
               <span>Passeggiamo in gruppo</span>
