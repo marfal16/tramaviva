@@ -91,8 +91,8 @@ export const Eventi = () => {
               ③ Prossimi eventi
             </div>
             <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-green-deep">
-              Ci sei o ti<br />
-              <span className="italic font-light text-tv-bordeaux">racconto dopo</span> com'è andata?
+              Allora<br />
+              <span className="italic font-light text-tv-bordeaux">ci sei per il</span> prossimo evento?
             </h2>
           </div>
           <div className="text-tv-green-deep/70 max-w-sm">
