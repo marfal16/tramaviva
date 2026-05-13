@@ -92,7 +92,7 @@ export const Eventi = () => {
             </div>
             <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-green-deep">
               Allora<br />
-              <span className="italic font-light text-tv-bordeaux">ci sei per il</span> prossimo evento?
+              <span className="italic font-light text-tv-bordeaux">ci sei per il </span> prossimo evento?
             </h2>
           </div>
           <div className="text-tv-green-deep/70 max-w-sm">
