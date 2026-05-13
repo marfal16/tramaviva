@@ -54,7 +54,7 @@ export const Hero = () => {
               data-testid="hero-cta-iscrizione"
               className="btn-tv inline-flex items-center gap-2 px-7 py-4 rounded-full bg-tv-orange text-tv-green-deep font-bold text-base hover:bg-tv-orange/90"
             >
-              Unisciti alla trama
+              Diventa socio: unisciti alla trama.
             </a>
           </div>
         </div>
@@ -69,7 +69,8 @@ export const Hero = () => {
               Ogni<br />filo<br />conta.
             </div>
             <div className="mt-4 text-sm opacity-90">
-              Se ti stai chiedendo se sei dei nostri, la risposta è sì.
+              Vogliamo intrecciare storie, passioni e persone per creare una community fatta di valori condivisi. 
+              Diamo vita ad esperienze e momenti di condivisione autentici, in cui sentirci liberi di creare legami veri. Diventa socio e prendi parte all’avventura. 
             </div>
             <svg viewBox="0 0 100 100" className="absolute -bottom-6 -right-6 w-20 h-20 opacity-90">
               <circle cx="50" cy="50" r="44" fill="#F9ECD4" />
