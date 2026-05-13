@@ -50,7 +50,8 @@ export const ChiSiamo = () => (
           <p className="mt-6 text-lg text-tv-green-deep/75 leading-relaxed">
             Siamo partiti da una domanda semplice:{" "}
             <b>perché, da adulti, è diventato così difficile fare nuove amicizie?</b>{" "}
-            Da qui è nata Trama Viva: un nome che parla di fili intrecciati, connessioni autentiche e qualcosa di vivo, in continuo movimento.
+            Da qui è nata Trama Viva: un nome che parla di fili intrecciati, connessioni autentiche e qualcosa di vivo, 
+            in continuo movimento.
           </p>
           <p className="mt-4 text-lg text-tv-green-deep/75 leading-relaxed">
             Non organizziamo eventi per riempire una sala, ma per creare occasioni reali d’incontro. 
