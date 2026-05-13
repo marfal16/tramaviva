@@ -5,13 +5,13 @@ const values = [
   {
     icon: Users,
     title: "Persone prima di tutto",
-    body: "Non servono curriculum, solo voglia di fare rete.",
+    body: "Qui non contano le etichette: solo la tua voglia di fare rete.",
     color: "bg-tv-mint",
   },
   {
     icon: Compass,
     title: "In movimento, insieme",
-    body: "Dove ci si incontra davvero: ci si vede, si cammina, si fanno cose insieme.",
+    body: "Dove ci si incontra davvero: ci si vede, si cammina, si fanno cose belle insieme.",
     color: "bg-tv-green",
     text: "text-tv-cream",
   },
@@ -24,7 +24,7 @@ const values = [
   {
     icon: Zap,
     title: "Seri ma non seriosi",
-    body: "Un’APS con lo spirito di una chiacchierata tra amici. Sempre con un buon motivo per esserci.",
+    body: "Siamo un’APS, ma prima di tutto uno spazio umano e accogliente: con la leggerezza di una chiacchierata tra amici e sempre un buon motivo per ritrovarsi.",
     color: "bg-tv-sky",
     text: "text-tv-cream",
   },
@@ -49,13 +49,13 @@ export const ChiSiamo = () => (
           </h2>
           <p className="mt-6 text-lg text-tv-green-deep/75 leading-relaxed">
             Siamo partiti da una domanda semplice:{" "}
-            <b>perché è diventato così difficile farsi un amico da adulti?</b>{" "}
+            <b>perché, da adulti, è diventato così difficile fare nuove amicizie?</b>{" "}
             Da lì è nata Trama Viva — un nome che parla di fili intrecciati e di qualcosa
             di vivo, in movimento.
           </p>
           <p className="mt-4 text-lg text-tv-green-deep/75 leading-relaxed">
-            Non organizziamo eventi per riempire una sala. Li organizziamo per far sì che
-            due persone che non si conoscono si dicano, alla fine della serata,{" "}
+            Da qui è nata Trama Viva: un nome che parla di fili intrecciati, connessioni autentiche e qualcosa di vivo, in continuo movimento. Non organizziamo eventi per riempire una sala, ma per creare occasioni reali d’incontro. 
+            Momenti in cui due persone che prima non si conoscevano possano ritrovarsi, a fine serata, a dirsi:{" "}
             <i>"ci risentiamo la prossima settimana?"</i>.
           </p>
         </div>
