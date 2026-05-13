@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Instagram, Mail, Send } from "lucide-react";
+import { Instagram, Mail, Send, Facebook } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -44,11 +44,11 @@ export const Contatti = () => {
             <span className="italic font-light text-tv-bordeaux">un nuovo filo</span>.
           </h2>
           <p className="mt-6 text-lg text-tv-green-deep/75">
-            Hai una proposta? Vuoi collaborare? Vuoi solo dirci ciao?
-            Scrivici qui o sui nostri canali.
+            Hai una proposta? Vuoi collaborare? Vuoi lasciarci un feedback per un evento a cui hai partecipato? Vuoi solo dirci ciao? 
+            Scrivici qui o sui nostri canali. 
           </p>
           <div className="mt-8 space-y-3">
-            <a
+            
               href="mailto:tramavivaaps@gmail.com"
               data-testid="contact-email-link"
               className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green hover:bg-tv-mint/20 transition-colors"
@@ -59,7 +59,7 @@ export const Contatti = () => {
                 <div className="font-semibold text-tv-green-deep">tramavivaaps@gmail.com</div>
               </div>
             </a>
-            <a
+            
               href="https://www.instagram.com/tramavivaaps/"
               target="_blank"
               rel="noopener noreferrer"
@@ -70,6 +70,36 @@ export const Contatti = () => {
               <Instagram size={20} className="text-tv-bordeaux" />
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/60">Instagram</div>
+                <div className="font-semibold text-tv-green-deep">@tramavivaaps</div>
+              </div>
+            </a>
+            
+              href="https://www.facebook.com/share/1DfEqcoruN/?mibextid=wwXIfr"
+              target="_blank"
+              rel="noopener noreferrer"
+              referrerPolicy="no-referrer"
+              data-testid="contact-facebook-link"
+              className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green hover:bg-tv-mint/20 transition-colors"
+            >
+              <Facebook size={20} className="text-tv-bordeaux" />
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/60">Facebook</div>
+                <div className="font-semibold text-tv-green-deep">Trama Viva APS</div>
+              </div>
+            </a>
+            
+              href="https://www.tiktok.com/@tramavivaaps"
+              target="_blank"
+              rel="noopener noreferrer"
+              referrerPolicy="no-referrer"
+              data-testid="contact-tiktok-link"
+              className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green hover:bg-tv-mint/20 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-tv-bordeaux">
+                <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+              </svg>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/60">TikTok</div>
                 <div className="font-semibold text-tv-green-deep">@tramavivaaps</div>
               </div>
             </a>
