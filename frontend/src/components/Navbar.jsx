@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 import { Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+const navigate = useNavigate();
 
 const links = [
   { href: "#chi-siamo", label: "Chi siamo" },
@@ -46,22 +48,21 @@ export const Navbar = () => {
     e.preventDefault();
     setOpen(false);
 
-    // If we're on a detail page, navigate back to home first
-    if (isDetailPage) {
-      window.location.href = "/" + href;
-      return;
-    }
+  const sectionId = href.replace("#", "");
 
-    // Otherwise, scroll to the anchor on the current page
-    const el = document.querySelector(href);
-    if (el) {
-      const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-      window.scrollTo({
-        top: offsetTop,
-        behavior: "smooth"
-      });
-    }
-  };
+  // Se NON siamo nella home → torniamo alla home passando lo stato
+  if (location.pathname !== "/") {
+    navigate("/", { state: { scrollTo: sectionId } });
+    return;
+  }
+
+  // Se siamo già nella home → scroll immediato
+  const el = document.getElementById(sectionId);
+  if (el) {
+    const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
+    window.scrollTo({ top: offsetTop, behavior: "smooth" });
+  }
+};
 
   return (
     <header
