@@ -46,7 +46,7 @@ export const Iscrizione = () => {
     <section
       id="iscrizione"
       data-testid="iscrizione-section"
-      className="relative py-24 md:py-32 bg-tv-mint/50"
+      className="relative py-24 md:py-32 bg-tv-sky/50"
     >
       <div className="mx-auto max-w-7xl px-6 md:px-10 grid md:grid-cols-12 gap-10">
         <div className="md:col-span-5">
