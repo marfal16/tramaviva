@@ -98,7 +98,7 @@ const TABS = [
   { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
 
-const CATEGORIES = ["Aperitivi & Chiacchiere", "Passeggiate", "Screening Salute", "Corsi IT"];
+const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
 const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("events");
