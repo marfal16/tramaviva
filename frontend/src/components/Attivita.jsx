@@ -17,6 +17,7 @@ const activities = [
     tag: "Passo dopo passo",
     desc: "Parchi, sentieri urbani, trekking brevi. Si parla meglio quando si cammina.",
     bg: "bg-tv-bordeaux",
+    text: "text-tv-cream",
     col: "md:col-span-4",
   },
   {
