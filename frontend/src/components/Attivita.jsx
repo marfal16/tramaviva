@@ -6,7 +6,7 @@ const activities = [
     icon: Wine,
     title: "Aperitivi",
     tag: "4 chiacchiere",
-    desc: "Quante volte hai visto un posto perfetto per la colazione o l'aperitivo dei tuoi sogni, ed hai cercato amici che ti somigliano per andarci insieme? Uniamo luoghi e persone belle per quattro chiacchiere e socialità.",
+    desc: "Hai trovato il posto perfetto per l'aperitivo dei tuoi sogni, ma cerchi amici che ti somiglino per andarci? Uniamo posti e persone belle per momenti di vera socialità.",
     bg: "bg-tv-green",
     text: "text-tv-cream",
     col: "md:col-span-5 md:row-span-2",
