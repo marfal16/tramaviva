@@ -6,7 +6,7 @@ const activities = [
     icon: Wine,
     title: "Aperitivi",
     tag: "4 chiacchiere",
-    desc: "Quante volte hai visto un posto perfetto per la colazione o l'aperitivo dei tuoi sogni, ed hai cercato amici che ti somigliano per andarci insieme ? Uniamo luoghi e persone belle per quattro chiacchiere e socialità.",
+    desc: "Quante volte hai visto un posto perfetto per la colazione o l'aperitivo dei tuoi sogni, ed hai cercato amici che ti somigliano per andarci insieme? Uniamo luoghi e persone belle per quattro chiacchiere e socialità.",
     bg: "bg-tv-green",
     text: "text-tv-cream",
     col: "md:col-span-5 md:row-span-2",
@@ -14,7 +14,7 @@ const activities = [
   {
     icon: Mountain,
     title: "Passeggiate di Gruppo",
-    tag: "Camminare & chiacchierare",
+    tag: "Passo dopo passo",
     desc: "Parchi, sentieri urbani, trekking brevi. Si parla meglio quando si cammina.",
     bg: "bg-tv-mint",
     col: "md:col-span-4",
@@ -22,7 +22,7 @@ const activities = [
   {
     icon: Stethoscope,
     title: "Screening Salute",
-    tag: "Prevenire è intrecciare",
+    tag: "Fili di benessere",
     desc: "Giornate con medici volontari. Prevenzione e benessere vicini alle persone.",
     bg: "bg-tv-orange",
     col: "md:col-span-3 md:row-span-2",
@@ -31,7 +31,7 @@ const activities = [
     icon: Laptop,
     title: "Intelligenza Artificiale",
     tag: "Zero paura del click",
-    desc: "Per chi vuole capire, senza sentirsi dire “ma come, non lo sai fare?” ci siamo noi, con corsi e formazione sulle nuove tecnologie informatiche e non.",
+    desc: "Per chi vuole capire, senza sentirsi dire “ma come, non lo sai fare?” Ci siamo noi, con corsi e formazione sulle nuove tecnologie informatiche e non.",
     bg: "bg-tv-sky",
     text: "text-tv-cream",
     col: "md:col-span-4",
@@ -61,7 +61,7 @@ export const Attivita = () => (
           </div>
           <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-cream">
             Creiamo occasioni per<br />
-            <span className="italic font-light text-tv-mint">smetterla di scrollare</span>.
+            <span className="italic font-light text-tv-mint">smetterla di scrollare</span> .
           </h2>
         </div>
         <div className="max-w-sm text-tv-cream/70 text-base">
