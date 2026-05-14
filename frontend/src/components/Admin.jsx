@@ -245,7 +245,7 @@ const Dashboard = ({ token, onLogout }) => {
               className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all ${
                 tab === t.key
                   ? "bg-tv-green-deep text-tv-cream"
-                  : "bg-white text-tv-green-deep/70 hover:bg-tv-mint/30 border border-tv-green-deep/10"
+                  : "bg-white text-tv-green-deep/70 hover:bg-tv-sky/30 border border-tv-green-deep/10"
               }`}
             >
               <t.icon size={16} />
@@ -421,7 +421,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
                 <span className="text-3xl">{ev.emoji}</span>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold uppercase tracking-wider bg-tv-mint/40 text-tv-green-deep px-2.5 py-1 rounded-full">
+                    <span className="text-xs font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
                       {ev.category}
                     </span>
                     <span className="text-xs text-tv-green-deep/60">
@@ -443,7 +443,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
                 <button
                   onClick={() => onEdit(ev)}
                   data-testid={`admin-event-edit-${ev.id}`}
-                  className="p-2.5 rounded-full bg-tv-mint/30 text-tv-green-deep hover:bg-tv-mint transition-colors"
+                  className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors"
                   aria-label="Modifica"
                 >
                   <Pencil size={16} />
@@ -609,7 +609,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
                 className={`w-10 h-10 rounded-2xl text-xl transition-all ${
                   form.emoji === em
                     ? "bg-tv-green-deep ring-2 ring-tv-green-deep scale-110"
-                    : "bg-white border border-tv-green-deep/15 hover:bg-tv-mint/30"
+                    : "bg-white border border-tv-green-deep/15 hover:bg-tv-sky/30"
                 }`}
               >
                 {em}
@@ -738,7 +738,7 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
                 <button
                   onClick={() => onEdit(m)}
                   data-testid={`admin-member-edit-${m.id}`}
-                  className="p-2.5 rounded-full bg-tv-mint/30 text-tv-green-deep hover:bg-tv-mint transition-colors"
+                  className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors"
                   aria-label="Modifica"
                 >
                   <Pencil size={16} />
