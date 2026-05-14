@@ -16,7 +16,7 @@ const activities = [
     title: "Passeggiate di Gruppo",
     tag: "Passo dopo passo",
     desc: "Parchi, sentieri urbani, trekking brevi. Si parla meglio quando si cammina.",
-    bg: "bg-tv-mint",
+    bg: "bg-tv-bordeaux",
     col: "md:col-span-4",
   },
   {
