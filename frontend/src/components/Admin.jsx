@@ -511,35 +511,40 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
       setSaving(false);
     }
   };
-
   return (
     <div
-      className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
       onClick={onClose}
       data-testid="admin-event-editor"
     >
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-2xl bg-tv-cream rounded-[2rem] p-7 md:p-9 my-8 relative"
+        className="w-full max-w-2xl bg-tv-cream rounded-[2rem] p-5 md:p-9 my-4 md:my-8 relative"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"
-          data-testid="admin-event-editor-close"
-          aria-label="Chiudi"
-        >
-          <X size={16} />
-        </button>
-        <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
-          {isNew ? "Nuovo evento" : "Modifica evento"}
+        {/* Tasto chiusura sempre visibile */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
+              {isNew ? "Nuovo evento" : "Modifica evento"}
+            </div>
+            <h3 className="mt-1 font-display font-black text-xl md:text-3xl text-tv-green-deep">
+              {isNew ? "Crea evento" : form.title}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-shrink-0 p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+            data-testid="admin-event-editor-close"
+            aria-label="Chiudi"
+          >
+            <X size={16} />
+          </button>
         </div>
-        <h3 className="mt-1 font-display font-black text-2xl md:text-3xl text-tv-green-deep">
-          {isNew ? "Crea evento" : form.title}
-        </h3>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Griglia campi — 1 colonna su mobile, 2 su desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Titolo *" value={form.title} onChange={change("title")} required testid="event-title" />
           <label className="block">
             <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
@@ -558,25 +563,24 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
           <Field label="Ora *" type="time" value={form.time} onChange={change("time")} required testid="event-time" />
           <Field label="Luogo *" value={form.location} onChange={change("location")} required testid="event-location" />
           <Field label="Posti" type="number" value={form.spots} onChange={change("spots")} testid="event-spots" />
+          <label className="block">
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
+              Contributo (€)
+            </div>
+            <input
+              data-testid="event-contributo"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.contributo ?? 0}
+              onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })}
+              placeholder="0 = gratuito"
+              className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+            />
+            <div className="text-xs text-tv-green-deep/50 mt-1">Inserisci 0 per eventi gratuiti</div>
+          </label>
         </div>
 
-        <label className="block">
-          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
-            Contributo (€)
-          </div>
-          <input
-            data-testid="event-contributo"
-            type="number"
-            min="0"
-            step="0.01"
-            value={form.contributo ?? 0}
-            onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })}
-            placeholder="0 = gratuito"
-            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
-          />
-          <div className="text-xs text-tv-green-deep/50 mt-1">Inserisci 0 per eventi gratuiti</div>
-        </label>
-        
         <label className="block mt-4">
           <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
             Descrizione *
@@ -602,7 +606,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
                 type="button"
                 onClick={() => setForm({ ...form, emoji: em })}
                 data-testid={`event-emoji-${em}`}
-                className={`w-11 h-11 rounded-2xl text-xl transition-all ${
+                className={`w-10 h-10 rounded-2xl text-xl transition-all ${
                   form.emoji === em
                     ? "bg-tv-green-deep ring-2 ring-tv-green-deep scale-110"
                     : "bg-white border border-tv-green-deep/15 hover:bg-tv-mint/30"
@@ -614,7 +618,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
           </div>
         </div>
 
-        <label className="mt-5 flex items-center gap-3 cursor-pointer p-4 rounded-2xl bg-tv-orange/15 border border-tv-orange/30">
+        <label className="mt-4 flex items-center gap-3 cursor-pointer p-4 rounded-2xl bg-tv-orange/15 border border-tv-orange/30">
           <input
             type="checkbox"
             data-testid="event-featured"
@@ -630,7 +634,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
           </div>
         </label>
 
-        <div className="mt-6 flex gap-3">
+        <div className="mt-5 flex gap-3">
           <button
             type="submit"
             disabled={saving}
