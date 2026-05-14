@@ -11,7 +11,7 @@ const values = [
   {
     icon: Compass,
     title: "In movimento, insieme",
-    body: "Dove ci si incontra davvero: ci si vede, si cammina, si fanno cose belle insieme.",
+    body: "Qui ci si incontra per davvero: dalle passeggiate in riva al mare alle escursioni in montagna, perché le connessioni migliori nascono camminando insieme.",
     color: "bg-tv-green",
     text: "text-tv-cream",
   },
