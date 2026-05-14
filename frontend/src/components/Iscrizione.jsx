@@ -111,7 +111,7 @@ export const Iscrizione = () => {
                 <Field id="email" label="Email *" type="email" required value={form.email} onChange={change("email")} />
                 <Field id="phone" label="Telefono" value={form.phone} onChange={change("phone")} />
                 <Field id="city" label="Città" value={form.city} onChange={change("city")} />
-                <Field id="birthdate" label="Data di nascita" type="date" value={form.birthdate} onChange={change("birthdate")} />
+                <Field id="birthdate" label="Data di nascita" type="date" value={form.birthdate} onChange={change("birthdate")} className="w-full max-w-fullclassName="w-full max-w-full />
               </div>
               <label className="block mt-4">
                 <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
