@@ -37,7 +37,7 @@ export const Contatti = () => {
       <div className="mx-auto max-w-6xl px-6 md:px-10 grid md:grid-cols-2 gap-10 items-start">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
-            ⑤ Scrivici
+             Scrivici
           </div>
           <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-green-deep">
             Due righe,<br />
