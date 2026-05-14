@@ -19,7 +19,7 @@ const fmtDate = (iso) => {
 };
 
 const categoryColor = {
-  "Aperitivi & Chiacchiere": { bg: "bg-tv-orange", text: "text-tv-green-deep" },
+  "Laboratori & Eventi Sociali": { bg: "bg-tv-orange", text: "text-tv-green-deep" },
   "Passeggiate": { bg: "bg-tv-mint", text: "text-tv-green-deep" },
   "Screening Salute": { bg: "bg-tv-bordeaux", text: "text-tv-cream" },
   "Corsi IT": { bg: "bg-tv-sky", text: "text-tv-cream" },
