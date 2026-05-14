@@ -63,7 +63,7 @@ export const Navbar = () => {
               data-testid="nav-cta-iscrizione"
               className="btn-tv ml-2 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green"
             >
-              Unisciti alla trama
+              Diventa socio: unisciti alla trama
             </a>
           </nav>
           <button
