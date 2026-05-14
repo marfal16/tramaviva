@@ -436,7 +436,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
                       </span>
                     )}
                   </h3>
-                  <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"</div>
+                  <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"} </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 self-end md:self-center">
