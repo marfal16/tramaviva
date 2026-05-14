@@ -61,6 +61,7 @@ export const Iscrizione = () => {
             Iscriverti a Trama Viva significa essere parte di una rete che si muove, propone, si incontra. Invia subito la tua{" "}
             <b>richiesta di iscrizione</b>: ti ricontatteremo a breve.
           </p>
+          /*
           <ul className="mt-8 space-y-3 text-tv-green-deep/80">
             {[
               "Accesso prioritario a tutti gli eventi",
@@ -73,6 +74,7 @@ export const Iscrizione = () => {
               </li>
             ))}
           </ul>
+          */
         </div>
 
         <div className="md:col-span-7">
