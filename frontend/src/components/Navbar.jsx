@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 import { Menu, X } from "lucide-react";
 
@@ -13,6 +14,7 @@ const links = [
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -20,9 +22,20 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Check if we're on a detail page (not home)
+  const isDetailPage = location.pathname !== "/";
+
   const scrollTo = (href) => (e) => {
     e.preventDefault();
     setOpen(false);
+
+    // If we're on a detail page, navigate back to home first
+    if (isDetailPage) {
+      window.location.href = "/" + href;
+      return;
+    }
+
+    // Otherwise, scroll to the anchor on the current page
     const el = document.querySelector(href);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -42,7 +55,7 @@ export const Navbar = () => {
               : "bg-tv-cream/50 border border-tv-green-deep/5"
           }`}
         >
-          <a href="#hero" onClick={scrollTo("#hero")} data-testid="navbar-logo-link">
+          <a href="/" onClick={scrollTo("#hero")} data-testid="navbar-logo-link">
             <Logo size={36} />
           </a>
           <nav className="hidden md:flex items-center gap-1">
