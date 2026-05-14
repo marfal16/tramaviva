@@ -6,7 +6,7 @@ const values = [
     icon: Users,
     title: "Persone prima di tutto",
     body: "Oltre le etichette: solo la tua voglia di fare rete.",
-    color: "bg-tv-mint",
+    color: "bg-tv-bordeaux",
   },
   {
     icon: Compass,
