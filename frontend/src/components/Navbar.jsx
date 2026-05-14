@@ -22,6 +22,18 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Handle scroll to anchor when location changes (home page)
+  useEffect(() => {
+    if (location.pathname === "/" && location.hash) {
+      const el = document.querySelector(location.hash);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    }
+  }, [location]);
+
   // Check if we're on a detail page (not home)
   const isDetailPage = location.pathname !== "/";
 
