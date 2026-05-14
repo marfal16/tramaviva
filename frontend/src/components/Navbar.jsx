@@ -48,21 +48,22 @@ export const Navbar = () => {
     e.preventDefault();
     setOpen(false);
 
-  const sectionId = href.replace("#", "");
+     // If we're on a detail page, navigate back to home first
+    if (isDetailPage) {
+      window.location.href = "/" + href;
+      return;
+    }
 
-  // Se NON siamo nella home → torniamo alla home passando lo stato
-  if (location.pathname !== "/") {
-    navigate("/", { state: { scrollTo: sectionId } });
-    return;
-  }
-
-  // Se siamo già nella home → scroll immediato
-  const el = document.getElementById(sectionId);
-  if (el) {
-    const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-    window.scrollTo({ top: offsetTop, behavior: "smooth" });
-  }
-};
+    // Otherwise, scroll to the anchor on the current page
+    const el = document.querySelector(href);
+    if (el) {
+      const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
+      window.scrollTo({
+        top: offsetTop,
+        behavior: "smooth"
+      });
+    }
+  };
 
   return (
     <header
