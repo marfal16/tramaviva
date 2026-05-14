@@ -111,7 +111,14 @@ export const Iscrizione = () => {
                 <Field id="email" label="Email *" type="email" required value={form.email} onChange={change("email")} />
                 <Field id="phone" label="Telefono" value={form.phone} onChange={change("phone")} />
                 <Field id="city" label="Città" value={form.city} onChange={change("city")} />
-                <Field id="birthdate" label="Data di nascita" type="date" value={form.birthdate} onChange={change("birthdate")} className="w-full min-w-0 appearance-none px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep" />
+                             <Field 
+                  id="birthdate" 
+                  label="Data di nascita" 
+                  type="date" 
+                  value={form.birthdate} 
+                  onChange={change("birthdate")} 
+                  className="w-full" 
+                />
               </div>
               <label className="block mt-4">
                 <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
@@ -142,8 +149,8 @@ export const Iscrizione = () => {
   );
 };
 
-const Field = ({ id, label, required, type = "text", value, onChange }) => (
-  <label className="block">
+const Field = ({ id, label, required, type = "text", value, onChange, className }) => (
+  <label className={`block ${className || ""}`}>
     <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
       {label}
     </div>
@@ -153,7 +160,7 @@ const Field = ({ id, label, required, type = "text", value, onChange }) => (
       type={type}
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+      className="w-full min-w-0 appearance-none px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
     />
   </label>
 );
