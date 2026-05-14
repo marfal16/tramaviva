@@ -656,8 +656,8 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
   );
 };
 
-const Field = ({ label, type = "text", value, onChange, required, testid }) => (
-  <label className="block">
+const Field = ({ label, type = "text", value, onChange, required, testid, className = "" }) => (
+  <label className={`block ${className}`}>
     <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
       {label}
     </div>
@@ -667,7 +667,8 @@ const Field = ({ label, type = "text", value, onChange, required, testid }) => (
       value={value ?? ""}
       onChange={onChange}
       required={required}
-      className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+      /* h-[50px] e appearance-none risolvono il problema iPhone */
+      className="w-full h-[50px] px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep appearance-none"
     />
   </label>
 );
