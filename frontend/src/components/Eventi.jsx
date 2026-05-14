@@ -175,16 +175,34 @@ export const Eventi = () => {
             <p className="mt-1 text-sm text-tv-green-deep/60">
               {fmtDate(selected.date)} · {selected.time} · {selected.location}
             </p>
+
+            {/* Info section con contributo */}
             <div className="mt-4 p-3 rounded-2xl bg-tv-mint/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
-              ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
-              <a
-                href="#iscrizione"
-                onClick={(e) => { e.preventDefault(); setSelected(null); document.querySelector("#iscrizione")?.scrollIntoView({ behavior: "smooth" }); }}
-                className="underline font-bold hover:text-tv-bordeaux"
-              >
-                iscriviti prima qui
-              </a>.
+              {selected.contributo > 0 ? (
+                <>
+                  ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
+                  <a
+                    href="#iscrizione"
+                    onClick={(e) => { e.preventDefault(); setSelected(null); document.querySelector("#iscrizione")?.scrollIntoView({ behavior: "smooth" }); }}
+                    className="underline font-bold hover:text-tv-bordeaux"
+                  >
+                    iscriviti prima qui
+                  </a>.
+                </>
+              ) : (
+                <>
+                  💚 Questo evento è gratuito! Tutti possono partecipare.
+                </>
+              )}
             </div>
+
+            {/* Contributo info */}
+            {selected.contributo > 0 && (
+              <div className="mt-3 p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/30 text-xs text-tv-green-deep font-semibold">
+                💶 Contributo evento: {selected.contributo}€
+              </div>
+            )}
+
             <div className="mt-6 space-y-3">
               <input
                 data-testid="event-form-name"
@@ -273,6 +291,11 @@ const FeaturedCard = ({ ev, onParticipate }) => (
         <div className="flex items-center gap-2"><MapPin size={15} /> {ev.location}</div>
         <div className="flex items-center gap-2"><Users size={15} /> {ev.spots} posti</div>
       </div>
+      {ev.contributo > 0 && (
+        <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
+          💶 Contributo: {ev.contributo}€
+        </div>
+      )}
       <div className="mt-7 flex flex-wrap gap-3">
         <button
           onClick={() => onParticipate(ev)}
@@ -334,6 +357,11 @@ const EventCard = ({ ev, onParticipate, compact = false }) => (
       {!compact && (
         <div className="flex items-center gap-2">
           <Users size={14} /> {ev.spots} posti disponibili
+        </div>
+      )}
+      {!compact && ev.contributo > 0 && (
+        <div className="flex items-center gap-2 font-semibold">
+          💶 Contributo: {ev.contributo}€
         </div>
       )}
     </div>
