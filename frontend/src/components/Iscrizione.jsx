@@ -61,7 +61,7 @@ export const Iscrizione = () => {
             Iscriverti a Trama Viva significa essere parte di una rete che si muove, propone, si incontra. Invia subito la tua{" "}
             <b>richiesta di iscrizione</b>: ti ricontatteremo a breve.
           </p>
-          /*
+          {/*
           <ul className="mt-8 space-y-3 text-tv-green-deep/80">
             {[
               "Accesso prioritario a tutti gli eventi",
@@ -74,7 +74,7 @@ export const Iscrizione = () => {
               </li>
             ))}
           </ul>
-          */
+          */}
         </div>
 
         <div className="md:col-span-7">
@@ -111,7 +111,7 @@ export const Iscrizione = () => {
                 <Field id="email" label="Email *" type="email" required value={form.email} onChange={change("email")} />
                 <Field id="phone" label="Telefono" value={form.phone} onChange={change("phone")} />
                 <Field id="city" label="Città" value={form.city} onChange={change("city")} />
-                <Field id="birthdate" label="Data di nascita" type="date" value={form.birthdate} onChange={change("birthdate")} className="w-full max-w-fullclassName="w-full max-w-full />
+                <Field id="birthdate" label="Data di nascita" type="date" value={form.birthdate} onChange={change("birthdate")} className="w-full min-w-0 appearance-none px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep" />
               </div>
               <label className="block mt-4">
                 <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
