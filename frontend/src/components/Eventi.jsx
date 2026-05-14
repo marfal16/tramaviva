@@ -264,9 +264,9 @@ const FeaturedCard = ({ ev, onParticipate }) => (
       <h3 className="mt-5 font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95]">
         {ev.title}
       </h3>
-      <p className="mt-4 text-base md:text-lg opacity-85 max-w-xl whitespace-pre-wrap">
+     {/* <p className="mt-4 text-base md:text-lg opacity-85 max-w-xl whitespace-pre-wrap">
         {ev.description}
-      </p>
+      </p> */}
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <div className="flex items-center gap-2"><CalendarIcon size={15} /> {fmtDate(ev.date)}</div>
         <div className="flex items-center gap-2"><Clock size={15} /> {ev.time}</div>
