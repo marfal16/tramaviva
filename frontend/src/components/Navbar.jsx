@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 import { Menu, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-const navigate = useNavigate();
+
 
 const links = [
   { href: "#chi-siamo", label: "Chi siamo" },
@@ -18,6 +17,7 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
