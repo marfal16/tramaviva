@@ -16,7 +16,7 @@ const fmtDate = (iso) => {
 
 const categoryColor = {
   "Laboratori & Eventi Sociali": "bg-tv-orange text-tv-green-deep",
-  "Passeggiate": "bg-tv-mint text-tv-green-deep",
+  "Passeggiate": "bg-tv-sky text-tv-green-deep",
   "Screening Salute": "bg-tv-bordeaux text-tv-cream",
   "Corsi IT": "bg-tv-sky text-tv-cream",
 };
@@ -113,7 +113,7 @@ export const Eventi = () => {
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-all ${
                   view === "list"
                     ? "bg-tv-green-deep text-tv-cream"
-                    : "bg-white text-tv-green-deep/70 hover:bg-tv-mint/30 border border-tv-green-deep/10"
+                    : "bg-white text-tv-green-deep/70 hover:bg-tv-sky/30 border border-tv-green-deep/10"
                 }`}
               >
                 <LayoutGrid size={16} /> Lista
@@ -123,8 +123,8 @@ export const Eventi = () => {
                 data-testid="eventi-view-calendar"
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-all ${
                   view === "calendar"
-                    ? "bg-tv-green-deep text-tv-cream"
-                    : "bg-white text-tv-green-deep/70 hover:bg-tv-mint/30 border border-tv-green-deep/10"
+                    ? "bg-tv-green text-tv-cream"
+                    : "bg-white text-tv-green/70 hover:bg-tv-sky/30 border border-tv-green/10"
                 }`}
               >
                 <CalendarDays size={16} /> Calendario
@@ -177,7 +177,7 @@ export const Eventi = () => {
             </p>
 
             {/* Info section con contributo */}
-            <div className="mt-4 p-3 rounded-2xl bg-tv-mint/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
+            <div className="mt-4 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
               {selected.contributo > 0 ? (
                 <>
                   ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
@@ -274,7 +274,7 @@ const FeaturedCard = ({ ev, onParticipate }) => (
     className="relative bg-tv-green-deep text-tv-cream rounded-[2.5rem] p-7 md:p-12 mb-6 md:mb-8 overflow-hidden grid md:grid-cols-12 gap-8 items-center"
   >
     <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-tv-green/40 blur-3xl pointer-events-none" />
-    <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-tv-mint/30 blur-3xl pointer-events-none" />
+    <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-tv-sky/30 blur-3xl pointer-events-none" />
     <div className="relative md:col-span-7">
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tv-orange text-tv-green-deep text-[11px] font-bold uppercase tracking-wider">
         <Star size={12} fill="currentColor" /> In evidenza · {ev.category}
@@ -329,7 +329,7 @@ const EventCard = ({ ev, onParticipate, compact = false }) => (
     <div className="flex items-center justify-between mb-4">
       <span
         className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-          categoryColor[ev.category] || "bg-tv-mint text-tv-green-deep"
+          categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep"
         }`}
       >
         {ev.category}
@@ -456,7 +456,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             caption_label: "text-base font-display font-black text-tv-green-deep capitalize",
             nav: "space-x-1 flex items-center",
             nav_button:
-              "h-8 w-8 bg-tv-mint/30 text-tv-green-deep hover:bg-tv-mint rounded-full inline-flex items-center justify-center transition-colors",
+              "h-8 w-8 bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky rounded-full inline-flex items-center justify-center transition-colors",
             nav_button_previous: "absolute left-1",
             nav_button_next: "absolute right-1",
             table: "w-full border-collapse",
@@ -465,7 +465,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
               "flex-1 text-tv-green-deep/50 font-bold text-[11px] uppercase tracking-wider py-2",
             row: "flex w-full mt-1",
             cell: "flex-1 aspect-square text-center text-sm relative p-0",
-            day: "h-full w-full inline-flex items-center justify-center rounded-2xl text-tv-green-deep hover:bg-tv-mint/40 transition-colors aria-selected:opacity-100",
+            day: "h-full w-full inline-flex items-center justify-center rounded-2xl text-tv-green-deep hover:bg-tv-sky/40 transition-colors aria-selected:opacity-100",
             day_selected:
               "bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep hover:text-tv-cream",
             day_today: "bg-tv-green-deep/10 font-bold",
@@ -488,7 +488,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
       <div className="md:col-span-5 lg:col-span-5">
         {!pickedDate ? (
           <div
-            className="rounded-[2rem] p-8 bg-tv-mint/30 border border-tv-green-deep/10 text-tv-green-deep"
+            className="rounded-[2rem] p-8 bg-tv-sky/30 border border-tv-green-deep/10 text-tv-green-deep"
             data-testid="calendar-no-selection"
           >
             <CalendarDays size={28} className="mb-3" />
