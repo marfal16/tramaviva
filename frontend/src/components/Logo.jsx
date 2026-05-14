@@ -51,8 +51,8 @@ export const Logo = ({ variant = "inline", size = 40, className = "", textColor 
           className="font-display font-black text-[15px] tracking-tight"
           style={{ color: textColor }}
         >
-          APS <span style={{ color: "#5CB176" }}>Trama</span>{" "}
-          <span style={{ color: "#551118" }}>Viva</span>
+          APS <span style={{ color: "#A7B94C" }}>Trama</span>{" "}
+          <span style={{ color: "#5D1723" }}>Viva</span>
         </div>
         <div
           className="text-[10px] font-medium mt-0.5 opacity-70"
