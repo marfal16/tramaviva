@@ -4,7 +4,7 @@ import { Wine, Mountain, Stethoscope, Laptop } from "lucide-react";
 const activities = [
   {
     icon: Wine,
-    title: "Aperitivi",
+    title: "Laboratori & Eventi Sociali",
     tag: "4 chiacchiere",
     desc: "Hai trovato il posto perfetto per l'aperitivo dei tuoi sogni, ma cerchi amici che ti somiglino per andarci? Uniamo posti e persone belle per momenti di vera socialità.",
     bg: "bg-tv-green",
