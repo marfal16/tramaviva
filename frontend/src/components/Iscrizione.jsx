@@ -160,7 +160,7 @@ const Field = ({ id, label, required, type = "text", value, onChange, className 
       type={type}
       value={value}
       onChange={onChange}
-      className="w-full min-w-0 appearance-none px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+      className="w-full min-w-0 h-[50px] appearance-none px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep leading-none"
     />
   </label>
 );
