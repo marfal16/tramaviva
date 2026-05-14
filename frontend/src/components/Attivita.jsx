@@ -70,20 +70,21 @@ export const Attivita = () => (
         </div>
       </div>
 
-      <div className="grid md:grid-cols-12 gap-4 md:gap-6 auto-rows-[180px] md:auto-rows-[220px]">
+      {/* FIX: Rimosso auto-rows fisso su mobile (ora è auto), mantenuto su desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 md:auto-rows-[220px]">
         {activities.map((a, i) => (
           <div
             key={a.title}
             data-testid={`activity-card-${i}`}
-            className={`${a.bg} ${a.text || "text-tv-green-deep"} ${a.col} rounded-[2rem] p-7 md:p-8 flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 hover:rotate-[-1deg] relative overflow-hidden group`}
+            className={`${a.bg} ${a.text || "text-tv-green-deep"} ${a.col} rounded-[2rem] p-7 md:p-8 flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 hover:rotate-[-1deg] relative overflow-hidden group min-h-[220px] md:min-h-0`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4 md:mb-0">
               <a.icon size={32} strokeWidth={2.2} />
               <span className="text-xs font-bold uppercase tracking-wider opacity-80">
                 {a.tag}
               </span>
             </div>
-            <div>
+            <div className="flex flex-col grow justify-end">
               <div className="font-display font-black text-2xl md:text-3xl leading-tight">
                 {a.title}
               </div>
@@ -91,6 +92,8 @@ export const Attivita = () => (
                 {a.desc}
               </div>
             </div>
+            
+            {/* Decorazione SVG */}
             <div className="absolute -bottom-10 -right-10 w-32 h-32 opacity-10 transition-transform duration-500 group-hover:scale-125">
               <svg viewBox="0 0 100 100" className="w-full h-full">
                 <g stroke="currentColor" strokeWidth="1" fill="none">
