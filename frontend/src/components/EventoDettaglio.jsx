@@ -167,7 +167,7 @@ export const EventoDettaglio = () => {
               >
                 {event.title}
               </h1>
-               <!-- <div className="mt-8 text-7xl md:text-8xl">{event.emoji}</div> -->
+              {/* <div className="mt-8 text-7xl md:text-8xl">{event.emoji}</div> */}
               <p className="mt-8 text-lg md:text-xl text-tv-green-deep/80 leading-relaxed whitespace-pre-wrap">
                 {event.description}
               </p>
@@ -194,7 +194,7 @@ export const EventoDettaglio = () => {
                 >
                   <MessageCircle size={14} /> WhatsApp
                 </a>
-                    <!--
+                    {/*
                 <a
                   href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(event.title)}`}
                   target="_blank"
@@ -205,7 +205,7 @@ export const EventoDettaglio = () => {
                 >
                   <Send size={14} /> Telegram
                 </a>
-                    -->
+                   */}
               </div>
             </div>
 
