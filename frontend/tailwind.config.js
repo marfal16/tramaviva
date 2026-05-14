@@ -13,13 +13,13 @@ module.exports = {
             },
             colors: {
                 tv: {
-                    green: '#5CB176',
-                    'green-deep': '#052F17',
+                    green: '#A7B94C',
+                    'green-deep': '#2D3A18',
                     cream: '#F9ECD4',
-                    sky: '#429DD0',
+                    sky: '#8FC2E5',
                     mint: '#92C8B9',
-                    bordeaux: '#551118',
-                    orange: '#F59E0B',
+                    bordeaux: '#5D1723',
+                    orange: '#F99C2C',
                 },
                 background: 'hsl(var(--background))',
                 foreground: 'hsl(var(--foreground))',
