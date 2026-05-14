@@ -51,7 +51,7 @@ export const Iscrizione = () => {
       <div className="mx-auto max-w-7xl px-6 md:px-10 grid md:grid-cols-12 gap-10">
         <div className="md:col-span-5">
           <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
-            ④ Diventa socio
+              Diventa socio
           </div>
           <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-green-deep">
             Aggiungi il tuo<br />
