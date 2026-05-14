@@ -436,7 +436,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
                       </span>
                     )}
                   </h3>
-                  <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti</div>
+                  <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"</div>
                 </div>
               </div>
               <div className="flex items-center gap-2 self-end md:self-center">
@@ -481,6 +481,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
       emoji: "✨",
       spots: 20,
       featured: false,
+      contributo: 0,
     }
   );
   const [saving, setSaving] = useState(false);
@@ -559,6 +560,23 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
           <Field label="Posti" type="number" value={form.spots} onChange={change("spots")} testid="event-spots" />
         </div>
 
+        <label className="block">
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
+            Contributo (€)
+          </div>
+          <input
+            data-testid="event-contributo"
+            type="number"
+            min="0"
+            step="0.01"
+            value={form.contributo ?? 0}
+            onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })}
+            placeholder="0 = gratuito"
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+          />
+          <div className="text-xs text-tv-green-deep/50 mt-1">Inserisci 0 per eventi gratuiti</div>
+        </label>
+        
         <label className="block mt-4">
           <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
             Descrizione *
