@@ -104,19 +104,19 @@ export const Hero = () => {
               <span>Passeggiamo in gruppo</span>
               <span className="text-tv-orange">✦</span>
               <span>Chiacchieriamo al bar</span>
-              <span className="text-tv-mint">✦</span>
+              <span className="text-tv-sky">✦</span>
               <span>Facciamo colazione insieme</span>
               <span className="text-tv-orange">✦</span>
               <span>Riqualifichiamo spazi</span>
-              <span className="text-tv-mint">✦</span>
+              <span className="text-tv-sky">✦</span>
               <span>Formiamo sulla tecnologia</span>
               <span className="text-tv-orange">✦</span>
               <span>Scopriamo musei</span>
-              <span className="text-tv-mint">✦</span>
+              <span className="text-tv-sky">✦</span>
               <span>Creiamo Musica</span>
               <span className="text-tv-orange">✦</span>
               <span>Abbiamo a cuore la salute</span>
-              <span className="text-tv-mint">✦</span>
+              <span className="text-tv-sky">✦</span>
               <span className="italic font-light">Ogni filo conta</span>
               <span className="text-tv-orange">✦</span>
             </div>
