@@ -40,7 +40,7 @@ export const ChiSiamo = () => (
       <div className="grid md:grid-cols-12 gap-10">
         <div className="md:col-span-5">
           <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
-             Chi siamo
+              Chi siamo
           </div>
           <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-green-deep">
             Un'APS che{" "}
