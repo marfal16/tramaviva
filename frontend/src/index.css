@@ -7,13 +7,13 @@
 
 :root {
     /* Trama Viva palette */
-    --tv-green: #5CB176;
-    --tv-green-deep: #052F17;
+    --tv-green: #A7B94C;
+    --tv-green-deep: #2D3A18;
     --tv-cream: #F9ECD4;
-    --tv-sky: #429DD0;
+    --tv-sky: #8FC2E5;
     --tv-mint: #92C8B9;
-    --tv-bordeaux: #551118;
-    --tv-orange: #F59E0B;
+    --tv-bordeaux: #5D1723;
+    --tv-orange: #F99C2C;
 
     --background: 40 66% 90%;
     --foreground: 140 74% 10%;
