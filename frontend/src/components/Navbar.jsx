@@ -7,9 +7,10 @@ const links = [
   { href: "#chi-siamo", label: "Chi siamo" },
   { href: "#attivita", label: "Attività" },
   { href: "#eventi", label: "Eventi" },
-  { href: "#iscrizione", label: "Iscrizione" },
   { href: "#contatti", label: "Contatti" },
 ];
+
+const NAVBAR_HEIGHT = 80; // pixel offset for smooth scroll
 
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -27,9 +28,13 @@ export const Navbar = () => {
     if (location.pathname === "/" && location.hash) {
       const el = document.querySelector(location.hash);
       if (el) {
+        const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
         setTimeout(() => {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 100);
+          window.scrollTo({
+            top: offsetTop,
+            behavior: "smooth"
+          });
+        }, 50);
       }
     }
   }, [location]);
@@ -49,7 +54,13 @@ export const Navbar = () => {
 
     // Otherwise, scroll to the anchor on the current page
     const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el) {
+      const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
+      window.scrollTo({
+        top: offsetTop,
+        behavior: "smooth"
+      });
+    }
   };
 
   return (
@@ -122,7 +133,7 @@ export const Navbar = () => {
               className="mt-2 text-center px-4 py-3 rounded-2xl text-base font-bold bg-tv-green-deep text-tv-cream"
               data-testid="nav-mobile-cta"
             >
-              Unisciti alla trama
+              Diventa socio: unisciti alla trama
             </a>
           </div>
         )}
