@@ -224,6 +224,17 @@ export const EventoDettaglio = () => {
                   <div className="flex items-center gap-2">
                     <Users size={15} /> {event.spots} posti disponibili
                   </div>
+                  
+                  {event.contributo > 0 ? (
+                    <div className="flex items-center gap-2">
+                      💶 Contributo: {event.contributo}€
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      💚 Evento gratuito
+                    </div>
+                  )}
+                  
                 </div>
                 {typeof signupCount === "number" && signupCount >= 3 && (
                   <div
@@ -275,12 +286,14 @@ export const EventoDettaglio = () => {
                   <p className="mt-1 text-sm text-tv-green-deep/60">
                     Mandaci la tua richiesta, ti rispondiamo noi.
                   </p>
+                  {event.contributo > 0 && (
                   <div className="mt-4 p-3 rounded-2xl bg-tv-mint/30 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
                     ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
                     <Link to="/#iscrizione" className="underline font-bold hover:text-tv-bordeaux">
                       iscriviti prima qui
                     </Link>
                   </div>
+                  )}
                   <div className="mt-5 space-y-3">
                     <input
                       data-testid="detail-form-name"
