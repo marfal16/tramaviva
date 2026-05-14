@@ -57,7 +57,7 @@ export const Attivita = () => (
       <div className="flex items-end justify-between flex-wrap gap-6 mb-12">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-orange mb-4">
-            ② Cosa facciamo
+              Cosa facciamo
           </div>
           <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-cream">
             Creiamo occasioni per<br />
