@@ -123,8 +123,8 @@ export const Eventi = () => {
                 data-testid="eventi-view-calendar"
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-all ${
                   view === "calendar"
-                    ? "bg-tv-green text-tv-cream"
-                    : "bg-white text-tv-green/70 hover:bg-tv-sky/30 border border-tv-green/10"
+                    ? "bg-tv-green-deep text-tv-cream"
+                    : "bg-white text-tv-green-deep/70 hover:bg-tv-sky/30 border border-tv-green-deep/10"
                 }`}
               >
                 <CalendarDays size={16} /> Calendario
