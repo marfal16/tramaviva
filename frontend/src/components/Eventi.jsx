@@ -445,7 +445,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
           onSelect={setPickedDate}
           modifiers={modifiers}
           modifiersClassNames={{
-            hasEvent: "font-bold text-tv-green",
+            hasEvent: "font-bold text-tv-green-deep",
           }}
           components={{ DayContent: ({ date }) => renderDay(date) }}
           className="tv-calendar mx-auto"
@@ -453,24 +453,24 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             months: "flex flex-col items-center w-full",
             month: "space-y-4 w-full",
             caption: "flex justify-center pt-1 relative items-center mb-2",
-            caption_label: "text-base font-display font-black text-tv-green capitalize",
+            caption_label: "text-base font-display font-black text-tv-green-deep capitalize",
             nav: "space-x-1 flex items-center",
             nav_button:
-              "h-8 w-8 bg-tv-sky/30 text-tv-green hover:bg-tv-sky rounded-full inline-flex items-center justify-center transition-colors",
+              "h-8 w-8 bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky rounded-full inline-flex items-center justify-center transition-colors",
             nav_button_previous: "absolute left-1",
             nav_button_next: "absolute right-1",
             table: "w-full border-collapse",
             head_row: "flex w-full",
             head_cell:
-              "flex-1 text-tv-green/50 font-bold text-[11px] uppercase tracking-wider py-2",
+              "flex-1 text-tv-green-deep/50 font-bold text-[11px] uppercase tracking-wider py-2",
             row: "flex w-full mt-1",
             cell: "flex-1 aspect-square text-center text-sm relative p-0",
-            day: "h-full w-full inline-flex items-center justify-center rounded-2xl text-tv-green hover:bg-tv-sky/40 transition-colors aria-selected:opacity-100",
+            day: "h-full w-full inline-flex items-center justify-center rounded-2xl text-tv-green-deep hover:bg-tv-sky/40 transition-colors aria-selected:opacity-100",
             day_selected:
-              "bg-tv-green text-tv-cream hover:bg-tv-green hover:text-tv-cream",
-            day_today: "bg-tv-green/10 font-bold",
-            day_outside: "text-tv-green/25",
-            day_disabled: "text-tv-green/25 opacity-50",
+              "bg-tv-green-deep !text-tv-cream font-bold hover:bg-tv-green-deep hover:!text-tv-cream",
+            day_today: "bg-tv-green-deep/10 font-bold",
+            day_outside: "text-tv-green-deep/25",
+            day_disabled: "text-tv-green-deep/25 opacity-50",
             day_hidden: "invisible",
           }}
         />
