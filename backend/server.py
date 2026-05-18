@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio imp<ort AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -320,12 +320,9 @@ async def admin_login(payload: dict):
 async def admin_event_signups():
     docs = await db.event_signups.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     member_emails = await _get_member_emails()
-
-    # Carica tutti gli eventi in un dict per lookup veloce
     events = await db.events.find({}, {"_id": 0, "id": 1, "contributo": 1}).to_list(1000)
     events_map = {e["id"]: e for e in events}
-    
-   for d in docs:
+    for d in docs:
         d["is_member"] = (d.get("email") or "").lower() in member_emails
         event = events_map.get(d.get("event_id"), {})
         d["contributo"] = event.get("contributo", 0)
