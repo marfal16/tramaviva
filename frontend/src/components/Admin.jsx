@@ -339,7 +339,7 @@ const Dashboard = ({ token, onLogout }) => {
                     </button>
                   )}
                   
-              {tab === "event-signups" && row.is_member && !row.confirmed && (
+              {tab === "event-signups" && (row.is_member || row.contributo === 0) && !row.confirmed && (
                 <button
                   onClick={() => confirmSignup(row)}
                   data-testid={`admin-confirm-${row.id}`}
