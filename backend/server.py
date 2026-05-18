@@ -325,9 +325,9 @@ async def admin_event_signups():
     events = await db.events.find({}, {"_id": 0, "id": 1, "contributo": 1}).to_list(1000)
     events_map = {e["id"]: e for e in events}
     
-    for d in docs:
+   for d in docs:
         d["is_member"] = (d.get("email") or "").lower() in member_emails
-         event = events_map.get(d.get("event_id"), {})
+        event = events_map.get(d.get("event_id"), {})
         d["contributo"] = event.get("contributo", 0)
     return docs
 
