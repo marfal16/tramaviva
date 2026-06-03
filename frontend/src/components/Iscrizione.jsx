@@ -111,13 +111,21 @@ export const Iscrizione = () => {
                 <Field id="email" label="Email *" type="email" required value={form.email} onChange={change("email")} />
                 <Field id="phone" label="Telefono" value={form.phone} onChange={change("phone")} />
                 <Field id="city" label="Città" value={form.city} onChange={change("city")} />
-                             <Field 
+                 <Field 
                   id="birthdate" 
                   label="Data di nascita" 
                   type="date" 
                   value={form.birthdate} 
                   onChange={change("birthdate")} 
                   className="w-full" 
+                />
+                <Field 
+                  id="referral" 
+                  label="Come ci hai conosciuti?" 
+                  placeholder="Un amico, Instagram, volantino..." 
+                  value={form.referral || ""} 
+                  onChange={change("referral")} 
+                  className="md:col-span-2" // Lo estendiamo su due colonne così respira bene
                 />
               </div>
               <label className="block mt-4">
