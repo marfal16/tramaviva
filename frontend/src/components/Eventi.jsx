@@ -241,7 +241,7 @@ export const Eventi = () => {
                  placeholder="Come ci hai conosciuto? (opzionale)"
                  value={form.referral || ""}
                  onChange={(e) => setForm({ ...form, referral: e.target.value })}
-                 className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+                 className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
                />
             </div>
             <button
