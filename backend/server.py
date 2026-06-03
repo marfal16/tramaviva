@@ -364,7 +364,8 @@ async def admin_delete(collection: str, doc_id: str):
     }
     if collection not in allowed:
         raise HTTPException(status_code=400, detail="Collezione non valida")
-   target_collection = allowed[collection]
+    
+    target_collection = allowed[collection]
 
     if target_collection == "event_signups":
         # Cerchiamo l'iscrizione prima di cancellarla per vedere se era già confermata
