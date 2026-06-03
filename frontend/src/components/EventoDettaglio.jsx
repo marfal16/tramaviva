@@ -329,6 +329,13 @@ export const EventoDettaglio = () => {
                       onChange={(e) => setForm({ ...form, message: e.target.value })}
                       className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
                     />
+                    <input
+                      data-testid="detail-form-referral"
+                      placeholder="Come ci hai conosciuto? (opzionale)"
+                      value={form.referral || ""}
+                      onChange={(e) => setForm({ ...form, referral: e.target.value })}
+                      className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+                    />
                   </div>
                   <button
                     type="submit"
