@@ -289,7 +289,7 @@ const FeaturedCard = ({ ev, onParticipate }) => (
         <div className="flex items-center gap-2"><CalendarIcon size={15} /> {fmtDate(ev.date)}</div>
         <div className="flex items-center gap-2"><Clock size={15} /> {ev.time}</div>
         <div className="flex items-center gap-2"><MapPin size={15} /> {ev.location}</div>
-        <div className="flex items-center gap-2"><Users size={15} /> {ev.spots} posti</div>
+        <div className="flex items-center gap-2"><Users size={15} /> {ev.spots} posti disponibili</div>
       </div>
       {ev.contributo > 0 && (
         <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
