@@ -320,6 +320,7 @@ const Dashboard = ({ token, onLogout }) => {
                     )}
                     {row.phone && <span>📞 {row.phone}</span>}
                     {row.city && <span>📍 {row.city}</span>}
+                    {row.referral && <span>✨ Origine: {row.referral}</span>}
                   </div>
                   {(row.motivation || row.message) && (
                     <p className="mt-3 text-sm text-tv-green-deep/70 italic">
