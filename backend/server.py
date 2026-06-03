@@ -366,7 +366,6 @@ async def admin_delete(collection: str, doc_id: str):
         raise HTTPException(status_code=400, detail="Collezione non valida")
    target_collection = allowed[collection]
 
-    # Controllo specifico per le iscrizioni agli eventi
     if target_collection == "event_signups":
         # Cerchiamo l'iscrizione prima di cancellarla per vedere se era già confermata
         signup = await db.event_signups.find_one({"id": doc_id})
@@ -377,7 +376,6 @@ async def admin_delete(collection: str, doc_id: str):
                 {"$inc": {"spots": 1}}
             )
 
-    # Procediamo con l'eliminazione effettiva dal database
     res = await db[target_collection].delete_one({"id": doc_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Documento non trovato")
