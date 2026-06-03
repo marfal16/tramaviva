@@ -55,6 +55,7 @@ class MembershipCreate(BaseModel):
     city: Optional[str] = None
     birthdate: Optional[str] = None
     motivation: Optional[str] = None
+    referral: Optional[str] = None
 
 
 class Membership(BaseModel):
@@ -67,6 +68,7 @@ class Membership(BaseModel):
     city: Optional[str] = None
     birthdate: Optional[str] = None
     motivation: Optional[str] = None
+    referral: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
