@@ -122,7 +122,7 @@ export const Iscrizione = () => {
                 <Field 
                   id="referral" 
                   label="Come ci hai conosciuti?" 
-                  placeholder="Un amico, Instagram, volantino..." 
+                  placeholder="Un amico, Social, Passaparola..." 
                   value={form.referral || ""} 
                   onChange={change("referral")} 
                   className="md:col-span-2" // Lo estendiamo su due colonne così respira bene
