@@ -44,6 +44,7 @@ class EventSignup(BaseModel):
     message: Optional[str] = None
     referral: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    confirmed: bool = False
 
 
 class MembershipCreate(BaseModel):
@@ -363,9 +364,24 @@ async def admin_delete(collection: str, doc_id: str):
     }
     if collection not in allowed:
         raise HTTPException(status_code=400, detail="Collezione non valida")
-    res = await db[allowed[collection]].delete_one({"id": doc_id})
+   target_collection = allowed[collection]
+
+    # Controllo specifico per le iscrizioni agli eventi
+    if target_collection == "event_signups":
+        # Cerchiamo l'iscrizione prima di cancellarla per vedere se era già confermata
+        signup = await db.event_signups.find_one({"id": doc_id})
+        if signup and signup.get("confirmed") is True:
+            # Se era confermata, restituiamo il posto (+1) all'evento associato
+            await db.events.update_one(
+                {"id": signup["event_id"]},
+                {"$inc": {"spots": 1}}
+            )
+
+    # Procediamo con l'eliminazione effettiva dal database
+    res = await db[target_collection].delete_one({"id": doc_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Documento non trovato")
+        
     return {"ok": True}
 
 
