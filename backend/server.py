@@ -30,6 +30,7 @@ class EventSignupCreate(BaseModel):
     email: EmailStr
     phone: Optional[str] = None
     message: Optional[str] = None
+    referral: Optional[str] = None
 
 
 class EventSignup(BaseModel):
@@ -41,6 +42,7 @@ class EventSignup(BaseModel):
     email: str
     phone: Optional[str] = None
     message: Optional[str] = None
+    referral: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
