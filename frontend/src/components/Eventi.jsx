@@ -383,9 +383,9 @@ const EventCard = ({ ev, onParticipate, compact = false }) => (
     <Link
       to={`/eventi/${ev.slug || ev.id}`}
       data-testid={`event-detail-${ev.id}`}
-      className="mt-2 text-center text-xs font-semibold text-tv-green-deep/60 hover:text-tv-green-deep underline"
+      className="mt-3 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep hover:text-tv-cream transition-all duration-300"
     >
-      Vedi dettagli e condividi
+      Vedi dettagli
     </Link>
   </article>
 );
