@@ -346,11 +346,11 @@ const EventCard = ({ ev, onParticipate, compact = false }) => (
     <h3 className="font-display font-black text-xl md:text-2xl text-tv-green-deep leading-tight">
       {ev.title}
     </h3>
-    {!compact && (
-      <p className="mt-3 text-sm text-tv-green-deep/70 leading-snug flex-1">
-        {ev.description}
-      </p>
-    )}
+{/* {!compact && (
+  <p className="mt-3 text-sm text-tv-green-deep/70 leading-snug flex-1">
+    {ev.description}
+  </p>
+)} */}
     <div className="mt-4 space-y-1.5 text-sm text-tv-green-deep/80">
       <div className="flex items-center gap-2">
         <CalendarIcon size={14} /> {fmtDate(ev.date)}
