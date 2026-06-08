@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, CreditCard } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -14,6 +14,7 @@ const initial = {
   city: "",
   birthdate: "",
   motivation: "",
+  referral: "",
 };
 
 export const Iscrizione = () => {
@@ -29,14 +30,43 @@ export const Iscrizione = () => {
       toast.error("Nome, cognome ed email sono obbligatori.");
       return;
     }
+    
     setSubmitting(true);
+    
     try {
+      // PHASE 1: Salva l'anagrafica del socio sul database MongoDB
       await axios.post(`${API}/membership`, form);
-      setDone(true);
-      toast.success("Richiesta inviata! Ti contattiamo noi.");
-      setForm(initial);
-    } catch (e) {
-      toast.error("Qualcosa è andato storto. Riprova.");
+      
+      // PHASE 2: Richiedi a SumUp il checkout tramite il tuo Backend
+      toast.info("Generazione del link di pagamento sicuro...");
+      
+      const paymentResponse = await axios.post(`${API}/payments/create-checkout`, {
+        amount: 20.00, // Quota di tesseramento fissa
+        email: form.email,
+        description: `Quota associativa Trama Viva APS - ${form.first_name} ${form.last_name}`
+      });
+
+      // PHASE 3: SumUp risponde con i dati di pagamento. 
+      // Prendiamo l'url sicuro di reindirizzamento fornito da SumUp
+      const checkoutUrl = paymentResponse.data.checkout_url;
+
+      if (checkoutUrl) {
+        toast.success("Anagrafica salvata! Ti stiamo reindirizzando su SumUp per la quota...");
+        setForm(initial);
+        
+        // Reindirizza l'utente direttamente alla pagina di pagamento sicura di SumUp
+        setTimeout(() => {
+          window.location.href = checkoutUrl;
+        }, 1500);
+      } else {
+        // Se non c'è l'url diretto, mostriamo comunque il successo dell'anagrafica
+        setDone(true);
+        toast.success("Richiesta ricevuta! Completeremo il pagamento in seguito.");
+      }
+
+    } catch (error) {
+      console.error("Errore durante il flusso di iscrizione:", error);
+      toast.error("Qualcosa è andato storto durante l'iscrizione o il pagamento. Riprova.");
     } finally {
       setSubmitting(false);
     }
@@ -58,23 +88,9 @@ export const Iscrizione = () => {
             <span className="italic font-light text-tv-bordeaux">filo</span> alla trama.
           </h2>
           <p className="mt-6 text-lg text-tv-green-deep/75 leading-relaxed">
-            Iscriverti a Trama Viva significa essere parte di una rete che si muove, propone, si incontra. Invia subito la tua{" "}
-            <b>richiesta di iscrizione</b>: ti ricontatteremo a breve.
+            Iscriverti a Trama Viva significa essere parte di una rete che si muove, propone, si incontra. 
+            Invia la tua richiesta e versa la quota annuale di <b>15,00€</b> in totale sicurezza.
           </p>
-          {/*
-          <ul className="mt-8 space-y-3 text-tv-green-deep/80">
-            {[
-              "Accesso prioritario a tutti gli eventi",
-              "Proponi le tue attività e iniziative",
-              "Tessera associativa",
-            ].map((t) => (
-              <li key={t} className="flex items-center gap-2">
-                <CheckCircle2 size={18} className="text-tv-green shrink-0" />
-                <span>{t}</span>
-              </li>
-            ))}
-          </ul>
-          */}
         </div>
 
         <div className="md:col-span-7">
@@ -111,7 +127,7 @@ export const Iscrizione = () => {
                 <Field id="email" label="Email *" type="email" required value={form.email} onChange={change("email")} />
                 <Field id="phone" label="Telefono" value={form.phone} onChange={change("phone")} />
                 <Field id="city" label="Città" value={form.city} onChange={change("city")} />
-                 <Field 
+                <Field 
                   id="birthdate" 
                   label="Data di nascita" 
                   type="date" 
@@ -125,7 +141,7 @@ export const Iscrizione = () => {
                   placeholder="Un amico, Social, Passaparola..." 
                   value={form.referral || ""} 
                   onChange={change("referral")} 
-                  className="md:col-span-2" // Lo estendiamo su due colonne così respira bene
+                  className="md:col-span-2"
                 />
               </div>
               <label className="block mt-4">
@@ -141,13 +157,20 @@ export const Iscrizione = () => {
                   className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
                 />
               </label>
+
+              {/* Box informativo sulla quota */}
+              <div className="mt-4 p-4 rounded-2xl bg-tv-sky/30 border border-tv-bordeaux/10 flex items-center gap-3 text-sm text-tv-green-deep/90">
+                <CreditCard size={20} className="text-tv-bordeaux shrink-0" />
+                <span>La quota associativa annuale è di <b>20,00€</b>, pagabile online tramite carta con SumUp.</span>
+              </div>
+
               <button
                 type="submit"
                 disabled={submitting}
                 data-testid="iscrizione-submit"
-                className="btn-tv w-full mt-6 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60"
+                className="btn-tv w-full mt-6 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60 flex items-center justify-center gap-2"
               >
-                {submitting ? "Invio in corso…" : "Invia richiesta di iscrizione"}
+                {submitting ? "Elaborazione in corso…" : "Iscriviti e paga quota (€20)"}
               </button>
             </form>
           )}
