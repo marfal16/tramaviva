@@ -161,7 +161,7 @@ export const Iscrizione = () => {
               {/* Box informativo sulla quota */}
               <div className="mt-4 p-4 rounded-2xl bg-tv-sky/30 border border-tv-bordeaux/10 flex items-center gap-3 text-sm text-tv-green-deep/90">
                 <CreditCard size={20} className="text-tv-bordeaux shrink-0" />
-                <span>La quota associativa annuale è di <b>20,00€</b>, pagabile online tramite carta con SumUp.</span>
+                <span>La quota associativa annuale è di <b>15,00€</b>, pagabile online tramite carta con SumUp.</span>
               </div>
 
               <button
@@ -170,7 +170,7 @@ export const Iscrizione = () => {
                 data-testid="iscrizione-submit"
                 className="btn-tv w-full mt-6 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60 flex items-center justify-center gap-2"
               >
-                {submitting ? "Elaborazione in corso…" : "Iscriviti e paga quota (€20)"}
+                {submitting ? "Elaborazione in corso…" : "Iscriviti"}
               </button>
             </form>
           )}
