@@ -33,3 +33,4 @@ mangum==0.17.0
 pydantic==2.6.4
 email-validator==2.2.0
 starlette==0.37.2
+httpx
