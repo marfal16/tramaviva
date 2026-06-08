@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
+import httpx
 
 
 ROOT_DIR = Path(__file__).parent
@@ -128,6 +129,11 @@ class EventUpdate(BaseModel):
     slug: Optional[str] = None
     featured: Optional[bool] = None
     contributo: Optional[float] = None
+
+class PaymentRequest(BaseModel):
+    amount: float
+    email: EmailStr
+    description: str
 
 
 def make_slug(title: str) -> str:
@@ -297,6 +303,41 @@ async def create_contact(payload: ContactCreate):
     await db.contacts.insert_one(doc)
     return obj
 
+@api_router.post("/payments/create-checkout")
+async def create_sumup_checkout(payload: PaymentRequest):
+    api_key = os.environ.get("SUMUP_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Chiave API SumUp non configurata nel server")
+
+    formatted_amount = round(payload.amount, 2)
+    transaction_code = f"tv-{str(uuid.uuid4())[:8]}"
+
+    async with httpx.AsyncClient() as client:
+        url = "https://api.sumup.com/v1.1/checkouts"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        checkout_data = {
+            "amount": formatted_amount,
+            "currency": "EUR",
+            "pay_to_email": payload.email,
+            "description": payload.description,
+            "transaction_code": transaction_code,
+            # Forzato URL dinamico o di produzione per il rientro dell'utente
+            "return_url": "https://www.tramavivaaps.com" 
+        }
+
+        try:
+            response = await client.post(url, json=checkout_data, headers=headers)
+            if response.status_code != 201:
+                logger.error(f"Errore SumUp API: {response.status_code} - {response.text}")
+                raise HTTPException(status_code=400, detail="Impossibile avviare il pagamento con SumUp")
+            
+            return response.json()
+        except httpx.RequestError as exc:
+            logger.error(f"Errore di rete con SumUp: {exc}")
+            raise HTTPException(status_code=503, detail="Servizio di pagamento non raggiungibile")
 
 # ---------- Admin (token-protected) ----------
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
