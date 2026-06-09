@@ -41,7 +41,7 @@ export const Iscrizione = () => {
       toast.info("Generazione del link di pagamento sicuro...");
       
       const paymentResponse = await axios.post(`${API}/payments/create-checkout`, {
-        amount: 20.00, // Quota di tesseramento fissa
+        amount: 15.00, // Quota di tesseramento fissa
         email: form.email,
         description: `Quota associativa Trama Viva APS - ${form.first_name} ${form.last_name}`
       });
