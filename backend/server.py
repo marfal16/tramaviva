@@ -9,9 +9,7 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
-import httpx
-from sumup import Sumup
-from sumup.checkouts.resource import CreateCheckoutBody
+import httpx  
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -306,11 +304,9 @@ async def create_contact(payload: ContactCreate):
 
 @api_router.post("/payments/create-checkout")
 async def create_sumup_checkout(payload: PaymentRequest):
-    # 1. Recuperiamo i dati ambientali necessari
     api_key = os.environ.get("SUMUP_API_KEY")
     merchant_code = os.environ.get("SUMUP_MERCHANT_CODE")
     
-    # Controlli di sicurezza immediati
     if not api_key:
         logger.error("SUMUP_API_KEY non configurata")
         raise HTTPException(status_code=500, detail="Chiave API SumUp non configurata nel server")
@@ -318,41 +314,44 @@ async def create_sumup_checkout(payload: PaymentRequest):
         logger.error("SUMUP_MERCHANT_CODE non configurata")
         raise HTTPException(status_code=500, detail="Codice Commerciante SumUp non configurato nel server")
 
-    # 2. Prepariamo i parametri puliti
     formatted_amount = round(payload.amount, 2)
     checkout_reference = f"tv-{str(uuid.uuid4())[:8]}"
 
-    try:
-        # 3. Inizializziamo l'SDK di SumUp come da guida ufficiale
-        client_sumup = Sumup(api_key=api_key)
-        
-        # Creiamo il checkout con i parametri richiesti dalla documentazione
-        checkout = client_sumup.checkouts.create(
-            CreateCheckoutBody(
-                merchant_code=merchant_code,
-                amount=formatted_amount,
-                checkout_reference=checkout_reference,
-                currency="EUR",
-                description=payload.description,
-                redirect_url="https://www.tramavivaaps.com"  # Ritorno automatico al termine del pagamento
-            )
-        )
-        
-        logger.info(f"Checkout SumUp creato correttamente. ID: {checkout.id}")
-        
-        # 4. Risposta mappata per far funzionare all'istante il tuo frontend React
-        return {
-            "id": checkout.id,
-            "status": checkout.status,
-            "checkout_url": f"https://pay.sumup.com/checkouts/{checkout.id}"
+    # Facciamo la chiamata diretta HTTP usando i campi della guida ufficiale
+    async with httpx.AsyncClient() as client_http:
+        url = "https://api.sumup.com/v1.1/checkouts"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        checkout_data = {
+            "merchant_code": merchant_code,
+            "amount": formatted_amount,
+            "currency": "EUR",
+            "checkout_reference": checkout_reference,
+            "description": payload.description,
+            "redirect_url": "https://www.tramavivaaps.com"
         }
 
-    except Exception as exc:
-        logger.error(f"Errore SDK SumUp: {exc}")
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Impossibile avviare il pagamento con SumUp: {str(exc)}"
-        )
+        try:
+            response = await client_http.post(url, json=checkout_data, headers=headers)
+            
+            if response.status_code != 201:
+                logger.error(f"Errore SumUp API: {response.status_code} - {response.text}")
+                raise HTTPException(status_code=400, detail=f"Errore SumUp: {response.text}")
+            
+            res_json = response.json()
+            
+            # Restituiamo la struttura che si aspetta React
+            return {
+                "id": res_json.get("id"),
+                "status": res_json.get("status"),
+                "checkout_url": f"https://pay.sumup.com/checkouts/{res_json.get('id')}"
+            }
+            
+        except httpx.RequestError as exc:
+            logger.error(f"Errore di rete con SumUp: {exc}")
+            raise HTTPException(status_code=503, detail="Servizio di pagamento non raggiungibile")
 
 # ---------- Admin (token-protected) ----------
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
