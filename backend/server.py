@@ -323,8 +323,7 @@ async def create_sumup_checkout(payload: PaymentRequest):
             "currency": "EUR",
             "pay_to_email": payload.email,
             "description": payload.description,
-            "transaction_code": transaction_code,
-            # Forzato URL dinamico o di produzione per il rientro dell'utente
+            "checkout_reference": transaction_code,
             "return_url": "https://www.tramavivaaps.com" 
         }
 
