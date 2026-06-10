@@ -331,6 +331,9 @@ async def create_sumup_checkout(payload: PaymentRequest):
             "checkout_reference": checkout_reference,
             "description": payload.description,
             "redirect_url": "https://www.tramavivaaps.com"
+            "hosted_checkout": {
+                "enabled": True
+            }
         }
 
         try:
@@ -346,7 +349,7 @@ async def create_sumup_checkout(payload: PaymentRequest):
             return {
                 "id": res_json.get("id"),
                 "status": res_json.get("status"),
-                "checkout_url": f"https://pay.sumup.com/b2c/checkout/{res_json.get('id')}"
+                "checkout_url": res_json.get("hosted_checkout_url")
             }
             
         except httpx.RequestError as exc:
