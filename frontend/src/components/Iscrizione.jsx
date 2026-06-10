@@ -89,7 +89,6 @@ export const Iscrizione = () => {
           </h2>
           <p className="mt-6 text-lg text-tv-green-deep/75 leading-relaxed">
             Iscriverti a Trama Viva significa essere parte di una rete che si muove, propone, si incontra. 
-            Invia la tua richiesta e versa la quota annuale di <b>15,00€</b> in totale sicurezza.
           </p>
         </div>
 
@@ -161,7 +160,7 @@ export const Iscrizione = () => {
               {/* Box informativo sulla quota */}
               <div className="mt-4 p-4 rounded-2xl bg-tv-sky/30 border border-tv-bordeaux/10 flex items-center gap-3 text-sm text-tv-green-deep/90">
                 <CreditCard size={20} className="text-tv-bordeaux shrink-0" />
-                <span>La quota associativa annuale è di <b>15,00€</b>, pagabile online tramite carta con SumUp.</span>
+                <span>La quota associativa è di <b>15,00€</b>, valida un anno solare e pagabile online.</span>
               </div>
 
               <button
