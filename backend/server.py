@@ -346,7 +346,7 @@ async def create_sumup_checkout(payload: PaymentRequest):
             return {
                 "id": res_json.get("id"),
                 "status": res_json.get("status"),
-                "checkout_url": f"https://pay.sumup.com/checkouts/{res_json.get('id')}"
+                "checkout_url": f"https://pay.sumup.com/b2c/checkout/{res_json.get('id')}"
             }
             
         except httpx.RequestError as exc:
