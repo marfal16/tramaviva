@@ -330,7 +330,7 @@ async def create_sumup_checkout(payload: PaymentRequest):
             "currency": "EUR",
             "checkout_reference": checkout_reference,
             "description": payload.description,
-            "redirect_url": "https://www.tramavivaaps.com"
+            "redirect_url": "https://www.tramavivaaps.com",
             "hosted_checkout": {
                 "enabled": True
             }
