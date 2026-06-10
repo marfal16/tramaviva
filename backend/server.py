@@ -319,7 +319,7 @@ async def create_sumup_checkout(payload: PaymentRequest):
 
     # Facciamo la chiamata diretta HTTP usando i campi della guida ufficiale
     async with httpx.AsyncClient() as client_http:
-        url = "https://api.sumup.com/v1.1/checkouts"
+        url = "https://api.sumup.com/v0.1/checkouts"
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
