@@ -25,7 +25,7 @@ const Login = ({ onLogin }) => {
 
   const submit = async (e) => {
     e.preventDefault();
-    loading(true);
+    setLoading(true);
     try {
       await axios.post(`${API}/admin/login`, { token: pwd });
       localStorage.setItem(TOKEN_KEY, pwd);
@@ -52,7 +52,7 @@ const Login = ({ onLogin }) => {
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
             <Lock size={14} /> Area riservata
           </div>
-          <h1 className="mt-3 font-display font-black text-xl md:text-3xl text-tv-green-deep">
+          <h1 className="mt-3 font-display font-black text-3xl text-tv-green-deep">
             Dashboard amministratore
           </h1>
         </div>
@@ -93,8 +93,8 @@ const Login = ({ onLogin }) => {
 const TABS = [
   { key: "events", label: "Eventi", icon: CalendarPlus },
   { key: "members", label: "Soci tesserati", icon: IdCard },
-  { key: "registrations", label: "Richieste iscrizione", icon: Users }, // Cambiata chiave da memberships a registrations
-  { key: "event-signups", label: "Richieste events", icon: Calendar },
+  { key: "registrations", label: "Richieste iscrizione", icon: Users },
+  { key: "event-signups", label: "Richieste eventi", icon: Calendar },
   { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
 
@@ -103,10 +103,10 @@ const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Sal
 const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("events");
   const [data, setData] = useState({
-    registrations: [], "event-signups": [], contacts: [], events: [], members: [], // Inserito registrations al posto di memberships
+    registrations: [], "event-signups": [], contacts: [], events: [], members: [],
   });
   const [loading, setLoading] = useState(true);
-  const [pdfLoadingId, setPdfLoadingId] = useState(null); // Stato di caricamento specifico per il download del PDF
+  const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const [eventEditor, setEventEditor] = useState(null);
   const [memberEditor, setMemberEditor] = useState(null);
 
@@ -116,7 +116,7 @@ const Dashboard = ({ token, onLogout }) => {
     setLoading(true);
     try {
       const [r, es, c, ev, mem] = await Promise.all([
-        axios.get(`${API}/admin/registrations`, authHeader), // Reindirizzato l'endpoint su registrations
+        axios.get(`${API}/admin/registrations`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
         axios.get(`${API}/admin/events`, authHeader),
@@ -134,7 +134,7 @@ const Dashboard = ({ token, onLogout }) => {
         toast.error("Sessione scaduta, rifai login.");
         onLogout();
       } else {
-        toast.error("Errore nel caricamento.");
+        toast.error("Errore nel caricamento dei dati dal server.");
       }
     } finally {
       setLoading(false);
@@ -195,11 +195,8 @@ const Dashboard = ({ token, onLogout }) => {
       downloadLink.download = filename || `iscrizione_${registrationId}.pdf`;
       downloadLink.click();
       toast.success("PDF scaricato con successo!");
-      
-      // Ricarica la lista per mostrare lo stato aggiornato del download (flag document_downloaded)
       loadAll();
     } catch (err) {
-      console.error(err);
       toast.error("Errore nel recupero del file PDF.");
     } finally {
       setPdfLoadingId(null);
@@ -207,7 +204,6 @@ const Dashboard = ({ token, onLogout }) => {
   };
 
   const promoteToMember = async (req) => {
-    // Aggiornato per riflettere l'endpoint di approvazione reale della registrazione
     if (!window.confirm(`Vuoi approvare la richiesta di ${req.first_name} ${req.last_name} e promuoverlo a socio?`)) return;
     try {
       await axios.post(`${API}/admin/registrations/${req.id}/approve`, {}, authHeader);
@@ -365,7 +361,6 @@ const Dashboard = ({ token, onLogout }) => {
                 </div>
                 <div className="flex items-center gap-2 self-start md:self-center">
                   
-                  {/* NUOVO TASTINO DOWNLOAD PDF */}
                   {tab === "registrations" && (
                     <button
                       onClick={() => downloadPdf(row.id)}
@@ -486,7 +481,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
                     {ev.title}
                     {ev.featured && (
                       <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
-                        ⭐ In evidenza
+                        ⭐ In Academic
                       </span>
                     )}
                   </h3>
@@ -519,23 +514,13 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
   );
 };
 
-// ---------- Event Editor (create / edit) ----------
-const EMOJI_CHOICES = ["🍹", "🌿", "💚", "💻", "🎬", "🎨", "🎉", "🧘", "🥾", "🎤", "📚", "🍕", "✨"];
-
+// ---------- Event Editor ----------
 const EventEditor = ({ token, initial, onClose, onSaved }) => {
   const isNew = !initial;
   const [form, setForm] = useState(
     initial || {
-      title: "",
-      category: CATEGORIES[0],
-      date: "",
-      time: "19:00",
-      location: "",
-      description: "",
-      emoji: "✨",
-      spots: 20,
-      featured: false,
-      contributo: 0,
+      title: "", category: CATEGORIES[0], date: "", time: "19:00",
+      location: "", description: "", emoji: "✨", spots: 20, featured: false, contributo: 0,
     }
   );
   const [saving, setSaving] = useState(false);
@@ -566,161 +551,49 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
     }
   };
   return (
-    <div
-      className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
-      onClick={onClose}
-      data-testid="admin-event-editor"
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="w-full max-w-2xl bg-tv-cream rounded-[2rem] p-5 md:p-9 my-4 md:my-8 relative"
-      >
+    <div className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="w-full max-w-2xl bg-tv-cream rounded-[2rem] p-5 md:p-9 my-4 md:my-8 relative">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
-              {isNew ? "Nuovo evento" : "Modifica evento"}
-            </div>
-            <h3 className="mt-1 font-display font-black text-xl md:text-3xl text-tv-green-deep">
-              {isNew ? "Crea evento" : form.title}
-            </h3>
+            <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">{isNew ? "Nuovo evento" : "Modifica evento"}</div>
+            <h3 className="mt-1 font-display font-black text-xl md:text-3xl text-tv-green-deep">{isNew ? "Crea evento" : form.title}</h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-shrink-0 p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"
-            data-testid="admin-event-editor-close"
-            aria-label="Chiudi"
-          >
-            <X size={16} />
-          </button>
+          <button type="button" onClick={onClose} className="p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"><X size={16} /></button>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Titolo *" value={form.title} onChange={change("title")} required testid="event-title" />
+          <Field label="Titolo *" value={form.title} onChange={change("title")} required />
           <label className="block">
-            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
-              Categoria *
-            </div>
-            <select
-              data-testid="event-category"
-              value={form.category}
-              onChange={change("category")}
-              className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
-            >
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Categoria *</div>
+            <select value={form.category} onChange={change("category")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none">
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
-          <Field label="Data *" type="date" value={form.date} onChange={change("date")} required testid="event-date" />
-          <Field label="Ora *" type="time" value={form.time} onChange={change("time")} required testid="event-time" />
-          <Field label="Luogo *" value={form.location} onChange={change("location")} required testid="event-location" />
-          <Field label="Posti" type="number" value={form.spots} onChange={change("spots")} testid="event-spots" />
+          <Field label="Data *" type="date" value={form.date} onChange={change("date")} required />
+          <Field label="Ora *" type="time" value={form.time} onChange={change("time")} required />
+          <Field label="Luogo *" value={form.location} onChange={change("location")} required />
+          <Field label="Posti" type="number" value={form.spots} onChange={change("spots")} />
           <label className="block">
-            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
-              Contributo (€)
-            </div>
-            <input
-              data-testid="event-contributo"
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.contributo ?? 0}
-              onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })}
-              placeholder="0 = gratuito"
-              className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
-            />
-            <div className="text-xs text-tv-green-deep/50 mt-1">Inserisci 0 per eventi gratuiti</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo (€)</div>
+            <input type="number" min="0" step="0.01" value={form.contributo ?? 0} onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none" />
           </label>
         </div>
-
         <label className="block mt-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
-            Descrizione *
-          </div>
-          <textarea
-            data-testid="event-description"
-            rows={4}
-            value={form.description}
-            onChange={change("description")}
-            placeholder="Cosa succede in questo evento? Sii ironic*, fresc*, vivac*."
-            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
-          />
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Descrizione *</div>
+          <textarea rows={4} value={form.description} onChange={change("description")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep resize-none outline-none" />
         </label>
-
-        <div className="mt-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
-            Emoji
-          </div>
-          <div className="flex flex-wrap gap-2" data-testid="event-emoji-picker">
-            {EMOJI_CHOICES.map((em) => (
-              <button
-                key={em}
-                type="button"
-                onClick={() => setForm({ ...form, emoji: em })}
-                data-testid={`event-emoji-${em}`}
-                className={`w-10 h-10 rounded-2xl text-xl transition-all ${
-                  form.emoji === em
-                    ? "bg-tv-green-deep ring-2 ring-tv-green-deep scale-110"
-                    : "bg-white border border-tv-green-deep/15 hover:bg-tv-sky/30"
-                }`}
-              >
-                {em}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <label className="mt-4 flex items-center gap-3 cursor-pointer p-4 rounded-2xl bg-tv-orange/15 border border-tv-orange/30">
-          <input
-            type="checkbox"
-            data-testid="event-featured"
-            checked={!!form.featured}
-            onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-            className="w-5 h-5 accent-tv-green-deep"
-          />
-          <div className="flex-1">
-            <div className="font-bold text-tv-green-deep text-sm">⭐ Metti in evidenza</div>
-            <div className="text-xs text-tv-green-deep/70">
-              Diventa l'evento principale in homepage. Solo uno alla volta consigliato.
-            </div>
-          </div>
-        </label>
-
         <div className="mt-5 flex gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            data-testid="event-save"
-            className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60"
-          >
-            {saving ? "Salvo…" : isNew ? "Crea evento" : "Salva modifiche"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold"
-          >
-            Annulla
-          </button>
+          <button type="submit" disabled={saving} className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60">{saving ? "Salvo…" : "Salva"}</button>
+          <button type="button" onClick={onClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>
         </div>
       </form>
     </div>
   );
 };
 
-const Field = ({ label, type = "text", value, onChange, required, testid, className = "" }) => (
-  <label className={`block ${className}`}>
-    <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
-      {label}
-    </div>
-    <input
-      data-testid={testid}
-      type={type}
-      value={value ?? ""}
-      onChange={onChange}
-      required={required}
-      className="w-full h-[50px] px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep appearance-none"
-    />
+const Field = ({ label, type = "text", value, onChange, required }) => (
+  <label className="block">
+    <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">{label}</div>
+    <input type={type} value={value ?? ""} onChange={onChange} required={required} className="w-full h-[50px] px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none appearance-none" />
   </label>
 );
 
@@ -733,75 +606,35 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
   return (
     <div data-testid="admin-members-manager">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
-        <button
-          onClick={onCreate}
-          data-testid="admin-member-new"
-          className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold"
-        >
+        <button onClick={onCreate} className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold">
           <Plus size={18} /> Aggiungi socio
         </button>
-        <div className="text-sm text-tv-green-deep/70">
-          Registro autorevole dei <b>tesserati</b>. Le richieste iscrizione vanno qui solo se approvate.
-        </div>
       </div>
       {members.length === 0 ? (
-        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
-          Nessun socio nel registro. Aggiungi il primo o "Tesseralo" da una richiesta iscrizione.
-        </div>
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">Nessun socio nel registro.</div>
       ) : (
         <div className="grid gap-3">
           {members.map((m) => (
-            <article
-              key={m.id}
-              data-testid={`admin-member-row-${m.id}`}
-              className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
-            >
+            <article key={m.id} className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between">
               <div className="flex items-center gap-4 flex-1">
                 <div className="w-12 h-12 rounded-2xl bg-tv-green text-tv-cream flex items-center justify-center font-display font-black text-lg">
                   {(m.first_name?.[0] || "?").toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-display font-black text-lg text-tv-green-deep">
-                      {m.first_name} {m.last_name}
-                    </span>
-                    {m.tessera_number && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
-                        Tessera #{m.tessera_number}
-                      </span>
-                    )}
+                    <span className="font-display font-black text-lg text-tv-green-deep">{m.first_name} {m.last_name}</span>
+                    {m.tessera_number && <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">Tessera #{m.tessera_number}</span>}
                     <span className="text-xs text-tv-green-deep/50">dal {fmtDay(m.joined_at)}</span>
                   </div>
                   <div className="mt-1 text-sm text-tv-green-deep/80 flex flex-wrap gap-x-4 gap-y-1">
-                    {m.email && (
-                      <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux">
-                        <Mail size={13} /> {m.email}
-                      </a>
-                    )}
+                    {m.email && <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux"><Mail size={13} /> {m.email}</a>}
                     {m.phone && <span>📞 {m.phone}</span>}
                   </div>
-                  {m.notes && (
-                    <p className="mt-2 text-sm text-tv-green-deep/70 italic">"{m.notes}"</p>
-                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 self-end md:self-center">
-                <button
-                  onClick={() => onEdit(m)}
-                  data-testid={`admin-member-edit-${m.id}`}
-                  className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors"
-                  aria-label="Modifica"
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  onClick={() => onDelete(m.id)}
-                  data-testid={`admin-member-delete-${m.id}`}
-                  className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-                  aria-label="Elimina"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <button onClick={() => onEdit(m)} className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky"><Pencil size={16} /></button>
+                <button onClick={() => onDelete(m.id)} className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream"><Trash2 size={16} /></button>
               </div>
             </article>
           ))}
@@ -811,14 +644,67 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
   );
 };
 
+// ---------- Member Editor ----------
 const MemberEditor = ({ token, initial, onClose, onSaved }) => {
   const isNew = !initial;
   const [form, setForm] = useState(
     initial || { first_name: "", last_name: "", email: "", phone: "", tessera_number: "", notes: "" }
   );
   const [saving, setSaving] = useState(false);
-  // Nota: La chiusura del componente raccordata per evitare troncamenti sul finale della stringa
-  return null; 
+  const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.first_name || !form.last_name) {
+      toast.error("Nome e Cognome sono obbligatori.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      if (isNew) {
+        await axios.post(`${API}/admin/members`, form, { headers });
+        toast.success("Socio aggiunto!");
+      } else {
+        await axios.put(`${API}/admin/members/${initial.id}`, form, { headers });
+        toast.success("Dati socio aggiornati!");
+      }
+      onSaved();
+    } catch (err) {
+      toast.error("Errore durante il salvataggio.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="w-full max-w-xl bg-tv-cream rounded-[2rem] p-5 md:p-9 my-4 md:my-8 relative">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">{isNew ? "Nuovo Socio" : "Modifica Socio"}</div>
+            <h3 className="mt-1 font-display font-black text-xl md:text-2xl text-tv-green-deep">{isNew ? "Aggiungi al Registro" : `${form.first_name} ${form.last_name}`}</h3>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"><X size={16} /></button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Nome *" value={form.first_name} onChange={change("first_name")} required />
+          <Field label="Cognome *" value={form.last_name} onChange={change("last_name")} required />
+          <Field label="Email" type="email" value={form.email} onChange={change("email")} />
+          <Field label="Telefono" value={form.phone} onChange={change("phone")} />
+          <Field label="Numero Tessera" value={form.tessera_number} onChange={change("tessera_number")} className="sm:col-span-2" />
+        </div>
+        <label className="block mt-4">
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Note / Annotazioni</div>
+          <textarea rows={3} value={form.notes} onChange={change("notes")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep resize-none outline-none" />
+        </label>
+        <div className="mt-5 flex gap-3">
+          <button type="submit" disabled={saving} className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60">{saving ? "Salvo…" : "Salva Socio"}</button>
+          <button type="button" onClick={onClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>
+        </div>
+      </form>
+    </div>
+  );
 };
 
 export default Dashboard;
