@@ -19,7 +19,7 @@ const fmtDate = (iso) => {
   } catch { return iso; }
 };
 
-export const Login = ({ onLogin }) => {
+const Login = ({ onLogin }) => {
   const [pwd, setPwd] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -100,7 +100,7 @@ const TABS = [
 
 const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
-export const Dashboard = ({ token, onLogout }) => {
+const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("events");
   const [data, setData] = useState({
     registrations: [], "event-signups": [], contacts: [], events: [], members: [],
