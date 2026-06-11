@@ -717,4 +717,25 @@ const MemberEditor = ({ token, initial, onClose, onSaved }) => {
   );
 };
 
-export default Dashboard;
+// ─── Wrapper che gestisce autenticazione ───────────────────
+const AdminPage = () => {
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
+
+  const handleLogin = (t) => {
+    localStorage.setItem(TOKEN_KEY, t);
+    setToken(t);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
+  };
+
+  if (!token) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  return <Dashboard token={token} onLogout={handleLogout} />;
+};
+
+export default AdminPage;
