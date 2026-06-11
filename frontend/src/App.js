@@ -7,7 +7,7 @@ import Hero from "./components/Hero";
 import ChiSiamo from "./components/ChiSiamo";
 import Attivita from "./components/Attivita";
 import Eventi from "./components/Eventi";
-import Iscrizione from "./components/Iscrizione";
+import { IscrizioneExpanded } from "./components/IscrizioneExpanded";
 import Contatti from "./components/Contatti";
 import Footer from "./components/Footer";
 import Admin from "./components/Admin";
@@ -34,7 +34,7 @@ const Home = () => {
       <ChiSiamo />
       <Attivita />
       <Eventi />
-      <Iscrizione />
+      <IscrizioneExpanded />
       <Contatti />
       <Footer />
     </div>
