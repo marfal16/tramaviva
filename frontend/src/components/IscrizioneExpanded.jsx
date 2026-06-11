@@ -246,6 +246,8 @@ export const IscrizioneExpanded = () => {
       const registrationId = response.data.registration_id;
       toast.success("Dati salvati con successo!");
 
+      /* -------------------------------------------------------------
+      // COMMENTATO TEMPORANEAMENTE PER TEST
       // PHASE 2: Crea il checkout di pagamento SumUp
       toast.info("Generazione del link di pagamento...");
 
@@ -274,6 +276,7 @@ export const IscrizioneExpanded = () => {
           "Richiesta ricevuta! Completeremo il pagamento in seguito."
         );
       }
+      ------------------------------------------------------------- */
     } catch (error) {
       console.error("Errore:", error);
       toast.error("Errore durante l'iscrizione. Riprova.");
