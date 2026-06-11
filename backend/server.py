@@ -187,6 +187,9 @@ class RegistrationCreate(BaseModel):
     genitore_telefono: Optional[str] = None
     genitore_documento_tipo: Optional[str] = None
     genitore_documento_numero: Optional[str] = None
+    genitore_luogo_nascita: Optional[str] = None
+    genitore_data_nascita: Optional[str] = None
+    genitore_codice_fiscale: Optional[str] = None
     consenso_comunicazioni: bool
     consenso_pubblico: bool
     consenso_privacy: bool
@@ -220,6 +223,9 @@ class Registration(BaseModel):
     genitore_telefono: Optional[str] = None
     genitore_documento_tipo: Optional[str] = None
     genitore_documento_numero: Optional[str] = None
+    genitore_luogo_nascita: Optional[str] = None
+    genitore_data_nascita: Optional[str] = None
+    genitore_codice_fiscale: Optional[str] = None
     consenso_comunicazioni: bool
     consenso_pubblico: bool
     consenso_privacy: bool
