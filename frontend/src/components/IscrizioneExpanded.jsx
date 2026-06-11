@@ -163,7 +163,6 @@ export const IscrizioneExpanded = () => {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
-  const [pdfPreview, setPdfPreview] = useState(null);
 
   const handleChange = (field) => (e) => {
     const { type, checked, value } = e.target;
@@ -190,7 +189,7 @@ export const IscrizioneExpanded = () => {
     const missing = required.filter((f) => !form[f]);
 
     if (missing.length > 0) {
-      toast.error(`Compila i campi obbligatori: ${missing.join(", ")}`);
+      toast.error(`Compila i campi obbligatori.`);
       return false;
     }
 
