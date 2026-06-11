@@ -19,7 +19,7 @@ const fmtDate = (iso) => {
   } catch { return iso; }
 };
 
-const Login = ({ onLogin }) => {
+export const Login = ({ onLogin }) => {
   const [pwd, setPwd] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -94,13 +94,13 @@ const TABS = [
   { key: "events", label: "Eventi", icon: CalendarPlus },
   { key: "members", label: "Soci tesserati", icon: IdCard },
   { key: "registrations", label: "Richieste iscrizione", icon: Users },
-  { key: "event-signups", label: "Richieste eventi", icon: Calendar },
+  { key: "event-signups", label: "Richieste events", icon: Calendar },
   { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
 
 const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
-const Dashboard = ({ token, onLogout }) => {
+export const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("events");
   const [data, setData] = useState({
     registrations: [], "event-signups": [], contacts: [], events: [], members: [],
@@ -113,6 +113,13 @@ const Dashboard = ({ token, onLogout }) => {
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
   const loadAll = async () => {
+    // SE IL TOKEN MANCA, BLOCCHIAMO SUBITO LE CHIAMATE ED USCIAMO PER EVITARE LOOP
+    if (!token) {
+      setLoading(false);
+      if (typeof onLogout === "function") onLogout();
+      return;
+    }
+
     setLoading(true);
     try {
       const [r, es, c, ev, mem] = await Promise.all([
@@ -130,18 +137,27 @@ const Dashboard = ({ token, onLogout }) => {
         members: mem.data,
       });
     } catch (err) {
+      // CONTROLLO RIGIDO: Solo se il server risponde STRETTAMENTE con 401 puliamo la sessione
       if (err.response?.status === 401) {
         toast.error("Sessione scaduta, rifai login.");
-        onLogout();
+        localStorage.removeItem(TOKEN_KEY);
+        if (typeof onLogout === "function") onLogout();
       } else {
-        toast.error("Errore nel caricamento dei dati dal server.");
+        toast.error(`Errore nel recupero dati: ${err.response?.data?.detail || "Problema di connessione"}`);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    if (!token) {
+      if (typeof onLogout === "function") onLogout();
+      return;
+    }
+    loadAll();
+    /* eslint-disable-next-line */
+  }, [token]);
 
   const remove = async (collection, id) => {
     if (!window.confirm("Sei sicuro di voler eliminare?")) return;
@@ -707,4 +723,5 @@ const MemberEditor = ({ token, initial, onClose, onSaved }) => {
   );
 };
 
+// Esportiamo esplicitamente Dashboard per mantenere la compatibilità
 export default Dashboard;
