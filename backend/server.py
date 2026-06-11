@@ -450,7 +450,7 @@ async def create_sumup_checkout(payload: PaymentRequest):
                 "currency": "EUR",
                 "checkout_reference": checkout_reference,
                 "description": payload.description,
-                redirect_url": "https://www.tramavivaaps.com",
+                "redirect_url": "https://www.tramavivaaps.com"
                 "hosted_checkout": {
                     "enabled": True
                 }
@@ -526,12 +526,13 @@ async def admin_contacts():
     return docs
 
 @api_router.get("/admin/registrations", dependencies=[Depends(require_admin)])
-async def admin_get_registrations():pdf_base64", None)async def admin_get_registrations():
-        doc["is_member"] = (doc.get("email") or "").lower() in member_emails
-    return docs
+async def admin_get_registrations():
     docs = await db.registrations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     member_emails = await _get_member_emails()
     for doc in docs:
+        doc.pop("pdf_base64", None)
+        doc["is_member"] = (doc.get("email") or "").lower() in member_emails
+    return docs
 
 # AGGIUNTO: Endpoint fondamentale per scaricare il PDF compilato dall'Admin
 @api_router.get("/admin/registrations/{registration_id}/pdf", dependencies=[Depends(require_admin)])
@@ -755,8 +756,8 @@ app.include_router(api_router)
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=["https://www.tramavivaaps.com", "https://tramavivaaps.com"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
