@@ -26,7 +26,7 @@ class PDFService:
             if not template_path.exists():
                 template_path = BASE_DIR.parent / "Modulo_Iscrizione_TramaViva_compilabile.pdf"
                 if not template_path.exists():
-                    raise FileNotFoundError("Modello PDF 'Modulo_Iscrizione_TramaViva_compilabile.pdf' non trovato sul server.")
+                    raise FileNotFoundError("Modello PDF 'Modulo_Iscrizione_TramaViva_compilabile.pdf' non trovato.")
 
             reader = PdfReader(template_path)
             writer = PdfWriter()
@@ -40,8 +40,8 @@ class PDFService:
                 "Data di nascita": registration_data.get("data_nascita", ""),
                 "Codice Fiscale": registration_data.get("codice_fiscale", ""),
                 "Cittadinanza": registration_data.get("cittadinanza", ""),
-                "Tipo": registration_data.get("documento_tipo', ""),  # Sotto "Documento d'identità"
-                "Numero": registration_data.get("documento_numero', ""),
+                "Tipo:": registration_data.get("documento_tipo", ""),  # Sistemato refuso stringa
+                "Numero:": registration_data.get("documento_numero", ""), # Sistemato refuso stringa
                 "Rilasciato da": registration_data.get("documento_rilasciato", ""),
                 "Data rilascio": registration_data.get("documento_data", ""),
                 "Comune": registration_data.get("comune", ""),
@@ -55,12 +55,10 @@ class PDFService:
             # --- PAGINA 2: PRIVACY E CONSENSI ---
             writer.add_page(reader.pages[1])
             
-            # Mappatura dei checkbox dei consensi (utilizzano di norma "/Yes" per essere spuntati)
+            # Nota: le caselle del PDF usano "/Yes" o True a seconda di come è strutturato il form
             privacy_fields = {
                 "Acconsento promozionali": "/Yes" if registration_data.get("consenso_comunicazioni") else "/Off",
-                "Non acconsento promozionali": "/Off" if registration_data.get("consenso_comunicazioni") else "/Yes",
                 "Acconsento foto video": "/Yes" if registration_data.get("consenso_pubblico") else "/Off",
-                "Non acconsento foto video": "/Off" if registration_data.get("consenso_pubblico") else "/Yes",
                 "Acconsento privacy": "/Yes" if registration_data.get("consenso_privacy") else "/Off",
                 "Acconsento dati": "/Yes" if registration_data.get("consenso_dati") else "/Off"
             }
@@ -69,34 +67,27 @@ class PDFService:
             # --- PAGINA 3: RISERVATA AI RICHIEDENTI MINORENNI ---
             writer.add_page(reader.pages[2])
             
-            # Se l'utente è minorenne, compiliamo questa sezione
             if registration_data.get("is_minorenne", False):
                 minorenni_fields = {
-                    "genitore": "/Yes",  # Spunta il checkbox 'genitore'
                     "Cognome e Nome del genitore/tutore": f"{registration_data.get('genitore_nome', '')} {registration_data.get('genitore_cognome', '')}",
                     "Telefono / E-mail": registration_data.get("genitore_telefono", ""),
-                    "Documento d'identità Tipo": registration_data.get("genitore_documento_tipo", ""),
-                    "Numero": registration_data.get("genitore_documento_numero", ""),
-                    # Se hai questi dati a db puoi mapparli, altrimenti restano vuoti per la firma manuale
-                    "Luogo e data di nascita": "", 
-                    "Codice Fiscale": ""
+                    "Documento d'identità Tipo:": registration_data.get("genitore_documento_tipo", ""),
+                    "Numero:": registration_data.get("genitore_documento_numero", "")
                 }
                 writer.update_page_form_field_values(writer.pages[2], minorenni_fields)
 
-            # --- PAGINA 4: DICHIARAZIONI, METODO PAGAMENTO E FIRME ---
+            # --- PAGINA 4: DICHIARAZIONI E PAGAMENTO ---
             writer.add_page(reader.pages[3])
             
-            # Gestione del referral/metodo e data
             p4_fields = {
-                "Luogo": registration_data.get("luogo_nascita", "").capitalize(),
+                "Luogo": registration_data.get("comune", "Terzigno").capitalize(),
                 "in data": datetime.now().strftime("%d/%m/%Y"),
-                # Se il referral è "socio", "contanti" o "bonifico", possiamo barrare il relativo checkbox
                 "Contanti": "/Yes" if registration_data.get("referral") == "contanti" else "/Off",
-                "Bonifico": "/Yes" if registration_data.get("referral") == "bonifico" else "/Off",
+                "Bonifico": "/Yes" if registration_data.get("referral") == "bonifico" else "/Off"
             }
             writer.update_page_form_field_values(writer.pages[3], p4_fields)
 
-            # --- COSTRUZIONE FINALE DEL DOCUMENTO ---
+            # --- COSTRUZIONE FINALE ---
             buffer = io.BytesIO()
             writer.write(buffer)
             pdf_bytes = buffer.getvalue()
@@ -105,5 +96,5 @@ class PDFService:
             return base64.b64encode(pdf_bytes).decode('utf-8')
 
         except Exception as e:
-            print(f"Errore critico durante la mappatura totale del PDF: {str(e)}")
+            print(f"Errore generazione PDF: {str(e)}")
             return ""
