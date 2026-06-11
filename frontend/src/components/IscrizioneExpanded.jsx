@@ -40,10 +40,13 @@ const initialForm = {
   cap: "",
   cellulare: "",
 
-  // Minori
+  // Minori (Campi espansi per riflettere il modulo ufficiale)
   is_minorenne: false,
   genitore_nome: "",
   genitore_cognome: "",
+  genitore_luogo_nascita: "",
+  genitore_data_nascita: "",
+  genitore_codice_fiscale: "",
   genitore_telefono: "",
   genitore_documento_tipo: "Carta ID",
   genitore_documento_numero: "",
@@ -178,41 +181,48 @@ export const IscrizioneExpanded = () => {
       "last_name",
       "email",
       "phone",
+      "luogo_nascita",
+      "data_nascita",
       "codice_fiscale",
-      "comune",
       "indirizzo",
+      "comune",
+      "provincia",
       "cap",
       "cellulare",
-      "data_nascita",
     ];
 
     const missing = required.filter((f) => !form[f]);
 
     if (missing.length > 0) {
-      toast.error(`Compila i campi obbligatori.`);
+      toast.error("Compila tutti i campi obbligatori contrassegnati con l'asterisco.");
       return false;
     }
 
     if (!form.dichiarazione_accettata) {
-      toast.error("Devi accettare le condizioni.");
+      toast.error("Devi accettare le condizioni di iscrizione.");
       return false;
     }
 
-    const consents = [
-      form.consenso_comunicazioni,
-      form.consenso_pubblico,
-      form.consenso_privacy,
-      form.consenso_dati,
-    ];
-
-    if (consents.filter((c) => !c).length > 0) {
-      toast.error("Devi accettare tutti i consensi.");
+    if (!form.consenso_privacy || !form.consenso_dati) {
+      toast.error("È necessario accettare l'Informativa Privacy e il Trattamento dei Dati per procedere.");
       return false;
     }
 
-    if (form.is_minorenne && (!form.genitore_nome || !form.genitore_cognome)) {
-      toast.error("Compila i dati del genitore/tutore.");
-      return false;
+    if (form.is_minorenne) {
+      const parentRequired = [
+        "genitore_nome",
+        "genitore_cognome",
+        "genitore_luogo_nascita",
+        "genitore_data_nascita",
+        "genitore_codice_fiscale",
+        "genitore_telefono",
+      ];
+      const missingParentFields = parentRequired.filter((f) => !form[f]);
+      
+      if (missingParentFields.length > 0) {
+        toast.error("Compila tutti i dati anagrafici e di contatto del genitore/tutore.");
+        return false;
+      }
     }
 
     return true;
@@ -226,7 +236,6 @@ export const IscrizioneExpanded = () => {
     setSubmitting(true);
 
     try {
-      // PHASE 1: Salva i dati sul database con il PDF compilato
       toast.info("Salvataggio dati e compilazione PDF...");
 
       const registrationData = {
@@ -244,7 +253,10 @@ export const IscrizioneExpanded = () => {
       );
 
       const registrationId = response.data.registration_id;
-      toast.success("Dati salvati con successo!");
+      toast.success("Dati saved successfully!");
+
+      setDone(true);
+      setForm(initialForm);
 
       /* -------------------------------------------------------------
       // COMMENTATO TEMPORANEAMENTE PER TEST
@@ -410,6 +422,7 @@ export const IscrizioneExpanded = () => {
                     <Field
                       id="luogo_nascita"
                       label="Luogo di nascita"
+                      required
                       value={form.luogo_nascita}
                       onChange={handleChange("luogo_nascita")}
                     />
@@ -490,6 +503,7 @@ export const IscrizioneExpanded = () => {
                     <Field
                       id="provincia"
                       label="Provincia"
+                      required
                       value={form.provincia}
                       onChange={handleChange("provincia")}
                       placeholder="es. MI"
@@ -525,28 +539,51 @@ export const IscrizioneExpanded = () => {
                   {form.is_minorenne && (
                     <div className="mt-4 p-4 rounded-xl bg-tv-bordeaux/10 border border-tv-bordeaux/20 space-y-4">
                       <h5 className="font-bold text-tv-bordeaux text-sm">
-                        Dati Genitore/Tutore
+                        Dati Genitore/Tutore (Richiesti per minori)
                       </h5>
                       <div className="grid md:grid-cols-2 gap-4">
                         <Field
                           id="genitore_nome"
                           label="Nome genitore/tutore"
-                          required
+                          required={form.is_minorenne}
                           value={form.genitore_nome}
                           onChange={handleChange("genitore_nome")}
                         />
                         <Field
                           id="genitore_cognome"
                           label="Cognome genitore/tutore"
-                          required
+                          required={form.is_minorenne}
                           value={form.genitore_cognome}
                           onChange={handleChange("genitore_cognome")}
+                        />
+                        <Field
+                          id="genitore_luogo_nascita"
+                          label="Luogo di nascita genitore"
+                          required={form.is_minorenne}
+                          value={form.genitore_luogo_nascita}
+                          onChange={handleChange("genitore_luogo_nascita")}
+                        />
+                        <Field
+                          id="genitore_data_nascita"
+                          label="Data di nascita genitore"
+                          type="date"
+                          required={form.is_minorenne}
+                          value={form.genitore_data_nascita}
+                          onChange={handleChange("genitore_data_nascita")}
+                        />
+                        <Field
+                          id="genitore_codice_fiscale"
+                          label="Codice Fiscale genitore"
+                          required={form.is_minorenne}
+                          value={form.genitore_codice_fiscale}
+                          onChange={handleChange("genitore_codice_fiscale")}
+                          placeholder="Codice Fiscale del firmatario"
                         />
                         <Field
                           id="genitore_telefono"
                           label="Telefono genitore/tutore"
                           type="tel"
-                          required
+                          required={form.is_minorenne}
                           value={form.genitore_telefono}
                           onChange={handleChange("genitore_telefono")}
                         />
@@ -565,9 +602,7 @@ export const IscrizioneExpanded = () => {
                           id="genitore_documento_numero"
                           label="Numero documento genitore"
                           value={form.genitore_documento_numero}
-                          onChange={handleChange(
-                            "genitore_documento_numero"
-                          )}
+                          onChange={handleChange("genitore_documento_numero")}
                         />
                       </div>
                     </div>
@@ -579,13 +614,13 @@ export const IscrizioneExpanded = () => {
                   <div className="space-y-3">
                     <CheckboxField
                       id="consenso_comunicazioni"
-                      label="Intendo ricevere comunicazioni promozionali e newsletter"
+                      label="Intendo ricevere comunicazioni promozionali e newsletter (Facoltativo)"
                       value={form.consenso_comunicazioni}
                       onChange={handleChange("consenso_comunicazioni")}
                     />
                     <CheckboxField
                       id="consenso_pubblico"
-                      label="Autorizzo a pubblicare il mio evento sul sito"
+                      label="Autorizzo a pubblicare il mio evento sul sito (Facoltativo)"
                       value={form.consenso_pubblico}
                       onChange={handleChange("consenso_pubblico")}
                     />
@@ -594,12 +629,14 @@ export const IscrizioneExpanded = () => {
                       label="Ho letto l'informativa sulla privacy"
                       value={form.consenso_privacy}
                       onChange={handleChange("consenso_privacy")}
+                      required
                     />
                     <CheckboxField
                       id="consenso_dati"
-                      label="Consenso al trattamento dei dati personali"
+                      label="Consenso al trattamento dei dati personali associativi"
                       value={form.consenso_dati}
                       onChange={handleChange("consenso_dati")}
+                      required
                     />
                   </div>
                 </CollapsibleSection>
