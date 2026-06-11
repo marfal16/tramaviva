@@ -450,7 +450,7 @@ async def create_sumup_checkout(payload: PaymentRequest):
                 "currency": "EUR",
                 "checkout_reference": checkout_reference,
                 "description": payload.description,
-                "redirect_url": "https://www.tramaviva.vercel.app",
+                redirect_url": "https://www.tramavivaaps.com",
                 "hosted_checkout": {
                     "enabled": True
                 }
@@ -526,11 +526,12 @@ async def admin_contacts():
     return docs
 
 @api_router.get("/admin/registrations", dependencies=[Depends(require_admin)])
-async def admin_get_registrations():
-    docs = await db.registrations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    for doc in docs:
-        doc.pop("pdf_base64", None) # Rimuove per alleggerire la lista generale
+async def admin_get_registrations():pdf_base64", None)async def admin_get_registrations():
+        doc["is_member"] = (doc.get("email") or "").lower() in member_emails
     return docs
+    docs = await db.registrations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    member_emails = await _get_member_emails()
+    for doc in docs:
 
 # AGGIUNTO: Endpoint fondamentale per scaricare il PDF compilato dall'Admin
 @api_router.get("/admin/registrations/{registration_id}/pdf", dependencies=[Depends(require_admin)])
