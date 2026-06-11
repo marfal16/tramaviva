@@ -31,6 +31,12 @@ class PDFService:
             reader = PdfReader(template_path)
             writer = PdfWriter()
 
+            # --- CORREZIONE CRITICA: Clona il dizionario AcroForm nel Writer per evitare il crash ---
+            if "/AcroForm" in reader.trailer:
+                writer._root_object.update({
+                    "/AcroForm": reader.trailer["/AcroForm"]
+                })
+
             # --- PAGINA 1: DATI ANAGRAFICI, RESIDENZA E CONTATTI ---
             writer.add_page(reader.pages[0])
 
@@ -40,8 +46,8 @@ class PDFService:
                 "Data di nascita": registration_data.get("data_nascita", ""),
                 "Codice Fiscale": registration_data.get("codice_fiscale", ""),
                 "Cittadinanza": registration_data.get("cittadinanza", ""),
-                "Tipo:": registration_data.get("documento_tipo", ""),  # Sistemato refuso stringa
-                "Numero:": registration_data.get("documento_numero", ""), # Sistemato refuso stringa
+                "Tipo:": registration_data.get("documento_tipo", ""),  
+                "Numero:": registration_data.get("documento_numero", ""), 
                 "Rilasciato da": registration_data.get("documento_rilasciato", ""),
                 "Data rilascio": registration_data.get("documento_data", ""),
                 "Comune": registration_data.get("comune", ""),
@@ -55,7 +61,6 @@ class PDFService:
             # --- PAGINA 2: PRIVACY E CONSENSI ---
             writer.add_page(reader.pages[1])
             
-            # Nota: le caselle del PDF usano "/Yes" o True a seconda di come è strutturato il form
             privacy_fields = {
                 "Acconsento promozionali": "/Yes" if registration_data.get("consenso_comunicazioni") else "/Off",
                 "Acconsento foto video": "/Yes" if registration_data.get("consenso_pubblico") else "/Off",
@@ -68,8 +73,13 @@ class PDFService:
             writer.add_page(reader.pages[2])
             
             if registration_data.get("is_minorenne", False):
+                # Uniamo Luogo e Data come richiesto dal layout del PDF ("Luogo e data di nascita")
+                luogo_data_genitore = f"{registration_data.get('genitore_luogo_nascita', '')} - {registration_data.get('genitore_data_nascita', '')}"
+                
                 minorenni_fields = {
                     "Cognome e Nome del genitore/tutore": f"{registration_data.get('genitore_nome', '')} {registration_data.get('genitore_cognome', '')}",
+                    "Luogo e data di nascita": luogo_data_genitore,
+                    "Codice Fiscale": registration_data.get("genitore_codice_fiscale", ""),
                     "Telefono / E-mail": registration_data.get("genitore_telefono", ""),
                     "Documento d'identità Tipo:": registration_data.get("genitore_documento_tipo", ""),
                     "Numero:": registration_data.get("genitore_documento_numero", "")
