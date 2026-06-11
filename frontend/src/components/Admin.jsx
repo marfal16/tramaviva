@@ -94,7 +94,7 @@ const TABS = [
   { key: "events", label: "Eventi", icon: CalendarPlus },
   { key: "members", label: "Soci tesserati", icon: IdCard },
   { key: "registrations", label: "Richieste iscrizione", icon: Users },
-  { key: "event-signups", label: "Richieste events", icon: Calendar },
+  { key: "event-signups", label: "Richieste eventi", icon: Calendar },
   { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
 
@@ -113,7 +113,6 @@ export const Dashboard = ({ token, onLogout }) => {
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
   const loadAll = async () => {
-    // SE IL TOKEN MANCA, BLOCCHIAMO SUBITO LE CHIAMATE ED USCIAMO PER EVITARE LOOP
     if (!token) {
       setLoading(false);
       if (typeof onLogout === "function") onLogout();
@@ -130,34 +129,31 @@ export const Dashboard = ({ token, onLogout }) => {
         axios.get(`${API}/admin/members`, authHeader),
       ]);
       setData({
-        registrations: r.data,
-        "event-signups": es.data,
-        contacts: c.data,
-        events: ev.data,
-        members: mem.data,
+        registrations: r.data || [],
+        "event-signups": es.data || [],
+        contacts: c.data || [],
+        events: ev.data || [],
+        members: mem.data || [],
       });
     } catch (err) {
-      // CONTROLLO RIGIDO: Solo se il server risponde STRETTAMENTE con 401 puliamo la sessione
       if (err.response?.status === 401) {
         toast.error("Sessione scaduta, rifai login.");
         localStorage.removeItem(TOKEN_KEY);
         if (typeof onLogout === "function") onLogout();
       } else {
-        toast.error(`Errore nel recupero dati: ${err.response?.data?.detail || "Problema di connessione"}`);
+        toast.error(`Errore nel recupero dati: ${err.message || "Problema di connessione"}`);
       }
     } finally {
+      // Viene eseguito sempre, impedendo il blocco infinito dell'interfaccia
       setLoading(false);
     }
   };
 
+  // Esegue l'inizializzazione controllata evitando loop infiniti reattivi
   useEffect(() => {
-    if (!token) {
-      if (typeof onLogout === "function") onLogout();
-      return;
-    }
     loadAll();
-    /* eslint-disable-next-line */
-  }, [token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const remove = async (collection, id) => {
     if (!window.confirm("Sei sicuro di voler eliminare?")) return;
@@ -297,7 +293,9 @@ export const Dashboard = ({ token, onLogout }) => {
         </div>
 
         {loading ? (
-          <div className="text-tv-green-deep/60" data-testid="admin-loading">Caricamento…</div>
+          <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
+            <Loader2 className="animate-spin" size={18} /> Caricamento in corso...
+          </div>
         ) : tab === "events" ? (
           <EventsManager
             events={data.events}
@@ -455,7 +453,6 @@ export const Dashboard = ({ token, onLogout }) => {
   );
 };
 
-// ---------- Events Manager ----------
 const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
   const fmtDay = (d) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
@@ -497,7 +494,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
                     {ev.title}
                     {ev.featured && (
                       <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
-                        ⭐ In Academic
+                        ⭐ In Evidenza
                       </span>
                     )}
                   </h3>
@@ -530,7 +527,6 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
   );
 };
 
-// ---------- Event Editor ----------
 const EventEditor = ({ token, initial, onClose, onSaved }) => {
   const isNew = !initial;
   const [form, setForm] = useState(
@@ -613,7 +609,6 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
   </label>
 );
 
-// ---------- Members Manager ----------
 const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
   const fmtDay = (d) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
@@ -660,7 +655,6 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
   );
 };
 
-// ---------- Member Editor ----------
 const MemberEditor = ({ token, initial, onClose, onSaved }) => {
   const isNew = !initial;
   const [form, setForm] = useState(
@@ -723,5 +717,4 @@ const MemberEditor = ({ token, initial, onClose, onSaved }) => {
   );
 };
 
-// Esportiamo esplicitamente Dashboard per mantenere la compatibilità
 export default Dashboard;
