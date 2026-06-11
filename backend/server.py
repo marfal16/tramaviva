@@ -12,6 +12,9 @@ from datetime import datetime, timezone
 import httpx
 import sys
 
+# IMPORTANTE: Importiamo il servizio PDF che hai appena configurato
+from pdf_service import PDFService
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -38,7 +41,6 @@ class EventSignupCreate(BaseModel):
     message: Optional[str] = None
     referral: Optional[str] = None
 
-
 class EventSignup(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -52,7 +54,6 @@ class EventSignup(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     confirmed: bool = False
 
-
 class MembershipCreate(BaseModel):
     first_name: str
     last_name: str
@@ -62,7 +63,6 @@ class MembershipCreate(BaseModel):
     birthdate: Optional[str] = None
     motivation: Optional[str] = None
     referral: Optional[str] = None
-
 
 class Membership(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -77,12 +77,10 @@ class Membership(BaseModel):
     referral: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-
 class ContactCreate(BaseModel):
     name: str
     email: EmailStr
     message: str
-
 
 class Contact(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -91,7 +89,6 @@ class Contact(BaseModel):
     email: str
     message: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
 
 class Event(BaseModel):
     id: str
@@ -107,7 +104,6 @@ class Event(BaseModel):
     featured: bool = False
     contributo: float = 0.0
 
-
 class EventCreate(BaseModel):
     title: str
     category: str
@@ -121,7 +117,6 @@ class EventCreate(BaseModel):
     featured: bool = False
     contributo: float = 0.0
 
-
 class EventUpdate(BaseModel):
     title: Optional[str] = None
     category: Optional[str] = None
@@ -134,13 +129,11 @@ class EventUpdate(BaseModel):
     featured: Optional[bool] = None
     contributo: Optional[float] = None
 
-
 class PaymentRequest(BaseModel):
     amount: float
     email: str
     description: str
     registration_id: Optional[str] = None
-
 
 class MemberCreate(BaseModel):
     first_name: str
@@ -149,7 +142,6 @@ class MemberCreate(BaseModel):
     phone: Optional[str] = None
     tessera_number: Optional[str] = None
     notes: Optional[str] = None
-
 
 class Member(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -162,7 +154,6 @@ class Member(BaseModel):
     notes: Optional[str] = None
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-
 class MemberUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -170,7 +161,6 @@ class MemberUpdate(BaseModel):
     phone: Optional[str] = None
     tessera_number: Optional[str] = None
     notes: Optional[str] = None
-
 
 class RegistrationCreate(BaseModel):
     first_name: str
@@ -202,7 +192,6 @@ class RegistrationCreate(BaseModel):
     consenso_privacy: bool
     consenso_dati: bool
     dichiarazione_accettata: bool
-
 
 class Registration(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -241,14 +230,12 @@ class Registration(BaseModel):
     payment_completed: bool = False
     document_downloaded: bool = False
 
-
 def make_slug(title: str) -> str:
     import re, unicodedata
     s = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode()
     s = re.sub(r"[^a-zA-Z0-9\s-]", "", s).strip().lower()
     s = re.sub(r"\s+", "-", s)
     return s[:80] or "evento"
-
 
 # ========== SEEDED EVENTS ==========
 EVENTS: List[dict] = [
@@ -320,12 +307,10 @@ EVENTS: List[dict] = [
     },
 ]
 
-
 # ========== ROUTES: ROOT ==========
 @api_router.get("/")
 async def root():
     return {"message": "Trama Viva APS API", "tagline": "Ogni filo conta"}
-
 
 # ========== ROUTES: EVENTS ==========
 @api_router.get("/events", response_model=List[Event])
@@ -337,14 +322,12 @@ async def get_events():
         logger.error(f"Errore nel caricamento eventi: {e}")
         return []
 
-
 @api_router.get("/events/{event_id}", response_model=Event)
 async def get_event(event_id: str):
     doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Evento non trovato")
     return doc
-
 
 @api_router.get("/events/{event_id}/signups-count")
 async def get_event_signups_count(event_id: str):
@@ -353,7 +336,6 @@ async def get_event_signups_count(event_id: str):
         raise HTTPException(status_code=404, detail="Evento non trovato")
     count = await db.event_signups.count_documents({"event_id": doc["id"]})
     return {"count": count}
-
 
 # ========== ROUTES: EVENT SIGNUPS & MEMBERSHIPS ==========
 @api_router.post("/event-signup", response_model=EventSignup)
@@ -364,7 +346,6 @@ async def create_event_signup(payload: EventSignupCreate):
     await db.event_signups.insert_one(doc)
     return obj
 
-
 @api_router.post("/membership", response_model=Membership)
 async def create_membership(payload: MembershipCreate):
     obj = Membership(**payload.model_dump())
@@ -372,7 +353,6 @@ async def create_membership(payload: MembershipCreate):
     doc["created_at"] = doc["created_at"].isoformat()
     await db.memberships.insert_one(doc)
     return obj
-
 
 @api_router.post("/contact", response_model=Contact)
 async def create_contact(payload: ContactCreate):
@@ -382,16 +362,18 @@ async def create_contact(payload: ContactCreate):
     await db.contacts.insert_one(doc)
     return obj
 
-
-# ========== ROUTES: REGISTRATIONS (NEW) ==========
+# ========== ROUTES: REGISTRATIONS ==========
 @api_router.post("/registrations/create")
 async def create_registration(payload: RegistrationCreate):
     try:
         registration_data = payload.model_dump()
-        # Per ora, non generiamo il PDF se le librerie non sono disponibili
+        
+        # FISSAATO: Ora richiamiamo correttamente il PDFService compilando il file
+        pdf_base64 = PDFService.generate_pdf_from_registration(registration_data)
+        
         registration = Registration(
             **registration_data,
-            pdf_base64=None,
+            pdf_base64=pdf_base64,
             status="pending"
         )
         
@@ -399,7 +381,7 @@ async def create_registration(payload: RegistrationCreate):
         doc["created_at"] = doc["created_at"].isoformat()
         result = await db.registrations.insert_one(doc)
         
-        logger.info(f"Registrazione creata: {registration.id}")
+        logger.info(f"Registrazione creata con successo con PDF: {registration.id}")
         
         return {
             "registration_id": registration.id,
@@ -410,6 +392,27 @@ async def create_registration(payload: RegistrationCreate):
         logger.error(f"Errore nella creazione della registrazione: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+@api_router.post("/registrations/{registration_id}/payment-completed")
+async def mark_payment_completed(registration_id: str):
+    """Marca una registrazione come pagata e completed."""
+    try:
+        registration = await db.registrations.find_one({"id": registration_id}, {"_id": 0})
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registrazione non trovata")
+        
+        await db.registrations.update_one(
+            {"id": registration_id},
+            {"$set": {
+                "status": "completed",
+                "payment_completed": True,
+                "payment_completed_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logger.info(f"Pagamento confermato per registrazione: {registration_id}")
+        return {"ok": True, "message": "Pagamento registrato correttamente."}
+    except Exception as e:
+        logger.error(f"Errore nel completamento pagamento: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 # ========== ROUTES: PAYMENTS ==========
 @api_router.post("/payments/create-checkout")
@@ -418,7 +421,6 @@ async def create_sumup_checkout(payload: PaymentRequest):
     merchant_code = os.environ.get("SUMUP_MERCHANT_CODE")
     
     if not api_key or not merchant_code:
-        # Fallback: ritorna un URL finto per testing
         logger.warning("SumUp not configured, returning test checkout")
         return {
             "id": "test-checkout-" + str(uuid.uuid4())[:8],
@@ -452,7 +454,6 @@ async def create_sumup_checkout(payload: PaymentRequest):
             
             if response.status_code not in [200, 201]:
                 logger.warning(f"SumUp API error: {response.status_code}")
-                # Ritorna fallback
                 return {
                     "id": "test-checkout-" + str(uuid.uuid4())[:8],
                     "status": "PENDING",
@@ -468,13 +469,11 @@ async def create_sumup_checkout(payload: PaymentRequest):
             
     except Exception as exc:
         logger.warning(f"SumUp error: {exc}")
-        # Fallback sempre
         return {
             "id": "test-checkout-" + str(uuid.uuid4())[:8],
             "status": "PENDING",
             "checkout_url": "https://www.tramavivaaps.com"
         }
-
 
 # ========== ADMIN AUTH ==========
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "admin123")
@@ -487,7 +486,6 @@ def require_admin(authorization: Optional[str] = Header(default=None)):
         raise HTTPException(status_code=401, detail="Token non valido")
     return True
 
-
 @api_router.post("/admin/login")
 async def admin_login(payload: dict):
     token = (payload or {}).get("token", "")
@@ -495,8 +493,7 @@ async def admin_login(payload: dict):
         raise HTTPException(status_code=401, detail="Password non valida")
     return {"ok": True}
 
-
-# ========== ADMIN: MEMBERSHIPS ==========
+# ========== ADMIN: MEMBERSHIPS & REGISTRATIONS ==========
 @api_router.get("/admin/memberships", dependencies=[Depends(require_admin)])
 async def admin_memberships():
     docs = await db.memberships.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
@@ -504,7 +501,6 @@ async def admin_memberships():
     for d in docs:
         d["is_member"] = (d.get("email") or "").lower() in member_emails
     return docs
-
 
 @api_router.get("/admin/event-signups", dependencies=[Depends(require_admin)])
 async def admin_event_signups():
@@ -518,20 +514,96 @@ async def admin_event_signups():
         d["contributo"] = event.get("contributo", 0)
     return docs
 
-
 @api_router.get("/admin/contacts", dependencies=[Depends(require_admin)])
 async def admin_contacts():
     docs = await db.contacts.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return docs
 
-
 @api_router.get("/admin/registrations", dependencies=[Depends(require_admin)])
 async def admin_get_registrations():
     docs = await db.registrations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     for doc in docs:
-        doc.pop("pdf_base64", None)
+        doc.pop("pdf_base64", None) # Rimuove per alleggerire la lista generale
     return docs
 
+# AGGIUNTO: Endpoint fondamentale per scaricare il PDF compilato dall'Admin
+@api_router.get("/admin/registrations/{registration_id}/pdf", dependencies=[Depends(require_admin)])
+async def admin_download_pdf(registration_id: str):
+    try:
+        registration = await db.registrations.find_one(
+            {"id": registration_id},
+            {"_id": 0, "pdf_base64": 1, "first_name": 1, "last_name": 1}
+        )
+        if not registration or not registration.get("pdf_base64"):
+            raise HTTPException(status_code=404, detail="PDF non trovato nel database")
+        
+        await db.registrations.update_one(
+            {"id": registration_id},
+            {"$set": {"document_downloaded": True, "document_downloaded_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        return {
+            "pdf_base64": registration["pdf_base64"],
+            "filename": f"iscrizione_{registration['first_name']}_{registration['last_name']}_{registration_id[:8]}.pdf"
+        }
+    except Exception as e:
+        logger.error(f"Errore nel download PDF: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+# AGGIUNTO: Endpoint per ripulire i dati sensibili dopo aver salvato il PDF
+@api_router.post("/admin/registrations/{registration_id}/cleanup", dependencies=[Depends(require_admin)])
+async def admin_cleanup_registration(registration_id: str):
+    try:
+        registration = await db.registrations.find_one({"id": registration_id})
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registrazione non trovata")
+        if not registration.get("document_downloaded"):
+            raise HTTPException(status_code=400, detail="Devi scaricare il documento prima di eseguire la pulizia")
+        
+        cleaned_data = {
+            "id": registration["id"],
+            "first_name": registration["first_name"],
+            "last_name": registration["last_name"],
+            "email": registration["email"],
+            "phone": registration["phone"],
+            "referral": registration.get("referral"),
+            "status": "archived",
+            "created_at": registration["created_at"],
+            "document_downloaded": True,
+            "document_deleted_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.registrations.replace_one({"id": registration_id}, cleaned_data)
+        return {"ok": True, "message": "Dati sensibili eliminati con successo."}
+    except Exception as e:
+        logger.error(f"Errore nel cleanup: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+# AGGIUNTO: Endpoint per approvare ufficialmente e tesserare l'utente inserendolo in "members"
+@api_router.post("/admin/registrations/{registration_id}/approve", dependencies=[Depends(require_admin)])
+async def admin_approve_registration(registration_id: str):
+    try:
+        registration = await db.registrations.find_one({"id": registration_id}, {"_id": 0})
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registrazione non trovata")
+        
+        member = Member(
+            first_name=registration["first_name"],
+            last_name=registration["last_name"],
+            email=registration["email"].lower(),
+            phone=registration.get("phone"),
+            notes=f"Iscritto via Form Iscrizione Soci. Tipo: {registration.get('referral', 'Non specificato')}"
+        )
+        member_doc = member.model_dump()
+        member_doc["joined_at"] = member_doc["joined_at"].isoformat()
+        
+        await db.members.insert_one(member_doc)
+        await db.registrations.update_one(
+            {"id": registration_id},
+            {"$set": {"status": "approved", "promoted_to_member_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        return {"ok": True, "message": f"Socio {member.first_name} creato correttamente."}
+    except Exception as e:
+        logger.error(f"Errore nell'approvazione: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 async def _get_member_emails() -> set:
     try:
@@ -540,7 +612,6 @@ async def _get_member_emails() -> set:
         return {(d.get("email") or "").lower() for d in docs if d.get("email")}
     except:
         return set()
-
 
 @api_router.delete("/admin/{collection}/{doc_id}", dependencies=[Depends(require_admin)])
 async def admin_delete(collection: str, doc_id: str):
@@ -571,13 +642,11 @@ async def admin_delete(collection: str, doc_id: str):
         
     return {"ok": True}
 
-
 # ========== ADMIN: MEMBERS ==========
 @api_router.get("/admin/members", dependencies=[Depends(require_admin)])
 async def admin_get_members():
     docs = await db.members.find({}, {"_id": 0}).sort("joined_at", -1).to_list(10000)
     return docs
-
 
 @api_router.post("/admin/members", response_model=Member, dependencies=[Depends(require_admin)])
 async def admin_create_member(payload: MemberCreate):
@@ -591,7 +660,6 @@ async def admin_create_member(payload: MemberCreate):
     await db.members.insert_one(doc)
     return obj
 
-
 @api_router.put("/admin/members/{member_id}", response_model=Member, dependencies=[Depends(require_admin)])
 async def admin_update_member(member_id: str, payload: MemberUpdate):
     update = {k: v for k, v in payload.model_dump().items() if v is not None}
@@ -604,7 +672,6 @@ async def admin_update_member(member_id: str, payload: MemberUpdate):
         raise HTTPException(status_code=404, detail="Socio non trovato")
     doc = await db.members.find_one({"id": member_id}, {"_id": 0})
     return doc
-
 
 @api_router.post("/admin/members/from-request/{request_id}", response_model=Member, dependencies=[Depends(require_admin)])
 async def admin_member_from_request(request_id: str, body: Optional[dict] = None):
@@ -627,7 +694,6 @@ async def admin_member_from_request(request_id: str, body: Optional[dict] = None
     doc["joined_at"] = doc["joined_at"].isoformat()
     await db.members.insert_one(doc)
     return member
-
 
 @api_router.post("/admin/event-signups/{signup_id}/confirm", dependencies=[Depends(require_admin)])
 async def confirm_event_signup(signup_id: str):
@@ -652,13 +718,11 @@ async def confirm_event_signup(signup_id: str):
     )
     return {"ok": True, "spots_remaining": event["spots"] - 1}
 
-
 # ========== ADMIN: EVENTS ==========
 @api_router.get("/admin/events", dependencies=[Depends(require_admin)])
 async def admin_get_events():
     docs = await db.events.find({}, {"_id": 0}).sort("date", 1).to_list(1000)
     return docs
-
 
 @api_router.post("/admin/events", response_model=Event, dependencies=[Depends(require_admin)])
 async def admin_create_event(payload: EventCreate):
@@ -667,7 +731,6 @@ async def admin_create_event(payload: EventCreate):
     data["slug"] = (data.get("slug") or make_slug(data["title"])) + "-" + data["id"][:6]
     await db.events.insert_one(dict(data))
     return Event(**data)
-
 
 @api_router.put("/admin/events/{event_id}", response_model=Event, dependencies=[Depends(require_admin)])
 async def admin_update_event(event_id: str, payload: EventUpdate):
@@ -680,10 +743,9 @@ async def admin_update_event(event_id: str, payload: EventUpdate):
     doc = await db.events.find_one({"id": event_id}, {"_id": 0})
     return doc
 
-
 app.include_router(api_router)
 
-# CORS Middleware - DEVE ESSERE PRIMA DI ALTRE ROUTE
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -691,7 +753,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.on_event("startup")
 async def seed_events_on_startup():
@@ -710,7 +771,6 @@ async def seed_events_on_startup():
                 logger.info(f"Seeded {len(seeded)} events")
     except Exception as ex:
         logger.error(f"Event seed failed: {ex}")
-
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
