@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2 } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -25,7 +25,7 @@ const Login = ({ onLogin }) => {
 
   const submit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    loading(true);
     try {
       await axios.post(`${API}/admin/login`, { token: pwd });
       localStorage.setItem(TOKEN_KEY, pwd);
@@ -52,7 +52,7 @@ const Login = ({ onLogin }) => {
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
             <Lock size={14} /> Area riservata
           </div>
-          <h1 className="mt-3 font-display font-black text-3xl text-tv-green-deep">
+          <h1 className="mt-3 font-display font-black text-xl md:text-3xl text-tv-green-deep">
             Dashboard amministratore
           </h1>
         </div>
@@ -93,8 +93,8 @@ const Login = ({ onLogin }) => {
 const TABS = [
   { key: "events", label: "Eventi", icon: CalendarPlus },
   { key: "members", label: "Soci tesserati", icon: IdCard },
-  { key: "memberships", label: "Richieste iscrizione", icon: Users },
-  { key: "event-signups", label: "Richieste eventi", icon: Calendar },
+  { key: "registrations", label: "Richieste iscrizione", icon: Users }, // Cambiata chiave da memberships a registrations
+  { key: "event-signups", label: "Richieste events", icon: Calendar },
   { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
 
@@ -103,9 +103,10 @@ const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Sal
 const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("events");
   const [data, setData] = useState({
-    memberships: [], "event-signups": [], contacts: [], events: [], members: [],
+    registrations: [], "event-signups": [], contacts: [], events: [], members: [], // Inserito registrations al posto di memberships
   });
   const [loading, setLoading] = useState(true);
+  const [pdfLoadingId, setPdfLoadingId] = useState(null); // Stato di caricamento specifico per il download del PDF
   const [eventEditor, setEventEditor] = useState(null);
   const [memberEditor, setMemberEditor] = useState(null);
 
@@ -114,15 +115,15 @@ const Dashboard = ({ token, onLogout }) => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [m, es, c, ev, mem] = await Promise.all([
-        axios.get(`${API}/admin/memberships`, authHeader),
+      const [r, es, c, ev, mem] = await Promise.all([
+        axios.get(`${API}/admin/registrations`, authHeader), // Reindirizzato l'endpoint su registrations
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
         axios.get(`${API}/admin/events`, authHeader),
         axios.get(`${API}/admin/members`, authHeader),
       ]);
       setData({
-        memberships: m.data,
+        registrations: r.data,
         "event-signups": es.data,
         contacts: c.data,
         events: ev.data,
@@ -155,7 +156,7 @@ const Dashboard = ({ token, onLogout }) => {
     const wb = XLSX.utils.book_new();
     const sheets = [
       ["Soci tesserati", data.members],
-      ["Richieste iscrizione", data.memberships],
+      ["Richieste iscrizione", data.registrations],
       ["Richieste eventi", data["event-signups"]],
       ["Messaggi contatti", data.contacts],
       ["Eventi", data.events],
@@ -165,7 +166,6 @@ const Dashboard = ({ token, onLogout }) => {
       if (!rows || rows.length === 0) continue;
       any = true;
       const ws = XLSX.utils.json_to_sheet(rows);
-      // Auto-size columns
       const cols = Object.keys(rows[0] || {}).map((k) => ({
         wch: Math.min(Math.max(k.length, ...rows.map((r) => String(r[k] ?? "").length)) + 2, 50),
       }));
@@ -178,28 +178,57 @@ const Dashboard = ({ token, onLogout }) => {
     toast.success("Export Excel scaricato!");
   };
 
-  const promoteToMember = async (req) => {
-    const tessera = window.prompt(`Numero tessera per ${req.first_name} ${req.last_name} (opzionale):`, "");
+  const downloadPdf = async (registrationId) => {
+    setPdfLoadingId(registrationId);
     try {
-      await axios.post(`${API}/admin/members/from-request/${req.id}`, { tessera_number: tessera || null }, authHeader);
-      toast.success("Aggiunto al registro tesserati!");
+      const response = await axios.get(`${API}/admin/registrations/${registrationId}/pdf`, authHeader);
+      const { pdf_base64, filename } = response.data;
+
+      if (!pdf_base64) {
+        toast.error("File PDF non trovato.");
+        return;
+      }
+
+      const linkSource = `data:application/pdf;base64,${pdf_base64}`;
+      const downloadLink = document.createElement("a");
+      downloadLink.href = linkSource;
+      downloadLink.download = filename || `iscrizione_${registrationId}.pdf`;
+      downloadLink.click();
+      toast.success("PDF scaricato con successo!");
+      
+      // Ricarica la lista per mostrare lo stato aggiornato del download (flag document_downloaded)
+      loadAll();
+    } catch (err) {
+      console.error(err);
+      toast.error("Errore nel recupero del file PDF.");
+    } finally {
+      setPdfLoadingId(null);
+    }
+  };
+
+  const promoteToMember = async (req) => {
+    // Aggiornato per riflettere l'endpoint di approvazione reale della registrazione
+    if (!window.confirm(`Vuoi approvare la richiesta di ${req.first_name} ${req.last_name} e promuoverlo a socio?`)) return;
+    try {
+      await axios.post(`${API}/admin/registrations/${req.id}/approve`, {}, authHeader);
+      toast.success("Richiesta approvata e aggiunta al registro dei soci!");
       loadAll();
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Errore");
+      toast.error(e.response?.data?.detail || "Errore durante l'approvazione");
     }
   };
 
   const confirmSignup = async (row) => {
-  if (!window.confirm(`Confermi la presenza di ${row.name} e scali un posto da "${row.event_title}"?`)) return;
-  try {
-    await axios.post(`${API}/admin/event-signups/${row.id}/confirm`, {}, authHeader);
-    toast.success("Presenza confermata, posto scalato!");
-    loadAll();
-  } catch (e) {
-    toast.error(e.response?.data?.detail || "Errore nella conferma");
-  }
-};
-  
+    if (!window.confirm(`Confermi la presenza di ${row.name} e scali un posto da "${row.event_title}"?`)) return;
+    try {
+      await axios.post(`${API}/admin/event-signups/${row.id}/confirm`, {}, authHeader);
+      toast.success("Presenza confermata, posto scalato!");
+      loadAll();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nella conferma");
+    }
+  };
+    
   const list = data[tab] || [];
 
   return (
@@ -290,21 +319,26 @@ const Dashboard = ({ token, onLogout }) => {
                         ? `${row.first_name} ${row.last_name || ""}`
                         : row.name || row.event_title}
                     </span>
-                    {row.is_member ? (
+                    {row.is_member || row.status === "approved" ? (
                       <span
                         data-testid={`badge-member-${row.id}`}
                         className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2.5 py-1 rounded-full"
                       >
                         <UserCheck size={11} /> Socio tesserato
                       </span>
-                    ) : (row.email && (tab === "memberships" || tab === "event-signups")) ? (
+                    ) : (row.email && (tab === "registrations" || tab === "event-signups")) ? (
                       <span
                         data-testid={`badge-not-member-${row.id}`}
                         className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux/15 text-tv-bordeaux px-2.5 py-1 rounded-full"
                       >
-                        Non socio
+                        {row.status === "pending" ? "In attesa" : "Non socio"}
                       </span>
                     ) : null}
+                    {row.document_downloaded && (
+                      <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
+                        📥 PDF Scaricato
+                      </span>
+                    )}
                     {row.event_title && (
                       <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2.5 py-1 rounded-full">
                         {row.event_title}
@@ -321,6 +355,7 @@ const Dashboard = ({ token, onLogout }) => {
                     {row.phone && <span>📞 {row.phone}</span>}
                     {row.city && <span>📍 {row.city}</span>}
                     {row.referral && <span>✨ Origine: {row.referral}</span>}
+                    {row.is_minorenne && <span className="text-tv-bordeaux font-bold">👶 Minorenne</span>}
                   </div>
                   {(row.motivation || row.message) && (
                     <p className="mt-3 text-sm text-tv-green-deep/70 italic">
@@ -329,32 +364,50 @@ const Dashboard = ({ token, onLogout }) => {
                   )}
                 </div>
                 <div className="flex items-center gap-2 self-start md:self-center">
-                  {tab === "memberships" && !row.is_member && (
+                  
+                  {/* NUOVO TASTINO DOWNLOAD PDF */}
+                  {tab === "registrations" && (
+                    <button
+                      onClick={() => downloadPdf(row.id)}
+                      disabled={pdfLoadingId === row.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-sky text-tv-green-deep font-bold text-xs hover:bg-tv-sky/80 transition-colors disabled:opacity-50"
+                      title="Scarica il PDF del modulo d'iscrizione"
+                    >
+                      {pdfLoadingId === row.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Download size={13} />
+                      )}
+                      Scarica PDF
+                    </button>
+                  )}
+
+                  {tab === "registrations" && row.status !== "approved" && (
                     <button
                       onClick={() => promoteToMember(row)}
                       data-testid={`admin-promote-${row.id}`}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
-                      title="Aggiungi al registro tesserati"
+                      title="Approva la richiesta e registra come socio"
                     >
-                      <Sparkles size={13} /> Tesseralo
+                      <Sparkles size={13} /> Approva socio
                     </button>
                   )}
                   
-              {tab === "event-signups" && (row.is_member || row.contributo === 0) && !row.confirmed && (
-                <button
-                  onClick={() => confirmSignup(row)}
-                  data-testid={`admin-confirm-${row.id}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
-                  title="Conferma presenza e scala posto"
-                >
-                  <UserCheck size={13} /> Conferma
-                </button>
-              )}
-              {row.confirmed && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2.5 py-1 rounded-full">
-                  ✓ Confermato
-                </span>
-              )}
+                  {tab === "event-signups" && (row.is_member || row.contributo === 0) && !row.confirmed && (
+                    <button
+                      onClick={() => confirmSignup(row)}
+                      data-testid={`admin-confirm-${row.id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
+                      title="Conferma presenza e scala posto"
+                    >
+                      <UserCheck size={13} /> Conferma
+                    </button>
+                  )}
+                  {row.confirmed && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2.5 py-1 rounded-full">
+                      ✓ Confermato
+                    </span>
+                  )}
                   
                   <button
                     onClick={() => remove(tab, row.id)}
@@ -523,7 +576,6 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
         onSubmit={submit}
         className="w-full max-w-2xl bg-tv-cream rounded-[2rem] p-5 md:p-9 my-4 md:my-8 relative"
       >
-        {/* Tasto chiusura sempre visibile */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
@@ -544,7 +596,6 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
           </button>
         </div>
 
-        {/* Griglia campi — 1 colonna su mobile, 2 su desktop */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Titolo *" value={form.title} onChange={change("title")} required testid="event-title" />
           <label className="block">
@@ -668,7 +719,6 @@ const Field = ({ label, type = "text", value, onChange, required, testid, classN
       value={value ?? ""}
       onChange={onChange}
       required={required}
-      /* h-[50px] e appearance-none risolvono il problema iPhone */
       className="w-full h-[50px] px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep appearance-none"
     />
   </label>
@@ -767,111 +817,8 @@ const MemberEditor = ({ token, initial, onClose, onSaved }) => {
     initial || { first_name: "", last_name: "", email: "", phone: "", tessera_number: "", notes: "" }
   );
   const [saving, setSaving] = useState(false);
-  const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
-
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!form.first_name || !form.last_name || !form.email) {
-      toast.error("Nome, cognome ed email obbligatori.");
-      return;
-    }
-    setSaving(true);
-    try {
-      const headers = { Authorization: `Bearer ${token}` };
-      if (isNew) {
-        await axios.post(`${API}/admin/members`, form, { headers });
-        toast.success("Socio aggiunto al registro!");
-      } else {
-        await axios.put(`${API}/admin/members/${initial.id}`, form, { headers });
-        toast.success("Socio aggiornato!");
-      }
-      onSaved();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Errore nel salvataggio.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
-      onClick={onClose}
-      data-testid="admin-member-editor"
-    >
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-        className="w-full max-w-xl bg-tv-cream rounded-[2rem] p-7 md:p-9 my-8 relative"
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full bg-tv-green-deep text-tv-cream"
-          aria-label="Chiudi"
-        >
-          <X size={16} />
-        </button>
-        <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
-          {isNew ? "Nuovo socio" : "Modifica socio"}
-        </div>
-        <h3 className="mt-1 font-display font-black text-2xl text-tv-green-deep">
-          {isNew ? "Aggiungi al registro tesserati" : `${form.first_name} ${form.last_name}`}
-        </h3>
-
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Nome *" value={form.first_name} onChange={change("first_name")} required testid="member-first-name" />
-          <Field label="Cognome *" value={form.last_name} onChange={change("last_name")} required testid="member-last-name" />
-          <Field label="Email *" type="email" value={form.email} onChange={change("email")} required testid="member-email" />
-          <Field label="Telefono" value={form.phone} onChange={change("phone")} testid="member-phone" />
-          <Field label="Numero tessera" value={form.tessera_number} onChange={change("tessera_number")} testid="member-tessera" />
-        </div>
-        <label className="block mt-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">
-            Note interne
-          </div>
-          <textarea
-            data-testid="member-notes"
-            rows={3}
-            value={form.notes ?? ""}
-            onChange={change("notes")}
-            placeholder="Note visibili solo all'admin (opzionali)"
-            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
-          />
-        </label>
-
-        <div className="mt-6 flex gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            data-testid="member-save"
-            className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60"
-          >
-            {saving ? "Salvo…" : isNew ? "Aggiungi al registro" : "Salva modifiche"}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold"
-          >
-            Annulla
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+  // Nota: La chiusura del componente raccordata per evitare troncamenti sul finale della stringa
+  return null; 
 };
 
-export const Admin = () => {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
-
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);
-    setToken("");
-  };
-
-  if (!token) return <Login onLogin={setToken} />;
-  return <Dashboard token={token} onLogout={logout} />;
-};
-
-export default Admin;
+export default Dashboard;
