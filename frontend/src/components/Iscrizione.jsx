@@ -4,14 +4,14 @@ import { ArrowRight } from "lucide-react";
 
 const REASONS = [
   {
-    emoji: "⚡",
+    emoji: "☀️",
     title: "Un antidoto all'algoritmo",
     desc: "Siamo tutti chiusi nelle nostre bolle digitali. Qui incontri persone, storie e punti di vista che lo schermo del tuo telefono non ti mostrerebbe mai.",
   },
   {
-    emoji: "🛠️",
-    title: "Il diritto di fare tentativi",
-    desc: "Hai un'idea nel cassetto, anche bizzarra? Questo è uno spazio protetto per testarla, sporcarti le mani e sperimentare, senza l'ansia di dover fare centro a tutti i costi.",
+    emoji: "🌱",
+    title: "Spazio ai tuoi progetti",
+    desc: "Hai un'idea nel cassetto? Questo è uno spazio sicuro per testarla, sporcarti le mani e sperimentare, senza l'ansia di dover fare centro a tutti i costi.",
   },
   {
     emoji: "🗺️",
