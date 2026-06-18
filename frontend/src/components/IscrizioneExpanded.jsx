@@ -236,7 +236,7 @@ export const IscrizioneExpanded = () => {
       }
 
       setDone(true);
-      setForm(initialForm);
+    {/* setForm(initialForm); */}   
     } catch (error) {
       console.error(error);
       toast.error("Errore durante l'iscrizione. Riprova.");
@@ -263,10 +263,10 @@ export const IscrizioneExpanded = () => {
           <p className="text-sm text-tv-green-deep/50">
             Il Consiglio Direttivo esaminerà la tua domanda e ti darà il benvenuto.
           </p>
-          <button onClick={() => setDone(false)}
-            className="btn-tv mt-8 px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold">
-            Invia un'altra richiesta
-          </button>
+            <button onClick={() => { setForm(initialForm); setDone(false); }}
+              className="btn-tv mt-8 px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold">
+              Invia un'altra richiesta
+            </button>
         </div>
       </section>
     );
