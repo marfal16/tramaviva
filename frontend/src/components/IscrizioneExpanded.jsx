@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/IscrizioneExpanded.jsx << 'JSEOF'
 import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
@@ -469,5 +468,3 @@ export const IscrizioneExpanded = () => {
 };
 
 export default IscrizioneExpanded;
-JSEOF
-echo "Done"
