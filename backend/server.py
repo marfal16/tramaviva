@@ -192,6 +192,8 @@ class RegistrationCreate(BaseModel):
     genitore_codice_fiscale: Optional[str] = None
     consenso_comunicazioni: bool
     consenso_pubblico: bool
+    consenso_telefono: bool  # <--- Aggiunto
+    consenso_chat: bool      # <--- Aggiunto
     consenso_privacy: bool
     consenso_dati: bool
     dichiarazione_accettata: bool
