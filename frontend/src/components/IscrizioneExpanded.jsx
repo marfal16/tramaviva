@@ -11,7 +11,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const IBAN = "IT48E3688801600100000059432";
-const STATUTO_URL = "/statuto-trama-viva.pdf"; // aggiorna con il path reale
+const STATUTO_URL = "/statuto_meta_inferiore_bianca.pdf";
 
 const initialForm = {
   first_name: "", last_name: "", email: "", phone: "", referral: "",
