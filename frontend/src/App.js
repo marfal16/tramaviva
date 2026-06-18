@@ -7,6 +7,7 @@ import Hero from "./components/Hero";
 import ChiSiamo from "./components/ChiSiamo";
 import Attivita from "./components/Attivita";
 import Eventi from "./components/Eventi";
+import Iscrizione from "./components/Iscrizione";
 import { IscrizioneExpanded } from "./components/IscrizioneExpanded";
 import Contatti from "./components/Contatti";
 import Footer from "./components/Footer";
@@ -34,12 +35,20 @@ const Home = () => {
       <ChiSiamo />
       <Attivita />
       <Eventi />
-      <IscrizioneExpanded />
+      <Iscrizione />
       <Contatti />
       <Footer />
     </div>
   );
 };
+
+const IscrizionePageWrapper = () => (
+  <div className="App bg-tv-cream min-h-screen">
+    <Navbar />
+    <IscrizioneExpanded />
+    <Footer />
+  </div>
+);
 
 function App() {
   return (
@@ -49,6 +58,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/eventi/:slug" element={<EventoDettaglio />} />
+        <Route path="/iscrizione" element={<IscrizionePageWrapper />} />
       </Routes>
     </BrowserRouter>
   );
