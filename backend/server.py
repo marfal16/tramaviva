@@ -135,6 +135,9 @@ class PaymentRequest(BaseModel):
     description: str
     registration_id: Optional[str] = None
 
+class PaymentStatusUpdate(BaseModel):
+    payment_completed: bool
+
 class MemberCreate(BaseModel):
     first_name: str
     last_name: str
@@ -192,11 +195,12 @@ class RegistrationCreate(BaseModel):
     genitore_codice_fiscale: Optional[str] = None
     consenso_comunicazioni: bool
     consenso_pubblico: bool
-    consenso_telefono: bool  # <--- Aggiunto
-    consenso_chat: bool      # <--- Aggiunto
+    consenso_telefono: bool
+    consenso_chat: bool
     consenso_privacy: bool
     consenso_dati: bool
     dichiarazione_accettata: bool
+    metodo_pagamento: Optional[str] = None
 
 class Registration(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -235,6 +239,7 @@ class Registration(BaseModel):
     pdf_base64: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     status: str = "pending"
+    metodo_pagamento: Optional[str] = None
     payment_completed: bool = False
     document_downloaded: bool = False
 
@@ -529,12 +534,24 @@ async def admin_contacts():
 
 @api_router.get("/admin/registrations", dependencies=[Depends(require_admin)])
 async def admin_get_registrations():
-    docs = await db.registrations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    # Esclude le iscrizioni con pagamento SumUp non completato
+    query = {"$nor": [{"metodo_pagamento": "elettronico", "payment_completed": {"$ne": True}}]}
+    docs = await db.registrations.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     member_emails = await _get_member_emails()
     for doc in docs:
         doc.pop("pdf_base64", None)
         doc["is_member"] = (doc.get("email") or "").lower() in member_emails
     return docs
+
+@api_router.patch("/admin/registrations/{registration_id}/payment-status", dependencies=[Depends(require_admin)])
+async def admin_update_payment_status(registration_id: str, payload: PaymentStatusUpdate):
+    res = await db.registrations.update_one(
+        {"id": registration_id},
+        {"$set": {"payment_completed": payload.payment_completed}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Registrazione non trovata")
+    return {"ok": True}
 
 # AGGIUNTO: Endpoint fondamentale per scaricare il PDF compilato dall'Admin
 @api_router.get("/admin/registrations/{registration_id}/pdf", dependencies=[Depends(require_admin)])

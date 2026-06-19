@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
-  CheckCircle2, CreditCard, AlertCircle, ChevronDown, ChevronUp,
+  CheckCircle2, CreditCard, ChevronDown, ChevronUp,
   Copy, ExternalLink, Banknote, Landmark, Smartphone,
 } from "lucide-react";
 import ConsentModal from "./ConsentModal";

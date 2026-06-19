@@ -201,12 +201,23 @@ const Dashboard = ({ token, onLogout }) => {
         return;
       }
 
-      const linkSource = `data:application/pdf;base64,${pdf_base64}`;
-      const downloadLink = document.createElement("a");
-      downloadLink.href = linkSource;
-      downloadLink.download = filename || `iscrizione_${registrationId}.pdf`;
-      downloadLink.click();
-      toast.success("PDF scaricato con successo!");
+      // Blob URL approach: funziona su desktop e su iOS Safari
+      const bytes = atob(pdf_base64);
+      const byteArray = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) byteArray[i] = bytes.charCodeAt(i);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename || `iscrizione_${registrationId}.pdf`;
+      link.target = "_blank"; // fallback iOS: apre in nuova scheda
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+
+      toast.success("PDF aperto! Su iPhone usa il tasto Condividi per salvarlo.");
       loadAll();
     } catch (err) {
       toast.error("Errore nel recupero del file PDF.");
@@ -224,6 +235,15 @@ const Dashboard = ({ token, onLogout }) => {
     } catch (e) {
       toast.error(e.response?.data?.detail || "Errore durante l'approvazione");
     }
+  };
+
+  const togglePayment = async (row) => {
+    const newValue = !row.payment_completed;
+    try {
+      await axios.patch(`${API}/admin/registrations/${row.id}/payment-status`, { payment_completed: newValue }, authHeader);
+      toast.success(newValue ? "Pagamento segnato come ricevuto!" : "Pagamento segnato come da ricevere.");
+      loadAll();
+    } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
   };
 
   const confirmSignup = async (row) => {
@@ -349,6 +369,20 @@ const Dashboard = ({ token, onLogout }) => {
                         📥 PDF Scaricato
                       </span>
                     )}
+                    {tab === "registrations" && row.metodo_pagamento && (
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                        row.payment_completed
+                          ? "bg-tv-green/20 text-tv-green-deep"
+                          : row.metodo_pagamento === "elettronico"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-tv-orange/30 text-tv-green-deep"
+                      }`}>
+                        {row.metodo_pagamento === "elettronico" ? "💳" : row.metodo_pagamento === "bonifico" ? "🏦" : "💵"}
+                        {row.metodo_pagamento === "elettronico"
+                          ? (row.payment_completed ? "Pagato online" : "Pagamento non completato")
+                          : (row.payment_completed ? "Pagamento ricevuto" : "Pagamento da ricevere")}
+                      </span>
+                    )}
                     {row.event_title && (
                       <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2.5 py-1 rounded-full">
                         {row.event_title}
@@ -388,6 +422,20 @@ const Dashboard = ({ token, onLogout }) => {
                         <Download size={13} />
                       )}
                       Scarica PDF
+                    </button>
+                  )}
+
+                  {tab === "registrations" && row.metodo_pagamento && row.metodo_pagamento !== "elettronico" && (
+                    <button
+                      onClick={() => togglePayment(row)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors ${
+                        row.payment_completed
+                          ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
+                          : "bg-tv-orange/30 text-tv-green-deep hover:bg-tv-green/20"
+                      }`}
+                      title={row.payment_completed ? "Segna come non ancora pagato" : "Segna come pagato"}
+                    >
+                      {row.payment_completed ? "✓ Pagato" : "⏳ Da ricevere"}
                     </button>
                   )}
 
