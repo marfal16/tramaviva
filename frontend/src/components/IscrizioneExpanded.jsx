@@ -396,6 +396,7 @@ export const IscrizioneExpanded = () => {
             <Section step="7" title="Metodo di Pagamento" defaultOpen={true}>
               <p className="text-sm text-tv-green-deep/60 mb-3">
                 Quota associativa annuale: <strong className="text-tv-green-deep">15,00 €</strong>
+                <span className="ml-2 text-xs text-tv-green-deep/40">· valida per un anno solare</span>
               </p>
               <MetodoPagamento value={form.metodo_pagamento}
                 onChange={(v) => setForm(f => ({ ...f, metodo_pagamento: v }))} />

@@ -76,6 +76,9 @@ export const Iscrizione = () => {
           <p className="mt-4 text-sm text-tv-green-deep/50">
             Ci vogliono 5 minuti. Il resto viene da sé.
           </p>
+          <p className="mt-2 text-xs text-tv-green-deep/40">
+            Quota annuale: 15 € · Il tesseramento ha validità un anno solare.
+          </p>
         </div>
 
       </div>
