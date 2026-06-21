@@ -25,6 +25,14 @@ const categoryColor = {
   "Corsi IT": { bg: "bg-tv-sky", text: "text-tv-cream" },
 };
 
+const isPast = (dateStr) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d < today;
+};
+
 export const EventoDettaglio = () => {
   const { slug } = useParams();
   const [event, setEvent] = useState(null);
@@ -269,7 +277,21 @@ export const EventoDettaglio = () => {
                 )}
               </div>
 
-              {done ? (
+              {isPast(event.date) ? (
+                <div className="bg-tv-green-deep/5 border border-tv-green-deep/15 rounded-[2rem] p-7 text-center" data-testid="event-detail-past">
+                  <div className="text-4xl mb-3">📁</div>
+                  <div className="font-display font-black text-2xl text-tv-green-deep">Evento concluso</div>
+                  <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
+                    Questo evento si è già svolto. Resta aggiornato sui prossimi appuntamenti!
+                  </p>
+                  <Link
+                    to="/#eventi"
+                    className="btn-tv mt-5 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm"
+                  >
+                    Vedi i prossimi eventi
+                  </Link>
+                </div>
+              ) : done ? (
                 <div className="bg-tv-green text-tv-cream rounded-[2rem] p-7" data-testid="event-detail-success">
                   <div className="font-display font-black text-2xl">Ci sei!</div>
                   <p className="mt-2 text-sm opacity-90">

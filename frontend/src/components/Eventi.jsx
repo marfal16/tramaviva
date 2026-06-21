@@ -33,6 +33,14 @@ const sameDay = (a, b) =>
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
 
+const isPast = (dateStr) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d < today;
+};
+
 export const Eventi = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -261,16 +269,38 @@ export const Eventi = () => {
 
 // ---------- List view ----------
 const ListView = ({ events, onParticipate }) => {
-  const featured = events.find((e) => e.featured);
-  const others = featured ? events.filter((e) => e.id !== featured.id) : events;
+  const upcoming = events.filter((e) => !isPast(e.date));
+  const past = events.filter((e) => isPast(e.date));
+  const featured = upcoming.find((e) => e.featured);
+  const others = featured ? upcoming.filter((e) => e.id !== featured.id) : upcoming;
   return (
     <>
       {featured && <FeaturedCard ev={featured} onParticipate={onParticipate} />}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-        {others.map((ev) => (
-          <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} />
-        ))}
-      </div>
+      {others.length > 0 ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+          {others.map((ev) => (
+            <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} />
+          ))}
+        </div>
+      ) : !featured && (
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+          Nessun evento in programma al momento. Torna presto!
+        </div>
+      )}
+      {past.length > 0 && (
+        <>
+          <div className="mt-16 mb-8 flex items-center gap-4">
+            <div className="flex-1 border-t border-tv-green-deep/10" />
+            <span className="text-xs font-bold uppercase tracking-[0.3em] text-tv-green-deep/40">📁 Storico eventi</span>
+            <div className="flex-1 border-t border-tv-green-deep/10" />
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            {past.map((ev) => (
+              <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} past />
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 };
@@ -326,31 +356,35 @@ const FeaturedCard = ({ ev, onParticipate }) => (
   </article>
 );
 
-const EventCard = ({ ev, onParticipate, compact = false }) => (
+const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
   <article
     data-testid={`event-card-${ev.id}`}
     className={`group bg-white border border-tv-green-deep/10 rounded-[2rem] ${
       compact ? "p-5" : "p-6"
-    } flex flex-col transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_-20px_rgba(5,47,23,0.25)]`}
+    } flex flex-col transition-all duration-500 ${
+      past ? "opacity-60" : "hover:-translate-y-2 hover:shadow-[0_20px_50px_-20px_rgba(5,47,23,0.25)]"
+    }`}
   >
     <div className="flex items-center justify-between mb-4">
-      <span
-        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-          categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep"
-        }`}
-      >
-        {ev.category}
-      </span>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+            past ? "bg-tv-green-deep/10 text-tv-green-deep/50" : (categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep")
+          }`}
+        >
+          {ev.category}
+        </span>
+        {past && (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/50">
+            Concluso
+          </span>
+        )}
+      </div>
       <span className="text-3xl">{ev.emoji}</span>
     </div>
     <h3 className="font-display font-black text-xl md:text-2xl text-tv-green-deep leading-tight">
       {ev.title}
     </h3>
-{/* {!compact && (
-  <p className="mt-3 text-sm text-tv-green-deep/70 leading-snug flex-1">
-    {ev.description}
-  </p>
-)} */}
     <div className="mt-4 space-y-1.5 text-sm text-tv-green-deep/80">
       <div className="flex items-center gap-2">
         <CalendarIcon size={14} /> {fmtDate(ev.date)}
@@ -361,7 +395,7 @@ const EventCard = ({ ev, onParticipate, compact = false }) => (
       <div className="flex items-center gap-2">
         <MapPin size={14} /> {ev.location}
       </div>
-      {!compact && (
+      {!compact && !past && (
         <div className="flex items-center gap-2">
           <Users size={14} /> {ev.spots} posti disponibili
         </div>
@@ -372,18 +406,20 @@ const EventCard = ({ ev, onParticipate, compact = false }) => (
         </div>
       )}
     </div>
-    <button
-      onClick={() => onParticipate(ev)}
-      data-testid={`event-participate-${ev.id}`}
-      className="btn-tv mt-5 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green"
-    >
-      Partecipa
-      <ArrowRight size={16} />
-    </button>
+    {!past && (
+      <button
+        onClick={() => onParticipate(ev)}
+        data-testid={`event-participate-${ev.id}`}
+        className="btn-tv mt-5 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green"
+      >
+        Partecipa
+        <ArrowRight size={16} />
+      </button>
+    )}
     <Link
       to={`/eventi/${ev.slug || ev.id}`}
       data-testid={`event-detail-${ev.id}`}
-      className="mt-3 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep hover:text-tv-cream transition-all duration-300"
+      className={`${past ? "mt-5" : "mt-3"} inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep hover:text-tv-cream transition-all duration-300`}
     >
       Vedi dettagli
     </Link>
@@ -528,7 +564,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
               {pickedDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
             </div>
             {eventsForPicked.map((ev) => (
-              <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} compact />
+              <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} compact past={isPast(ev.date)} />
             ))}
           </div>
         )}
