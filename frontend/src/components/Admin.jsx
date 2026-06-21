@@ -641,6 +641,22 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
           <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Descrizione *</div>
           <textarea rows={4} value={form.description} onChange={change("description")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep resize-none outline-none" />
         </label>
+        <button
+          type="button"
+          onClick={() => setForm({ ...form, featured: !form.featured })}
+          className={`mt-4 w-full flex items-center justify-between px-5 py-3 rounded-2xl border-2 transition-all ${
+            form.featured
+              ? "border-tv-orange bg-tv-orange/10 text-tv-green-deep"
+              : "border-tv-green-deep/15 bg-white text-tv-green-deep/50 hover:border-tv-green-deep/30"
+          }`}
+        >
+          <span className="font-bold text-sm">⭐ Evento in evidenza</span>
+          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+            form.featured ? "bg-tv-orange text-tv-green-deep" : "bg-tv-green-deep/10 text-tv-green-deep/50"
+          }`}>
+            {form.featured ? "Attivo" : "Non attivo"}
+          </span>
+        </button>
         <div className="mt-5 flex gap-3">
           <button type="submit" disabled={saving} className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60">{saving ? "Salvo…" : "Salva"}</button>
           <button type="button" onClick={onClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>
