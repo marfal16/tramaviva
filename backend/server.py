@@ -14,6 +14,7 @@ import sys
 
 # IMPORTANTE: Importiamo il servizio PDF che hai appena configurato
 from pdf_service import PDFService
+from email_service import EmailService
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -743,6 +744,20 @@ async def confirm_event_signup(signup_id: str):
         {"id": signup_id},
         {"$set": {"confirmed": True}}
     )
+
+    try:
+        email_svc = EmailService()
+        await email_svc.send_event_confirmation(
+            email=signup.get("email", ""),
+            name=signup.get("name", ""),
+            event_title=event.get("title", signup.get("event_title", "")),
+            event_date=event.get("date", ""),
+            event_time=event.get("time", ""),
+            event_location=event.get("location", ""),
+        )
+    except Exception as e:
+        logger.warning(f"Email conferma evento non inviata: {e}")
+
     return {"ok": True, "spots_remaining": event["spots"] - 1}
 
 # ========== ADMIN: EVENTS ==========

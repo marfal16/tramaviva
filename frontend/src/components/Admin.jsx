@@ -330,6 +330,12 @@ const Dashboard = ({ token, onLogout }) => {
             onEdit={(m) => setMemberEditor(m)}
             onDelete={(id) => remove("members", id)}
           />
+        ) : tab === "event-signups" ? (
+          <EventSignupsManager
+            signups={data["event-signups"]}
+            onConfirm={confirmSignup}
+            onDelete={(id) => remove("event-signups", id)}
+          />
         ) : list.length === 0 ? (
           <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
             Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
@@ -501,11 +507,160 @@ const Dashboard = ({ token, onLogout }) => {
   );
 };
 
+const isPast = (dateStr) => {
+  if (!dateStr) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d < today;
+};
+
+// ─── Event signups raggruppati per evento ─────────────────────────────────────
+
+const EventSignupsManager = ({ signups, onConfirm, onDelete }) => {
+  if (!signups || signups.length === 0) {
+    return (
+      <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+        Ancora nessuna richiesta evento.
+      </div>
+    );
+  }
+
+  const grouped = signups.reduce((acc, s) => {
+    const key = s.event_id || s.event_title || "—";
+    if (!acc[key]) acc[key] = { title: s.event_title || s.event_id || "Evento sconosciuto", items: [] };
+    acc[key].items.push(s);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-10">
+      {Object.values(grouped).map((group) => (
+        <div key={group.title}>
+          <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-tv-green-deep/10">
+            <div className="w-9 h-9 rounded-xl bg-tv-sky/40 flex items-center justify-center text-lg flex-shrink-0">📅</div>
+            <h3 className="font-display font-black text-xl text-tv-green-deep flex-1 leading-tight">{group.title}</h3>
+            <span className="px-3 py-1 rounded-full bg-tv-sky/30 text-tv-green-deep font-bold text-xs flex-shrink-0">
+              {group.items.length} {group.items.length === 1 ? "richiesta" : "richieste"}
+            </span>
+          </div>
+          <div className="grid gap-3">
+            {group.items.map((row) => (
+              <div
+                key={row.id}
+                className="bg-white rounded-2xl p-4 border border-tv-green-deep/10 flex flex-col sm:flex-row sm:items-center gap-3"
+              >
+                <div className="w-9 h-9 rounded-xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-base flex-shrink-0">
+                  {(row.name?.[0] || "?").toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-tv-green-deep">{row.name}</span>
+                    {row.is_member && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2 py-0.5 rounded-full">
+                        <UserCheck size={10} /> Socio
+                      </span>
+                    )}
+                    {row.confirmed && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
+                        ✓ Confermato
+                      </span>
+                    )}
+                    <span className="text-xs text-tv-green-deep/40">{fmtDate(row.created_at)}</span>
+                  </div>
+                  <div className="text-sm text-tv-green-deep/60 flex flex-wrap gap-x-3 mt-0.5">
+                    {row.email && <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1"><Mail size={12} />{row.email}</a>}
+                    {row.phone && <span>📞 {row.phone}</span>}
+                  </div>
+                  {row.message && <p className="text-xs text-tv-green-deep/50 italic mt-1">"{row.message}"</p>}
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+                  {!row.confirmed && (
+                    <button
+                      onClick={() => onConfirm(row)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
+                    >
+                      <UserCheck size={13} /> Conferma
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onDelete(row.id)}
+                    className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+                    aria-label="Elimina"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─── Events manager con storico ───────────────────────────────────────────────
+
 const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
   const fmtDay = (d) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
     catch { return d; }
   };
+
+  const upcoming = events.filter((ev) => !isPast(ev.date));
+  const past = events.filter((ev) => isPast(ev.date));
+
+  const renderEventRow = (ev) => (
+    <article
+      key={ev.id}
+      data-testid={`admin-event-row-${ev.id}`}
+      className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
+    >
+      <div className="flex items-start gap-4 flex-1">
+        <span className="text-3xl">{ev.emoji}</span>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
+              {ev.category}
+            </span>
+            <span className="text-xs text-tv-green-deep/60">
+              {fmtDay(ev.date)} · {ev.time}
+            </span>
+          </div>
+          <h3 className="mt-1 font-display font-black text-lg text-tv-green-deep flex items-center gap-2">
+            {ev.title}
+            {ev.featured && (
+              <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
+                ⭐ In Evidenza
+              </span>
+            )}
+          </h3>
+          <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"}</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 self-end md:self-center">
+        <button
+          onClick={() => onEdit(ev)}
+          data-testid={`admin-event-edit-${ev.id}`}
+          className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors"
+          aria-label="Modifica"
+        >
+          <Pencil size={16} />
+        </button>
+        <button
+          onClick={() => onDelete(ev.id)}
+          data-testid={`admin-event-delete-${ev.id}`}
+          className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+          aria-label="Elimina"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </article>
+  );
+
   return (
     <div data-testid="admin-events-manager">
       <button
@@ -520,56 +675,23 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
           Nessun evento ancora. Crea il primo!
         </div>
       ) : (
-        <div className="grid gap-3">
-          {events.map((ev) => (
-            <article
-              key={ev.id}
-              data-testid={`admin-event-row-${ev.id}`}
-              className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
-            >
-              <div className="flex items-start gap-4 flex-1">
-                <span className="text-3xl">{ev.emoji}</span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
-                      {ev.category}
-                    </span>
-                    <span className="text-xs text-tv-green-deep/60">
-                      {fmtDay(ev.date)} · {ev.time}
-                    </span>
-                  </div>
-                  <h3 className="mt-1 font-display font-black text-lg text-tv-green-deep flex items-center gap-2">
-                    {ev.title}
-                    {ev.featured && (
-                      <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
-                        ⭐ In Evidenza
-                      </span>
-                    )}
-                  </h3>
-                  <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"} </div>
-                </div>
+        <>
+          {upcoming.length === 0 && past.length > 0 && (
+            <div className="rounded-2xl p-5 bg-tv-sky/20 border border-tv-green-deep/10 text-tv-green-deep/60 text-sm mb-6">
+              Nessun evento in programma. Crea un nuovo evento o controlla lo storico qui sotto.
+            </div>
+          )}
+          {upcoming.length > 0 && <div className="grid gap-3">{upcoming.map(renderEventRow)}</div>}
+          {past.length > 0 && (
+            <>
+              <div className="flex items-center gap-3 my-8">
+                <span className="text-xs font-bold uppercase tracking-[0.25em] text-tv-green-deep/40">📁 Storico eventi</span>
+                <div className="flex-1 border-t border-tv-green-deep/10" />
               </div>
-              <div className="flex items-center gap-2 self-end md:self-center">
-                <button
-                  onClick={() => onEdit(ev)}
-                  data-testid={`admin-event-edit-${ev.id}`}
-                  className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors"
-                  aria-label="Modifica"
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  onClick={() => onDelete(ev.id)}
-                  data-testid={`admin-event-delete-${ev.id}`}
-                  className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-                  aria-label="Elimina"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
+              <div className="grid gap-3 opacity-60">{past.map(renderEventRow)}</div>
+            </>
+          )}
+        </>
       )}
     </div>
   );

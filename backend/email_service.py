@@ -53,6 +53,25 @@ class EmailService:
             logger.error(f"Errore nell'invio dell'email: {e}")
             # Non solleva eccezione per non interrompere il flusso
     
+    async def send_event_confirmation(self, email: str, name: str, event_title: str, event_date: str, event_time: str, event_location: str):
+        """Invia email di conferma partecipazione all'evento."""
+        if not HAS_SMTP or not self.smtp_user:
+            logger.warning(f"Email service non configurato. Email evento saltata per {email}")
+            return
+        try:
+            subject = f"Presenza confermata: {event_title}"
+            html_body = self._get_event_confirmation_template(
+                name=name,
+                event_title=event_title,
+                event_date=event_date,
+                event_time=event_time,
+                event_location=event_location,
+            )
+            await self._send_smtp(email, subject, html_body)
+            logger.info(f"Email conferma evento inviata a {email}")
+        except Exception as e:
+            logger.error(f"Errore invio email conferma evento: {e}")
+
     async def _send_smtp(self, to_email: str, subject: str, html_body: str):
         """
         Invia un'email tramite SMTP.
@@ -192,6 +211,87 @@ class EmailService:
                     <p><em>A presto, e grazie ancora per aver scelto di intrecciare il tuo filo con il nostro!</em></p>
                     
                     <p><strong>Il team di Trama Viva</strong></p>
+                </div>
+                <div class="footer">
+                    <p>Trama Viva APS | "Intrecciamo storie, persone e opportunità"</p>
+                    <p>Generated: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+    def _get_event_confirmation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str) -> str:
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{
+                    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                    line-height: 1.6;
+                    color: #2D3A18;
+                    background: #F9ECD4;
+                    margin: 0;
+                    padding: 0;
+                }}
+                .container {{
+                    max-width: 600px;
+                    margin: 20px auto;
+                    background: white;
+                    border-radius: 20px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                }}
+                .header {{
+                    background: linear-gradient(135deg, #5CB176 0%, #92C8B9 100%);
+                    color: white;
+                    padding: 40px 20px;
+                    text-align: center;
+                }}
+                .header h1 {{ margin: 0; font-size: 28px; font-weight: 900; }}
+                .content {{ padding: 40px 30px; }}
+                .content h2 {{ color: #5CB176; margin-top: 0; }}
+                .event-box {{
+                    background: #F9ECD4;
+                    border-left: 4px solid #5CB176;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 20px 0;
+                    font-size: 15px;
+                }}
+                .event-box p {{ margin: 6px 0; }}
+                .footer {{
+                    background: #f8f9fa;
+                    padding: 20px;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #666;
+                    border-top: 1px solid #eee;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🎉 Sei confermato*!</h1>
+                </div>
+                <div class="content">
+                    <h2>Ciao {name}!</h2>
+                    <p>La tua presenza all'evento <strong>{event_title}</strong> è stata confermata dal team di Trama Viva APS.</p>
+                    <div class="event-box">
+                        <p>📅 <strong>{event_date}</strong> alle <strong>{event_time}</strong></p>
+                        <p>📍 {event_location}</p>
+                    </div>
+                    <p>Qualche piccolo consiglio:</p>
+                    <ul>
+                        <li>✓ Arriva qualche minuto prima dell'orario indicato</li>
+                        <li>✓ Se non riesci a venire, faccelo sapere il prima possibile</li>
+                        <li>✓ Per qualsiasi info scrivici a <strong>tramavivaaps@gmail.com</strong></li>
+                    </ul>
+                    <p><em>Non vediamo l'ora di vederti! A presto,</em></p>
+                    <p><strong>Il team di Trama Viva APS</strong></p>
                 </div>
                 <div class="footer">
                     <p>Trama Viva APS | "Intrecciamo storie, persone e opportunità"</p>

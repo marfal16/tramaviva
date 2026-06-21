@@ -45,24 +45,30 @@ export const Iscrizione = () => {
           </p>
         </div>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-14">
-          {REASONS.map(({ emoji, title, desc }) => (
-            <div
-              key={title}
-              className="bg-white rounded-[2rem] p-8 border border-tv-green-deep/10 flex flex-col gap-4"
-            >
-              <span className="text-4xl">{emoji}</span>
-              <div>
-                <div className="font-display font-black text-xl text-tv-green-deep mb-2">
-                  {title}
-                </div>
-                <div className="text-sm text-tv-green-deep/70 leading-relaxed">
-                  {desc}
+        {/* Motivazioni */}
+        <div className="mb-14">
+          {/* Mobile: lista verticale */}
+          <div className="flex flex-col gap-7 md:hidden">
+            {REASONS.map(({ emoji, title, desc }) => (
+              <div key={title} className="flex items-start gap-5">
+                <span className="text-4xl leading-none flex-shrink-0">{emoji}</span>
+                <div>
+                  <div className="font-display font-black text-lg text-tv-green-deep mb-1">{title}</div>
+                  <div className="text-sm text-tv-green-deep/70 leading-relaxed">{desc}</div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {/* Desktop: tre colonne centrate senza box */}
+          <div className="hidden md:grid md:grid-cols-3 gap-10 text-center">
+            {REASONS.map(({ emoji, title, desc }) => (
+              <div key={title} className="flex flex-col items-center gap-3">
+                <span className="text-5xl">{emoji}</span>
+                <div className="font-display font-black text-xl text-tv-green-deep">{title}</div>
+                <div className="text-sm text-tv-green-deep/70 leading-relaxed">{desc}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* CTA centrato */}
