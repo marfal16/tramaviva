@@ -42,13 +42,16 @@ const Home = () => {
   );
 };
 
-const IscrizionePageWrapper = () => (
-  <div className="App bg-tv-cream min-h-screen">
-    <Navbar />
-    <IscrizioneExpanded />
-    <Footer />
-  </div>
-);
+const IscrizionePageWrapper = () => {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  return (
+    <div className="App bg-tv-cream min-h-screen">
+      <Navbar />
+      <IscrizioneExpanded />
+      <Footer />
+    </div>
+  );
+};
 
 function App() {
   return (

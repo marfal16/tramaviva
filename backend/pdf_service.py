@@ -68,8 +68,8 @@ class PDFService:
                 "indirizzo":       registration_data.get("indirizzo", ""),
                 "cellulare":       registration_data.get("cellulare", "") or registration_data.get("phone", ""),
                 "email":           registration_data.get("email", ""),
-                "luogo":           comune,
-                "data_versamento": datetime.now().strftime("%d/%m/%Y"),
+                "luogo":           "",
+                "data_versamento": "",
             }
 
             if registration_data.get("is_minorenne", False):

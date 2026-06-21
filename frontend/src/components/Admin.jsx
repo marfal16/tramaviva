@@ -218,7 +218,13 @@ const Dashboard = ({ token, onLogout }) => {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
 
       toast.success("PDF aperto! Su iPhone usa il tasto Condividi per salvarlo.");
-      loadAll();
+      // Aggiorna solo il flag document_downloaded senza ricaricare tutto
+      setData(prev => ({
+        ...prev,
+        registrations: prev.registrations.map(r =>
+          r.id === registrationId ? { ...r, document_downloaded: true } : r
+        ),
+      }));
     } catch (err) {
       toast.error("Errore nel recupero del file PDF.");
     } finally {
@@ -471,7 +477,17 @@ const Dashboard = ({ token, onLogout }) => {
                       ✓ Confermato
                     </span>
                   )}
-                  
+
+                  {tab === "contacts" && row.email && (
+                    <a
+                      href={`mailto:${row.email}?subject=${encodeURIComponent("Re: Il tuo messaggio a Trama Viva APS")}&body=${encodeURIComponent(`Ciao ${row.name || ""},\n\nAbbiamo letto il tuo messaggio:\n"${row.message || ""}"\n\n`)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green-deep/10 text-tv-green-deep font-bold text-xs hover:bg-tv-green-deep hover:text-tv-cream transition-colors"
+                      title="Rispondi via email"
+                    >
+                      <Mail size={13} /> Rispondi
+                    </a>
+                  )}
+
                   <button
                     onClick={() => remove(tab, row.id)}
                     data-testid={`admin-delete-${row.id}`}

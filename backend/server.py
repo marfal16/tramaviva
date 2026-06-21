@@ -658,11 +658,26 @@ async def admin_delete(collection: str, doc_id: str):
 
     if target_collection == "event_signups":
         signup = await db.event_signups.find_one({"id": doc_id})
-        if signup and signup.get("confirmed") is True:
-            await db.events.update_one(
-                {"id": signup["event_id"]},
-                {"$inc": {"spots": 1}}
-            )
+        if signup:
+            if signup.get("confirmed") is True:
+                await db.events.update_one(
+                    {"id": signup["event_id"]},
+                    {"$inc": {"spots": 1}}
+                )
+            if signup.get("email"):
+                try:
+                    event = await db.events.find_one({"id": signup.get("event_id", "")}, {"_id": 0})
+                    email_svc = EmailService()
+                    await email_svc.send_event_cancellation(
+                        email=signup["email"],
+                        name=signup.get("name", ""),
+                        event_title=(event.get("title") if event else None) or signup.get("event_title", ""),
+                        event_date=(event.get("date") if event else "") or "",
+                        event_time=(event.get("time") if event else "") or "",
+                        event_location=(event.get("location") if event else "") or "",
+                    )
+                except Exception as e:
+                    logger.warning(f"Email cancellazione evento non inviata: {e}")
 
     res = await db[target_collection].delete_one({"id": doc_id})
     if res.deleted_count == 0:
