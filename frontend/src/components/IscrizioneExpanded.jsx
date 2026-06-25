@@ -10,6 +10,54 @@ import ConsentModal from "./ConsentModal";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// ─── Codice Fiscale italiano — validazione ────────────────────────────────────
+
+const CF_ODD  = {'0':1,'1':0,'2':5,'3':7,'4':9,'5':13,'6':15,'7':17,'8':19,'9':21,'A':1,'B':0,'C':5,'D':7,'E':9,'F':13,'G':15,'H':17,'I':19,'J':21,'K':2,'L':4,'M':18,'N':20,'O':11,'P':3,'Q':6,'R':8,'S':12,'T':14,'U':16,'V':10,'W':22,'X':25,'Y':24,'Z':23};
+const CF_EVEN = {'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'A':0,'B':1,'C':2,'D':3,'E':4,'F':5,'G':6,'H':7,'I':8,'J':9,'K':10,'L':11,'M':12,'N':13,'O':14,'P':15,'Q':16,'R':17,'S':18,'T':19,'U':20,'V':21,'W':22,'X':23,'Y':24,'Z':25};
+const CF_MONTHS = "ABCDEHLMPRST";
+const CF_OMOCODIA = {L:0,M:1,N:2,P:3,Q:4,R:5,S:6,T:7,U:8,V:9};
+
+const decodeOmo = (c) => (c >= "0" && c <= "9") ? parseInt(c) : (CF_OMOCODIA[c] ?? 0);
+
+const cfNameCode = (name, isFirstName = false) => {
+  const letters = name.toUpperCase().replace(/[^A-Z]/g, "");
+  const cons = [...letters].filter(c => !"AEIOU".includes(c));
+  const vows = [...letters].filter(c => "AEIOU".includes(c));
+  if (isFirstName && cons.length >= 4) return cons[0] + cons[2] + cons[3];
+  return [...cons, ...vows, "X", "X", "X"].join("").substring(0, 3);
+};
+
+const validateCodiceFiscale = (cf, lastName, firstName, dataNascita) => {
+  const s = cf.toUpperCase().trim();
+  if (s.length !== 16) return "Il codice fiscale deve essere di 16 caratteri.";
+  if (!/^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/.test(s))
+    return "Formato codice fiscale non valido.";
+  // Check digit
+  let sum = 0;
+  for (let i = 0; i < 15; i++) sum += (i % 2 === 0 ? CF_ODD : CF_EVEN)[s[i]];
+  if (s[15] !== String.fromCharCode(65 + (sum % 26)))
+    return "Codice fiscale non valido (carattere di controllo errato).";
+  // Data di nascita
+  if (dataNascita) {
+    const [y, m, d] = dataNascita.split("-").map(Number);
+    const cfYear = String(decodeOmo(s[6])) + String(decodeOmo(s[7]));
+    if (cfYear !== String(y).slice(-2)) return "Il codice fiscale non corrisponde all'anno di nascita.";
+    if (s[8] !== CF_MONTHS[m - 1]) return "Il codice fiscale non corrisponde al mese di nascita.";
+    const cfDay = decodeOmo(s[9]) * 10 + decodeOmo(s[10]);
+    const actualDay = cfDay > 40 ? cfDay - 40 : cfDay;
+    if (actualDay !== d) return "Il codice fiscale non corrisponde al giorno di nascita.";
+  }
+  // Cognome
+  if (lastName && cfNameCode(lastName) !== s.substring(0, 3))
+    return "Il codice fiscale non corrisponde al cognome.";
+  // Nome
+  if (firstName && cfNameCode(firstName, true) !== s.substring(3, 6))
+    return "Il codice fiscale non corrisponde al nome.";
+  return null;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const IBAN = "IT48E3688801600100000059432";
 const STATUTO_URL = "/statuto_meta_inferiore_bianca.pdf";
 
@@ -172,18 +220,24 @@ export const IscrizioneExpanded = () => {
   const [done, setDone] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
 
-  const change = (field) => (e) => {
+  const change = (field, transform) => (e) => {
     const { type, checked, value } = e.target;
-    setForm(f => ({ ...f, [field]: type === "checkbox" ? checked : value }));
+    const val = type === "checkbox" ? checked : (transform ? transform(value) : value);
+    setForm(f => ({ ...f, [field]: val }));
   };
 
   const validate = () => {
     const required = ["first_name","last_name","email","phone","luogo_nascita",
-      "data_nascita","codice_fiscale","indirizzo","comune","provincia","cap","cellulare"];
+      "data_nascita","codice_fiscale","indirizzo","comune","provincia","cap","cellulare",
+      "documento_numero","documento_rilasciato","documento_data"];
     if (required.some(k => !form[k])) {
       toast.error("Compila tutti i campi obbligatori (*).");
       return false;
     }
+    const cfError = validateCodiceFiscale(
+      form.codice_fiscale, form.last_name, form.first_name, form.data_nascita
+    );
+    if (cfError) { toast.error(cfError); return false; }
     if (!form.metodo_pagamento) {
       toast.error("Seleziona un metodo di pagamento.");
       return false;
@@ -312,7 +366,7 @@ export const IscrizioneExpanded = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field id="data_nascita" label="Data di nascita" type="date" required value={form.data_nascita} onChange={change("data_nascita")} />
                 <Field id="luogo_nascita" label="Luogo di nascita" required value={form.luogo_nascita} onChange={change("luogo_nascita")} />
-                <Field id="codice_fiscale" label="Codice Fiscale" required value={form.codice_fiscale} onChange={change("codice_fiscale")} placeholder="RSSMRA85M01H501U" />
+                <Field id="codice_fiscale" label="Codice Fiscale" required value={form.codice_fiscale} onChange={change("codice_fiscale", v => v.toUpperCase())} placeholder="RSSMRA85M01H501U" />
                 <Field id="cittadinanza" label="Cittadinanza" value={form.cittadinanza} onChange={change("cittadinanza")} placeholder="es. Italiana" />
               </div>
             </Section>
@@ -320,11 +374,11 @@ export const IscrizioneExpanded = () => {
             {/* 3. Documento */}
             <Section step="3" title="Documento d'Identità">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <SelectField id="documento_tipo" label="Tipo documento" value={form.documento_tipo} onChange={change("documento_tipo")}
+                <SelectField id="documento_tipo" label="Tipo documento" required value={form.documento_tipo} onChange={change("documento_tipo")}
                   options={[{value:"Carta ID",label:"Carta d'Identità"},{value:"Passaporto",label:"Passaporto"},{value:"Patente",label:"Patente"}]} />
-                <Field id="documento_numero" label="Numero documento" value={form.documento_numero} onChange={change("documento_numero")} />
-                <Field id="documento_rilasciato" label="Rilasciato da" value={form.documento_rilasciato} onChange={change("documento_rilasciato")} placeholder="es. Comune di Napoli" />
-                <Field id="documento_data" label="Data rilascio" type="date" value={form.documento_data} onChange={change("documento_data")} />
+                <Field id="documento_numero" label="Numero documento" required value={form.documento_numero} onChange={change("documento_numero", v => v.toUpperCase())} />
+                <Field id="documento_rilasciato" label="Rilasciato da" required value={form.documento_rilasciato} onChange={change("documento_rilasciato")} placeholder="es. Comune di Napoli" />
+                <Field id="documento_data" label="Data rilascio" type="date" required value={form.documento_data} onChange={change("documento_data")} />
               </div>
             </Section>
 
