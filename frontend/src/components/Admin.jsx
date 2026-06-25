@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2 } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -99,6 +99,129 @@ const TABS = [
 ];
 
 const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
+
+const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onDelete }) => {
+  const isArchived = row.status === "archived";
+  const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
+  const initial = (name[0] || "?").toUpperCase();
+
+  return (
+    <article
+      data-testid={`admin-row-${row.id}`}
+      className="bg-white rounded-3xl overflow-hidden border border-tv-green-deep/10"
+    >
+      <div className="p-5 md:p-6 flex items-start gap-4">
+        <div className="w-11 h-11 rounded-2xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-lg shrink-0">
+          {initial}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 flex-wrap">
+            <span className="font-display font-black text-lg text-tv-green-deep leading-tight">{name}</span>
+            <span className="text-xs text-tv-green-deep/40 shrink-0">{fmtDate(row.created_at)}</span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-tv-green-deep/65">
+            {row.email && (
+              <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1 min-w-0">
+                <Mail size={12} className="shrink-0" />
+                <span className="truncate">{row.email}</span>
+              </a>
+            )}
+            {row.phone && <span>📞 {row.phone}</span>}
+            {row.referral && <span className="text-tv-green-deep/45">✨ {row.referral}</span>}
+          </div>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {(row.is_member || row.status === "approved") && (
+              <span
+                data-testid={`badge-member-${row.id}`}
+                className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2.5 py-1 rounded-full"
+              >
+                <UserCheck size={10} /> Socio tesserato
+              </span>
+            )}
+            {isArchived ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/50 px-2.5 py-1 rounded-full">
+                🗃 Dati cancellati
+              </span>
+            ) : row.document_downloaded ? (
+              <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
+                📥 PDF scaricato
+              </span>
+            ) : null}
+            {row.metodo_pagamento && (
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                row.payment_completed
+                  ? "bg-tv-green/20 text-tv-green-deep"
+                  : row.metodo_pagamento === "elettronico"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-tv-orange/30 text-tv-green-deep"
+              }`}>
+                {row.metodo_pagamento === "elettronico" ? "💳" : row.metodo_pagamento === "bonifico" ? "🏦" : "💵"}
+                {row.metodo_pagamento === "elettronico"
+                  ? (row.payment_completed ? "Pagato online" : "Verifica su SumUp")
+                  : (row.payment_completed ? "Pagamento ricevuto" : "Da ricevere")}
+              </span>
+            )}
+            {row.is_minorenne && (
+              <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-tv-bordeaux px-2.5 py-1 rounded-full bg-tv-bordeaux/10">
+                👶 Minorenne
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-5 md:px-6 py-3 bg-tv-sky/20 border-t border-tv-green-deep/[0.08] flex flex-wrap items-center gap-2 justify-end">
+        {!isArchived && (
+          <button
+            onClick={() => onPdf(row.id)}
+            disabled={pdfLoadingId === row.id}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-tv-green-deep font-bold text-xs hover:bg-tv-sky/40 transition-colors disabled:opacity-50 border border-tv-green-deep/10"
+          >
+            {pdfLoadingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+            Scarica PDF
+          </button>
+        )}
+        {!isArchived && row.metodo_pagamento && (
+          <button
+            onClick={() => onTogglePayment(row)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-xs transition-colors ${
+              row.payment_completed
+                ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
+                : "bg-tv-orange/30 text-tv-green-deep hover:bg-tv-orange/50"
+            }`}
+          >
+            {row.payment_completed ? "✓ Pagato" : (row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere")}
+          </button>
+        )}
+        {!isArchived && row.status !== "approved" && (
+          <button
+            onClick={() => onApprove(row)}
+            data-testid={`admin-promote-${row.id}`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
+          >
+            <Sparkles size={12} /> Approva socio
+          </button>
+        )}
+        {!isArchived && (
+          <button
+            onClick={() => onCleanup(row)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/20 transition-colors"
+          >
+            <ShieldOff size={12} /> Cancella dati
+          </button>
+        )}
+        <button
+          onClick={() => onDelete(row.id)}
+          data-testid={`admin-delete-${row.id}`}
+          className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+          aria-label="Elimina"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </article>
+  );
+};
 
 const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("events");
@@ -252,6 +375,25 @@ const Dashboard = ({ token, onLogout }) => {
     } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
   };
 
+  const cleanupRegistration = async (row) => {
+    const name = `${row.first_name || ""} ${row.last_name || ""}`.trim();
+    if (!window.confirm(`Cancellare tutti i dati sensibili di ${name}?\n\nVerranno conservati solo nome, cognome, email, telefono e origine.\nIl PDF verrà eliminato dal database.\n\n⚠️ Questa azione è irreversibile.`)) return;
+    try {
+      await axios.post(`${API}/admin/registrations/${row.id}/cleanup`, {}, authHeader);
+      toast.success("Dati sensibili cancellati.");
+      setData(prev => ({
+        ...prev,
+        registrations: prev.registrations.map(r =>
+          r.id === row.id
+            ? { ...r, status: "archived", pdf_base64: null, document_deleted_at: new Date().toISOString() }
+            : r
+        ),
+      }));
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nella cancellazione dati.");
+    }
+  };
+
   const confirmSignup = async (row) => {
     if (!window.confirm(`Confermi la presenza di ${row.name} e scali un posto da "${row.event_title}"?`)) return;
     try {
@@ -336,6 +478,27 @@ const Dashboard = ({ token, onLogout }) => {
             onEdit={(m) => setMemberEditor(m)}
             onDelete={(id) => remove("members", id)}
           />
+        ) : tab === "registrations" ? (
+          list.length === 0 ? (
+            <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
+              Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
+            </div>
+          ) : (
+            <div className="grid gap-4" data-testid="admin-list">
+              {list.map(row => (
+                <RegistrationCard
+                  key={row.id}
+                  row={row}
+                  onPdf={downloadPdf}
+                  pdfLoadingId={pdfLoadingId}
+                  onTogglePayment={togglePayment}
+                  onApprove={promoteToMember}
+                  onCleanup={cleanupRegistration}
+                  onDelete={(id) => remove("registrations", id)}
+                />
+              ))}
+            </div>
+          )
         ) : tab === "event-signups" ? (
           <EventSignupsManager
             signups={data["event-signups"]}

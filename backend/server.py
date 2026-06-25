@@ -597,9 +597,6 @@ async def admin_cleanup_registration(registration_id: str):
         registration = await db.registrations.find_one({"id": registration_id})
         if not registration:
             raise HTTPException(status_code=404, detail="Registrazione non trovata")
-        if not registration.get("document_downloaded"):
-            raise HTTPException(status_code=400, detail="Devi scaricare il documento prima di eseguire la pulizia")
-        
         cleaned_data = {
             "id": registration["id"],
             "first_name": registration["first_name"],
