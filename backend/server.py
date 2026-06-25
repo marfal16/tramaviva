@@ -394,9 +394,18 @@ async def create_registration(payload: RegistrationCreate):
         doc = registration.model_dump()
         doc["created_at"] = doc["created_at"].isoformat()
         result = await db.registrations.insert_one(doc)
-        
         logger.info(f"Registrazione creata con successo con PDF: {registration.id}")
-        
+
+        try:
+            email_svc = EmailService()
+            await email_svc.send_registration_confirmation(
+                email=registration.email,
+                first_name=registration.first_name,
+                registration_id=registration.id,
+            )
+        except Exception as e:
+            logger.warning(f"Email conferma iscrizione non inviata: {e}")
+
         return {
             "registration_id": registration.id,
             "status": "pending",
