@@ -105,16 +105,10 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
   const isApproved = row.is_member || row.status === "approved";
   const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
   const initial = (name[0] || "?").toUpperCase();
-  const accentColor = isArchived
-    ? "border-l-tv-green-deep/20"
-    : isApproved
-      ? "border-l-tv-green"
-      : "border-l-tv-orange";
-
   return (
     <article
       data-testid={`admin-row-${row.id}`}
-      className={`bg-white rounded-3xl overflow-hidden border border-tv-green-deep/10 border-l-4 ${accentColor}`}
+      className="bg-white rounded-3xl overflow-hidden border border-tv-green-deep/10"
     >
       <div className="p-5 md:p-6 flex items-start gap-4">
         <div className="w-11 h-11 rounded-2xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-lg shrink-0">
@@ -176,7 +170,7 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
         </div>
       </div>
 
-      <div className="px-5 md:px-6 py-3 bg-tv-sky/20 border-t border-tv-green-deep/[0.08] flex flex-wrap items-center justify-between gap-2">
+      <div className="px-5 md:px-6 py-3 bg-tv-sky/20 border-t border-tv-green-deep/[0.08] flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         {/* Gruppo sinistra: azioni documento e pagamento */}
         <div className="flex items-center gap-2 flex-wrap">
           {!isArchived && (
