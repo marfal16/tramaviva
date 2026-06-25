@@ -452,13 +452,19 @@ async def create_sumup_checkout(payload: PaymentRequest):
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
+            redirect_base = "https://www.tramavivaaps.com"
+            redirect_url = (
+                f"{redirect_base}/?paid={payload.registration_id}"
+                if payload.registration_id
+                else redirect_base
+            )
             checkout_data = {
                 "merchant_code": merchant_code,
                 "amount": formatted_amount,
                 "currency": "EUR",
                 "checkout_reference": checkout_reference,
                 "description": payload.description,
-                "redirect_url": "https://www.tramavivaaps.com",
+                "redirect_url": redirect_url,
                 "hosted_checkout": {
                     "enabled": True
                 }
@@ -535,9 +541,7 @@ async def admin_contacts():
 
 @api_router.get("/admin/registrations", dependencies=[Depends(require_admin)])
 async def admin_get_registrations():
-    # Esclude le iscrizioni con pagamento SumUp non completato
-    query = {"$nor": [{"metodo_pagamento": "elettronico", "payment_completed": {"$ne": True}}]}
-    docs = await db.registrations.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    docs = await db.registrations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     member_emails = await _get_member_emails()
     for doc in docs:
         doc.pop("pdf_base64", None)

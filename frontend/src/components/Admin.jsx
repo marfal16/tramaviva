@@ -391,7 +391,7 @@ const Dashboard = ({ token, onLogout }) => {
                       }`}>
                         {row.metodo_pagamento === "elettronico" ? "💳" : row.metodo_pagamento === "bonifico" ? "🏦" : "💵"}
                         {row.metodo_pagamento === "elettronico"
-                          ? (row.payment_completed ? "Pagato online" : "Pagamento non completato")
+                          ? (row.payment_completed ? "Pagato online" : "Verifica su SumUp")
                           : (row.payment_completed ? "Pagamento ricevuto" : "Pagamento da ricevere")}
                       </span>
                     )}
@@ -437,17 +437,22 @@ const Dashboard = ({ token, onLogout }) => {
                     </button>
                   )}
 
-                  {tab === "registrations" && row.metodo_pagamento && row.metodo_pagamento !== "elettronico" && (
+                  {tab === "registrations" && row.metodo_pagamento && !row.payment_completed && (
                     <button
                       onClick={() => togglePayment(row)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors ${
-                        row.payment_completed
-                          ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
-                          : "bg-tv-orange/30 text-tv-green-deep hover:bg-tv-green/20"
-                      }`}
-                      title={row.payment_completed ? "Segna come non ancora pagato" : "Segna come pagato"}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors bg-tv-orange/30 text-tv-green-deep hover:bg-tv-green/20"
+                      title={row.metodo_pagamento === "elettronico" ? "Segna come verificato su SumUp" : "Segna come pagato"}
                     >
-                      {row.payment_completed ? "✓ Pagato" : "⏳ Da ricevere"}
+                      {row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere"}
+                    </button>
+                  )}
+                  {tab === "registrations" && row.metodo_pagamento && row.payment_completed && (
+                    <button
+                      onClick={() => togglePayment(row)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
+                      title="Segna come non ancora pagato"
+                    >
+                      ✓ Pagato
                     </button>
                   )}
 

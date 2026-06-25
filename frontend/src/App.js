@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import ChiSiamo from "./components/ChiSiamo";
@@ -42,6 +42,27 @@ const Home = () => {
   );
 };
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Rileva il ritorno da SumUp (?paid=<registration_id>) e conferma il pagamento
+const PaymentReturnHandler = () => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paidId = params.get("paid");
+    if (!paidId) return;
+
+    // Rimuove il param dall'URL senza ricaricare la pagina
+    const clean = new URL(window.location.href);
+    clean.searchParams.delete("paid");
+    window.history.replaceState({}, "", clean.toString());
+
+    fetch(`${BACKEND_URL}/api/registrations/${paidId}/payment-completed`, { method: "POST" })
+      .then(() => toast.success("Pagamento completato! La tua iscrizione è confermata."))
+      .catch(() => {});
+  }, []);
+  return null;
+};
+
 const IscrizionePageWrapper = () => {
   useEffect(() => { window.scrollTo(0, 0); }, []);
   return (
@@ -57,6 +78,7 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-center" richColors />
+      <PaymentReturnHandler />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<Admin />} />
