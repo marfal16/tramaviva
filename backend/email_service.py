@@ -29,6 +29,18 @@ class EmailService:
         self.from_email = os.environ.get("FROM_EMAIL", "noreply@tramavivaaps.it")
         self.from_name = os.environ.get("FROM_NAME", "Trama Viva APS")
 
+    async def send_admin_notification(self, subject: str, info: dict):
+        admin_email = os.environ.get("ADMIN_EMAIL", "tramavivaaps@gmail.com")
+        if not HAS_SMTP or not self.smtp_user or not admin_email:
+            logger.warning("Notifica admin saltata: SMTP non configurato")
+            return
+        try:
+            html_body = self._get_admin_notification_html(subject, info)
+            await self._send_smtp(admin_email, subject, html_body)
+            logger.info(f"Notifica admin inviata: {subject}")
+        except Exception as e:
+            logger.error(f"Errore notifica admin: {e}")
+
     async def send_registration_confirmation(self, email: str, first_name: str, registration_id: str):
         if not HAS_SMTP or not self.smtp_user:
             logger.warning(f"Email service non configurato. Email saltata per {email}")
@@ -89,6 +101,29 @@ class EmailService:
         async with aiosmtplib.SMTP(hostname=self.smtp_host, port=self.smtp_port) as smtp:
             await smtp.login(self.smtp_user, self.smtp_password)
             await smtp.sendmail(self.from_email, to_email, msg.as_string())
+
+    def _get_admin_notification_html(self, subject: str, info: dict) -> str:
+        rows = "".join(
+            f"<tr><td style='padding:6px 12px;color:#666;font-size:14px;white-space:nowrap;border-bottom:1px solid #f0f0f0;'>{k}</td>"
+            f"<td style='padding:6px 12px;font-weight:bold;font-size:14px;border-bottom:1px solid #f0f0f0;'>{v}</td></tr>"
+            for k, v in info.items() if v
+        )
+        return f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="font-family:sans-serif;background:#F9ECD4;margin:0;padding:20px;">
+  <div style="max-width:520px;margin:auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+    <div style="background:#2D3A18;padding:20px 24px;">
+      <p style="margin:0;color:#92C8B9;font-size:11px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;">Trama Viva APS · Notifica</p>
+      <h1 style="margin:6px 0 0;color:white;font-size:20px;">🔔 {subject}</h1>
+    </div>
+    <div style="padding:24px;">
+      <table style="width:100%;border-collapse:collapse;">{rows}</table>
+      <div style="margin-top:20px;">
+        <a href="{SITE_LINK}/admin" style="display:inline-block;background:#2D3A18;color:white;padding:10px 20px;border-radius:999px;text-decoration:none;font-weight:bold;font-size:14px;">Vai alla dashboard →</a>
+      </div>
+    </div>
+  </div>
+</body></html>"""
 
     def _social_links_html(self) -> str:
         return f"""

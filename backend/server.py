@@ -358,6 +358,14 @@ async def create_event_signup(payload: EventSignupCreate):
     doc = obj.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
     await db.event_signups.insert_one(doc)
+    try:
+        email_svc = EmailService()
+        await email_svc.send_admin_notification(
+            subject="Nuova richiesta evento",
+            info={"Evento": obj.event_title, "Nome": obj.name, "Email": obj.email, "Telefono": obj.phone or "—"},
+        )
+    except Exception as e:
+        logger.warning(f"Notifica admin evento non inviata: {e}")
     return obj
 
 @api_router.post("/membership", response_model=Membership)
@@ -374,6 +382,14 @@ async def create_contact(payload: ContactCreate):
     doc = obj.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
     await db.contacts.insert_one(doc)
+    try:
+        email_svc = EmailService()
+        await email_svc.send_admin_notification(
+            subject="Nuovo messaggio contatti",
+            info={"Nome": obj.name, "Email": obj.email, "Messaggio": obj.message},
+        )
+    except Exception as e:
+        logger.warning(f"Notifica admin contatti non inviata: {e}")
     return obj
 
 # ========== ROUTES: REGISTRATIONS ==========
@@ -405,6 +421,20 @@ async def create_registration(payload: RegistrationCreate):
             )
         except Exception as e:
             logger.warning(f"Email conferma iscrizione non inviata: {e}")
+
+        try:
+            email_svc = EmailService()
+            await email_svc.send_admin_notification(
+                subject="Nuova richiesta iscrizione",
+                info={
+                    "Nome": f"{registration.first_name} {registration.last_name}",
+                    "Email": registration.email,
+                    "Telefono": registration.phone or "—",
+                    "Pagamento": registration.metodo_pagamento or "—",
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Notifica admin iscrizione non inviata: {e}")
 
         return {
             "registration_id": registration.id,
@@ -589,6 +619,23 @@ async def admin_download_pdf(registration_id: str):
     except Exception as e:
         logger.error(f"Errore nel download PDF: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+@api_router.post("/admin/registrations/{registration_id}/resend-confirmation", dependencies=[Depends(require_admin)])
+async def admin_resend_confirmation(registration_id: str):
+    try:
+        reg = await db.registrations.find_one({"id": registration_id}, {"_id": 0})
+        if not reg:
+            raise HTTPException(status_code=404, detail="Registrazione non trovata")
+        email_svc = EmailService()
+        await email_svc.send_registration_confirmation(
+            email=reg["email"],
+            first_name=reg.get("first_name", ""),
+            registration_id=registration_id,
+        )
+        return {"ok": True, "message": "Email di conferma reinviata."}
+    except Exception as e:
+        logger.error(f"Errore reinvio email: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # AGGIUNTO: Endpoint per ripulire i dati sensibili dopo aver salvato il PDF
 @api_router.post("/admin/registrations/{registration_id}/cleanup", dependencies=[Depends(require_admin)])

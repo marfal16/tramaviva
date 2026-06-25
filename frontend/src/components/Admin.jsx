@@ -100,7 +100,7 @@ const TABS = [
 
 const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
-const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onDelete }) => {
+const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete }) => {
   const isArchived = row.status === "archived";
   const isApproved = row.is_member || row.status === "approved";
   const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
@@ -181,6 +181,15 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
             >
               {pdfLoadingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
               Scarica PDF
+            </button>
+          )}
+          {row.email && (
+            <button
+              onClick={() => onResend(row)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-tv-green-deep/60 font-bold text-xs hover:bg-tv-sky/40 hover:text-tv-green-deep transition-colors border border-tv-green-deep/10"
+              title="Reinvia email di conferma"
+            >
+              <Mail size={12} /> Reinvia email
             </button>
           )}
           {!isArchived && row.metodo_pagamento && (
@@ -383,6 +392,15 @@ const Dashboard = ({ token, onLogout }) => {
     } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
   };
 
+  const resendEmail = async (row) => {
+    try {
+      await axios.post(`${API}/admin/registrations/${row.id}/resend-confirmation`, {}, authHeader);
+      toast.success("Email di conferma reinviata!");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nel reinvio email.");
+    }
+  };
+
   const cleanupRegistration = async (row) => {
     const name = `${row.first_name || ""} ${row.last_name || ""}`.trim();
     if (!window.confirm(`Cancellare tutti i dati sensibili di ${name}?\n\nVerranno conservati solo nome, cognome, email, telefono e origine.\nIl PDF verrà eliminato dal database.\n\n⚠️ Questa azione è irreversibile.`)) return;
@@ -502,6 +520,7 @@ const Dashboard = ({ token, onLogout }) => {
                   onTogglePayment={togglePayment}
                   onApprove={promoteToMember}
                   onCleanup={cleanupRegistration}
+                  onResend={resendEmail}
                   onDelete={(id) => remove("registrations", id)}
                 />
               ))}
@@ -755,7 +774,7 @@ const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-tv-green-deep">{row.name}</span>
                     {row.is_member && founderEmails.has((row.email || "").toLowerCase()) ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux text-tv-cream px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">
                         <UserCheck size={10} /> Socio Fondatore
                       </span>
                     ) : row.is_member ? (
@@ -1027,9 +1046,9 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
         </button>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs">
-            <Users size={13} /> {members.length} soci totali
+            <Users size={13} /> {numbered.length} soci
           </span>
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux font-bold text-xs">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">
             ⭐ {founders.length} fondatori
           </span>
         </div>
@@ -1064,14 +1083,14 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
             return (
               <article key={m.id} className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between">
                 <div className="flex items-center gap-4 flex-1">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-display font-black text-lg ${isFounder ? "bg-tv-bordeaux text-tv-cream" : "bg-tv-green text-tv-cream"}`}>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-display font-black text-lg ${isFounder ? "bg-amber-400 text-amber-950" : "bg-tv-green text-tv-cream"}`}>
                     {(m.first_name?.[0] || "?").toUpperCase()}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-display font-black text-lg text-tv-green-deep">{m.first_name} {m.last_name}</span>
                       {isFounder ? (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux text-tv-cream px-2.5 py-1 rounded-full">⭐ Socio Fondatore</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2.5 py-1 rounded-full">⭐ Socio Fondatore</span>
                       ) : (
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">Tessera #{m.tessera_number}</span>
                       )}
