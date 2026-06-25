@@ -510,6 +510,7 @@ const Dashboard = ({ token, onLogout }) => {
         ) : tab === "event-signups" ? (
           <EventSignupsManager
             signups={data["event-signups"]}
+            members={data.members}
             onConfirm={confirmSignup}
             onDelete={(id) => remove("event-signups", id)}
           />
@@ -710,7 +711,11 @@ const isPast = (dateStr) => {
 
 // ─── Event signups raggruppati per evento ─────────────────────────────────────
 
-const EventSignupsManager = ({ signups, onConfirm, onDelete }) => {
+const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
+  const founderEmails = new Set(
+    (members || []).filter(m => !m.tessera_number).map(m => (m.email || "").toLowerCase())
+  );
+
   if (!signups || signups.length === 0) {
     return (
       <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
@@ -749,11 +754,15 @@ const EventSignupsManager = ({ signups, onConfirm, onDelete }) => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-tv-green-deep">{row.name}</span>
-                    {row.is_member && (
+                    {row.is_member && founderEmails.has((row.email || "").toLowerCase()) ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux text-tv-cream px-2 py-0.5 rounded-full">
+                        <UserCheck size={10} /> Socio Fondatore
+                      </span>
+                    ) : row.is_member ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2 py-0.5 rounded-full">
                         <UserCheck size={10} /> Socio
                       </span>
-                    )}
+                    ) : null}
                     {row.confirmed && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
                         ✓ Confermato
@@ -992,41 +1001,96 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
     catch { return d; }
   };
+
+  const founders = members
+    .filter(m => !m.tessera_number)
+    .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, "it"));
+  const numbered = members
+    .filter(m => m.tessera_number)
+    .sort((a, b) => parseInt(a.tessera_number) - parseInt(b.tessera_number));
+  const sorted = [...numbered, ...founders];
+
+  const tessereNumeri = numbered.map(m => parseInt(m.tessera_number)).filter(n => !isNaN(n));
+  const maxTessera = tessereNumeri.length > 0 ? Math.max(...tessereNumeri) : 0;
+  const tessereSet = new Set(tessereNumeri);
+  const lacune = [];
+  for (let i = 1; i <= maxTessera; i++) {
+    if (!tessereSet.has(i)) lacune.push(i);
+  }
+  const prossimaLibera = maxTessera + 1;
+
   return (
     <div data-testid="admin-members-manager">
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <button onClick={onCreate} className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold">
           <Plus size={18} /> Aggiungi socio
         </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs">
+            <Users size={13} /> {members.length} soci totali
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux font-bold text-xs">
+            ⭐ {founders.length} fondatori
+          </span>
+        </div>
       </div>
+
+      {members.length > 0 && (
+        <div className="mb-5 bg-white rounded-2xl px-4 py-3 border border-tv-green-deep/10 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+          <span className="font-bold text-tv-green-deep shrink-0">📋 Tessere</span>
+          {lacune.length > 0 && (
+            <span className="flex items-center gap-1 flex-wrap">
+              <span className="text-tv-green-deep/60 shrink-0">Buchi da riassegnare:</span>
+              {lacune.slice(0, 12).map(n => (
+                <span key={n} className="inline-block bg-tv-orange/30 text-tv-green-deep font-bold text-xs px-1.5 py-0.5 rounded">#{n}</span>
+              ))}
+              {lacune.length > 12 && <span className="text-tv-green-deep/40 text-xs">+{lacune.length - 12} altri</span>}
+              <span className="text-tv-green-deep/30 mx-1">·</span>
+            </span>
+          )}
+          <span className="flex items-center gap-1.5">
+            <span className="text-tv-green-deep/60">Prossima nuova:</span>
+            <span className="inline-block bg-tv-sky/60 text-tv-green-deep font-bold text-xs px-2 py-0.5 rounded">#{prossimaLibera}</span>
+          </span>
+        </div>
+      )}
+
       {members.length === 0 ? (
         <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">Nessun socio nel registro.</div>
       ) : (
         <div className="grid gap-3">
-          {members.map((m) => (
-            <article key={m.id} className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between">
-              <div className="flex items-center gap-4 flex-1">
-                <div className="w-12 h-12 rounded-2xl bg-tv-green text-tv-cream flex items-center justify-center font-display font-black text-lg">
-                  {(m.first_name?.[0] || "?").toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-display font-black text-lg text-tv-green-deep">{m.first_name} {m.last_name}</span>
-                    {m.tessera_number && <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">Tessera #{m.tessera_number}</span>}
-                    <span className="text-xs text-tv-green-deep/50">dal {fmtDay(m.joined_at)}</span>
+          {sorted.map((m) => {
+            const isFounder = !m.tessera_number;
+            return (
+              <article key={m.id} className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-display font-black text-lg ${isFounder ? "bg-tv-bordeaux text-tv-cream" : "bg-tv-green text-tv-cream"}`}>
+                    {(m.first_name?.[0] || "?").toUpperCase()}
                   </div>
-                  <div className="mt-1 text-sm text-tv-green-deep/80 flex flex-wrap gap-x-4 gap-y-1">
-                    {m.email && <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux"><Mail size={13} /> {m.email}</a>}
-                    {m.phone && <span>📞 {m.phone}</span>}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display font-black text-lg text-tv-green-deep">{m.first_name} {m.last_name}</span>
+                      {isFounder ? (
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux text-tv-cream px-2.5 py-1 rounded-full">⭐ Socio Fondatore</span>
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">Tessera #{m.tessera_number}</span>
+                      )}
+                      <span className="text-xs text-tv-green-deep/50">dal {fmtDay(m.joined_at)}</span>
+                    </div>
+                    <div className="mt-1 text-sm text-tv-green-deep/80 flex flex-wrap gap-x-4 gap-y-1">
+                      {m.email && <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux"><Mail size={13} /> {m.email}</a>}
+                      {m.phone && <span>📞 {m.phone}</span>}
+                      {m.notes && <span className="text-tv-green-deep/50 italic truncate max-w-xs">{m.notes}</span>}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 self-end md:self-center">
-                <button onClick={() => onEdit(m)} className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky"><Pencil size={16} /></button>
-                <button onClick={() => onDelete(m.id)} className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream"><Trash2 size={16} /></button>
-              </div>
-            </article>
-          ))}
+                <div className="flex items-center gap-2 self-end md:self-center">
+                  <button onClick={() => onEdit(m)} className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky"><Pencil size={16} /></button>
+                  <button onClick={() => onDelete(m.id)} className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream"><Trash2 size={16} /></button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
