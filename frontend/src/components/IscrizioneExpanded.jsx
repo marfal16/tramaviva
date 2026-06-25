@@ -290,6 +290,7 @@ export const IscrizioneExpanded = () => {
       }
 
       setDone(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     {/* setForm(initialForm); */}   
     } catch (error) {
       console.error(error);
@@ -307,7 +308,7 @@ export const IscrizioneExpanded = () => {
             <CheckCircle2 size={40} className="text-tv-cream" />
           </div>
           <h2 className="font-display font-black text-4xl text-tv-green-deep mb-4">
-            Domanda ricevuta!
+            Richiesta ricevuta!
           </h2>
           <p className="text-tv-green-deep/70 text-lg leading-relaxed mb-3">
             La tua richiesta di iscrizione è stata presa in carico.
