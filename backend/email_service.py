@@ -34,7 +34,7 @@ class EmailService:
             logger.warning(f"Email service non configurato. Email saltata per {email}")
             return
         try:
-            subject = "La tua richiesta di iscrizione a Trama Viva APS ✅"
+            subject = "Richiesta Iscrizione Trama Viva!"
             html_body = self._get_registration_confirmation_template(first_name=first_name)
             await self._send_smtp(email, subject, html_body)
             logger.info(f"Email di conferma iscrizione inviata a {email}")
@@ -92,13 +92,15 @@ class EmailService:
 
     def _social_links_html(self) -> str:
         return f"""
-            <p style="margin-top: 24px; color: #2D3A18; font-size: 14px; margin-bottom: 8px;">Nel frattempo puoi già:</p>
-            <ul style="padding-left: 20px; color: #2D3A18; font-size: 14px; line-height: 2; margin: 0;">
-                <li>💬 Entrare nella nostra <a href="{WHATSAPP_LINK}" style="color: #5CB176; font-weight: bold; text-decoration: none;">community WhatsApp</a> — è il posto più veloce per restare aggiornat*!</li>
-                <li>📅 Dare un'occhiata agli <a href="{SITE_LINK}" style="color: #5CB176; font-weight: bold; text-decoration: none;">eventi sul sito</a></li>
-                <li>📱 Seguirci su Instagram <a href="{INSTAGRAM_LINK}" style="color: #5CB176; font-weight: bold; text-decoration: none;">@tramavivaaps</a> e TikTok <a href="{TIKTOK_LINK}" style="color: #5CB176; font-weight: bold; text-decoration: none;">@tramavivaaps</a></li>
-                <li>📧 Scriverci a <strong>tramavivaaps@gmail.com</strong> per qualsiasi domanda</li>
-            </ul>
+            <div style="background: linear-gradient(135deg, #5CB176 0%, #92C8B9 100%); border-radius: 12px; padding: 24px; margin: 28px 0;">
+                <p style="color: white; font-weight: bold; font-size: 15px; margin: 0 0 14px 0;">Nel frattempo puoi già:</p>
+                <ul style="color: white; padding-left: 20px; margin: 0; font-size: 14px; line-height: 2.2;">
+                    <li>💬 Entrare nella nostra <a href="{WHATSAPP_LINK}" style="color: white; font-weight: bold; text-decoration: underline;">community WhatsApp</a> — è il posto più veloce per restare aggiornat*!</li>
+                    <li>📅 Dare un'occhiata agli <a href="{SITE_LINK}" style="color: white; font-weight: bold; text-decoration: underline;">eventi sul sito</a></li>
+                    <li>📱 Seguirci su Instagram <a href="{INSTAGRAM_LINK}" style="color: white; font-weight: bold; text-decoration: underline;">@tramavivaaps</a> e TikTok <a href="{TIKTOK_LINK}" style="color: white; font-weight: bold; text-decoration: underline;">@tramavivaaps</a></li>
+                    <li>📧 Scriverci a <strong>tramavivaaps@gmail.com</strong> per qualsiasi domanda</li>
+                </ul>
+            </div>
         """
 
     def _base_styles(self) -> str:
@@ -131,11 +133,12 @@ class EmailService:
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>🧵 Benvenuta/o a Trama Viva!</h1>
+                    <h1>Benvenut* in Trama Viva! 🧵</h1>
                 </div>
                 <div class="content">
                     <h2>Ciao {first_name}! 👋</h2>
-                    <p>Abbiamo ricevuto la tua richiesta di iscrizione a <strong>Trama Viva APS</strong> e siamo davvero felici di accoglierti.</p>
+                    <p>Grazie per aver scelto di far parte di <strong>Trama Viva APS</strong> — siamo davvero felici di accoglierti!</p>
+                    <p>Abbiamo ricevuto la tua richiesta di iscrizione e abbiamo già tutto quello che ci serve.</p>
 
                     <div class="box box-green">
                         <p>📋 <strong>Cosa abbiamo ricevuto</strong></p>
