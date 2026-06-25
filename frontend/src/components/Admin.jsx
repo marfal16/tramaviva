@@ -102,13 +102,19 @@ const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Sal
 
 const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onDelete }) => {
   const isArchived = row.status === "archived";
+  const isApproved = row.is_member || row.status === "approved";
   const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
   const initial = (name[0] || "?").toUpperCase();
+  const accentColor = isArchived
+    ? "border-l-tv-green-deep/20"
+    : isApproved
+      ? "border-l-tv-green"
+      : "border-l-tv-orange";
 
   return (
     <article
       data-testid={`admin-row-${row.id}`}
-      className="bg-white rounded-3xl overflow-hidden border border-tv-green-deep/10"
+      className={`bg-white rounded-3xl overflow-hidden border border-tv-green-deep/10 border-l-4 ${accentColor}`}
     >
       <div className="p-5 md:p-6 flex items-start gap-4">
         <div className="w-11 h-11 rounded-2xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-lg shrink-0">
@@ -126,7 +132,7 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
                 <span className="truncate">{row.email}</span>
               </a>
             )}
-            {row.phone && <span>📞 {row.phone}</span>}
+            {(row.cellulare || row.phone) && <span>📞 {row.cellulare || row.phone}</span>}
             {row.referral && <span className="text-tv-green-deep/45">✨ {row.referral}</span>}
           </div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -170,54 +176,62 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
         </div>
       </div>
 
-      <div className="px-5 md:px-6 py-3 bg-tv-sky/20 border-t border-tv-green-deep/[0.08] flex flex-wrap items-center gap-2 justify-end">
-        {!isArchived && (
+      <div className="px-5 md:px-6 py-3 bg-tv-sky/20 border-t border-tv-green-deep/[0.08] flex flex-wrap items-center justify-between gap-2">
+        {/* Gruppo sinistra: azioni documento e pagamento */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {!isArchived && (
+            <button
+              onClick={() => onPdf(row.id)}
+              disabled={pdfLoadingId === row.id}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-tv-green-deep font-bold text-xs hover:bg-tv-sky/40 transition-colors disabled:opacity-50 border border-tv-green-deep/10"
+            >
+              {pdfLoadingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+              Scarica PDF
+            </button>
+          )}
+          {!isArchived && row.metodo_pagamento && (
+            <button
+              onClick={() => onTogglePayment(row)}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-xs transition-colors ${
+                row.payment_completed
+                  ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
+                  : "bg-tv-orange/30 text-tv-green-deep hover:bg-tv-orange/50"
+              }`}
+            >
+              {row.payment_completed ? "✓ Pagato" : (row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere")}
+            </button>
+          )}
+        </div>
+
+        {/* Gruppo destra: azioni stato e distruttive */}
+        <div className="flex items-center gap-2">
+          {!isArchived && !isApproved && (
+            <button
+              onClick={() => onApprove(row)}
+              data-testid={`admin-promote-${row.id}`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
+            >
+              <Sparkles size={12} /> Approva socio
+            </button>
+          )}
+          <div className="w-px h-5 bg-tv-green-deep/10 mx-1" />
+          {!isArchived && (
+            <button
+              onClick={() => onCleanup(row)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/20 transition-colors"
+            >
+              <ShieldOff size={12} /> Cancella dati
+            </button>
+          )}
           <button
-            onClick={() => onPdf(row.id)}
-            disabled={pdfLoadingId === row.id}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-tv-green-deep font-bold text-xs hover:bg-tv-sky/40 transition-colors disabled:opacity-50 border border-tv-green-deep/10"
+            onClick={() => onDelete(row.id)}
+            data-testid={`admin-delete-${row.id}`}
+            className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+            aria-label="Elimina"
           >
-            {pdfLoadingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-            Scarica PDF
+            <Trash2 size={14} />
           </button>
-        )}
-        {!isArchived && row.metodo_pagamento && (
-          <button
-            onClick={() => onTogglePayment(row)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-xs transition-colors ${
-              row.payment_completed
-                ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
-                : "bg-tv-orange/30 text-tv-green-deep hover:bg-tv-orange/50"
-            }`}
-          >
-            {row.payment_completed ? "✓ Pagato" : (row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere")}
-          </button>
-        )}
-        {!isArchived && row.status !== "approved" && (
-          <button
-            onClick={() => onApprove(row)}
-            data-testid={`admin-promote-${row.id}`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
-          >
-            <Sparkles size={12} /> Approva socio
-          </button>
-        )}
-        {!isArchived && (
-          <button
-            onClick={() => onCleanup(row)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/20 transition-colors"
-          >
-            <ShieldOff size={12} /> Cancella dati
-          </button>
-        )}
-        <button
-          onClick={() => onDelete(row.id)}
-          data-testid={`admin-delete-${row.id}`}
-          className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-          aria-label="Elimina"
-        >
-          <Trash2 size={14} />
-        </button>
+        </div>
       </div>
     </article>
   );

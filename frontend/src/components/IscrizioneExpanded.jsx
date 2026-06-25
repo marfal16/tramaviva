@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -220,6 +220,10 @@ export const IscrizioneExpanded = () => {
   const [done, setDone] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
 
+  useEffect(() => {
+    if (done) window.scrollTo(0, 0);
+  }, [done]);
+
   const change = (field, transform) => (e) => {
     const { type, checked, value } = e.target;
     const val = type === "checkbox" ? checked : (transform ? transform(value) : value);
@@ -227,7 +231,7 @@ export const IscrizioneExpanded = () => {
   };
 
   const validate = () => {
-    const required = ["first_name","last_name","email","phone","luogo_nascita",
+    const required = ["first_name","last_name","email","luogo_nascita",
       "data_nascita","codice_fiscale","indirizzo","comune","provincia","cap","cellulare",
       "documento_numero","documento_rilasciato","documento_data"];
     if (required.some(k => !form[k])) {
@@ -252,7 +256,7 @@ export const IscrizioneExpanded = () => {
     }
     if (form.is_minorenne) {
       const pr = ["genitore_nome","genitore_cognome","genitore_luogo_nascita",
-        "genitore_data_nascita","genitore_codice_fiscale","genitore_telefono"];
+        "genitore_data_nascita","genitore_codice_fiscale","genitore_telefono","genitore_documento_numero"];
       if (pr.some(k => !form[k])) {
         toast.error("Compila tutti i dati del genitore/tutore.");
         return false;
@@ -290,7 +294,6 @@ export const IscrizioneExpanded = () => {
       }
 
       setDone(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     {/* setForm(initialForm); */}   
     } catch (error) {
       console.error(error);
@@ -357,8 +360,7 @@ export const IscrizioneExpanded = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field id="first_name" label="Nome" required value={form.first_name} onChange={change("first_name")} />
                 <Field id="last_name" label="Cognome" required value={form.last_name} onChange={change("last_name")} />
-                <Field id="email" label="Email" type="email" required value={form.email} onChange={change("email")} />
-                <Field id="phone" label="Telefono" type="tel" required value={form.phone} onChange={change("phone")} />
+                <Field id="email" label="Email" type="email" required value={form.email} onChange={change("email")} className="sm:col-span-2" />
               </div>
             </Section>
 
@@ -411,7 +413,7 @@ export const IscrizioneExpanded = () => {
                     <SelectField id="genitore_documento_tipo" label="Tipo documento"
                       value={form.genitore_documento_tipo} onChange={change("genitore_documento_tipo")}
                       options={[{value:"Carta ID",label:"Carta d'Identità"},{value:"Passaporto",label:"Passaporto"},{value:"Patente",label:"Patente"}]} />
-                    <Field id="genitore_documento_numero" label="Numero documento" value={form.genitore_documento_numero} onChange={change("genitore_documento_numero")} />
+                    <Field id="genitore_documento_numero" label="Numero documento" required={form.is_minorenne} value={form.genitore_documento_numero} onChange={change("genitore_documento_numero")} />
                   </div>
                 </div>
               )}
