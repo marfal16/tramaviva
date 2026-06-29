@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -731,6 +731,14 @@ const isPast = (dateStr) => {
 // ─── Event signups raggruppati per evento ─────────────────────────────────────
 
 const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
+  const [closedGroups, setClosedGroups] = React.useState(new Set());
+
+  const toggleGroup = (key) => setClosedGroups(prev => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
+
   const founderEmails = new Set(
     (members || []).filter(m => !m.tessera_number).map(m => (m.email || "").toLowerCase())
   );
@@ -751,17 +759,25 @@ const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
   }, {});
 
   return (
-    <div className="space-y-10">
-      {Object.values(grouped).map((group) => (
-        <div key={group.title}>
-          <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-tv-green-deep/10">
+    <div className="space-y-6">
+      {Object.entries(grouped).map(([key, group]) => {
+        const isOpen = !closedGroups.has(key);
+        return (
+        <div key={key}>
+          <button
+            onClick={() => toggleGroup(key)}
+            className="w-full flex items-center gap-3 mb-4 pb-3 border-b-2 border-tv-green-deep/10 text-left"
+          >
             <div className="w-9 h-9 rounded-xl bg-tv-sky/40 flex items-center justify-center text-lg flex-shrink-0">📅</div>
             <h3 className="font-display font-black text-xl text-tv-green-deep flex-1 leading-tight">{group.title}</h3>
             <span className="px-3 py-1 rounded-full bg-tv-sky/30 text-tv-green-deep font-bold text-xs flex-shrink-0">
               {group.items.length} {group.items.length === 1 ? "richiesta" : "richieste"}
             </span>
-          </div>
-          <div className="grid gap-3">
+            <span className="text-tv-green-deep/40 flex-shrink-0">
+              {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </span>
+          </button>
+          {isOpen && <div className="grid gap-3">
             {group.items.map((row) => (
               <div
                 key={row.id}
@@ -815,8 +831,10 @@ const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
               </div>
             ))}
           </div>
+          }
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
