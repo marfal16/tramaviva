@@ -392,6 +392,15 @@ const Dashboard = ({ token, onLogout }) => {
     } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
   };
 
+  const toggleEventPayment = async (row) => {
+    const newValue = !row.payment_completed;
+    try {
+      await axios.patch(`${API}/admin/event-signups/${row.id}/payment-status`, { payment_completed: newValue }, authHeader);
+      toast.success(newValue ? "Pagamento segnato come ricevuto!" : "Pagamento segnato come da ricevere.");
+      loadAll();
+    } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
+  };
+
   const resendEmail = async (row) => {
     try {
       await axios.post(`${API}/admin/registrations/${row.id}/resend-confirmation`, {}, authHeader);
@@ -532,6 +541,7 @@ const Dashboard = ({ token, onLogout }) => {
             members={data.members}
             onConfirm={confirmSignup}
             onDelete={(id) => remove("event-signups", id)}
+            onTogglePayment={toggleEventPayment}
           />
         ) : list.length === 0 ? (
           <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
@@ -730,7 +740,7 @@ const isPast = (dateStr) => {
 
 // ─── Event signups raggruppati per evento ─────────────────────────────────────
 
-const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
+const EventSignupsManager = ({ signups, members, onConfirm, onDelete, onTogglePayment }) => {
   const [closedGroups, setClosedGroups] = React.useState(new Set());
 
   const toggleGroup = (key) => setClosedGroups(prev => {
@@ -803,6 +813,17 @@ const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
                         ✓ Confermato
                       </span>
                     )}
+                    {row.metodo_pagamento && (
+                      row.payment_completed ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
+                          💸 Pagato · {row.metodo_pagamento}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2 py-0.5 rounded-full">
+                          ⏳ {row.metodo_pagamento} · da ricevere
+                        </span>
+                      )
+                    )}
                     <span className="text-xs text-tv-green-deep/40">{fmtDate(row.created_at)}</span>
                   </div>
                   <div className="text-sm text-tv-green-deep/60 flex flex-wrap gap-x-3 mt-0.5">
@@ -818,6 +839,24 @@ const EventSignupsManager = ({ signups, members, onConfirm, onDelete }) => {
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
                     >
                       <UserCheck size={13} /> Conferma
+                    </button>
+                  )}
+                  {row.metodo_pagamento && !row.payment_completed && (
+                    <button
+                      onClick={() => onTogglePayment(row)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green/40 transition-colors"
+                      title="Segna come pagato"
+                    >
+                      💸 Pagato
+                    </button>
+                  )}
+                  {row.metodo_pagamento && row.payment_completed && (
+                    <button
+                      onClick={() => onTogglePayment(row)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green-deep/10 text-tv-green-deep/60 font-bold text-xs hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux transition-colors"
+                      title="Segna come da ricevere"
+                    >
+                      ↩ Da ricevere
                     </button>
                   )}
                   <button
@@ -941,6 +980,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
     initial || {
       title: "", category: CATEGORIES[0], date: "", time: "19:00",
       location: "", description: "", emoji: "✨", spots: 20, featured: false, contributo: 0,
+      contributo_note: "", non_rimborsabile: false,
     }
   );
   const [saving, setSaving] = useState(false);
@@ -996,6 +1036,10 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
             <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo (€)</div>
             <input type="number" min="0" step="0.01" value={form.contributo ?? 0} onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none" />
           </label>
+          <label className="block sm:col-span-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Nota contributo</div>
+            <input type="text" value={form.contributo_note ?? ""} onChange={change("contributo_note")} placeholder="Es. per prenotazione tavolo pic-nic" className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none" />
+          </label>
         </div>
         <label className="block mt-4">
           <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Descrizione *</div>
@@ -1015,6 +1059,22 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
             form.featured ? "bg-tv-orange text-tv-green-deep" : "bg-tv-green-deep/10 text-tv-green-deep/50"
           }`}>
             {form.featured ? "Attivo" : "Non attivo"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setForm({ ...form, non_rimborsabile: !form.non_rimborsabile })}
+          className={`mt-3 w-full flex items-center justify-between px-5 py-3 rounded-2xl border-2 transition-all ${
+            form.non_rimborsabile
+              ? "border-tv-bordeaux bg-tv-bordeaux/10 text-tv-green-deep"
+              : "border-tv-green-deep/15 bg-white text-tv-green-deep/50 hover:border-tv-green-deep/30"
+          }`}
+        >
+          <span className="font-bold text-sm">⚠️ Contributo non rimborsabile</span>
+          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+            form.non_rimborsabile ? "bg-tv-bordeaux text-tv-cream" : "bg-tv-green-deep/10 text-tv-green-deep/50"
+          }`}>
+            {form.non_rimborsabile ? "Attivo" : "Non attivo"}
           </span>
         </button>
         <div className="mt-5 flex gap-3">

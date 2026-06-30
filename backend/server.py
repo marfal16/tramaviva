@@ -41,6 +41,7 @@ class EventSignupCreate(BaseModel):
     phone: Optional[str] = None
     message: Optional[str] = None
     referral: Optional[str] = None
+    metodo_pagamento: Optional[str] = None
 
 class EventSignup(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -54,6 +55,8 @@ class EventSignup(BaseModel):
     referral: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     confirmed: bool = False
+    metodo_pagamento: Optional[str] = None
+    payment_completed: bool = False
 
 class MembershipCreate(BaseModel):
     first_name: str
@@ -104,6 +107,8 @@ class Event(BaseModel):
     spots: int
     featured: bool = False
     contributo: float = 0.0
+    contributo_note: Optional[str] = None
+    non_rimborsabile: bool = False
 
 class EventCreate(BaseModel):
     title: str
@@ -117,6 +122,8 @@ class EventCreate(BaseModel):
     slug: Optional[str] = None
     featured: bool = False
     contributo: float = 0.0
+    contributo_note: Optional[str] = None
+    non_rimborsabile: bool = False
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -129,6 +136,8 @@ class EventUpdate(BaseModel):
     spots: Optional[int] = None
     featured: Optional[bool] = None
     contributo: Optional[float] = None
+    contributo_note: Optional[str] = None
+    non_rimborsabile: Optional[bool] = None
 
 class PaymentRequest(BaseModel):
     amount: float
@@ -831,6 +840,16 @@ async def confirm_event_signup(signup_id: str):
         logger.warning(f"Email conferma evento non inviata: {e}")
 
     return {"ok": True, "spots_remaining": event["spots"] - 1}
+
+@api_router.patch("/admin/event-signups/{signup_id}/payment-status", dependencies=[Depends(require_admin)])
+async def admin_update_event_signup_payment(signup_id: str, payload: PaymentStatusUpdate):
+    res = await db.event_signups.update_one(
+        {"id": signup_id},
+        {"$set": {"payment_completed": payload.payment_completed}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Richiesta non trovata")
+    return {"ok": True}
 
 # ========== ADMIN: EVENTS ==========
 @api_router.get("/admin/events", dependencies=[Depends(require_admin)])

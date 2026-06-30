@@ -38,7 +38,7 @@ export const EventoDettaglio = () => {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", referral: "", metodo_pagamento: "" });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [signupCount, setSignupCount] = useState(null);
@@ -69,6 +69,10 @@ export const EventoDettaglio = () => {
       toast.error("Nome ed email sono obbligatori.");
       return;
     }
+    if (event.contributo > 0 && !form.metodo_pagamento) {
+      toast.error("Seleziona il metodo di pagamento.");
+      return;
+    }
     setSubmitting(true);
     try {
       await axios.post(`${API}/event-signup`, {
@@ -79,7 +83,7 @@ export const EventoDettaglio = () => {
       setDone(true);
       setSignupCount((c) => (typeof c === "number" ? c + 1 : c));
       toast.success("Richiesta inviata! Ti scriviamo presto.");
-      setForm({ name: "", email: "", phone: "", message: "" });
+      setForm({ name: "", email: "", phone: "", message: "", referral: "", metodo_pagamento: "" });
     } catch {
       toast.error("Errore nell'invio. Riprova.");
     } finally {
@@ -88,6 +92,18 @@ export const EventoDettaglio = () => {
   };
 
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  const copyIban = async () => {
+    const iban = "IT48E3688801600100000059432";
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(iban);
+        toast.success("IBAN copiato!");
+        return;
+      }
+    } catch {}
+    window.prompt("Copia l'IBAN qui sotto:", iban);
+  };
 
   const copy = async () => {
     // Try modern clipboard API first
@@ -359,6 +375,60 @@ export const EventoDettaglio = () => {
                       className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
                     />
                   </div>
+                  {event.contributo > 0 && (
+                    <div className="pt-3 border-t border-tv-green-deep/10 space-y-3">
+                      {event.contributo_note && (
+                        <p className="text-xs text-tv-green-deep/70 italic">📝 {event.contributo_note}</p>
+                      )}
+                      {event.non_rimborsabile && (
+                        <div className="p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/40 text-xs text-tv-green-deep font-semibold">
+                          ⚠️ Il contributo di {event.contributo}€ <strong>non è rimborsabile</strong>.
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                          Metodo di pagamento *
+                        </div>
+                        <div className="flex gap-2">
+                          {["contanti", "bonifico"].map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => setForm({ ...form, metodo_pagamento: opt })}
+                              className={`flex-1 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                form.metodo_pagamento === opt
+                                  ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
+                                  : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/60 hover:border-tv-green-deep/30"
+                              }`}
+                            >
+                              {opt === "contanti" ? "💵 Contanti" : "🏦 Bonifico"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {form.metodo_pagamento === "bonifico" && (
+                        <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
+                          <div className="text-xs font-bold text-tv-green-deep/60 mb-1">IBAN Trama Viva APS</div>
+                          <div className="flex items-center gap-2">
+                            <code className="text-xs font-mono text-tv-green-deep font-bold flex-1 break-all">
+                              IT48E3688801600100000059432
+                            </code>
+                            <button
+                              type="button"
+                              onClick={copyIban}
+                              className="flex-shrink-0 p-1.5 rounded-xl bg-tv-green-deep/10 hover:bg-tv-green-deep/20 text-tv-green-deep transition-colors"
+                              title="Copia IBAN"
+                            >
+                              <Copy size={13} />
+                            </button>
+                          </div>
+                          <div className="text-xs text-tv-green-deep/50 mt-1">
+                            Causale: {event.title}{form.name ? ` — ${form.name}` : ""}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={submitting}
