@@ -401,23 +401,25 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
         </div>
       )}
     </div>
-    {!past && (
-      <button
-        onClick={() => onParticipate(ev)}
-        data-testid={`event-participate-${ev.id}`}
-        className="btn-tv mt-5 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green"
+    <div className="mt-auto flex flex-col gap-3 pt-5">
+      {!past && (
+        <button
+          onClick={() => onParticipate(ev)}
+          data-testid={`event-participate-${ev.id}`}
+          className="btn-tv inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green"
+        >
+          Partecipa
+          <ArrowRight size={16} />
+        </button>
+      )}
+      <Link
+        to={`/eventi/${ev.slug || ev.id}`}
+        data-testid={`event-detail-${ev.id}`}
+        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep hover:text-tv-cream transition-all duration-300"
       >
-        Partecipa
-        <ArrowRight size={16} />
-      </button>
-    )}
-    <Link
-      to={`/eventi/${ev.slug || ev.id}`}
-      data-testid={`event-detail-${ev.id}`}
-      className={`${past ? "mt-5" : "mt-3"} inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep hover:text-tv-cream transition-all duration-300`}
-    >
-      Vedi dettagli
-    </Link>
+        Vedi dettagli
+      </Link>
+    </div>
   </article>
 );
 
