@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, Response
+import base64
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -110,6 +111,7 @@ class Event(BaseModel):
     contributo_note: Optional[str] = None
     non_rimborsabile: bool = False
     solo_soci: bool = False
+    has_image: bool = False
 
 class EventCreate(BaseModel):
     title: str
@@ -141,6 +143,9 @@ class EventUpdate(BaseModel):
     contributo_note: Optional[str] = None
     non_rimborsabile: Optional[bool] = None
     solo_soci: Optional[bool] = None
+
+class ImageUpload(BaseModel):
+    image_data: str  # base64 dataURL
 
 class PaymentRequest(BaseModel):
     amount: float
@@ -342,15 +347,28 @@ async def root():
 @api_router.get("/events", response_model=List[Event])
 async def get_events():
     try:
-        docs = await db.events.find({}, {"_id": 0}).sort("date", 1).to_list(1000)
+        docs = await db.events.find({}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
         return docs or []
     except Exception as e:
         logger.error(f"Errore nel caricamento eventi: {e}")
         return []
 
+@api_router.get("/events/{event_id}/image")
+async def get_event_image(event_id: str):
+    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"image_data": 1, "_id": 0})
+    if not doc or not doc.get("image_data"):
+        raise HTTPException(status_code=404, detail="Immagine non trovata")
+    data_url = doc["image_data"]
+    if "," in data_url:
+        header, b64 = data_url.split(",", 1)
+        content_type = header.split(":")[1].split(";")[0] if ":" in header else "image/jpeg"
+    else:
+        b64, content_type = data_url, "image/jpeg"
+    return Response(content=base64.b64decode(b64), media_type=content_type)
+
 @api_router.get("/events/{event_id}", response_model=Event)
 async def get_event(event_id: str):
-    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"_id": 0})
+    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"_id": 0, "image_data": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Evento non trovato")
     return doc
@@ -857,8 +875,28 @@ async def admin_update_event_signup_payment(signup_id: str, payload: PaymentStat
 # ========== ADMIN: EVENTS ==========
 @api_router.get("/admin/events", dependencies=[Depends(require_admin)])
 async def admin_get_events():
-    docs = await db.events.find({}, {"_id": 0}).sort("date", 1).to_list(1000)
+    docs = await db.events.find({}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
     return docs
+
+@api_router.post("/admin/events/{event_id}/image", dependencies=[Depends(require_admin)])
+async def admin_upload_event_image(event_id: str, payload: ImageUpload):
+    res = await db.events.update_one(
+        {"id": event_id},
+        {"$set": {"image_data": payload.image_data, "has_image": True}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    return {"ok": True}
+
+@api_router.delete("/admin/events/{event_id}/image", dependencies=[Depends(require_admin)])
+async def admin_delete_event_image(event_id: str):
+    res = await db.events.update_one(
+        {"id": event_id},
+        {"$set": {"has_image": False}, "$unset": {"image_data": ""}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    return {"ok": True}
 
 @api_router.post("/admin/events", response_model=Event, dependencies=[Depends(require_admin)])
 async def admin_create_event(payload: EventCreate):

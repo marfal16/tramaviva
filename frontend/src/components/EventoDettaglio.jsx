@@ -20,6 +20,8 @@ const fmtDate = (iso) => {
 
 const categoryColor = {
   "Laboratori & Eventi Sociali": { bg: "bg-tv-orange", text: "text-tv-green-deep" },
+  "Laboratori Artistici": { bg: "bg-tv-orange", text: "text-tv-green-deep" },
+  "Eventi Sociali": { bg: "bg-tv-green", text: "text-tv-cream" },
   "Passeggiate": { bg: "bg-tv-mint", text: "text-tv-green-deep" },
   "Screening Salute": { bg: "bg-tv-bordeaux", text: "text-tv-cream" },
   "Corsi IT": { bg: "bg-tv-sky", text: "text-tv-cream" },
@@ -179,6 +181,13 @@ export const EventoDettaglio = () => {
 
           <div className="grid md:grid-cols-12 gap-10">
             <div className="md:col-span-7">
+              {event.has_image && (
+                <img
+                  src={`${API}/events/${event.id}/image`}
+                  alt={event.title}
+                  className="w-full h-64 md:h-80 object-cover rounded-[2rem] mb-6"
+                />
+              )}
               <span
                 className={`inline-block px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${cat.bg} ${cat.text}`}
                 data-testid="event-detail-category"
@@ -423,7 +432,7 @@ export const EventoDettaglio = () => {
                             </button>
                           </div>
                           <div className="text-xs text-tv-green-deep/50 mt-1">
-                            Causale: {event.title}{form.name ? ` — ${form.name}` : ""}
+                            Causale: {event.contributo_note || event.title}{form.name ? ` — ${form.name}` : ""}
                           </div>
                         </div>
                       )}

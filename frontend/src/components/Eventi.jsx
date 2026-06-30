@@ -16,6 +16,8 @@ const fmtDate = (iso) => {
 
 const categoryColor = {
   "Laboratori & Eventi Sociali": "bg-tv-orange text-tv-green-deep",
+  "Laboratori Artistici": "bg-tv-orange text-tv-green-deep",
+  "Eventi Sociali": "bg-tv-green text-tv-cream",
   "Passeggiate": "bg-tv-sky text-tv-green-deep",
   "Screening Salute": "bg-tv-bordeaux text-tv-cream",
   "Corsi IT": "bg-tv-sky text-tv-cream",
@@ -23,6 +25,8 @@ const categoryColor = {
 
 const categoryDot = {
   "Laboratori & Eventi Sociali": "#F59E0B",
+  "Laboratori Artistici": "#F59E0B",
+  "Eventi Sociali": "#5CB176",
   "Passeggiate": "#92C8B9",
   "Screening Salute": "#551118",
   "Corsi IT": "#429DD0",
@@ -345,8 +349,12 @@ const FeaturedCard = ({ ev, onParticipate }) => (
         </Link>
       </div>
     </div>
-    <div className="relative md:col-span-5 flex items-center justify-center text-[10rem] md:text-[12rem] leading-none">
-      {ev.emoji}
+    <div className="relative md:col-span-5 flex items-center justify-center">
+      {ev.has_image ? (
+        <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className="w-full max-w-xs rounded-2xl object-cover aspect-square" />
+      ) : (
+        <span className="text-[10rem] md:text-[12rem] leading-none">{ev.emoji}</span>
+      )}
     </div>
   </article>
 );
@@ -354,12 +362,17 @@ const FeaturedCard = ({ ev, onParticipate }) => (
 const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
   <article
     data-testid={`event-card-${ev.id}`}
-    className={`group bg-white border border-tv-green-deep/10 rounded-[2rem] ${
+    className={`group bg-white border border-tv-green-deep/10 rounded-[2rem] overflow-hidden ${
       compact ? "p-5" : "p-6"
     } flex flex-col transition-all duration-500 ${
       past ? "opacity-60" : "hover:-translate-y-2 hover:shadow-[0_20px_50px_-20px_rgba(5,47,23,0.25)]"
     }`}
   >
+    {!compact && ev.has_image && (
+      <div className="-mx-6 -mt-6 mb-4">
+        <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className="w-full h-44 object-cover" />
+      </div>
+    )}
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-2 flex-wrap">
         <span

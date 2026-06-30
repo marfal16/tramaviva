@@ -98,7 +98,7 @@ const TABS = [
   { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
 ];
 
-const CATEGORIES = ["Laboratori & Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
+const CATEGORIES = ["Laboratori Artistici", "Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
 const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete }) => {
   const isArchived = row.status === "archived";
@@ -907,7 +907,11 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
       className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
     >
       <div className="flex items-start gap-4 flex-1">
-        <span className="text-3xl">{ev.emoji}</span>
+        {ev.has_image ? (
+          <img src={`${API}/events/${ev.id}/image`} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+        ) : (
+          <span className="text-3xl">{ev.emoji}</span>
+        )}
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
@@ -995,7 +999,19 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
     }
   );
   const [saving, setSaving] = useState(false);
+  const [imageData, setImageData] = useState(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
   const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const currentImageSrc = imageData || (!imageRemoved && initial?.has_image ? `${API}/events/${initial?.id}/image` : null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setImageData(ev.target.result); setImageRemoved(false); };
+    reader.readAsDataURL(file);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -1007,12 +1023,20 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
     try {
       const payload = { ...form, spots: Number(form.spots) || 20 };
       const headers = { Authorization: `Bearer ${token}` };
+      let eventId;
       if (isNew) {
-        await axios.post(`${API}/admin/events`, payload, { headers });
+        const res = await axios.post(`${API}/admin/events`, payload, { headers });
+        eventId = res.data.id;
         toast.success("Evento creato!");
       } else {
         await axios.put(`${API}/admin/events/${initial.id}`, payload, { headers });
+        eventId = initial.id;
         toast.success("Evento aggiornato!");
+      }
+      if (imageData) {
+        await axios.post(`${API}/admin/events/${eventId}/image`, { image_data: imageData }, { headers });
+      } else if (imageRemoved && !isNew) {
+        await axios.delete(`${API}/admin/events/${eventId}/image`, { headers });
       }
       onSaved();
     } catch (err) {
@@ -1104,6 +1128,26 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
             {form.solo_soci ? "Attivo" : "Non attivo"}
           </span>
         </button>
+        <div className="mt-4">
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Immagine evento</div>
+          {currentImageSrc && (
+            <div className="relative mb-3">
+              <img src={currentImageSrc} alt="Preview" className="w-full h-44 object-cover rounded-2xl" />
+              <button
+                type="button"
+                onClick={() => { setImageData(null); setImageRemoved(true); }}
+                className="absolute top-2 right-2 p-1.5 rounded-xl bg-white/90 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+                title="Rimuovi immagine"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed border-tv-green-deep/20 text-tv-green-deep/60 text-sm cursor-pointer hover:border-tv-green-deep/40 hover:text-tv-green-deep/80 transition-colors">
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            📷 {currentImageSrc ? "Sostituisci immagine" : "Carica immagine"}
+          </label>
+        </div>
         <div className="mt-5 flex gap-3">
           <button type="submit" disabled={saving} className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60">{saving ? "Salvo…" : "Salva"}</button>
           <button type="button" onClick={onClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>
