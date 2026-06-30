@@ -980,7 +980,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
     initial || {
       title: "", category: CATEGORIES[0], date: "", time: "19:00",
       location: "", description: "", emoji: "✨", spots: 20, featured: false, contributo: 0,
-      contributo_note: "", non_rimborsabile: false,
+      contributo_note: "", non_rimborsabile: false, solo_soci: false,
     }
   );
   const [saving, setSaving] = useState(false);
@@ -1075,6 +1075,22 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
             form.non_rimborsabile ? "bg-tv-bordeaux text-tv-cream" : "bg-tv-green-deep/10 text-tv-green-deep/50"
           }`}>
             {form.non_rimborsabile ? "Attivo" : "Non attivo"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setForm({ ...form, solo_soci: !form.solo_soci })}
+          className={`mt-3 w-full flex items-center justify-between px-5 py-3 rounded-2xl border-2 transition-all ${
+            form.solo_soci
+              ? "border-tv-sky bg-tv-sky/20 text-tv-green-deep"
+              : "border-tv-green-deep/15 bg-white text-tv-green-deep/50 hover:border-tv-green-deep/30"
+          }`}
+        >
+          <span className="font-bold text-sm">👥 Riservato ai soci tesserati</span>
+          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+            form.solo_soci ? "bg-tv-sky text-tv-green-deep" : "bg-tv-green-deep/10 text-tv-green-deep/50"
+          }`}>
+            {form.solo_soci ? "Attivo" : "Non attivo"}
           </span>
         </button>
         <div className="mt-5 flex gap-3">

@@ -326,8 +326,8 @@ export const EventoDettaglio = () => {
                   <p className="mt-1 text-sm text-tv-green-deep/60">
                     Mandaci la tua richiesta, ti rispondiamo noi.
                   </p>
-                  {event.contributo > 0 && (
-                  <div className="mt-4 p-3 rounded-2xl bg-tv-mint/30 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
+                  {event.solo_soci && (
+                  <div className="mt-4 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
                     ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
                     <Link to="/#iscrizione" className="underline font-bold hover:text-tv-bordeaux">
                       iscriviti prima qui

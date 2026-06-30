@@ -156,14 +156,14 @@ export const Eventi = () => {
       {/* Participation modal */}
       {selected && (
         <div
-          className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
           onClick={() => setSelected(null)}
           data-testid="event-modal"
         >
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={submit}
-            className="w-full max-w-lg bg-tv-cream rounded-[2rem] p-7 md:p-9 relative"
+            className="w-full max-w-lg bg-tv-cream rounded-[2rem] p-7 md:p-9 relative my-4"
           >
             <button
               type="button"
@@ -184,30 +184,25 @@ export const Eventi = () => {
               {fmtDate(selected.date)} · {selected.time} · {selected.location}
             </p>
 
-            {/* Info section con contributo */}
-            <div className="mt-4 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
-              {selected.contributo > 0 ? (
-                <>
-                  ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
-                  <a
-                    href="#iscrizione"
-                    onClick={(e) => { e.preventDefault(); setSelected(null); document.querySelector("#iscrizione")?.scrollIntoView({ behavior: "smooth" }); }}
-                    className="underline font-bold hover:text-tv-bordeaux"
-                  >
-                    iscriviti prima qui
-                  </a>.
-                </>
-              ) : (
-                <>
-                  💚 Questo evento è gratuito! Tutti possono partecipare.
-                </>
-              )}
-            </div>
+            {/* Info solo soci */}
+            {selected.solo_soci && (
+              <div className="mt-4 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
+                ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
+                <a
+                  href="#iscrizione"
+                  onClick={(e) => { e.preventDefault(); setSelected(null); document.querySelector("#iscrizione")?.scrollIntoView({ behavior: "smooth" }); }}
+                  className="underline font-bold hover:text-tv-bordeaux"
+                >
+                  iscriviti prima qui
+                </a>.
+              </div>
+            )}
 
             {/* Contributo info */}
             {selected.contributo > 0 && (
-              <div className="mt-3 p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/30 text-xs text-tv-green-deep font-semibold">
-                💶 Contributo evento: {selected.contributo}€
+              <div className="mt-3 p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/30 text-xs text-tv-green-deep">
+                <div className="font-semibold">💶 Contributo: {selected.contributo}€{selected.non_rimborsabile ? " · ⚠️ non rimborsabile" : ""}</div>
+                {selected.contributo_note && <div className="mt-1 font-normal italic">{selected.contributo_note}</div>}
               </div>
             )}
 

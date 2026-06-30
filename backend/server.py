@@ -109,6 +109,7 @@ class Event(BaseModel):
     contributo: float = 0.0
     contributo_note: Optional[str] = None
     non_rimborsabile: bool = False
+    solo_soci: bool = False
 
 class EventCreate(BaseModel):
     title: str
@@ -124,6 +125,7 @@ class EventCreate(BaseModel):
     contributo: float = 0.0
     contributo_note: Optional[str] = None
     non_rimborsabile: bool = False
+    solo_soci: bool = False
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -138,6 +140,7 @@ class EventUpdate(BaseModel):
     contributo: Optional[float] = None
     contributo_note: Optional[str] = None
     non_rimborsabile: Optional[bool] = None
+    solo_soci: Optional[bool] = None
 
 class PaymentRequest(BaseModel):
     amount: float
