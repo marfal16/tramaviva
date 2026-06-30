@@ -539,6 +539,7 @@ const Dashboard = ({ token, onLogout }) => {
           <EventSignupsManager
             signups={data["event-signups"]}
             members={data.members}
+            events={data.events}
             onConfirm={confirmSignup}
             onDelete={(id) => remove("event-signups", id)}
             onTogglePayment={toggleEventPayment}
@@ -740,8 +741,18 @@ const isPast = (dateStr) => {
 
 // ─── Event signups raggruppati per evento ─────────────────────────────────────
 
-const EventSignupsManager = ({ signups, members, onConfirm, onDelete, onTogglePayment }) => {
-  const [closedGroups, setClosedGroups] = React.useState(new Set());
+const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, onTogglePayment }) => {
+  const [closedGroups, setClosedGroups] = React.useState(() => {
+    const evMap = {};
+    (events || []).forEach(ev => { evMap[ev.id] = ev; });
+    const pastKeys = new Set();
+    (signups || []).forEach(s => {
+      const key = s.event_id || s.event_title || "—";
+      const ev = evMap[s.event_id];
+      if (ev && isPast(ev.date)) pastKeys.add(key);
+    });
+    return pastKeys;
+  });
 
   const toggleGroup = (key) => setClosedGroups(prev => {
     const next = new Set(prev);
