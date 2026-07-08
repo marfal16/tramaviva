@@ -15,7 +15,6 @@ const fmtDate = (iso) => {
 };
 
 const categoryColor = {
-  "Laboratori & Eventi Sociali": "bg-tv-orange text-tv-green-deep",
   "Laboratori Artistici": "bg-tv-orange text-tv-green-deep",
   "Eventi Sociali": "bg-tv-green text-tv-cream",
   "Passeggiate": "bg-tv-sky text-tv-green-deep",
@@ -24,7 +23,6 @@ const categoryColor = {
 };
 
 const categoryDot = {
-  "Laboratori & Eventi Sociali": "#F59E0B",
   "Laboratori Artistici": "#F59E0B",
   "Eventi Sociali": "#5CB176",
   "Passeggiate": "#92C8B9",
