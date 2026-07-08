@@ -34,6 +34,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ========== MODELS ==========
+class GuestInfo(BaseModel):
+    nome: str
+    cognome: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
 class EventSignupCreate(BaseModel):
     event_id: str
     event_title: str
@@ -43,6 +49,10 @@ class EventSignupCreate(BaseModel):
     message: Optional[str] = None
     referral: Optional[str] = None
     metodo_pagamento: Optional[str] = None
+    num_persone: int = 1
+    ospiti: List[GuestInfo] = []
+    donazione_volontaria: Optional[float] = None
+    opzione_scelta: Optional[str] = None
 
 class EventSignup(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -58,6 +68,10 @@ class EventSignup(BaseModel):
     confirmed: bool = False
     metodo_pagamento: Optional[str] = None
     payment_completed: bool = False
+    num_persone: int = 1
+    ospiti: List[GuestInfo] = []
+    donazione_volontaria: Optional[float] = None
+    opzione_scelta: Optional[str] = None
 
 class MembershipCreate(BaseModel):
     first_name: str
@@ -112,6 +126,9 @@ class Event(BaseModel):
     non_rimborsabile: bool = False
     solo_soci: bool = False
     has_image: bool = False
+    contributo_volontario: bool = False
+    opzioni_label: Optional[str] = None
+    opzioni_custom: Optional[str] = None
 
 class EventCreate(BaseModel):
     title: str
@@ -128,6 +145,9 @@ class EventCreate(BaseModel):
     contributo_note: Optional[str] = None
     non_rimborsabile: bool = False
     solo_soci: bool = False
+    contributo_volontario: bool = False
+    opzioni_label: Optional[str] = None
+    opzioni_custom: Optional[str] = None
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -143,6 +163,9 @@ class EventUpdate(BaseModel):
     contributo_note: Optional[str] = None
     non_rimborsabile: Optional[bool] = None
     solo_soci: Optional[bool] = None
+    contributo_volontario: Optional[bool] = None
+    opzioni_label: Optional[str] = None
+    opzioni_custom: Optional[str] = None
 
 class ImageUpload(BaseModel):
     image_data: str  # base64 dataURL
@@ -840,7 +863,7 @@ async def confirm_event_signup(signup_id: str):
     
     await db.events.update_one(
         {"id": signup["event_id"]},
-        {"$inc": {"spots": -1}}
+        {"$inc": {"spots": -signup.get("num_persone", 1)}}
     )
     await db.event_signups.update_one(
         {"id": signup_id},

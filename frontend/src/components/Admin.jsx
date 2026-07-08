@@ -824,6 +824,21 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                         ✓ Confermato
                       </span>
                     )}
+                    {row.num_persone > 1 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-sky/30 text-tv-green-deep px-2 py-0.5 rounded-full">
+                        👥 {row.num_persone} persone
+                      </span>
+                    )}
+                    {row.opzione_scelta && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-mint/40 text-tv-green-deep px-2 py-0.5 rounded-full">
+                        {row.opzione_scelta}
+                      </span>
+                    )}
+                    {row.donazione_volontaria > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
+                        💚 Donazione {row.donazione_volontaria}€
+                      </span>
+                    )}
                     {row.metodo_pagamento && (
                       row.payment_completed ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
@@ -842,6 +857,15 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     {row.phone && <span>📞 {row.phone}</span>}
                   </div>
                   {row.message && <p className="text-xs text-tv-green-deep/50 italic mt-1">"{row.message}"</p>}
+                  {row.ospiti?.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {row.ospiti.map((g, i) => (
+                        <span key={i} className="text-[10px] bg-tv-cream px-2 py-0.5 rounded-full text-tv-green-deep/70 border border-tv-green-deep/10">
+                          {g.nome} {g.cognome}{g.email ? ` · ${g.email}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
                   {!row.confirmed && (
@@ -996,6 +1020,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
       title: "", category: CATEGORIES[0], date: "", time: "19:00",
       location: "", description: "", emoji: "✨", spots: 20, featured: false, contributo: 0,
       contributo_note: "", non_rimborsabile: false, solo_soci: false,
+      contributo_volontario: false, opzioni_label: "", opzioni_custom: "",
     }
   );
   const [saving, setSaving] = useState(false);
@@ -1128,6 +1153,39 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
             {form.solo_soci ? "Attivo" : "Non attivo"}
           </span>
         </button>
+        <button
+          type="button"
+          onClick={() => setForm({ ...form, contributo_volontario: !form.contributo_volontario })}
+          className={`mt-3 w-full flex items-center justify-between px-5 py-3 rounded-2xl border-2 transition-all ${
+            form.contributo_volontario
+              ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
+              : "border-tv-green-deep/15 bg-white text-tv-green-deep/50 hover:border-tv-green-deep/30"
+          }`}
+        >
+          <span className="font-bold text-sm">💚 Contributo volontario all'associazione</span>
+          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+            form.contributo_volontario ? "bg-tv-green text-tv-cream" : "bg-tv-green-deep/10 text-tv-green-deep/50"
+          }`}>
+            {form.contributo_volontario ? "Attivo" : "Non attivo"}
+          </span>
+        </button>
+        <div className="mt-4 p-4 rounded-2xl border border-tv-green-deep/15 bg-white space-y-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/60">Domanda personalizzata (opzionale)</div>
+          <input
+            type="text"
+            value={form.opzioni_label ?? ""}
+            onChange={change("opzioni_label")}
+            placeholder="Es. Come gestisci il pranzo?"
+            className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 text-tv-green-deep outline-none text-sm"
+          />
+          <textarea
+            rows={2}
+            value={form.opzioni_custom ?? ""}
+            onChange={change("opzioni_custom")}
+            placeholder="Opzioni separate da virgola&#10;Es. Porto pranzo autonomo, Partecipo al pranzo condiviso"
+            className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 text-tv-green-deep outline-none resize-none text-sm"
+          />
+        </div>
         <div className="mt-4">
           <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Immagine evento</div>
           {currentImageSrc && (

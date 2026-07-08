@@ -41,9 +41,22 @@ export const EventoDettaglio = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", referral: "", metodo_pagamento: "" });
+  const [numPersone, setNumPersone] = useState(1);
+  const [ospiti, setOspiti] = useState([]);
+  const [opzioneScelta, setOpzioneScelta] = useState("");
+  const [donazioneVolontaria, setDonazioneVolontaria] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [signupCount, setSignupCount] = useState(null);
+
+  const handleNumPersone = (n) => {
+    setNumPersone(n);
+    setOspiti(prev => Array.from({ length: n - 1 }, (_, i) => prev[i] || { nome: "", cognome: "", phone: "", email: "" }));
+  };
+
+  const updateOspite = (i, field, val) => {
+    setOspiti(prev => { const next = [...prev]; next[i] = { ...next[i], [field]: val }; return next; });
+  };
 
   useEffect(() => {
     (async () => {
@@ -75,17 +88,30 @@ export const EventoDettaglio = () => {
       toast.error("Seleziona il metodo di pagamento.");
       return;
     }
+    if (event.opzioni_custom && !opzioneScelta) {
+      toast.error("Seleziona un'opzione.");
+      return;
+    }
+    if (numPersone > 1 && ospiti.some(g => !g.nome || !g.cognome)) {
+      toast.error("Inserisci nome e cognome per ogni persona.");
+      return;
+    }
     setSubmitting(true);
     try {
       await axios.post(`${API}/event-signup`, {
         event_id: event.id,
         event_title: event.title,
         ...form,
+        num_persone: numPersone,
+        ospiti: ospiti.slice(0, numPersone - 1),
+        opzione_scelta: opzioneScelta || null,
+        donazione_volontaria: donazioneVolontaria ? parseFloat(donazioneVolontaria) : null,
       });
       setDone(true);
       setSignupCount((c) => (typeof c === "number" ? c + 1 : c));
       toast.success("Richiesta inviata! Ti scriviamo presto.");
       setForm({ name: "", email: "", phone: "", message: "", referral: "", metodo_pagamento: "" });
+      setNumPersone(1); setOspiti([]); setOpzioneScelta(""); setDonazioneVolontaria("");
     } catch {
       toast.error("Errore nell'invio. Riprova.");
     } finally {
@@ -384,6 +410,88 @@ export const EventoDettaglio = () => {
                       className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
                     />
                   </div>
+
+                  {/* Quante persone */}
+                  <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
+                    <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Quante persone partecipano?</div>
+                    <div className="flex gap-2 flex-wrap">
+                      {[1,2,3,4,5,6].map(n => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => handleNumPersone(n)}
+                          className={`w-10 h-10 rounded-2xl border-2 font-bold text-sm transition-all ${
+                            numPersone === n
+                              ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
+                              : "border-tv-green-deep/15 text-tv-green-deep/60 hover:border-tv-green-deep/30"
+                          }`}
+                        >{n}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dati ospiti */}
+                  {ospiti.map((g, i) => (
+                    <div key={i} className="mt-4 pt-4 border-t border-tv-green-deep/10">
+                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                        Persona {i + 2}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <input required placeholder="Nome *" value={g.nome} onChange={e => updateOspite(i, "nome", e.target.value)} className="px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                          <input required placeholder="Cognome *" value={g.cognome} onChange={e => updateOspite(i, "cognome", e.target.value)} className="px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                        </div>
+                        <input placeholder="Email (opzionale)" type="email" value={g.email} onChange={e => updateOspite(i, "email", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                        <input placeholder="Telefono (opzionale)" value={g.phone} onChange={e => updateOspite(i, "phone", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Opzione personalizzata evento */}
+                  {event.opzioni_custom && (
+                    <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
+                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                        {event.opzioni_label || "Seleziona un'opzione"} *
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {event.opzioni_custom.split(",").map(opt => opt.trim()).filter(Boolean).map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setOpzioneScelta(opt)}
+                            className={`px-4 py-3 rounded-2xl border-2 text-sm text-left transition-all ${
+                              opzioneScelta === opt
+                                ? "border-tv-green bg-tv-green/10 text-tv-green-deep font-bold"
+                                : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/70 hover:border-tv-green-deep/30"
+                            }`}
+                          >
+                            {opzioneScelta === opt ? "✓ " : ""}{opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contributo volontario */}
+                  {event.contributo_volontario && (
+                    <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
+                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo volontario all'associazione</div>
+                      <p className="text-xs text-tv-green-deep/60 mb-2">Facoltativo — ogni cifra è benvenuta 💚</p>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="Es. 5"
+                          value={donazioneVolontaria}
+                          onChange={e => setDonazioneVolontaria(e.target.value)}
+                          className="w-full px-4 py-3 pr-10 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tv-green-deep/50 font-bold">€</span>
+                      </div>
+                    </div>
+                  )}
+
                   {event.contributo > 0 && (
                     <div className="pt-3 border-t border-tv-green-deep/10 space-y-3">
                       {event.contributo_note && (
