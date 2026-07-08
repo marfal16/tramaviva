@@ -83,7 +83,8 @@ export const EventoDettaglio = () => {
       toast.error("Nome ed email sono obbligatori.");
       return;
     }
-    if (event.contributo > 0 && !form.metodo_pagamento) {
+    const needsPayment = event.contributo > 0 || (event.contributo_volontario && parseFloat(donazioneVolontaria) > 0);
+    if (needsPayment && !form.metodo_pagamento) {
       toast.error("Seleziona il metodo di pagamento.");
       return;
     }
@@ -97,7 +98,7 @@ export const EventoDettaglio = () => {
     }
     setSubmitting(true);
     try {
-      await axios.post(`${API}/event-signup`, {
+      const res = await axios.post(`${API}/event-signup`, {
         event_id: event.id,
         event_title: event.title,
         ...form,
@@ -106,6 +107,29 @@ export const EventoDettaglio = () => {
         opzione_scelta: opzioneScelta || null,
         donazione_volontaria: donazioneVolontaria ? parseFloat(donazioneVolontaria) : null,
       });
+      const signupId = res.data.id;
+
+      if (form.metodo_pagamento === "elettronico") {
+        const amount = event.contributo > 0
+          ? event.contributo * numPersone
+          : parseFloat(donazioneVolontaria) || 0;
+        if (amount > 0) {
+          try {
+            toast.info("Generazione link di pagamento...");
+            const payRes = await axios.post(`${API}/payments/create-checkout`, {
+              amount,
+              email: form.email,
+              description: `${event.contributo_note || event.title} — ${form.name}`,
+              registration_id: signupId,
+            });
+            if (payRes.data.checkout_url) {
+              window.location.href = payRes.data.checkout_url;
+              return;
+            }
+          } catch {}
+        }
+      }
+
       setDone(true);
       setSignupCount((c) => (typeof c === "number" ? c + 1 : c));
       toast.success("Richiesta inviata! Ti scriviamo presto.");
@@ -488,6 +512,53 @@ export const EventoDettaglio = () => {
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tv-green-deep/50 font-bold">€</span>
                       </div>
+                      {parseFloat(donazioneVolontaria) > 0 && (
+                        <div className="mt-3">
+                          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Come vuoi pagare? *</div>
+                          <div className="flex gap-2">
+                            {[
+                              { v: "contanti", label: "💵 Contanti" },
+                              { v: "bonifico", label: "🏦 Bonifico" },
+                              { v: "elettronico", label: "💳 Carta" },
+                            ].map(({ v, label }) => (
+                              <button
+                                key={v}
+                                type="button"
+                                onClick={() => setForm({ ...form, metodo_pagamento: v })}
+                                className={`flex-1 px-2 py-2.5 rounded-2xl border-2 text-xs font-bold transition-all ${
+                                  form.metodo_pagamento === v
+                                    ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
+                                    : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/60 hover:border-tv-green-deep/30"
+                                }`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          {form.metodo_pagamento === "bonifico" && (
+                            <div className="mt-2 p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
+                              <div className="text-xs font-bold text-tv-green-deep/60 mb-1">IBAN Trama Viva APS</div>
+                              <div className="flex items-center gap-2">
+                                <code className="text-xs font-mono text-tv-green-deep font-bold flex-1 break-all">IT48E3688801600100000059432</code>
+                                <button type="button" onClick={copyIban} className="flex-shrink-0 p-1.5 rounded-xl bg-tv-green-deep/10 hover:bg-tv-green-deep/20 text-tv-green-deep transition-colors" title="Copia IBAN">
+                                  <Copy size={13} />
+                                </button>
+                              </div>
+                              <div className="text-xs text-tv-green-deep/50 mt-1">
+                                Causale: Donazione {event.title}{form.name ? ` — ${form.name}` : ""}
+                              </div>
+                            </div>
+                          )}
+                          {form.metodo_pagamento === "elettronico" && (
+                            <div className="mt-2 p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
+                              <div className="text-xs font-bold text-tv-green-deep/60 mb-1">Pagamento sicuro via SumUp</div>
+                              <div className="text-xs text-tv-green-deep/70">
+                                Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -506,18 +577,22 @@ export const EventoDettaglio = () => {
                           Metodo di pagamento *
                         </div>
                         <div className="flex gap-2">
-                          {["contanti", "bonifico"].map((opt) => (
+                          {[
+                            { v: "contanti", label: "💵 Contanti" },
+                            { v: "bonifico", label: "🏦 Bonifico" },
+                            { v: "elettronico", label: "💳 Carta" },
+                          ].map(({ v, label }) => (
                             <button
-                              key={opt}
+                              key={v}
                               type="button"
-                              onClick={() => setForm({ ...form, metodo_pagamento: opt })}
+                              onClick={() => setForm({ ...form, metodo_pagamento: v })}
                               className={`flex-1 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
-                                form.metodo_pagamento === opt
+                                form.metodo_pagamento === v
                                   ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
                                   : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/60 hover:border-tv-green-deep/30"
                               }`}
                             >
-                              {opt === "contanti" ? "💵 Contanti" : "🏦 Bonifico"}
+                              {label}
                             </button>
                           ))}
                         </div>
@@ -540,6 +615,14 @@ export const EventoDettaglio = () => {
                           </div>
                           <div className="text-xs text-tv-green-deep/50 mt-1">
                             Causale: {event.contributo_note || event.title}{form.name ? ` — ${form.name}` : ""}
+                          </div>
+                        </div>
+                      )}
+                      {form.metodo_pagamento === "elettronico" && (
+                        <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
+                          <div className="text-xs font-bold text-tv-green-deep/60 mb-1">Pagamento sicuro via SumUp</div>
+                          <div className="text-xs text-tv-green-deep/70">
+                            Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
                           </div>
                         </div>
                       )}
