@@ -332,20 +332,13 @@ const FeaturedCard = ({ ev, onParticipate }) => (
           💶 Contributo: {ev.contributo}€
         </div>
       )}
-      <div className="mt-7 flex flex-wrap gap-3">
-        <button
-          onClick={() => onParticipate(ev)}
-          data-testid={`event-featured-participate-${ev.id}`}
-          className="btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-orange text-tv-green-deep font-bold"
-        >
-          Partecipa <ArrowRight size={16} />
-        </button>
+      <div className="mt-7">
         <Link
           to={`/eventi/${ev.slug || ev.id}`}
           data-testid={`event-featured-detail-${ev.id}`}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-cream/10 border border-tv-cream/30 text-tv-cream font-bold hover:bg-tv-cream/20"
+          className="btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-orange text-tv-green-deep font-bold hover:bg-tv-orange/80"
         >
-          Vedi dettagli
+          Vedi dettagli e Partecipa <ArrowRight size={16} />
         </Link>
       </div>
     </div>
@@ -414,23 +407,18 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
         </div>
       )}
     </div>
-    <div className="mt-auto flex flex-col gap-3 pt-5">
-      {!past && (
-        <button
-          onClick={() => onParticipate(ev)}
-          data-testid={`event-participate-${ev.id}`}
-          className="btn-tv inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green"
-        >
-          Partecipa
-          <ArrowRight size={16} />
-        </button>
-      )}
+    <div className="mt-auto pt-5">
       <Link
         to={`/eventi/${ev.slug || ev.id}`}
         data-testid={`event-detail-${ev.id}`}
-        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep hover:text-tv-cream transition-all duration-300"
+        className={`inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
+          past
+            ? "bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-green-deep hover:text-tv-cream"
+            : "btn-tv bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+        }`}
       >
-        Vedi dettagli
+        {past ? "Vedi dettagli" : "Vedi dettagli e Partecipa"}
+        {!past && <ArrowRight size={16} />}
       </Link>
     </div>
   </article>
