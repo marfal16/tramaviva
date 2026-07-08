@@ -746,11 +746,18 @@ async def admin_approve_registration(registration_id: str):
         if not registration:
             raise HTTPException(status_code=404, detail="Registrazione non trovata")
         
+        tessera_num = registration.get("tessera_number")
+        if tessera_num:
+            conflict = await db.members.find_one({"tessera_number": tessera_num}, {"_id": 0, "first_name": 1, "last_name": 1})
+            if conflict:
+                name = f"{conflict.get('first_name', '')} {conflict.get('last_name', '')}".strip()
+                raise HTTPException(status_code=409, detail=f"Il numero tessera #{tessera_num} è già assegnato a {name}. Aggiorna il numero prima di approvare.")
         member = Member(
             first_name=registration["first_name"],
             last_name=registration["last_name"],
             email=registration["email"].lower(),
             phone=registration.get("phone"),
+            tessera_number=tessera_num,
             notes=f"Iscritto via Form Iscrizione Soci. Tipo: {registration.get('referral', 'Non specificato')}"
         )
         member_doc = member.model_dump()
