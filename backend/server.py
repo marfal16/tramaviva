@@ -283,6 +283,7 @@ class Registration(BaseModel):
     metodo_pagamento: Optional[str] = None
     payment_completed: bool = False
     document_downloaded: bool = False
+    tessera_number: Optional[str] = None
 
 def make_slug(title: str) -> str:
     import re, unicodedata
@@ -639,6 +640,28 @@ async def admin_get_registrations():
         doc.pop("pdf_base64", None)
         doc["is_member"] = (doc.get("email") or "").lower() in member_emails
     return docs
+
+class TesseraAssign(BaseModel):
+    tessera_number: str
+
+@api_router.patch("/admin/registrations/{registration_id}/tessera", dependencies=[Depends(require_admin)])
+async def assign_registration_tessera(registration_id: str, payload: TesseraAssign):
+    num = payload.tessera_number.strip()
+    existing_member = await db.members.find_one({"tessera_number": num}, {"_id": 0, "first_name": 1, "last_name": 1})
+    if existing_member:
+        name = f"{existing_member.get('first_name', '')} {existing_member.get('last_name', '')}".strip()
+        raise HTTPException(status_code=409, detail=f"Il numero #{num} è già assegnato al socio {name}. Consulta i numeri disponibili nella sezione Soci tesserati.")
+    existing_reg = await db.registrations.find_one(
+        {"tessera_number": num, "id": {"$ne": registration_id}},
+        {"_id": 0, "first_name": 1, "last_name": 1}
+    )
+    if existing_reg:
+        name = f"{existing_reg.get('first_name', '')} {existing_reg.get('last_name', '')}".strip()
+        raise HTTPException(status_code=409, detail=f"Il numero #{num} è già riservato a {name}.")
+    result = await db.registrations.update_one({"id": registration_id}, {"$set": {"tessera_number": num}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Richiesta non trovata")
+    return {"ok": True}
 
 @api_router.patch("/admin/registrations/{registration_id}/payment-status", dependencies=[Depends(require_admin)])
 async def admin_update_payment_status(registration_id: str, payload: PaymentStatusUpdate):

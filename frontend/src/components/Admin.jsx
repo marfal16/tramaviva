@@ -147,6 +147,11 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
                 📥 PDF scaricato
               </span>
             ) : null}
+            {row.tessera_number && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2.5 py-1 rounded-full">
+                🎫 Tessera #{row.tessera_number}
+              </span>
+            )}
             {row.metodo_pagamento && (
               <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                 row.payment_completed
@@ -249,6 +254,9 @@ const Dashboard = ({ token, onLogout }) => {
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const [eventEditor, setEventEditor] = useState(null);
   const [memberEditor, setMemberEditor] = useState(null);
+  const [tesseraModal, setTesseraModal] = useState(null);
+  const [tesseraInput, setTesseraInput] = useState("");
+  const [tesseraLoading, setTesseraLoading] = useState(false);
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
@@ -328,6 +336,40 @@ const Dashboard = ({ token, onLogout }) => {
     const fileName = `tramaviva-${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
     toast.success("Export Excel scaricato!");
+  };
+
+  const openTesseraModal = (id) => {
+    const row = data.registrations.find(r => r.id === id);
+    if (!row) return;
+    setTesseraInput(row.tessera_number || "");
+    setTesseraModal(row);
+  };
+
+  const confirmTesseraAndDownload = async () => {
+    if (!tesseraModal) return;
+    const row = tesseraModal;
+    setTesseraLoading(true);
+    try {
+      if (tesseraInput.trim()) {
+        await axios.patch(`${API}/admin/registrations/${row.id}/tessera`,
+          { tessera_number: tesseraInput.trim() },
+          authHeader
+        );
+        setData(prev => ({
+          ...prev,
+          registrations: prev.registrations.map(r =>
+            r.id === row.id ? { ...r, tessera_number: tesseraInput.trim() } : r
+          ),
+        }));
+      }
+      setTesseraModal(null);
+      await downloadPdf(row.id);
+    } catch (err) {
+      const msg = err?.response?.data?.detail || "Errore nell'assegnazione del numero tessera.";
+      toast.error(msg);
+    } finally {
+      setTesseraLoading(false);
+    }
   };
 
   const downloadPdf = async (registrationId) => {
@@ -509,6 +551,7 @@ const Dashboard = ({ token, onLogout }) => {
         ) : tab === "members" ? (
           <MembersManager
             members={data.members}
+            registrations={data.registrations}
             onCreate={() => setMemberEditor("new")}
             onEdit={(m) => setMemberEditor(m)}
             onDelete={(id) => remove("members", id)}
@@ -524,7 +567,7 @@ const Dashboard = ({ token, onLogout }) => {
                 <RegistrationCard
                   key={row.id}
                   row={row}
-                  onPdf={downloadPdf}
+                  onPdf={openTesseraModal}
                   pdfLoadingId={pdfLoadingId}
                   onTogglePayment={togglePayment}
                   onApprove={promoteToMember}
@@ -625,7 +668,7 @@ const Dashboard = ({ token, onLogout }) => {
                   
                   {tab === "registrations" && (
                     <button
-                      onClick={() => downloadPdf(row.id)}
+                      onClick={() => openTesseraModal(row.id)}
                       disabled={pdfLoadingId === row.id}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-sky text-tv-green-deep font-bold text-xs hover:bg-tv-sky/80 transition-colors disabled:opacity-50"
                       title="Scarica il PDF del modulo d'iscrizione"
@@ -718,6 +761,78 @@ const Dashboard = ({ token, onLogout }) => {
           onSaved={() => { setEventEditor(null); loadAll(); }}
         />
       )}
+      {tesseraModal && (() => {
+        const membNums = (data.members || []).map(m => parseInt(m.tessera_number)).filter(n => !isNaN(n));
+        const regNums = (data.registrations || [])
+          .filter(r => r.tessera_number && r.id !== tesseraModal.id)
+          .map(r => parseInt(r.tessera_number)).filter(n => !isNaN(n));
+        const usedSet = new Set([...membNums, ...regNums]);
+        const max = membNums.length > 0 ? Math.max(...membNums) : 0;
+        const lacune = Array.from({ length: max }, (_, i) => i + 1).filter(n => !usedSet.has(n));
+        const prossima = (max > 0 ? Math.max(...[...membNums, ...regNums].filter(n => !isNaN(n)), 0) : 0) + 1;
+        return (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-tv-cream rounded-[2rem] p-7 max-w-md w-full shadow-2xl">
+              <div className="font-display font-black text-2xl text-tv-green-deep mb-1">🎫 Numero tessera</div>
+              <p className="text-sm text-tv-green-deep/70 mb-4">
+                Assegna un numero tessera a <strong>{tesseraModal.first_name} {tesseraModal.last_name}</strong> prima di scaricare il PDF (facoltativo).
+              </p>
+              {lacune.length > 0 && (
+                <div className="mb-3 p-3 rounded-2xl bg-tv-orange/15 border border-tv-orange/30">
+                  <div className="text-xs font-bold text-tv-green-deep/70 mb-1.5">Buchi disponibili — clicca per selezionare:</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {lacune.slice(0, 15).map(n => (
+                      <button key={n} type="button" onClick={() => setTesseraInput(String(n))}
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full border-2 transition-all ${
+                          tesseraInput === String(n)
+                            ? "border-tv-green bg-tv-green text-tv-cream"
+                            : "border-tv-orange/40 bg-tv-orange/20 text-tv-green-deep hover:bg-tv-orange/40"
+                        }`}
+                      >#{n}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mb-4 flex items-center gap-2">
+                <span className="text-xs text-tv-green-deep/60">Prossima nuova:</span>
+                <button type="button" onClick={() => setTesseraInput(String(prossima))}
+                  className={`text-xs font-bold px-2.5 py-1 rounded-full border-2 transition-all ${
+                    tesseraInput === String(prossima)
+                      ? "border-tv-green bg-tv-green text-tv-cream"
+                      : "border-tv-sky/60 bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky/60"
+                  }`}
+                >#{prossima}</button>
+              </div>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Inserisci numero tessera"
+                value={tesseraInput}
+                onChange={e => setTesseraInput(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-lg font-bold mb-5"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setTesseraModal(null)}
+                  className="flex-1 px-4 py-3 rounded-full border-2 border-tv-green-deep/20 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep/5 transition-colors"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={confirmTesseraAndDownload}
+                  disabled={tesseraLoading}
+                  className="flex-1 px-4 py-3 rounded-full bg-tv-sky text-tv-green-deep font-bold text-sm hover:bg-tv-sky/80 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                >
+                  {tesseraLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  Scarica PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {memberEditor && (
         <MemberEditor
           token={token}
@@ -1222,7 +1337,7 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
   </label>
 );
 
-const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
+const MembersManager = ({ members, registrations, onCreate, onEdit, onDelete }) => {
   const fmtDay = (d) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
     catch { return d; }
@@ -1237,13 +1352,16 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
   const sorted = [...numbered, ...founders];
 
   const tessereNumeri = numbered.map(m => parseInt(m.tessera_number)).filter(n => !isNaN(n));
+  const regRiservate = (registrations || [])
+    .filter(r => r.tessera_number && r.status !== "approved")
+    .map(r => parseInt(r.tessera_number)).filter(n => !isNaN(n));
   const maxTessera = tessereNumeri.length > 0 ? Math.max(...tessereNumeri) : 0;
-  const tessereSet = new Set(tessereNumeri);
+  const tessereSet = new Set([...tessereNumeri, ...regRiservate]);
   const lacune = [];
   for (let i = 1; i <= maxTessera; i++) {
     if (!tessereSet.has(i)) lacune.push(i);
   }
-  const prossimaLibera = maxTessera + 1;
+  const prossimaLibera = tessereSet.size > 0 ? Math.max(...tessereSet) + 1 : 1;
 
   return (
     <div data-testid="admin-members-manager">
@@ -1271,6 +1389,15 @@ const MembersManager = ({ members, onCreate, onEdit, onDelete }) => {
                 <span key={n} className="inline-block bg-tv-orange/30 text-tv-green-deep font-bold text-xs px-1.5 py-0.5 rounded">#{n}</span>
               ))}
               {lacune.length > 12 && <span className="text-tv-green-deep/40 text-xs">+{lacune.length - 12} altri</span>}
+              <span className="text-tv-green-deep/30 mx-1">·</span>
+            </span>
+          )}
+          {regRiservate.length > 0 && (
+            <span className="flex items-center gap-1 flex-wrap">
+              <span className="text-tv-green-deep/60 shrink-0">Riservate (in attesa):</span>
+              {regRiservate.sort((a,b)=>a-b).map(n => (
+                <span key={n} className="inline-block bg-tv-sky/40 text-tv-green-deep font-bold text-xs px-1.5 py-0.5 rounded">#{n}</span>
+              ))}
               <span className="text-tv-green-deep/30 mx-1">·</span>
             </span>
           )}
