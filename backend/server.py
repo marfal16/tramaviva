@@ -402,7 +402,12 @@ async def get_event_signups_count(event_id: str):
     doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"id": 1})
     if not doc:
         raise HTTPException(status_code=404, detail="Evento non trovato")
-    count = await db.event_signups.count_documents({"event_id": doc["id"]})
+    pipeline = [
+        {"$match": {"event_id": doc["id"]}},
+        {"$group": {"_id": None, "total": {"$sum": {"$ifNull": ["$num_persone", 1]}}}}
+    ]
+    result = await db.event_signups.aggregate(pipeline).to_list(1)
+    count = result[0]["total"] if result else 0
     return {"count": count}
 
 # ========== ROUTES: EVENT SIGNUPS & MEMBERSHIPS ==========
@@ -888,12 +893,13 @@ async def confirm_event_signup(signup_id: str):
     if not event:
         raise HTTPException(status_code=404, detail="Evento non trovato")
     
-    if event.get("spots", 0) <= 0:
-        raise HTTPException(status_code=400, detail="Nessun posto disponibile")
+    num_persone = signup.get("num_persone", 1)
+    if event.get("spots", 0) < num_persone:
+        raise HTTPException(status_code=400, detail=f"Posti insufficienti (richiesti {num_persone}, disponibili {event.get('spots', 0)})")
     
     await db.events.update_one(
         {"id": signup["event_id"]},
-        {"$inc": {"spots": -signup.get("num_persone", 1)}}
+        {"$inc": {"spots": -num_persone}}
     )
     await db.event_signups.update_one(
         {"id": signup_id},

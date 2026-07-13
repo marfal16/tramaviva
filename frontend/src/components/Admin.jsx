@@ -907,7 +907,11 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
             <div className="w-9 h-9 rounded-xl bg-tv-sky/40 flex items-center justify-center text-lg flex-shrink-0">📅</div>
             <h3 className="font-display font-black text-xl text-tv-green-deep flex-1 leading-tight">{group.title}</h3>
             <span className="px-3 py-1 rounded-full bg-tv-sky/30 text-tv-green-deep font-bold text-xs flex-shrink-0">
-              {group.items.length} {group.items.length === 1 ? "richiesta" : "richieste"}
+              {(() => {
+                const tot = group.items.reduce((s, r) => s + (r.num_persone || 1), 0);
+                const nReq = group.items.length;
+                return `${tot} ${tot === 1 ? "persona" : "persone"} · ${nReq} ${nReq === 1 ? "richiesta" : "richieste"}`;
+              })()}
             </span>
             <span className="text-tv-green-deep/40 flex-shrink-0">
               {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
