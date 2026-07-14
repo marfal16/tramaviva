@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -249,17 +249,18 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
 const DashboardHome = ({ data, onNavigate }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+  const toConfirmPeople = data["event-signups"].filter(s => !s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
   const pendingRegistrations = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
   const numberedMembers = data.members.filter(m => m.tessera_number).length;
   const unreadContacts = data.contacts.length;
 
   const kpis = [
-    { label: "Soci tesserati",      value: numberedMembers,              icon: IdCard,         iconBg: "bg-tv-green/20",      iconColor: "text-tv-green",      targetTab: "members" },
-    { label: "Iscrizioni in attesa", value: pendingRegistrations,         icon: Users,          iconBg: "bg-tv-orange/20",     iconColor: "text-tv-orange",     targetTab: "registrations" },
-    { label: "Richieste eventi",    value: data["event-signups"].length, icon: Calendar,       iconBg: "bg-tv-sky/30",        iconColor: "text-tv-sky",        targetTab: "event-signups" },
-    { label: "Presenze confermate", value: confirmedPeople,              icon: UserCheck,      iconBg: "bg-tv-mint/50",       iconColor: "text-tv-green-deep", targetTab: "event-signups" },
-    { label: "Eventi in programma", value: upcomingEvents,               icon: CalendarPlus,   iconBg: "bg-tv-bordeaux/10",   iconColor: "text-tv-bordeaux",   targetTab: "events" },
-    { label: "Messaggi ricevuti",   value: unreadContacts,               icon: MessageSquare,  iconBg: "bg-amber-100",        iconColor: "text-amber-600",     targetTab: "contacts" },
+    { label: "Soci tesserati",       value: numberedMembers,    icon: IdCard,        iconBg: "bg-tv-green/20",    iconColor: "text-tv-green",      targetTab: "members" },
+    { label: "Iscrizioni in attesa", value: pendingRegistrations, icon: Users,       iconBg: "bg-tv-orange/20",   iconColor: "text-tv-orange",     targetTab: "registrations" },
+    { label: "Da confermare",        value: toConfirmPeople,    icon: Calendar,      iconBg: "bg-tv-sky/30",      iconColor: "text-tv-sky",        targetTab: "event-signups" },
+    { label: "Presenze confermate",  value: confirmedPeople,    icon: UserCheck,     iconBg: "bg-tv-mint/50",     iconColor: "text-tv-green-deep", targetTab: "event-signups" },
+    { label: "Eventi in programma",  value: upcomingEvents,     icon: CalendarPlus,  iconBg: "bg-tv-bordeaux/10", iconColor: "text-tv-bordeaux",   targetTab: "events" },
+    { label: "Messaggi ricevuti",    value: unreadContacts,     icon: MessageSquare, iconBg: "bg-amber-100",      iconColor: "text-amber-600",     targetTab: "contacts" },
   ];
 
   return (
@@ -383,8 +384,9 @@ const DashboardHome = ({ data, onNavigate }) => {
         <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-6">
           <h3 className="font-display font-black text-lg text-tv-green-deep mb-5">Partecipazione per evento</h3>
           {(() => {
+            const validIds = new Set(data.events.map(e => e.id));
             const byEvent = {};
-            data["event-signups"].forEach(s => {
+            data["event-signups"].filter(s => validIds.has(s.event_id)).forEach(s => {
               const k = s.event_title || s.event_id || "—";
               byEvent[k] = (byEvent[k] || 0) + (s.num_persone || 1);
             });
@@ -710,21 +712,32 @@ const Dashboard = ({ token, onLogout }) => {
     }
   };
     
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const list = data[tab] || [];
 
   return (
     <div className="flex min-h-screen bg-tv-cream">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-screen w-64 bg-tv-green-deep text-tv-cream flex-col z-40 shadow-2xl hidden md:flex">
+      <aside className={`fixed left-0 top-0 h-screen bg-tv-green-deep text-tv-cream flex flex-col z-40 shadow-2xl transition-all duration-300 ease-in-out
+        ${sidebarOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full md:-translate-x-0 md:w-16"}
+      `}>
         {/* Logo area */}
-        <div className="p-6 border-b border-tv-cream/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-tv-green flex items-center justify-center text-xl">🧵</div>
-            <div>
-              <div className="font-display font-black text-lg leading-tight">Trama Viva</div>
+        <div className={`border-b border-tv-cream/10 flex items-center ${sidebarOpen ? "p-6 gap-3" : "p-3 justify-center"}`}>
+          <div className="w-10 h-10 rounded-2xl bg-tv-green flex items-center justify-center text-xl flex-shrink-0">🧵</div>
+          {sidebarOpen && (
+            <div className="overflow-hidden">
+              <div className="font-display font-black text-lg leading-tight whitespace-nowrap">Trama Viva</div>
               <div className="text-[10px] text-tv-cream/50 uppercase tracking-widest">APS · Admin</div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -732,18 +745,20 @@ const Dashboard = ({ token, onLogout }) => {
           {NAV.map((item) => (
             <button
               key={item.key}
-              onClick={() => setTab(item.key)}
+              onClick={() => { setTab(item.key); if (window.innerWidth < 768) setSidebarOpen(false); }}
               data-testid={`admin-tab-${item.key}`}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${
-                tab === item.key
+              title={!sidebarOpen ? item.label : undefined}
+              className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
+                ${sidebarOpen ? "gap-3 px-4 py-3" : "justify-center p-3"}
+                ${tab === item.key
                   ? "bg-tv-cream/15 text-tv-cream"
                   : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
-              }`}
+                }`}
             >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-              {data[item.key] && item.key !== "home" && (
-                <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${
+              <item.icon size={18} className="flex-shrink-0" />
+              {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
+              {sidebarOpen && data[item.key] && item.key !== "home" && (
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
                   tab === item.key ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
                 }`}>
                   {data[item.key]?.length ?? 0}
@@ -754,37 +769,51 @@ const Dashboard = ({ token, onLogout }) => {
         </nav>
 
         {/* Bottom actions */}
-        <div className="p-4 border-t border-tv-cream/10 space-y-2">
+        <div className={`border-t border-tv-cream/10 space-y-2 ${sidebarOpen ? "p-4" : "p-3"}`}>
           <button
             onClick={exportXlsx}
             data-testid="admin-export-xlsx"
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-cream/10 hover:text-tv-cream transition-all"
+            title={!sidebarOpen ? "Esporta XLSX" : undefined}
+            className={`w-full flex items-center rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-cream/10 hover:text-tv-cream transition-all
+              ${sidebarOpen ? "gap-2 px-3 py-2" : "justify-center p-3"}`}
           >
-            <Download size={15} /> Esporta tutto XLSX
+            <Download size={15} />
+            {sidebarOpen && "Esporta tutto XLSX"}
           </button>
           <button
             onClick={onLogout}
             data-testid="admin-logout"
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-bordeaux/30 hover:text-tv-cream transition-all"
+            title={!sidebarOpen ? "Esci" : undefined}
+            className={`w-full flex items-center rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-bordeaux/30 hover:text-tv-cream transition-all
+              ${sidebarOpen ? "gap-2 px-3 py-2" : "justify-center p-3"}`}
           >
-            <LogOut size={15} /> Esci
+            <LogOut size={15} />
+            {sidebarOpen && "Esci"}
           </button>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="md:ml-64 flex-1 min-h-screen">
+      <main className={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${sidebarOpen ? "md:ml-64" : "md:ml-16"}`}>
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-tv-cream/90 backdrop-blur-sm border-b border-tv-green-deep/10 px-8 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="font-display font-black text-2xl text-tv-green-deep">
-              {tab === "home" ? "Dashboard" : NAV.find(n => n.key === tab)?.label}
+        <header className="sticky top-0 z-30 bg-tv-cream/90 backdrop-blur-sm border-b border-tv-green-deep/10 px-4 md:px-8 py-4 flex items-center gap-3">
+          {/* Toggle sidebar button */}
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            className="p-2 rounded-xl hover:bg-tv-green-deep/10 text-tv-green-deep/50 hover:text-tv-green-deep transition-colors flex-shrink-0"
+            title={sidebarOpen ? "Chiudi menu" : "Apri menu"}
+          >
+            {sidebarOpen ? <PanelLeftClose size={18} /> : <Menu size={18} />}
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display font-black text-xl md:text-2xl text-tv-green-deep truncate">
+              {NAV.find(n => n.key === tab)?.label ?? "Dashboard"}
             </h1>
-            <p className="text-xs text-tv-green-deep/50 mt-0.5">
+            <p className="text-xs text-tv-green-deep/50 mt-0.5 hidden sm:block">
               {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {loading && <Loader2 size={18} className="animate-spin text-tv-green-deep/40" />}
             <button
               onClick={loadAll}
