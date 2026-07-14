@@ -19,6 +19,14 @@ const fmtDate = (iso) => {
   } catch { return iso; }
 };
 
+const fmtDay = (iso) => {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
+  } catch { return iso; }
+};
+
 const Login = ({ onLogin }) => {
   const [pwd, setPwd] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1631,7 +1639,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                 <div className={`text-[10px] mb-2 ${
                   isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
                 }`}>
-                  {fmtDate(ev.date)}{ev.time ? ` · ${ev.time}` : ""}{past ? " · concluso" : ""}
+                  {fmtDay(ev.date)}{ev.time ? ` · ${ev.time}` : ""}{past ? " · concluso" : ""}
                 </div>
                 {/* Progress bar */}
                 <div className={`h-1 rounded-full mb-1.5 ${
@@ -1675,7 +1683,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                   <div className="flex-1 min-w-0">
                     <h2 className="font-display font-black text-lg text-tv-green-deep leading-tight">{selectedGroup.ev.title}</h2>
                     <p className="text-xs text-tv-green-deep/45 mt-0.5">
-                      {fmtDate(selectedGroup.ev.date)}{selectedGroup.ev.time ? ` · ${selectedGroup.ev.time}` : ""}{selectedGroup.ev.location ? ` · ${selectedGroup.ev.location}` : ""}
+                      {fmtDay(selectedGroup.ev.date)}{selectedGroup.ev.time ? ` · ${selectedGroup.ev.time}` : ""}{selectedGroup.ev.location ? ` · ${selectedGroup.ev.location}` : ""}
                       {isPastEvent && <span className="ml-2 px-1.5 py-0.5 bg-tv-green-deep/10 text-tv-green-deep/50 rounded text-[10px] font-bold uppercase">Concluso</span>}
                     </p>
                   </div>
