@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -90,12 +90,13 @@ const Login = ({ onLogin }) => {
   );
 };
 
-const TABS = [
-  { key: "events", label: "Eventi", icon: CalendarPlus },
-  { key: "members", label: "Soci tesserati", icon: IdCard },
+const NAV = [
+  { key: "home",          label: "Dashboard",           icon: LayoutDashboard },
+  { key: "events",        label: "Eventi",               icon: CalendarPlus },
+  { key: "members",       label: "Soci tesserati",       icon: IdCard },
   { key: "registrations", label: "Richieste iscrizione", icon: Users },
-  { key: "event-signups", label: "Richieste eventi", icon: Calendar },
-  { key: "contacts", label: "Messaggi contatti", icon: MessageSquare },
+  { key: "event-signups", label: "Richieste eventi",     icon: Calendar },
+  { key: "contacts",      label: "Messaggi",             icon: MessageSquare },
 ];
 
 const CATEGORIES = ["Laboratori Artistici", "Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
@@ -245,8 +246,235 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
   );
 };
 
+const DashboardHome = ({ data, onNavigate }) => {
+  const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
+  const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+  const pendingRegistrations = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
+  const numberedMembers = data.members.filter(m => m.tessera_number).length;
+  const unreadContacts = data.contacts.length;
+
+  const kpis = [
+    { label: "Soci tesserati",      value: numberedMembers,              icon: IdCard,         iconBg: "bg-tv-green/20",      iconColor: "text-tv-green",      targetTab: "members" },
+    { label: "Iscrizioni in attesa", value: pendingRegistrations,         icon: Users,          iconBg: "bg-tv-orange/20",     iconColor: "text-tv-orange",     targetTab: "registrations" },
+    { label: "Richieste eventi",    value: data["event-signups"].length, icon: Calendar,       iconBg: "bg-tv-sky/30",        iconColor: "text-tv-sky",        targetTab: "event-signups" },
+    { label: "Presenze confermate", value: confirmedPeople,              icon: UserCheck,      iconBg: "bg-tv-mint/50",       iconColor: "text-tv-green-deep", targetTab: "event-signups" },
+    { label: "Eventi in programma", value: upcomingEvents,               icon: CalendarPlus,   iconBg: "bg-tv-bordeaux/10",   iconColor: "text-tv-bordeaux",   targetTab: "events" },
+    { label: "Messaggi ricevuti",   value: unreadContacts,               icon: MessageSquare,  iconBg: "bg-amber-100",        iconColor: "text-amber-600",     targetTab: "contacts" },
+  ];
+
+  return (
+    <div>
+      {/* KPI Row */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        {kpis.map((kpi) => (
+          <div key={kpi.label} className="bg-white rounded-2xl p-5 border border-tv-green-deep/10 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50">{kpi.label}</span>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${kpi.iconBg}`}>
+                <kpi.icon size={18} className={kpi.iconColor} />
+              </div>
+            </div>
+            <div className="font-display font-black text-3xl text-tv-green-deep">{kpi.value}</div>
+            <button onClick={() => onNavigate(kpi.targetTab)} className="text-xs text-tv-green-deep/40 hover:text-tv-green-deep font-bold text-left transition-colors">
+              Vedi dettagli →
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Middle section — 3 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Prossimi eventi */}
+        <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+          <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
+            <h3 className="font-display font-black text-lg text-tv-green-deep">Prossimi eventi</h3>
+            <button onClick={() => onNavigate("events")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Gestisci →</button>
+          </div>
+          <div className="divide-y divide-tv-green-deep/5">
+            {data.events.filter(e => !isPast(e.date)).slice(0, 5).map(ev => {
+              const signupsForEvent = data["event-signups"].filter(s => s.event_id === ev.id);
+              const totalBooked = signupsForEvent.reduce((s, r) => s + (r.num_persone || 1), 0);
+              const fillPct = ev.spots > 0 ? Math.max(0, Math.min(100, (totalBooked / (totalBooked + ev.spots)) * 100)) : 100;
+              return (
+                <div key={ev.id} className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <div className="font-bold text-sm text-tv-green-deep leading-tight">{ev.title}</div>
+                      <div className="text-xs text-tv-green-deep/50 mt-0.5">
+                        {new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" })} · {ev.time}
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-tv-green-deep/60 shrink-0">{ev.spots} posti</span>
+                  </div>
+                  <div className="h-1.5 bg-tv-green-deep/10 rounded-full overflow-hidden">
+                    <div style={{ width: `${fillPct}%` }} className={`h-full rounded-full transition-all ${fillPct >= 90 ? "bg-tv-bordeaux" : fillPct >= 60 ? "bg-tv-orange" : "bg-tv-green"}`} />
+                  </div>
+                </div>
+              );
+            })}
+            {data.events.filter(e => !isPast(e.date)).length === 0 && (
+              <div className="p-8 text-center text-tv-green-deep/40 text-sm">Nessun evento in programma</div>
+            )}
+          </div>
+        </div>
+
+        {/* Ultime richieste eventi */}
+        <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+          <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
+            <h3 className="font-display font-black text-lg text-tv-green-deep">Ultime richieste eventi</h3>
+            <button onClick={() => onNavigate("event-signups")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Vedi tutte →</button>
+          </div>
+          <div className="divide-y divide-tv-green-deep/5">
+            {[...data["event-signups"]].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6).map(s => (
+              <div key={s.id} className="px-5 py-3 flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${s.confirmed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-orange"}`}>
+                  {s.confirmed ? "✓" : "…"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm text-tv-green-deep truncate">{s.name}</div>
+                  <div className="text-xs text-tv-green-deep/50 truncate">{s.event_title}</div>
+                </div>
+                {(s.num_persone || 1) > 1 && (
+                  <span className="text-xs font-bold text-tv-sky bg-tv-sky/20 px-2 py-0.5 rounded-full shrink-0">×{s.num_persone}</span>
+                )}
+              </div>
+            ))}
+            {data["event-signups"].length === 0 && (
+              <div className="p-8 text-center text-tv-green-deep/40 text-sm">Nessuna richiesta</div>
+            )}
+          </div>
+        </div>
+
+        {/* Iscrizioni in attesa */}
+        <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+          <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
+            <h3 className="font-display font-black text-lg text-tv-green-deep">Iscrizioni in attesa</h3>
+            <button onClick={() => onNavigate("registrations")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Gestisci →</button>
+          </div>
+          <div className="divide-y divide-tv-green-deep/5">
+            {data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").slice(0, 6).map(r => (
+              <div key={r.id} className="px-5 py-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-tv-orange/10 flex items-center justify-center shrink-0">
+                  <Users size={14} className="text-tv-orange" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm text-tv-green-deep truncate">{r.first_name} {r.last_name}</div>
+                  <div className="text-xs text-tv-green-deep/50">
+                    {new Date(r.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
+                    {r.document_downloaded && " · 📥 PDF"}
+                    {r.tessera_number && ` · 🎫 #${r.tessera_number}`}
+                  </div>
+                </div>
+                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${r.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-orange"}`}>
+                  {r.payment_completed ? "Pagato" : r.metodo_pagamento || "In attesa"}
+                </span>
+              </div>
+            ))}
+            {data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length === 0 && (
+              <div className="p-8 text-center text-tv-green-deep/40 text-sm">Nessuna iscrizione in attesa 🎉</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom section — charts + activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: Partecipazione per evento */}
+        <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-6">
+          <h3 className="font-display font-black text-lg text-tv-green-deep mb-5">Partecipazione per evento</h3>
+          {(() => {
+            const byEvent = {};
+            data["event-signups"].forEach(s => {
+              const k = s.event_title || s.event_id || "—";
+              byEvent[k] = (byEvent[k] || 0) + (s.num_persone || 1);
+            });
+            const sorted = Object.entries(byEvent).sort((a, b) => b[1] - a[1]).slice(0, 6);
+            const max = sorted[0]?.[1] || 1;
+            return sorted.length === 0 ? (
+              <div className="text-tv-green-deep/40 text-sm text-center py-8">Nessun dato disponibile</div>
+            ) : (
+              <div className="space-y-4">
+                {sorted.map(([title, count]) => (
+                  <div key={title}>
+                    <div className="flex items-center justify-between text-sm mb-1.5">
+                      <span className="text-tv-green-deep font-semibold truncate flex-1 mr-3" title={title}>
+                        {title.length > 30 ? title.slice(0, 30) + "…" : title}
+                      </span>
+                      <span className="font-black text-tv-green-deep shrink-0">{count}</span>
+                    </div>
+                    <div className="h-2.5 bg-tv-green-deep/10 rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${(count / max) * 100}%` }}
+                        className="h-full bg-tv-green rounded-full transition-all duration-700"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Right: Composizione soci + Messaggi recenti */}
+        <div className="space-y-6">
+          {/* Composizione soci */}
+          <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-6">
+            <h3 className="font-display font-black text-lg text-tv-green-deep mb-4">Composizione soci</h3>
+            {(() => {
+              const tesserati = data.members.filter(m => m.tessera_number).length;
+              const fondatori = data.members.filter(m => !m.tessera_number).length;
+              const inAttesa = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
+              const total = tesserati + fondatori + inAttesa || 1;
+              const bars = [
+                { label: "Soci tesserati", count: tesserati, color: "bg-tv-green" },
+                { label: "Soci fondatori", count: fondatori, color: "bg-amber-400" },
+                { label: "In attesa",      count: inAttesa,  color: "bg-tv-orange" },
+              ];
+              return (
+                <div className="space-y-3">
+                  {bars.map(b => (
+                    <div key={b.label} className="flex items-center gap-3">
+                      <div className="w-28 text-xs font-bold text-tv-green-deep/60 shrink-0">{b.label}</div>
+                      <div className="flex-1 h-3 bg-tv-green-deep/10 rounded-full overflow-hidden">
+                        <div style={{ width: `${(b.count / total) * 100}%` }} className={`h-full ${b.color} rounded-full`} />
+                      </div>
+                      <div className="w-6 text-xs font-black text-tv-green-deep text-right">{b.count}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Messaggi recenti */}
+          <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+            <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
+              <h3 className="font-display font-black text-lg text-tv-green-deep">Messaggi recenti</h3>
+              <button onClick={() => onNavigate("contacts")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Vedi tutti →</button>
+            </div>
+            <div className="divide-y divide-tv-green-deep/5">
+              {data.contacts.slice(0, 3).map(c => (
+                <div key={c.id} className="px-5 py-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-sm text-tv-green-deep">{c.name || c.first_name || "—"}</span>
+                    <span className="text-[10px] text-tv-green-deep/40">{new Date(c.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}</span>
+                  </div>
+                  <p className="text-xs text-tv-green-deep/60 line-clamp-2">{c.message || c.body || "—"}</p>
+                </div>
+              ))}
+              {data.contacts.length === 0 && (
+                <div className="p-6 text-center text-tv-green-deep/40 text-sm">Nessun messaggio</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = ({ token, onLogout }) => {
-  const [tab, setTab] = useState("events");
+  const [tab, setTab] = useState("home");
   const [data, setData] = useState({
     registrations: [], "event-signups": [], contacts: [], events: [], members: [],
   });
@@ -485,305 +713,305 @@ const Dashboard = ({ token, onLogout }) => {
   const list = data[tab] || [];
 
   return (
-    <div className="min-h-screen bg-tv-cream">
-      <header className="sticky top-0 z-40 bg-tv-cream/90 backdrop-blur-xl border-b border-tv-green-deep/10">
-        <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3" data-testid="admin-home-link">
-            <Logo variant="inline" size={38} />
-          </a>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={exportXlsx}
-              data-testid="admin-export-xlsx"
-              className="btn-tv hidden sm:inline-flex px-4 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm"
-            >
-              Esporta Excel
-            </button>
-            <button
-              onClick={onLogout}
-              data-testid="admin-logout"
-              className="btn-tv inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-sm"
-            >
-              <LogOut size={14} /> Esci
-            </button>
+    <div className="flex min-h-screen bg-tv-cream">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 h-screen w-64 bg-tv-green-deep text-tv-cream flex-col z-40 shadow-2xl hidden md:flex">
+        {/* Logo area */}
+        <div className="p-6 border-b border-tv-cream/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-tv-green flex items-center justify-center text-xl">🧵</div>
+            <div>
+              <div className="font-display font-black text-lg leading-tight">Trama Viva</div>
+              <div className="text-[10px] text-tv-cream/50 uppercase tracking-widest">APS · Admin</div>
+            </div>
           </div>
         </div>
-      </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-10">
-        <h1 className="font-display font-black text-4xl md:text-5xl text-tv-green-deep mb-1">
-          Dashboard
-        </h1>
-        <p className="text-tv-green-deep/70 mb-8">
-          Tutte le richieste e i messaggi dell'associazione.
-        </p>
-
-        <div className="flex flex-wrap gap-2 mb-8">
-          {TABS.map((t) => (
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+          {NAV.map((item) => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              data-testid={`admin-tab-${t.key}`}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all ${
-                tab === t.key
-                  ? "bg-tv-green-deep text-tv-cream"
-                  : "bg-white text-tv-green-deep/70 hover:bg-tv-sky/30 border border-tv-green-deep/10"
+              key={item.key}
+              onClick={() => setTab(item.key)}
+              data-testid={`admin-tab-${item.key}`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${
+                tab === item.key
+                  ? "bg-tv-cream/15 text-tv-cream"
+                  : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
               }`}
             >
-              <t.icon size={16} />
-              {t.label}
-              <span className="opacity-70">({data[t.key]?.length ?? 0})</span>
+              <item.icon size={18} />
+              <span>{item.label}</span>
+              {data[item.key] && item.key !== "home" && (
+                <span className={`ml-auto text-[10px] font-black px-2 py-0.5 rounded-full ${
+                  tab === item.key ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
+                }`}>
+                  {data[item.key]?.length ?? 0}
+                </span>
+              )}
             </button>
           ))}
+        </nav>
+
+        {/* Bottom actions */}
+        <div className="p-4 border-t border-tv-cream/10 space-y-2">
+          <button
+            onClick={exportXlsx}
+            data-testid="admin-export-xlsx"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-cream/10 hover:text-tv-cream transition-all"
+          >
+            <Download size={15} /> Esporta tutto XLSX
+          </button>
+          <button
+            onClick={onLogout}
+            data-testid="admin-logout"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-bordeaux/30 hover:text-tv-cream transition-all"
+          >
+            <LogOut size={15} /> Esci
+          </button>
         </div>
+      </aside>
 
-        {!loading && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            {(() => {
-              const totalSignupPeople = data["event-signups"].reduce((s, r) => s + (r.num_persone || 1), 0);
-              const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-              const pendingRegistrations = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
-              const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
-              return (
-                <>
-                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
-                    <div className="font-display font-black text-3xl text-tv-green-deep">{upcomingEvents}</div>
-                    <div className="text-xs text-tv-green-deep/60 mt-1">📅 eventi in programma</div>
-                  </div>
-                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
-                    <div className="font-display font-black text-3xl text-tv-green-deep">{totalSignupPeople}</div>
-                    <div className="text-xs text-tv-green-deep/60 mt-1">👥 iscrizioni totali eventi</div>
-                  </div>
-                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
-                    <div className="font-display font-black text-3xl text-tv-green-deep">{confirmedPeople}</div>
-                    <div className="text-xs text-tv-green-deep/60 mt-1">✅ presenze confermate</div>
-                  </div>
-                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
-                    <div className="font-display font-black text-3xl text-tv-green-deep">{pendingRegistrations}</div>
-                    <div className="text-xs text-tv-green-deep/60 mt-1">🕐 iscrizioni in attesa</div>
-                  </div>
-                </>
-              );
-            })()}
+      {/* Main content */}
+      <main className="md:ml-64 flex-1 min-h-screen">
+        {/* Top bar */}
+        <header className="sticky top-0 z-30 bg-tv-cream/90 backdrop-blur-sm border-b border-tv-green-deep/10 px-8 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="font-display font-black text-2xl text-tv-green-deep">
+              {tab === "home" ? "Dashboard" : NAV.find(n => n.key === tab)?.label}
+            </h1>
+            <p className="text-xs text-tv-green-deep/50 mt-0.5">
+              {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            </p>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+            {loading && <Loader2 size={18} className="animate-spin text-tv-green-deep/40" />}
+            <button
+              onClick={loadAll}
+              className="p-2 rounded-xl hover:bg-tv-green-deep/10 text-tv-green-deep/50 hover:text-tv-green-deep transition-colors"
+              title="Aggiorna dati"
+            >
+              <RefreshCw size={16} />
+            </button>
+            <div className="w-9 h-9 rounded-2xl bg-tv-green-deep flex items-center justify-center text-tv-cream font-black text-sm">A</div>
+          </div>
+        </header>
 
-        {loading ? (
-          <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
-            <Loader2 className="animate-spin" size={18} /> Caricamento in corso...
-          </div>
-        ) : tab === "events" ? (
-          <EventsManager
-            events={data.events}
-            onCreate={() => setEventEditor("new")}
-            onEdit={(ev) => setEventEditor(ev)}
-            onDelete={(id) => remove("events", id)}
-          />
-        ) : tab === "members" ? (
-          <MembersManager
-            members={data.members}
-            registrations={data.registrations}
-            onCreate={() => setMemberEditor("new")}
-            onEdit={(m) => setMemberEditor(m)}
-            onDelete={(id) => remove("members", id)}
-          />
-        ) : tab === "registrations" ? (
-          list.length === 0 ? (
+        {/* Page content */}
+        <div className="p-6 md:p-8">
+          {tab === "home" ? (
+            <DashboardHome data={data} onNavigate={setTab} />
+          ) : loading ? (
+            <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
+              <Loader2 className="animate-spin" size={18} /> Caricamento in corso...
+            </div>
+          ) : tab === "events" ? (
+            <EventsManager
+              events={data.events}
+              onCreate={() => setEventEditor("new")}
+              onEdit={(ev) => setEventEditor(ev)}
+              onDelete={(id) => remove("events", id)}
+            />
+          ) : tab === "members" ? (
+            <MembersManager
+              members={data.members}
+              registrations={data.registrations}
+              onCreate={() => setMemberEditor("new")}
+              onEdit={(m) => setMemberEditor(m)}
+              onDelete={(id) => remove("members", id)}
+            />
+          ) : tab === "registrations" ? (
+            list.length === 0 ? (
+              <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
+                Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
+              </div>
+            ) : (
+              <div className="grid gap-4" data-testid="admin-list">
+                {list.map(row => (
+                  <RegistrationCard
+                    key={row.id}
+                    row={row}
+                    onPdf={openTesseraModal}
+                    pdfLoadingId={pdfLoadingId}
+                    onTogglePayment={togglePayment}
+                    onApprove={promoteToMember}
+                    onCleanup={cleanupRegistration}
+                    onResend={resendEmail}
+                    onDelete={(id) => remove("registrations", id)}
+                  />
+                ))}
+              </div>
+            )
+          ) : tab === "event-signups" ? (
+            <EventSignupsManager
+              signups={data["event-signups"]}
+              members={data.members}
+              events={data.events}
+              onConfirm={confirmSignup}
+              onDelete={(id) => remove("event-signups", id)}
+              onTogglePayment={toggleEventPayment}
+              token={token}
+              onReload={loadAll}
+            />
+          ) : list.length === 0 ? (
             <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
               Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
             </div>
           ) : (
             <div className="grid gap-4" data-testid="admin-list">
-              {list.map(row => (
-                <RegistrationCard
+              {list.map((row) => (
+                <article
                   key={row.id}
-                  row={row}
-                  onPdf={openTesseraModal}
-                  pdfLoadingId={pdfLoadingId}
-                  onTogglePayment={togglePayment}
-                  onApprove={promoteToMember}
-                  onCleanup={cleanupRegistration}
-                  onResend={resendEmail}
-                  onDelete={(id) => remove("registrations", id)}
-                />
-              ))}
-            </div>
-          )
-        ) : tab === "event-signups" ? (
-          <EventSignupsManager
-            signups={data["event-signups"]}
-            members={data.members}
-            events={data.events}
-            onConfirm={confirmSignup}
-            onDelete={(id) => remove("event-signups", id)}
-            onTogglePayment={toggleEventPayment}
-            token={token}
-            onReload={loadAll}
-          />
-        ) : list.length === 0 ? (
-          <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
-            Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
-          </div>
-        ) : (
-          <div className="grid gap-4" data-testid="admin-list">
-            {list.map((row) => (
-              <article
-                key={row.id}
-                className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
-                data-testid={`admin-row-${row.id}`}
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="font-display font-black text-lg text-tv-green-deep">
-                      {row.first_name
-                        ? `${row.first_name} ${row.last_name || ""}`
-                        : row.name || row.event_title}
-                    </span>
-                    {row.is_member || row.status === "approved" ? (
-                      <span
-                        data-testid={`badge-member-${row.id}`}
-                        className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2.5 py-1 rounded-full"
-                      >
-                        <UserCheck size={11} /> Socio tesserato
+                  className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
+                  data-testid={`admin-row-${row.id}`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="font-display font-black text-lg text-tv-green-deep">
+                        {row.first_name
+                          ? `${row.first_name} ${row.last_name || ""}`
+                          : row.name || row.event_title}
                       </span>
-                    ) : (row.email && (tab === "registrations" || tab === "event-signups")) ? (
-                      <span
-                        data-testid={`badge-not-member-${row.id}`}
-                        className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux/15 text-tv-bordeaux px-2.5 py-1 rounded-full"
-                      >
-                        {row.status === "pending" ? "In attesa" : "Non socio"}
-                      </span>
-                    ) : null}
-                    {row.document_downloaded && (
-                      <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
-                        📥 PDF Scaricato
-                      </span>
+                      {row.is_member || row.status === "approved" ? (
+                        <span
+                          data-testid={`badge-member-${row.id}`}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2.5 py-1 rounded-full"
+                        >
+                          <UserCheck size={11} /> Socio tesserato
+                        </span>
+                      ) : (row.email && (tab === "registrations" || tab === "event-signups")) ? (
+                        <span
+                          data-testid={`badge-not-member-${row.id}`}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux/15 text-tv-bordeaux px-2.5 py-1 rounded-full"
+                        >
+                          {row.status === "pending" ? "In attesa" : "Non socio"}
+                        </span>
+                      ) : null}
+                      {row.document_downloaded && (
+                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
+                          📥 PDF Scaricato
+                        </span>
+                      )}
+                      {tab === "registrations" && row.metodo_pagamento && (
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          row.payment_completed
+                            ? "bg-tv-green/20 text-tv-green-deep"
+                            : row.metodo_pagamento === "elettronico"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-tv-orange/30 text-tv-green-deep"
+                        }`}>
+                          {row.metodo_pagamento === "elettronico" ? "💳" : row.metodo_pagamento === "bonifico" ? "🏦" : "💵"}
+                          {row.metodo_pagamento === "elettronico"
+                            ? (row.payment_completed ? "Pagato online" : "Verifica su SumUp")
+                            : (row.payment_completed ? "Pagamento ricevuto" : "Pagamento da ricevere")}
+                        </span>
+                      )}
+                      {row.event_title && (
+                        <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2.5 py-1 rounded-full">
+                          {row.event_title}
+                        </span>
+                      )}
+                      <span className="text-xs text-tv-green-deep/50">{fmtDate(row.created_at)}</span>
+                    </div>
+                    <div className="mt-2 text-sm text-tv-green-deep/80 flex flex-wrap gap-x-4 gap-y-1">
+                      {row.email && (
+                        <a href={`mailto:${row.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux">
+                          <Mail size={13} /> {row.email}
+                        </a>
+                      )}
+                      {row.phone && <span>📞 {row.phone}</span>}
+                      {row.city && <span>📍 {row.city}</span>}
+                      {row.referral && <span>✨ Origine: {row.referral}</span>}
+                      {row.is_minorenne && <span className="text-tv-bordeaux font-bold">👶 Minorenne</span>}
+                    </div>
+                    {(row.motivation || row.message) && (
+                      <p className="mt-3 text-sm text-tv-green-deep/70 italic">
+                        "{row.motivation || row.message}"
+                      </p>
                     )}
-                    {tab === "registrations" && row.metodo_pagamento && (
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                        row.payment_completed
-                          ? "bg-tv-green/20 text-tv-green-deep"
-                          : row.metodo_pagamento === "elettronico"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-tv-orange/30 text-tv-green-deep"
-                      }`}>
-                        {row.metodo_pagamento === "elettronico" ? "💳" : row.metodo_pagamento === "bonifico" ? "🏦" : "💵"}
-                        {row.metodo_pagamento === "elettronico"
-                          ? (row.payment_completed ? "Pagato online" : "Verifica su SumUp")
-                          : (row.payment_completed ? "Pagamento ricevuto" : "Pagamento da ricevere")}
-                      </span>
-                    )}
-                    {row.event_title && (
-                      <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2.5 py-1 rounded-full">
-                        {row.event_title}
-                      </span>
-                    )}
-                    <span className="text-xs text-tv-green-deep/50">{fmtDate(row.created_at)}</span>
                   </div>
-                  <div className="mt-2 text-sm text-tv-green-deep/80 flex flex-wrap gap-x-4 gap-y-1">
-                    {row.email && (
-                      <a href={`mailto:${row.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux">
-                        <Mail size={13} /> {row.email}
+                  <div className="flex items-center gap-2 self-start md:self-center">
+                    {tab === "registrations" && (
+                      <button
+                        onClick={() => openTesseraModal(row.id)}
+                        disabled={pdfLoadingId === row.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-sky text-tv-green-deep font-bold text-xs hover:bg-tv-sky/80 transition-colors disabled:opacity-50"
+                        title="Scarica il PDF del modulo d'iscrizione"
+                      >
+                        {pdfLoadingId === row.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Download size={13} />
+                        )}
+                        Scarica PDF
+                      </button>
+                    )}
+                    {tab === "registrations" && row.metodo_pagamento && !row.payment_completed && (
+                      <button
+                        onClick={() => togglePayment(row)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors bg-tv-orange/30 text-tv-green-deep hover:bg-tv-green/20"
+                        title={row.metodo_pagamento === "elettronico" ? "Segna come verificato su SumUp" : "Segna come pagato"}
+                      >
+                        {row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere"}
+                      </button>
+                    )}
+                    {tab === "registrations" && row.metodo_pagamento && row.payment_completed && (
+                      <button
+                        onClick={() => togglePayment(row)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
+                        title="Segna come non ancora pagato"
+                      >
+                        ✓ Pagato
+                      </button>
+                    )}
+                    {tab === "registrations" && row.status !== "approved" && (
+                      <button
+                        onClick={() => promoteToMember(row)}
+                        data-testid={`admin-promote-${row.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
+                        title="Approva la richiesta e registra come socio"
+                      >
+                        <Sparkles size={13} /> Approva socio
+                      </button>
+                    )}
+                    {tab === "event-signups" && (row.is_member || row.contributo === 0) && !row.confirmed && (
+                      <button
+                        onClick={() => confirmSignup(row)}
+                        data-testid={`admin-confirm-${row.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
+                        title="Conferma presenza e scala posto"
+                      >
+                        <UserCheck size={13} /> Conferma
+                      </button>
+                    )}
+                    {row.confirmed && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2.5 py-1 rounded-full">
+                        ✓ Confermato
+                      </span>
+                    )}
+                    {tab === "contacts" && row.email && (
+                      <a
+                        href={`mailto:${row.email}?subject=${encodeURIComponent("Re: Il tuo messaggio a Trama Viva APS")}&body=${encodeURIComponent(`Ciao ${row.name || ""},\n\nAbbiamo letto il tuo messaggio:\n"${row.message || ""}"\n\n`)}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green-deep/10 text-tv-green-deep font-bold text-xs hover:bg-tv-green-deep hover:text-tv-cream transition-colors"
+                        title="Rispondi via email"
+                      >
+                        <Mail size={13} /> Rispondi
                       </a>
                     )}
-                    {row.phone && <span>📞 {row.phone}</span>}
-                    {row.city && <span>📍 {row.city}</span>}
-                    {row.referral && <span>✨ Origine: {row.referral}</span>}
-                    {row.is_minorenne && <span className="text-tv-bordeaux font-bold">👶 Minorenne</span>}
+                    <button
+                      onClick={() => remove(tab, row.id)}
+                      data-testid={`admin-delete-${row.id}`}
+                      className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+                      aria-label="Elimina"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  {(row.motivation || row.message) && (
-                    <p className="mt-3 text-sm text-tv-green-deep/70 italic">
-                      "{row.motivation || row.message}"
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 self-start md:self-center">
-                  
-                  {tab === "registrations" && (
-                    <button
-                      onClick={() => openTesseraModal(row.id)}
-                      disabled={pdfLoadingId === row.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-sky text-tv-green-deep font-bold text-xs hover:bg-tv-sky/80 transition-colors disabled:opacity-50"
-                      title="Scarica il PDF del modulo d'iscrizione"
-                    >
-                      {pdfLoadingId === row.id ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <Download size={13} />
-                      )}
-                      Scarica PDF
-                    </button>
-                  )}
-
-                  {tab === "registrations" && row.metodo_pagamento && !row.payment_completed && (
-                    <button
-                      onClick={() => togglePayment(row)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors bg-tv-orange/30 text-tv-green-deep hover:bg-tv-green/20"
-                      title={row.metodo_pagamento === "elettronico" ? "Segna come verificato su SumUp" : "Segna come pagato"}
-                    >
-                      {row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere"}
-                    </button>
-                  )}
-                  {tab === "registrations" && row.metodo_pagamento && row.payment_completed && (
-                    <button
-                      onClick={() => togglePayment(row)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full font-bold text-xs transition-colors bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
-                      title="Segna come non ancora pagato"
-                    >
-                      ✓ Pagato
-                    </button>
-                  )}
-
-                  {tab === "registrations" && row.status !== "approved" && (
-                    <button
-                      onClick={() => promoteToMember(row)}
-                      data-testid={`admin-promote-${row.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
-                      title="Approva la richiesta e registra come socio"
-                    >
-                      <Sparkles size={13} /> Approva socio
-                    </button>
-                  )}
-                  
-                  {tab === "event-signups" && (row.is_member || row.contributo === 0) && !row.confirmed && (
-                    <button
-                      onClick={() => confirmSignup(row)}
-                      data-testid={`admin-confirm-${row.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
-                      title="Conferma presenza e scala posto"
-                    >
-                      <UserCheck size={13} /> Conferma
-                    </button>
-                  )}
-                  {row.confirmed && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2.5 py-1 rounded-full">
-                      ✓ Confermato
-                    </span>
-                  )}
-
-                  {tab === "contacts" && row.email && (
-                    <a
-                      href={`mailto:${row.email}?subject=${encodeURIComponent("Re: Il tuo messaggio a Trama Viva APS")}&body=${encodeURIComponent(`Ciao ${row.name || ""},\n\nAbbiamo letto il tuo messaggio:\n"${row.message || ""}"\n\n`)}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green-deep/10 text-tv-green-deep font-bold text-xs hover:bg-tv-green-deep hover:text-tv-cream transition-colors"
-                      title="Rispondi via email"
-                    >
-                      <Mail size={13} /> Rispondi
-                    </a>
-                  )}
-
-                  <button
-                    onClick={() => remove(tab, row.id)}
-                    data-testid={`admin-delete-${row.id}`}
-                    className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-                    aria-label="Elimina"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       {eventEditor && (
