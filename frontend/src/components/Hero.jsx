@@ -140,7 +140,7 @@ export const Hero = () => {
               ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
               : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
             return (
-              <div className="mt-5 rounded-[2rem] border border-tv-green/30 bg-tv-green/10 p-5">
+              <div className="mt-5 rounded-[2rem] border border-tv-green/40 bg-tv-green/20 p-5">
                 <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50 mb-2">📅 Prossimo evento</div>
                 <h3 className="font-display font-black text-base leading-tight text-tv-green-deep mb-0.5">{primary.title}</h3>
                 <p className="text-xs text-tv-green-deep/55 mb-3">
