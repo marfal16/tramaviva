@@ -143,32 +143,46 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* Prossimi eventi — strip compatta */}
+      {/* Prossimi eventi — countdown compatto per ogni evento */}
       {upcomingEvents.length > 0 && (
-        <div className="border-b border-tv-green-deep/10 bg-tv-cream/80">
-          <div className="mx-auto max-w-7xl px-4 md:px-10">
-            <div className="flex items-center gap-3 py-2.5 overflow-x-auto no-scrollbar">
-              <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 whitespace-nowrap shrink-0">
-                Prossimi eventi
-              </span>
-              <div className="w-px h-3 bg-tv-green-deep/20 shrink-0" />
+        <div className="border-b border-tv-green-deep/10 bg-tv-green-deep/[0.03]">
+          <div className="mx-auto max-w-7xl px-4 md:px-10 py-3">
+            <div className="text-[9px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-2">
+              Prossimi eventi
+            </div>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
               {upcomingEvents.map(ev => {
-                const daysLeft = Math.ceil((new Date(ev.date).setHours(0,0,0,0) - new Date().setHours(0,0,0,0)) / 86400000);
+                const msLeft = new Date(ev.date).setHours(0,0,0,0) - new Date().setHours(0,0,0,0);
+                const daysLeft = Math.max(0, Math.floor(msLeft / 86400000));
+                const hoursLeft = Math.floor((Math.max(0, msLeft) % 86400000) / 3600000);
                 const isToday = daysLeft === 0;
                 return (
                   <Link
                     key={ev.id}
                     to={`/eventi/${ev.slug || ev.id}`}
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tv-green-deep/6 hover:bg-tv-green-deep/12 transition-colors whitespace-nowrap group"
+                    className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors group"
                   >
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                      isToday ? "bg-tv-orange text-tv-green-deep" : "bg-tv-green-deep/10 text-tv-green-deep/60"
-                    }`}>
-                      {isToday ? "Oggi!" : `${daysLeft}gg`}
-                    </span>
-                    <span className="text-xs font-semibold text-tv-green-deep/70 group-hover:text-tv-green-deep transition-colors">
-                      {ev.title}
-                    </span>
+                    <div className="min-w-0">
+                      <div className="text-[10px] text-tv-cream/50 mb-0.5 whitespace-nowrap">
+                        {ev.date ? new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : ""}
+                        {ev.time ? ` · ${ev.time}` : ""}
+                      </div>
+                      <div className="text-xs font-bold leading-tight max-w-[140px] truncate">{ev.title}</div>
+                    </div>
+                    {isToday ? (
+                      <span className="text-sm font-black text-tv-orange whitespace-nowrap">Oggi! 🎉</span>
+                    ) : (
+                      <div className="flex gap-1.5 shrink-0">
+                        <div className="text-center bg-tv-cream/10 rounded-xl px-2 py-1.5">
+                          <div className="font-display font-black text-base leading-none">{daysLeft}</div>
+                          <div className="text-[8px] uppercase text-tv-cream/45 mt-0.5">gg</div>
+                        </div>
+                        <div className="text-center bg-tv-cream/10 rounded-xl px-2 py-1.5">
+                          <div className="font-display font-black text-base leading-none">{String(hoursLeft).padStart(2,'0')}</div>
+                          <div className="text-[8px] uppercase text-tv-cream/45 mt-0.5">hh</div>
+                        </div>
+                      </div>
+                    )}
                   </Link>
                 );
               })}

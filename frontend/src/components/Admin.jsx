@@ -1668,15 +1668,36 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   return (
     <div className="flex flex-col md:flex-row rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden md:h-[calc(100vh-200px)] md:min-h-[600px]">
 
-      {/* ── Selezione evento: orizzontale (mobile) / sidebar verticale (desktop) ── */}
-      <div className="flex-shrink-0 border-b border-tv-green-deep/10 md:border-b-0 md:border-r md:w-60 xl:w-64 bg-tv-cream/40 md:flex md:flex-col md:overflow-y-auto">
-        <div className="px-4 py-3 border-b border-tv-green-deep/10 hidden md:block flex-shrink-0">
+      {/* ── Selezione evento: dropdown (mobile) / sidebar verticale (desktop) ── */}
+
+      {/* Mobile: select nativo — garantito zero overflow */}
+      <div className="block md:hidden px-3 py-3 border-b border-tv-green-deep/10 bg-tv-cream/40 flex-shrink-0">
+        <select
+          value={selectedEventId || ""}
+          onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
+          className="w-full px-3 py-2.5 rounded-xl bg-white border border-tv-green-deep/15 text-sm font-semibold text-tv-green-deep outline-none appearance-none"
+        >
+          {groups.map(({ ev, items }) => {
+            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+            const total = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+            const past = isPast(ev.date);
+            return (
+              <option key={ev.id} value={ev.id}>
+                {past ? "✓ " : "📅 "}{ev.title} · {fmtDay(ev.date)} · {confirmedPpl}/{total}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+      {/* Desktop: sidebar verticale */}
+      <div className="hidden md:flex flex-shrink-0 md:w-60 xl:w-64 border-r border-tv-green-deep/10 bg-tv-cream/40 flex-col overflow-y-auto">
+        <div className="px-4 py-3 border-b border-tv-green-deep/10 flex-shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40">
             {groups.length} {groups.length === 1 ? "evento" : "eventi"}
           </p>
         </div>
-        {/* On mobile: horizontal scroll row; on desktop: vertical list */}
-        <div className="flex flex-row overflow-x-auto md:flex-col md:flex-1 md:overflow-y-auto p-2 gap-1.5 md:gap-0 md:space-y-0.5">
+        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {groups.map(({ ev, items }) => {
             const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
             const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
@@ -1687,37 +1708,24 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
               <button
                 key={ev.id}
                 onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
-                className={`flex-shrink-0 w-[170px] md:w-full text-left px-3 py-3 rounded-xl transition-all ${
+                className={`w-full text-left px-3 py-3 rounded-xl transition-all ${
                   isSelected
                     ? past ? "bg-gray-400/70 shadow-md" : "bg-tv-green-deep shadow-md"
                     : past ? "hover:bg-gray-200/60 opacity-60 hover:opacity-80" : "hover:bg-tv-green-deep/6"
                 }`}
               >
-                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-1 md:line-clamp-2 ${
+                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-2 ${
                   isSelected ? "text-white" : past ? "text-gray-400" : "text-tv-green-deep"
-                }`}>
-                  {ev.title}
-                </div>
-                <div className={`text-[10px] mb-1.5 md:mb-2 truncate ${
+                }`}>{ev.title}</div>
+                <div className={`text-[10px] mb-2 truncate ${
                   isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
-                }`}>
-                  {fmtDay(ev.date)}{past ? " · concluso" : ""}
+                }`}>{fmtDay(ev.date)}{past ? " · concluso" : ""}</div>
+                <div className={`h-1 rounded-full mb-1.5 ${isSelected ? "bg-white/20" : past ? "bg-gray-300/50" : "bg-tv-green-deep/10"}`}>
+                  <div className={`h-1 rounded-full transition-all ${
+                    past ? (isSelected ? "bg-white/50" : "bg-gray-400/60") : pct === 100 ? "bg-tv-green" : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"
+                  }`} style={{ width: `${pct}%` }}/>
                 </div>
-                <div className={`h-1 rounded-full mb-1.5 ${
-                  isSelected ? "bg-white/20" : past ? "bg-gray-300/50" : "bg-tv-green-deep/10"
-                }`}>
-                  <div
-                    className={`h-1 rounded-full transition-all ${
-                      past ? (isSelected ? "bg-white/50" : "bg-gray-400/60")
-                           : pct === 100 ? "bg-tv-green"
-                           : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"
-                    }`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-                <div className={`text-[10px] font-bold ${
-                  isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
-                }`}>
+                <div className={`text-[10px] font-bold ${isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"}`}>
                   {confirmedPpl}/{totalPeople} conf.
                 </div>
               </button>
@@ -1739,7 +1747,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
           return (
             <>
               {/* Header */}
-              <div className="px-6 py-4 border-b border-tv-green-deep/10 flex-shrink-0">
+              <div className="px-4 md:px-6 py-4 border-b border-tv-green-deep/10 flex-shrink-0">
                 <div className="flex items-start gap-2 mb-3">
                   <div className="flex-1 min-w-0">
                     <h2 className="font-display font-black text-lg text-tv-green-deep leading-tight">{selectedGroup.ev.title}</h2>
@@ -1787,7 +1795,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
               </div>
 
               {/* Toolbar: filtri + search + bulk */}
-              <div className="px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 flex flex-wrap items-center gap-3">
+              <div className="px-3 md:px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 flex flex-wrap items-center gap-2 md:gap-3">
                 {/* Filter tabs */}
                 <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1">
                   {[
