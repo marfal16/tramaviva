@@ -1670,43 +1670,36 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
 
       {/* ── Selezione evento: dropdown (mobile) / sidebar verticale (desktop) ── */}
 
-      {/* Mobile: select + prev/next */}
-      <div className="block md:hidden px-3 py-3 border-b border-tv-green-deep/10 bg-tv-cream/40 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              const idx = groups.findIndex(g => g.ev.id === selectedEventId);
-              if (idx > 0) { setSelectedEventId(groups[idx-1].ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }
-            }}
-            disabled={groups.findIndex(g => g.ev.id === selectedEventId) <= 0}
-            className="p-2 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep disabled:opacity-30 shrink-0"
-            title="Evento precedente"
-          >‹</button>
-          <select
-            value={selectedEventId || ""}
-            onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
-            className="flex-1 px-3 py-2 rounded-xl bg-white border border-tv-green-deep/15 text-sm font-semibold text-tv-green-deep outline-none"
-          >
-            {groups.map(({ ev, items }) => {
-              const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-              const total = items.reduce((s, r) => s + (r.num_persone || 1), 0);
-              const past = isPast(ev.date);
-              return (
-                <option key={ev.id} value={ev.id}>
-                  {past ? "✓ " : "📅 "}{ev.title} · {fmtDay(ev.date)} · {confirmedPpl}/{total}
-                </option>
-              );
-            })}
-          </select>
-          <button
-            onClick={() => {
-              const idx = groups.findIndex(g => g.ev.id === selectedEventId);
-              if (idx < groups.length - 1) { setSelectedEventId(groups[idx+1].ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }
-            }}
-            disabled={groups.findIndex(g => g.ev.id === selectedEventId) >= groups.length - 1}
-            className="p-2 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep disabled:opacity-30 shrink-0"
-            title="Evento successivo"
-          >›</button>
+      {/* Mobile: tab strip scrollabile per selezione evento */}
+      <div className="block md:hidden border-b border-tv-green-deep/10 bg-tv-cream/50 flex-shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex p-2 gap-2" style={{ width: "max-content" }}>
+          {groups.map(({ ev, items }) => {
+            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+            const total = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+            const pending = items.filter(r => !r.confirmed).length;
+            const past = isPast(ev.date);
+            const isSelected = selectedEventId === ev.id;
+            return (
+              <button
+                key={ev.id}
+                onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
+                style={{ minWidth: "120px", maxWidth: "160px" }}
+                className={`flex flex-col items-start px-3 py-2.5 rounded-2xl transition-all text-left ${
+                  isSelected
+                    ? past ? "bg-gray-500 text-white shadow-md" : "bg-tv-green-deep text-white shadow-md"
+                    : past ? "bg-white/70 text-gray-400 opacity-60" : "bg-white text-tv-green-deep border border-tv-green-deep/10 hover:border-tv-green-deep/30"
+                }`}
+              >
+                <div className="text-xs font-bold leading-snug line-clamp-2 mb-1">{ev.title}</div>
+                <div className={`text-[10px] font-bold ${isSelected ? "text-white/60" : past ? "text-gray-400" : "text-tv-green-deep/40"}`}>
+                  {confirmedPpl}/{total} conf.
+                  {!past && pending > 0 && (
+                    <span className={`ml-1 ${isSelected ? "text-tv-orange/80" : "text-tv-orange"}`}>· {pending} att.</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
