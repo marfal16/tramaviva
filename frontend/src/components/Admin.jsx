@@ -1144,119 +1144,120 @@ const isPast = (dateStr) => {
   return d < today;
 };
 
-// ─── Event signups — layout master-detail ─────────────────────────────────────
+// ─── Event signups — master-detail con tabella compatta ──────────────────────
 
-const SignupCard = ({ row, founderEmails, selectedIds, onToggleSelect, onConfirm, onTogglePayment, onDelete }) => (
-  <div className="bg-white rounded-2xl p-4 border border-tv-green-deep/10 flex flex-col sm:flex-row sm:items-center gap-3">
-    <input
-      type="checkbox"
-      checked={selectedIds.has(row.id)}
-      onChange={() => onToggleSelect(row.id)}
-      className="mt-1 w-4 h-4 accent-tv-green flex-shrink-0 cursor-pointer"
-    />
-    <div className="w-9 h-9 rounded-xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-base flex-shrink-0">
-      {(row.name?.[0] || "?").toUpperCase()}
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-bold text-tv-green-deep">{row.name}</span>
-        {row.is_member && founderEmails.has((row.email || "").toLowerCase()) ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">
-            <UserCheck size={10} /> Socio Fondatore
-          </span>
-        ) : row.is_member ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2 py-0.5 rounded-full">
-            <UserCheck size={10} /> Socio
-          </span>
-        ) : null}
-        {row.confirmed && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
-            ✓ Confermato
-          </span>
-        )}
-        {row.num_persone > 1 && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-sky/30 text-tv-green-deep px-2 py-0.5 rounded-full">
-            👥 {row.num_persone} persone
-          </span>
-        )}
-        {row.opzione_scelta && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-mint/40 text-tv-green-deep px-2 py-0.5 rounded-full">
-            {row.opzione_scelta}
-          </span>
-        )}
-        {row.donazione_volontaria > 0 && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
-            💚 Donazione {row.donazione_volontaria}€
-          </span>
-        )}
-        {row.metodo_pagamento && (
-          row.payment_completed ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
-              💸 Pagato · {row.metodo_pagamento}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2 py-0.5 rounded-full">
-              ⏳ {row.metodo_pagamento} · da ricevere
-            </span>
-          )
-        )}
-        <span className="text-xs text-tv-green-deep/40">{fmtDate(row.created_at)}</span>
-      </div>
-      <div className="text-sm text-tv-green-deep/60 flex flex-wrap gap-x-3 mt-0.5">
-        {row.email && <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1"><Mail size={12} />{row.email}</a>}
-        {row.phone && <span>📞 {row.phone}</span>}
-      </div>
-      {row.message && <p className="text-xs text-tv-green-deep/50 italic mt-1">"{row.message}"</p>}
-      {row.ospiti?.length > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {row.ospiti.map((g, i) => (
-            <span key={i} className="text-[10px] bg-tv-cream px-2 py-0.5 rounded-full text-tv-green-deep/70 border border-tv-green-deep/10">
-              {g.nome} {g.cognome}{g.email ? ` · ${g.email}` : ""}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-    <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
-      {!row.confirmed && (
-        <button
-          onClick={() => onConfirm(row)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
-        >
-          <UserCheck size={13} /> Conferma
-        </button>
-      )}
-      {row.metodo_pagamento && !row.payment_completed && (
-        <button
-          onClick={() => onTogglePayment(row)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green/40 transition-colors"
-          title="Segna come pagato"
-        >
-          💸 Pagato
-        </button>
-      )}
-      {row.metodo_pagamento && row.payment_completed && (
-        <button
-          onClick={() => onTogglePayment(row)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green-deep/10 text-tv-green-deep/60 font-bold text-xs hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux transition-colors"
-          title="Segna come da ricevere"
-        >
-          ↩ Da ricevere
-        </button>
-      )}
-      <button
-        onClick={() => onDelete(row.id)}
-        className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-        aria-label="Elimina"
-      >
-        <Trash2 size={14} />
-      </button>
-    </div>
-  </div>
-);
+const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onTogglePayment, onDelete, isPastEvent }) => {
+  const [showGuests, setShowGuests] = useState(false);
+  const hasGuests = (row.ospiti || []).length > 0;
+  const isFounder = row.is_member && founderEmails.has((row.email || "").toLowerCase());
+
+  return (
+    <>
+      <tr className={`group border-b border-tv-green-deep/5 transition-colors ${isSelected ? "bg-tv-green/5" : "hover:bg-tv-cream/70"}`}>
+        <td className="py-3 pl-4 pr-2 w-8">
+          <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(row.id)}
+            className="w-4 h-4 accent-tv-green cursor-pointer" />
+        </td>
+        <td className="py-3 pr-4 min-w-[160px]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-tv-green-deep text-tv-cream flex items-center justify-center font-black text-sm flex-shrink-0">
+              {(row.name?.[0] || "?").toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-semibold text-sm text-tv-green-deep">{row.name}</span>
+                {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fondatore</span>}
+                {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
+              </div>
+              {row.message && <p className="text-[11px] text-tv-green-deep/40 italic truncate max-w-[180px]">"{row.message}"</p>}
+            </div>
+          </div>
+        </td>
+        <td className="py-3 pr-4 hidden md:table-cell">
+          <div className="text-xs text-tv-green-deep/60 space-y-0.5">
+            {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux truncate max-w-[180px]"><Mail size={10}/>{row.email}</a>}
+            {row.phone && <div className="text-tv-green-deep/40">📞 {row.phone}</div>}
+          </div>
+        </td>
+        <td className="py-3 pr-4 text-center">
+          {row.num_persone > 1 ? (
+            <button onClick={() => setShowGuests(v => !v)}
+              className="inline-flex items-center gap-1 text-xs font-bold bg-tv-sky/30 text-tv-green-deep px-2 py-1 rounded-full hover:bg-tv-sky/50 transition-colors">
+              👥 {row.num_persone} {hasGuests && (showGuests ? <ChevronUp size={10}/> : <ChevronDown size={10}/>)}
+            </button>
+          ) : <span className="text-sm text-tv-green-deep/40">1</span>}
+        </td>
+        <td className="py-3 pr-4 hidden lg:table-cell">
+          <span className="text-xs text-tv-green-deep/70">{row.opzione_scelta || <span className="text-tv-green-deep/25">—</span>}</span>
+        </td>
+        <td className="py-3 pr-4 hidden lg:table-cell">
+          <div className="space-y-1">
+            {row.donazione_volontaria > 0 && (
+              <span className="block text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">💚 {row.donazione_volontaria}€</span>
+            )}
+            {row.metodo_pagamento ? (
+              row.payment_completed
+                ? <span className="block text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">✓ {row.metodo_pagamento}</span>
+                : <span className="block text-[10px] font-bold bg-tv-orange/20 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ {row.metodo_pagamento}</span>
+            ) : <span className="text-tv-green-deep/25 text-xs">—</span>}
+          </div>
+        </td>
+        <td className="py-3 pr-2">
+          {row.confirmed
+            ? <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-1 rounded-full whitespace-nowrap">✓ Confermato</span>
+            : <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-1 rounded-full whitespace-nowrap">⏳ In attesa</span>}
+        </td>
+        <td className="py-3 pr-4 text-right">
+          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {!row.confirmed && !isPastEvent && (
+              <button onClick={() => onConfirm(row)} title="Conferma"
+                className="p-1.5 rounded-lg bg-tv-orange/20 text-tv-orange hover:bg-tv-orange hover:text-tv-cream transition-colors">
+                <UserCheck size={13}/>
+              </button>
+            )}
+            {row.metodo_pagamento && !row.payment_completed && (
+              <button onClick={() => onTogglePayment(row)} title="Segna pagato"
+                className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors text-xs">
+                💸
+              </button>
+            )}
+            {row.metodo_pagamento && row.payment_completed && (
+              <button onClick={() => onTogglePayment(row)} title="Annulla pagamento"
+                className="p-1.5 rounded-lg bg-tv-green-deep/10 text-tv-green-deep/50 hover:bg-tv-bordeaux/20 hover:text-tv-bordeaux transition-colors text-xs">
+                ↩
+              </button>
+            )}
+            <button onClick={() => onDelete(row.id)} title="Elimina"
+              className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+              <Trash2 size={13}/>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {showGuests && hasGuests && row.ospiti.map((g, i) => (
+        <tr key={i} className="bg-tv-cream/50 border-b border-tv-green-deep/5">
+          <td className="pl-4 pr-2"/>
+          <td className="py-2 pr-4" colSpan={1}>
+            <div className="flex items-center gap-2 pl-8">
+              <div className="w-6 h-6 rounded-md bg-tv-green-deep/15 text-tv-green-deep flex items-center justify-center font-bold text-[10px]">
+                {(g.nome?.[0] || "?").toUpperCase()}
+              </div>
+              <span className="text-xs text-tv-green-deep/70">{g.nome} {g.cognome}</span>
+            </div>
+          </td>
+          <td className="py-2 pr-4 hidden md:table-cell">
+            <span className="text-xs text-tv-green-deep/50">{g.email || "—"}</span>
+          </td>
+          <td colSpan={5} className="py-2 pr-4 text-[11px] text-tv-green-deep/35">ospite</td>
+        </tr>
+      ))}
+    </>
+  );
+};
 
 const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, onTogglePayment, token, onReload }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
   const [reminderLoading, setReminderLoading] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -1292,6 +1293,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   }, [groups]);
 
   const selectedGroup = groups.find(g => g.ev.id === selectedEventId) ?? null;
+  const isPastEvent = selectedGroup ? isPast(selectedGroup.ev.date) : false;
 
   const founderEmails = useMemo(() =>
     new Set((members || []).filter(m => !m.tessera_number).map(m => (m.email || "").toLowerCase())),
@@ -1300,17 +1302,28 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
 
   const filteredItems = useMemo(() => {
     if (!selectedGroup) return [];
+    // Per eventi conclusi: mostra solo i confermati
+    const base = isPastEvent
+      ? selectedGroup.items.filter(r => r.confirmed)
+      : selectedGroup.items;
+    const afterFilter = activeFilter === "pending"
+      ? base.filter(r => !r.confirmed)
+      : activeFilter === "confirmed"
+      ? base.filter(r => r.confirmed)
+      : base;
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return selectedGroup.items;
-    return selectedGroup.items.filter(s =>
+    if (!q) return afterFilter;
+    return afterFilter.filter(s =>
       (s.name || "").toLowerCase().includes(q) ||
       (s.email || "").toLowerCase().includes(q)
     );
-  }, [selectedGroup, searchQuery]);
+  }, [selectedGroup, isPastEvent, activeFilter, searchQuery]);
 
   const toggleSelect = (id) => setSelectedIds(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
   });
+
+  const selectAll = () => setSelectedIds(new Set(filteredItems.filter(r => !r.confirmed).map(r => r.id)));
 
   const exportGroup = (group) => {
     const rows = group.items.flatMap(s => {
@@ -1380,49 +1393,49 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   }
 
   return (
-    <div className="flex gap-0 rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden" style={{ minHeight: "600px", height: "calc(100vh - 200px)" }}>
+    <div className="flex rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden" style={{ minHeight: "600px", height: "calc(100vh - 200px)" }}>
 
       {/* ── Colonna sinistra: lista eventi ── */}
-      <div className="w-64 xl:w-72 flex-shrink-0 border-r border-tv-green-deep/10 overflow-y-auto bg-tv-cream/50">
-        <div className="p-4 border-b border-tv-green-deep/10">
-          <p className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/40">
+      <div className="w-60 xl:w-64 flex-shrink-0 border-r border-tv-green-deep/10 overflow-y-auto flex flex-col bg-tv-cream/40">
+        <div className="px-4 py-3 border-b border-tv-green-deep/10 flex-shrink-0">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40">
             {groups.length} {groups.length === 1 ? "evento" : "eventi"}
           </p>
         </div>
-        <div className="p-2 space-y-1">
+        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {groups.map(({ ev, items }) => {
             const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
-            const pending = items.filter(r => !r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-            const isSelected = selectedEventId === ev.id;
+            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+            const pending = totalPeople - confirmedPpl;
             const past = isPast(ev.date);
+            const isSelected = selectedEventId === ev.id;
+            const pct = totalPeople > 0 ? Math.round((confirmedPpl / totalPeople) * 100) : 0;
             return (
               <button
                 key={ev.id}
-                onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); }}
+                onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
                 className={`w-full text-left px-3 py-3 rounded-xl transition-all ${
-                  isSelected
-                    ? "bg-tv-green-deep text-tv-cream shadow-md"
-                    : "hover:bg-tv-green-deep/8 text-tv-green-deep"
+                  isSelected ? "bg-tv-green-deep shadow-md" : "hover:bg-tv-green-deep/6"
                 }`}
               >
-                <div className={`font-bold text-sm leading-tight mb-1 line-clamp-2 ${isSelected ? "text-tv-cream" : "text-tv-green-deep"}`}>
+                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-2 ${isSelected ? "text-tv-cream" : "text-tv-green-deep"}`}>
                   {ev.title}
                 </div>
-                <div className={`text-[11px] mb-2 ${isSelected ? "text-tv-cream/60" : "text-tv-green-deep/50"}`}>
-                  {fmtDate(ev.date)}{ev.time ? ` · ${ev.time}` : ""}
-                  {past && <span className="ml-1">(passato)</span>}
+                <div className={`text-[10px] mb-2 ${isSelected ? "text-tv-cream/55" : "text-tv-green-deep/45"}`}>
+                  {fmtDate(ev.date)}{ev.time ? ` · ${ev.time}` : ""}{past ? " · passato" : ""}
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    isSelected ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-sky/40 text-tv-green-deep"
-                  }`}>
-                    {totalPeople} {totalPeople === 1 ? "persona" : "persone"}
-                  </span>
-                  {pending > 0 && (
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      isSelected ? "bg-tv-orange/50 text-tv-cream" : "bg-tv-orange/20 text-tv-bordeaux"
-                    }`}>
-                      {pending} da conf.
+                {/* Progress bar */}
+                <div className={`h-1 rounded-full mb-1.5 ${isSelected ? "bg-tv-cream/20" : "bg-tv-green-deep/10"}`}>
+                  <div
+                    className={`h-1 rounded-full transition-all ${pct === 100 ? "bg-tv-green" : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className={`flex items-center justify-between text-[10px] font-bold ${isSelected ? "text-tv-cream/60" : "text-tv-green-deep/45"}`}>
+                  <span>{confirmedPpl}/{totalPeople} conf.</span>
+                  {!past && pending > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full ${isSelected ? "bg-tv-orange/50 text-tv-cream" : "bg-tv-orange/20 text-tv-bordeaux"}`}>
+                      {pending} in attesa
                     </span>
                   )}
                 </div>
@@ -1432,101 +1445,160 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
         </div>
       </div>
 
-      {/* ── Colonna destra: dettaglio evento selezionato ── */}
+      {/* ── Colonna destra: dettaglio ── */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {selectedGroup ? (
-          <>
-            {/* Header evento */}
-            <div className="flex items-start gap-3 px-6 py-4 border-b border-tv-green-deep/10 flex-shrink-0">
-              <div className="flex-1 min-w-0">
-                <h2 className="font-display font-black text-xl text-tv-green-deep leading-tight truncate">
-                  {selectedGroup.ev.title}
-                </h2>
-                <p className="text-xs text-tv-green-deep/50 mt-0.5">
-                  {fmtDate(selectedGroup.ev.date)}
-                  {selectedGroup.ev.time ? ` · ${selectedGroup.ev.time}` : ""}
-                  {selectedGroup.ev.location ? ` · ${selectedGroup.ev.location}` : ""}
-                  {" · "}
-                  <span className="font-semibold text-tv-green-deep/70">
-                    {selectedGroup.items.reduce((s, r) => s + (r.num_persone || 1), 0)} persone ·{" "}
-                    {selectedGroup.items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0)} confermate
-                  </span>
-                </p>
-              </div>
-              <button
-                onClick={() => exportGroup(selectedGroup)}
-                className="p-2 rounded-xl hover:bg-tv-sky/20 text-tv-green-deep/50 hover:text-tv-green-deep transition-colors flex-shrink-0"
-                title="Esporta partecipanti XLSX"
-              >
-                <Download size={16} />
-              </button>
-              <button
-                onClick={() => sendReminder(selectedGroup.ev.id, selectedGroup.ev.title)}
-                disabled={reminderLoading === selectedGroup.ev.id}
-                className="p-2 rounded-xl hover:bg-tv-orange/20 text-tv-green-deep/50 hover:text-tv-orange transition-colors flex-shrink-0 disabled:opacity-40"
-                title="Invia reminder ai confermati"
-              >
-                {reminderLoading === selectedGroup.ev.id ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
-              </button>
-            </div>
-
-            {/* Search + bulk bar */}
-            <div className="px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 space-y-2">
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/40 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Cerca per nome o email…"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-sm text-tv-green-deep"
-                />
-              </div>
-              {selectedIds.size > 0 && (
-                <div className="flex items-center gap-3 bg-tv-green/10 border border-tv-green/30 rounded-xl px-3 py-2">
-                  <span className="text-xs font-bold text-tv-green-deep flex-1">
-                    {selectedIds.size} selezionat{selectedIds.size === 1 ? "a" : "e"}
-                  </span>
-                  <button onClick={() => setSelectedIds(new Set())} className="text-xs text-tv-green-deep/60 hover:text-tv-bordeaux font-bold">
-                    Deseleziona
+        {selectedGroup ? (() => {
+          const allItems = selectedGroup.items;
+          const totalPeople = allItems.reduce((s, r) => s + (r.num_persone || 1), 0);
+          const confirmedPpl = allItems.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+          const pendingPpl = totalPeople - confirmedPpl;
+          const paidCount = allItems.filter(r => r.payment_completed).length;
+          const unpaidCount = allItems.filter(r => r.metodo_pagamento && !r.payment_completed).length;
+          const pendingCount = allItems.filter(r => !r.confirmed).length;
+          return (
+            <>
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-tv-green-deep/10 flex-shrink-0">
+                <div className="flex items-start gap-2 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-display font-black text-lg text-tv-green-deep leading-tight">{selectedGroup.ev.title}</h2>
+                    <p className="text-xs text-tv-green-deep/45 mt-0.5">
+                      {fmtDate(selectedGroup.ev.date)}{selectedGroup.ev.time ? ` · ${selectedGroup.ev.time}` : ""}{selectedGroup.ev.location ? ` · ${selectedGroup.ev.location}` : ""}
+                      {isPastEvent && <span className="ml-2 px-1.5 py-0.5 bg-tv-green-deep/10 text-tv-green-deep/50 rounded text-[10px] font-bold uppercase">Concluso</span>}
+                    </p>
+                  </div>
+                  <button onClick={() => exportGroup(selectedGroup)} title="Esporta XLSX"
+                    className="p-2 rounded-xl hover:bg-tv-sky/20 text-tv-green-deep/40 hover:text-tv-green-deep transition-colors flex-shrink-0">
+                    <Download size={15}/>
                   </button>
-                  <button
-                    onClick={bulkConfirm}
-                    disabled={bulkLoading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep disabled:opacity-50"
-                  >
-                    {bulkLoading ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
-                    Conferma selezionate
-                  </button>
+                  {!isPastEvent && (
+                    <button onClick={() => sendReminder(selectedGroup.ev.id, selectedGroup.ev.title)}
+                      disabled={reminderLoading === selectedGroup.ev.id} title="Invia reminder ai confermati"
+                      className="p-2 rounded-xl hover:bg-tv-orange/20 text-tv-green-deep/40 hover:text-tv-orange transition-colors flex-shrink-0 disabled:opacity-40">
+                      {reminderLoading === selectedGroup.ev.id ? <Loader2 size={15} className="animate-spin"/> : <Mail size={15}/>}
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+                {/* Stats chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-sky/30 text-tv-green-deep px-2.5 py-1 rounded-full">
+                    👥 {totalPeople} {totalPeople === 1 ? "persona" : "persone"}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-green/20 text-tv-green-deep px-2.5 py-1 rounded-full">
+                    ✓ {confirmedPpl} confermati
+                  </span>
+                  {!isPastEvent && pendingPpl > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-orange/20 text-tv-bordeaux px-2.5 py-1 rounded-full">
+                      ⏳ {pendingPpl} in attesa
+                    </span>
+                  )}
+                  {paidCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-mint/50 text-tv-green-deep px-2.5 py-1 rounded-full">
+                      💸 {paidCount} pagati
+                    </span>
+                  )}
+                  {unpaidCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-orange/10 text-tv-bordeaux px-2.5 py-1 rounded-full">
+                      ⚠️ {unpaidCount} da incassare
+                    </span>
+                  )}
+                </div>
+              </div>
 
-            {/* Lista iscrizioni */}
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              {filteredItems.length === 0 ? (
-                <div className="text-center text-tv-green-deep/40 py-12 text-sm">
-                  {searchQuery ? "Nessun risultato per la ricerca." : "Nessuna iscrizione per questo evento."}
-                </div>
-              ) : (
-                <div className="grid gap-3">
-                  {filteredItems.map(row => (
-                    <SignupCard
-                      key={row.id}
-                      row={row}
-                      founderEmails={founderEmails}
-                      selectedIds={selectedIds}
-                      onToggleSelect={toggleSelect}
-                      onConfirm={onConfirm}
-                      onTogglePayment={onTogglePayment}
-                      onDelete={onDelete}
-                    />
+              {/* Toolbar: filtri + search + bulk */}
+              <div className="px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 flex flex-wrap items-center gap-3">
+                {/* Filter tabs */}
+                <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1">
+                  {[
+                    { key: "all", label: `Tutti (${isPastEvent ? allItems.filter(r=>r.confirmed).length : allItems.length})` },
+                    ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingCount})` }] : []),
+                    { key: "confirmed", label: `Confermati (${allItems.filter(r=>r.confirmed).length})` },
+                  ].map(f => (
+                    <button key={f.key} onClick={() => setActiveFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        activeFilter === f.key
+                          ? "bg-tv-green-deep text-tv-cream shadow-sm"
+                          : "text-tv-green-deep/50 hover:text-tv-green-deep"
+                      }`}>
+                      {f.label}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
-          </>
-        ) : (
+                {/* Search */}
+                <div className="relative flex-1 min-w-[160px]">
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
+                  <input type="text" placeholder="Cerca nome o email…" value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
+                </div>
+                {/* Bulk confirm bar */}
+                {selectedIds.size > 0 ? (
+                  <div className="flex items-center gap-2 bg-tv-green/10 border border-tv-green/25 rounded-xl px-3 py-1.5">
+                    <span className="text-xs font-bold text-tv-green-deep">{selectedIds.size} sel.</span>
+                    <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-tv-green-deep/50 hover:text-tv-bordeaux font-bold">✕</button>
+                    <button onClick={bulkConfirm} disabled={bulkLoading}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tv-green text-tv-cream font-bold text-[11px] hover:bg-tv-green-deep disabled:opacity-50">
+                      {bulkLoading ? <Loader2 size={11} className="animate-spin"/> : <UserCheck size={11}/>} Conferma
+                    </button>
+                  </div>
+                ) : !isPastEvent && filteredItems.some(r => !r.confirmed) && (
+                  <button onClick={selectAll} className="text-xs text-tv-green-deep/50 hover:text-tv-green-deep font-bold whitespace-nowrap">
+                    Seleziona tutti in attesa
+                  </button>
+                )}
+              </div>
+
+              {/* Tabella */}
+              <div className="flex-1 overflow-y-auto">
+                {filteredItems.length === 0 ? (
+                  <div className="text-center text-tv-green-deep/35 py-16 text-sm">
+                    {searchQuery ? "Nessun risultato per la ricerca." : isPastEvent ? "Nessun partecipante confermato per questo evento." : "Nessuna iscrizione."}
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead className="sticky top-0 bg-tv-cream/95 backdrop-blur-sm z-10">
+                      <tr className="text-left border-b border-tv-green-deep/10">
+                        <th className="py-2.5 pl-4 pr-2 w-8">
+                          <input type="checkbox"
+                            checked={filteredItems.filter(r=>!r.confirmed).length > 0 && filteredItems.filter(r=>!r.confirmed).every(r=>selectedIds.has(r.id))}
+                            onChange={() => {
+                              const pending = filteredItems.filter(r=>!r.confirmed);
+                              if (pending.every(r=>selectedIds.has(r.id))) setSelectedIds(new Set());
+                              else setSelectedIds(new Set(pending.map(r=>r.id)));
+                            }}
+                            className="w-4 h-4 accent-tv-green cursor-pointer"
+                          />
+                        </th>
+                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Partecipante</th>
+                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">Contatti</th>
+                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center">Persone</th>
+                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Opzione</th>
+                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
+                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
+                        <th className="py-2.5 pr-4 w-24"/>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredItems.map(row => (
+                        <SignupRow
+                          key={row.id}
+                          row={row}
+                          founderEmails={founderEmails}
+                          isSelected={selectedIds.has(row.id)}
+                          onToggleSelect={toggleSelect}
+                          onConfirm={onConfirm}
+                          onTogglePayment={onTogglePayment}
+                          onDelete={onDelete}
+                          isPastEvent={isPastEvent}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </>
+          );
+        })() : (
           <div className="flex-1 flex items-center justify-center text-tv-green-deep/30 text-sm">
             Seleziona un evento dalla lista
           </div>
