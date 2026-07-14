@@ -439,7 +439,8 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
 const DashboardHome = ({ data, onNavigate }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-  const toConfirmPeople = data["event-signups"].filter(s => !s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+  const upcomingEventIds = new Set(data.events.filter(e => !isPast(e.date)).map(e => e.id));
+  const toConfirmPeople = data["event-signups"].filter(s => !s.confirmed && upcomingEventIds.has(s.event_id)).reduce((s, r) => s + (r.num_persone || 1), 0);
   const pendingRegistrations = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
   const numberedMembers = data.members.filter(m => m.tessera_number).length;
   const unreadContacts = data.contacts.length;
@@ -937,7 +938,7 @@ const Dashboard = ({ token, onLogout }) => {
           {NAV.map((item) => (
             <button
               key={item.key}
-              onClick={() => { setTab(item.key); if (window.innerWidth < 768) setSidebarOpen(false); }}
+              onClick={() => { setTab(item.key); setSidebarOpen(false); }}
               data-testid={`admin-tab-${item.key}`}
               title={!sidebarOpen ? item.label : undefined}
               className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
@@ -952,7 +953,10 @@ const Dashboard = ({ token, onLogout }) => {
                 {(() => {
                   let dot = 0;
                   if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
-                  else if (item.key === "event-signups") dot = (data["event-signups"] || []).filter(s => !s.confirmed).length;
+                  else if (item.key === "event-signups") {
+                    const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
+                    dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
+                  }
                   else if (item.key === "contacts") dot = (data.contacts || []).length;
                   return dot > 0 ? <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux border border-tv-green-deep" /> : null;
                 })()}
