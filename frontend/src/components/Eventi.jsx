@@ -323,7 +323,16 @@ const FeaturedCard = ({ ev, onParticipate }) => (
         <div className="flex items-center gap-2"><CalendarIcon size={15} /> {fmtDate(ev.date)}</div>
         <div className="flex items-center gap-2"><Clock size={15} /> {ev.time}</div>
         <div className="flex items-center gap-2"><MapPin size={15} /> {ev.location}</div>
-        <div className="flex items-center gap-2"><Users size={15} /> {ev.spots} posti disponibili</div>
+        <div className="flex items-center gap-2">
+          <Users size={15} />
+          {ev.spots <= 0 ? (
+            <span className="font-bold opacity-80">🔴 Posti esauriti</span>
+          ) : ev.spots <= 5 ? (
+            <span className="font-bold text-tv-orange">⚡ Ultimi {ev.spots} posti!</span>
+          ) : (
+            <>{ev.spots} posti disponibili</>
+          )}
+        </div>
       </div>
       {ev.contributo > 0 && (
         <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
@@ -331,13 +340,19 @@ const FeaturedCard = ({ ev, onParticipate }) => (
         </div>
       )}
       <div className="mt-7">
-        <Link
-          to={`/eventi/${ev.slug || ev.id}`}
-          data-testid={`event-featured-detail-${ev.id}`}
-          className="btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-orange text-tv-green-deep font-bold hover:bg-tv-orange/80"
-        >
-          Vedi dettagli e Partecipa <ArrowRight size={16} />
-        </Link>
+        {ev.spots <= 0 ? (
+          <span className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-orange/30 text-tv-green-deep/50 font-bold cursor-not-allowed">
+            Tutto esaurito
+          </span>
+        ) : (
+          <Link
+            to={`/eventi/${ev.slug || ev.id}`}
+            data-testid={`event-featured-detail-${ev.id}`}
+            className="btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-orange text-tv-green-deep font-bold hover:bg-tv-orange/80"
+          >
+            Vedi dettagli e Partecipa <ArrowRight size={16} />
+          </Link>
+        )}
       </div>
     </div>
     <div className="relative md:col-span-5 flex items-center justify-center">
@@ -378,6 +393,11 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
             Concluso
           </span>
         )}
+        {!past && ev.spots <= 0 && (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux text-tv-cream">
+            Sold out
+          </span>
+        )}
       </div>
       <span className="text-3xl">{ev.emoji}</span>
     </div>
@@ -396,7 +416,14 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
       </div>
       {!compact && !past && (
         <div className="flex items-center gap-2">
-          <Users size={14} /> {ev.spots} posti disponibili
+          <Users size={14} />
+          {ev.spots <= 0 ? (
+            <span className="text-tv-bordeaux font-bold">Posti esauriti</span>
+          ) : ev.spots <= 5 ? (
+            <span className="text-orange-500 font-bold">⚡ Ultimi {ev.spots} posti!</span>
+          ) : (
+            <>{ev.spots} posti disponibili</>
+          )}
         </div>
       )}
       {!compact && ev.contributo > 0 && (
@@ -406,18 +433,24 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
       )}
     </div>
     <div className="mt-auto pt-5">
-      <Link
-        to={`/eventi/${ev.slug || ev.id}`}
-        data-testid={`event-detail-${ev.id}`}
-        className={`inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
-          past
-            ? "bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-green-deep hover:text-tv-cream"
-            : "btn-tv bg-tv-green-deep text-tv-cream hover:bg-tv-green"
-        }`}
-      >
-        {past ? "Vedi dettagli" : "Vedi dettagli e Partecipa"}
-        {!past && <ArrowRight size={16} />}
-      </Link>
+      {!past && ev.spots <= 0 ? (
+        <span className="inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full font-bold text-sm bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep/40 cursor-not-allowed">
+          Tutto esaurito
+        </span>
+      ) : (
+        <Link
+          to={`/eventi/${ev.slug || ev.id}`}
+          data-testid={`event-detail-${ev.id}`}
+          className={`inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
+            past
+              ? "bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-green-deep hover:text-tv-cream"
+              : "btn-tv bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+          }`}
+        >
+          {past ? "Vedi dettagli" : "Vedi dettagli e Partecipa"}
+          {!past && <ArrowRight size={16} />}
+        </Link>
+      )}
     </div>
   </article>
 );

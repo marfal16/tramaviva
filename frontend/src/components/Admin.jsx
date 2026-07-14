@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -537,6 +537,37 @@ const Dashboard = ({ token, onLogout }) => {
           ))}
         </div>
 
+        {!loading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            {(() => {
+              const totalSignupPeople = data["event-signups"].reduce((s, r) => s + (r.num_persone || 1), 0);
+              const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+              const pendingRegistrations = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
+              const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
+              return (
+                <>
+                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
+                    <div className="font-display font-black text-3xl text-tv-green-deep">{upcomingEvents}</div>
+                    <div className="text-xs text-tv-green-deep/60 mt-1">📅 eventi in programma</div>
+                  </div>
+                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
+                    <div className="font-display font-black text-3xl text-tv-green-deep">{totalSignupPeople}</div>
+                    <div className="text-xs text-tv-green-deep/60 mt-1">👥 iscrizioni totali eventi</div>
+                  </div>
+                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
+                    <div className="font-display font-black text-3xl text-tv-green-deep">{confirmedPeople}</div>
+                    <div className="text-xs text-tv-green-deep/60 mt-1">✅ presenze confermate</div>
+                  </div>
+                  <div className="bg-white border border-tv-green-deep/10 rounded-2xl p-4">
+                    <div className="font-display font-black text-3xl text-tv-green-deep">{pendingRegistrations}</div>
+                    <div className="text-xs text-tv-green-deep/60 mt-1">🕐 iscrizioni in attesa</div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+
         {loading ? (
           <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
             <Loader2 className="animate-spin" size={18} /> Caricamento in corso...
@@ -586,6 +617,8 @@ const Dashboard = ({ token, onLogout }) => {
             onConfirm={confirmSignup}
             onDelete={(id) => remove("event-signups", id)}
             onTogglePayment={toggleEventPayment}
+            token={token}
+            onReload={loadAll}
           />
         ) : list.length === 0 ? (
           <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
@@ -856,7 +889,7 @@ const isPast = (dateStr) => {
 
 // ─── Event signups raggruppati per evento ─────────────────────────────────────
 
-const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, onTogglePayment }) => {
+const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, onTogglePayment, token, onReload }) => {
   const [closedGroups, setClosedGroups] = React.useState(() => {
     const evMap = {};
     (events || []).forEach(ev => { evMap[ev.id] = ev; });
@@ -868,6 +901,10 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     });
     return pastKeys;
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [reminderLoading, setReminderLoading] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const toggleGroup = (key) => setClosedGroups(prev => {
     const next = new Set(prev);
@@ -875,9 +912,75 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     return next;
   });
 
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
   const founderEmails = new Set(
     (members || []).filter(m => !m.tessera_number).map(m => (m.email || "").toLowerCase())
   );
+
+  const exportGroup = (group) => {
+    const rows = group.items.flatMap(s => {
+      const main = {
+        "Nome": s.name, "Email": s.email, "Telefono": s.phone || "",
+        "N. Persone": s.num_persone || 1, "Opzione": s.opzione_scelta || "",
+        "Donazione (€)": s.donazione_volontaria || "",
+        "Pagamento": s.metodo_pagamento || "", "Pagato": s.payment_completed ? "Sì" : "No",
+        "Confermato": s.confirmed ? "Sì" : "No",
+        "Note": s.message || "",
+      };
+      const guests = (s.ospiti || []).map(g => ({
+        "Nome": `${g.nome} ${g.cognome}`, "Email": g.email || "", "Telefono": g.phone || "",
+        "N. Persone": "(ospite)", "Opzione": "", "Donazione (€)": "", "Pagamento": "",
+        "Pagato": "", "Confermato": "", "Note": "",
+      }));
+      return [main, ...guests];
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Partecipanti");
+    const fname = group.title.replace(/[^a-zA-Z0-9àèìòùÀÈÌÒÙ\s]/g, "").trim().replace(/\s+/g, "_");
+    XLSX.writeFile(wb, `${fname}_partecipanti.xlsx`);
+    toast.success(`Export "${group.title}" scaricato!`);
+  };
+
+  const sendReminder = async (eventId, eventTitle) => {
+    const confirmed = (signups || []).filter(s => s.event_id === eventId && s.confirmed).length;
+    if (confirmed === 0) { toast.error("Nessun iscritto confermato per questo evento."); return; }
+    if (!window.confirm(`Inviare email reminder a ${confirmed} iscritti confermati di "${eventTitle}"?`)) return;
+    setReminderLoading(eventId);
+    try {
+      const res = await axios.post(`${API}/admin/events/${eventId}/send-reminder`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(`Reminder inviato a ${res.data.sent} persone!`);
+    } catch {
+      toast.error("Errore nell'invio del reminder.");
+    } finally {
+      setReminderLoading(null);
+    }
+  };
+
+  const bulkConfirm = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Confermare ${selectedIds.size} iscrizioni selezionate?`)) return;
+    setBulkLoading(true);
+    try {
+      const res = await axios.post(
+        `${API}/admin/event-signups/bulk-confirm`,
+        { signup_ids: [...selectedIds] },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(`${res.data.confirmed} iscrizioni confermate!`);
+      setSelectedIds(new Set());
+      if (typeof onReload === "function") onReload();
+    } catch {
+      toast.error("Errore nella conferma multipla.");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   if (!signups || signups.length === 0) {
     return (
@@ -887,42 +990,102 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     );
   }
 
-  const grouped = signups.reduce((acc, s) => {
+  const filtered = searchQuery.trim()
+    ? (signups || []).filter(s =>
+        (s.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.email || "").toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : (signups || []);
+
+  const grouped = filtered.reduce((acc, s) => {
     const key = s.event_id || s.event_title || "—";
     if (!acc[key]) acc[key] = { title: s.event_title || s.event_id || "Evento sconosciuto", items: [] };
     acc[key].items.push(s);
     return acc;
   }, {});
 
+  const totalFilteredPeople = filtered.reduce((s, r) => s + (r.num_persone || 1), 0);
+
   return (
     <div className="space-y-6">
+      {/* Search input */}
+      <div className="mb-4 relative">
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tv-green-deep/40 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Cerca per nome o email…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="w-full px-4 py-3 pl-10 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
+        />
+      </div>
+
+      {/* Bulk selection bar */}
+      {selectedIds.size > 0 && (
+        <div className="sticky top-0 z-10 mb-4 flex items-center gap-3 bg-tv-green/10 border border-tv-green/30 rounded-2xl px-4 py-3">
+          <span className="text-sm font-bold text-tv-green-deep flex-1">{selectedIds.size} selezionat{selectedIds.size === 1 ? "a" : "e"}</span>
+          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-tv-green-deep/60 hover:text-tv-bordeaux font-bold">Deseleziona tutto</button>
+          <button
+            onClick={bulkConfirm}
+            disabled={bulkLoading}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep disabled:opacity-50"
+          >
+            {bulkLoading ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />}
+            Conferma selezionate
+          </button>
+        </div>
+      )}
+
       {Object.entries(grouped).map(([key, group]) => {
         const isOpen = !closedGroups.has(key);
         return (
         <div key={key}>
-          <button
-            onClick={() => toggleGroup(key)}
-            className="w-full flex items-center gap-3 mb-4 pb-3 border-b-2 border-tv-green-deep/10 text-left"
-          >
-            <div className="w-9 h-9 rounded-xl bg-tv-sky/40 flex items-center justify-center text-lg flex-shrink-0">📅</div>
-            <h3 className="font-display font-black text-xl text-tv-green-deep flex-1 leading-tight">{group.title}</h3>
-            <span className="px-3 py-1 rounded-full bg-tv-sky/30 text-tv-green-deep font-bold text-xs flex-shrink-0">
-              {(() => {
-                const tot = group.items.reduce((s, r) => s + (r.num_persone || 1), 0);
-                const nReq = group.items.length;
-                return `${tot} ${tot === 1 ? "persona" : "persone"} · ${nReq} ${nReq === 1 ? "richiesta" : "richieste"}`;
-              })()}
-            </span>
-            <span className="text-tv-green-deep/40 flex-shrink-0">
-              {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </span>
-          </button>
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => toggleGroup(key)}
+              className="flex-1 flex items-center gap-3 pb-3 border-b-2 border-tv-green-deep/10 text-left"
+            >
+              <div className="w-9 h-9 rounded-xl bg-tv-sky/40 flex items-center justify-center text-lg flex-shrink-0">📅</div>
+              <h3 className="font-display font-black text-xl text-tv-green-deep flex-1 leading-tight">{group.title}</h3>
+              <span className="px-3 py-1 rounded-full bg-tv-sky/30 text-tv-green-deep font-bold text-xs flex-shrink-0">
+                {(() => {
+                  const tot = group.items.reduce((s, r) => s + (r.num_persone || 1), 0);
+                  const nReq = group.items.length;
+                  return `${tot} ${tot === 1 ? "persona" : "persone"} · ${nReq} ${nReq === 1 ? "richiesta" : "richieste"}`;
+                })()}
+              </span>
+              <span className="text-tv-green-deep/40 flex-shrink-0">
+                {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </span>
+            </button>
+            <button
+              onClick={() => exportGroup(group)}
+              className="pb-3 border-b-2 border-tv-green-deep/10 flex-shrink-0 p-2 rounded-xl hover:bg-tv-sky/20 text-tv-green-deep/60 hover:text-tv-green-deep transition-colors"
+              title="Esporta partecipanti"
+            >
+              <Download size={16} />
+            </button>
+            <button
+              onClick={() => sendReminder(key, group.title)}
+              disabled={reminderLoading === key}
+              className="pb-3 border-b-2 border-tv-green-deep/10 flex-shrink-0 p-2 rounded-xl hover:bg-tv-orange/20 text-tv-green-deep/60 hover:text-tv-orange transition-colors disabled:opacity-50"
+              title="Invia reminder email ai confermati"
+            >
+              {reminderLoading === key ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+            </button>
+          </div>
           {isOpen && <div className="grid gap-3">
             {group.items.map((row) => (
               <div
                 key={row.id}
                 className="bg-white rounded-2xl p-4 border border-tv-green-deep/10 flex flex-col sm:flex-row sm:items-center gap-3"
               >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(row.id)}
+                  onChange={() => toggleSelect(row.id)}
+                  className="mt-1 w-4 h-4 accent-tv-green flex-shrink-0 cursor-pointer"
+                />
                 <div className="w-9 h-9 rounded-xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-base flex-shrink-0">
                   {(row.name?.[0] || "?").toUpperCase()}
                 </div>

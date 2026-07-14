@@ -179,6 +179,9 @@ class PaymentRequest(BaseModel):
 class PaymentStatusUpdate(BaseModel):
     payment_completed: bool
 
+class BulkConfirmPayload(BaseModel):
+    signup_ids: List[str]
+
 class MemberCreate(BaseModel):
     first_name: str
     last_name: str
@@ -920,6 +923,63 @@ async def confirm_event_signup(signup_id: str):
         logger.warning(f"Email conferma evento non inviata: {e}")
 
     return {"ok": True, "spots_remaining": event["spots"] - 1}
+
+@api_router.post("/admin/events/{event_id}/send-reminder", dependencies=[Depends(require_admin)])
+async def send_event_reminder(event_id: str):
+    event = await db.events.find_one({"id": event_id}, {"_id": 0, "image_data": 0})
+    if not event:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    signups = await db.event_signups.find(
+        {"event_id": event_id, "confirmed": True}, {"_id": 0}
+    ).to_list(1000)
+    if not signups:
+        return {"ok": True, "sent": 0, "message": "Nessun iscritto confermato."}
+    email_svc = EmailService()
+    sent = 0
+    for s in signups:
+        try:
+            await email_svc.send_event_reminder(
+                email=s.get("email", ""),
+                name=s.get("name", ""),
+                event_title=event.get("title", ""),
+                event_date=event.get("date", ""),
+                event_time=event.get("time", ""),
+                event_location=event.get("location", ""),
+            )
+            sent += 1
+        except Exception as e:
+            logger.warning(f"Reminder non inviato a {s.get('email')}: {e}")
+    return {"ok": True, "sent": sent}
+
+@api_router.post("/admin/event-signups/bulk-confirm", dependencies=[Depends(require_admin)])
+async def bulk_confirm_signups(payload: BulkConfirmPayload):
+    confirmed_count = 0
+    for signup_id in payload.signup_ids:
+        signup = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+        if not signup or signup.get("confirmed"):
+            continue
+        event = await db.events.find_one({"id": signup["event_id"]}, {"_id": 0})
+        if not event:
+            continue
+        num_persone = signup.get("num_persone", 1)
+        if event.get("spots", 0) < num_persone:
+            continue
+        await db.events.update_one({"id": signup["event_id"]}, {"$inc": {"spots": -num_persone}})
+        await db.event_signups.update_one({"id": signup_id}, {"$set": {"confirmed": True}})
+        try:
+            email_svc = EmailService()
+            await email_svc.send_event_confirmation(
+                email=signup.get("email", ""),
+                name=signup.get("name", ""),
+                event_title=event.get("title", signup.get("event_title", "")),
+                event_date=event.get("date", ""),
+                event_time=event.get("time", ""),
+                event_location=event.get("location", ""),
+            )
+        except Exception as e:
+            logger.warning(f"Email conferma non inviata: {e}")
+        confirmed_count += 1
+    return {"ok": True, "confirmed": confirmed_count}
 
 @api_router.patch("/admin/event-signups/{signup_id}/payment-status", dependencies=[Depends(require_admin)])
 async def admin_update_event_signup_payment(signup_id: str, payload: PaymentStatusUpdate):

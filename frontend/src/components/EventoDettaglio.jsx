@@ -306,7 +306,14 @@ export const EventoDettaglio = () => {
                     <MapPin size={15} /> {event.location}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Users size={15} /> {event.spots} posti disponibili
+                    <Users size={15} />
+                    {event.spots <= 0 ? (
+                      <span className="font-bold">🔴 Posti esauriti</span>
+                    ) : event.spots <= 5 ? (
+                      <span className="font-bold text-orange-300">⚡ Ultimi {event.spots} posti!</span>
+                    ) : (
+                      <>{event.spots} posti disponibili</>
+                    )}
                   </div>
                   
                   {event.contributo > 0 ? (
@@ -357,6 +364,20 @@ export const EventoDettaglio = () => {
                   <div className="font-display font-black text-2xl text-tv-green-deep">Evento concluso</div>
                   <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
                     Questo evento si è già svolto. Resta aggiornato sui prossimi appuntamenti!
+                  </p>
+                  <Link
+                    to="/#eventi"
+                    className="btn-tv mt-5 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm"
+                  >
+                    Vedi i prossimi eventi
+                  </Link>
+                </div>
+              ) : event.spots <= 0 ? (
+                <div className="bg-tv-green-deep/5 border border-tv-green-deep/15 rounded-[2rem] p-7 text-center" data-testid="event-detail-soldout">
+                  <div className="text-4xl mb-3">🎟️</div>
+                  <div className="font-display font-black text-2xl text-tv-green-deep">Posti esauriti</div>
+                  <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
+                    Purtroppo tutti i posti per questo evento sono stati prenotati. Tieni d'occhio i prossimi appuntamenti!
                   </p>
                   <Link
                     to="/#eventi"

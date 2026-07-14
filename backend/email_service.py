@@ -71,6 +71,21 @@ class EmailService:
         except Exception as e:
             logger.error(f"Errore invio email conferma evento: {e}")
 
+    async def send_event_reminder(self, email: str, name: str, event_title: str, event_date: str, event_time: str, event_location: str):
+        if not HAS_SMTP or not self.smtp_user:
+            logger.warning(f"Email service non configurato. Reminder saltato per {email}")
+            return
+        try:
+            subject = f"📅 Reminder: {event_title} — ci vediamo presto!"
+            html_body = self._get_event_reminder_template(
+                name=name, event_title=event_title,
+                event_date=event_date, event_time=event_time, event_location=event_location,
+            )
+            await self._send_smtp(email, subject, html_body)
+            logger.info(f"Reminder evento inviato a {email}")
+        except Exception as e:
+            logger.error(f"Errore invio reminder evento: {e}")
+
     async def send_event_cancellation(self, email: str, name: str, event_title: str, event_date: str, event_time: str, event_location: str):
         if not HAS_SMTP or not self.smtp_user:
             logger.warning(f"Email service non configurato. Email cancellazione saltata per {email}")
@@ -229,6 +244,43 @@ class EmailService:
 
                     {self._social_links_html()}
 
+                    <p style="margin-top: 28px;"><em>Non vediamo l'ora di vederti! A presto,</em></p>
+                    <p><strong>Il team di Trama Viva APS</strong></p>
+                </div>
+                <div class="footer">
+                    <p>Trama Viva APS | "Intrecciamo storie, persone e opportunità"</p>
+                </div>
+            </div>
+        </body>
+        </html>"""
+
+    def _get_event_reminder_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str) -> str:
+        return f"""<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                {self._base_styles()}
+                .header {{ background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%); }}
+                .content h2 {{ color: #D97706; }}
+                .box {{ border-left: 4px solid #F59E0B; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>📅 Ci vediamo presto!</h1>
+                </div>
+                <div class="content">
+                    <h2>Ciao {name}!</h2>
+                    <p>Ti scriviamo per ricordarti dell'evento a cui hai confermato la partecipazione:</p>
+                    <div class="box">
+                        <p><strong>🎉 {event_title}</strong></p>
+                        <p>📅 <strong>{event_date}</strong> alle <strong>{event_time}</strong></p>
+                        <p>📍 {event_location}</p>
+                    </div>
+                    <p>Se per qualsiasi motivo non riesci a venire, ti chiediamo gentilmente di avvisarci il prima possibile scrivendo a <strong>tramavivaaps@gmail.com</strong>.</p>
+                    {self._social_links_html()}
                     <p style="margin-top: 28px;"><em>Non vediamo l'ora di vederti! A presto,</em></p>
                     <p><strong>Il team di Trama Viva APS</strong></p>
                 </div>
