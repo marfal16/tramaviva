@@ -1144,40 +1144,173 @@ const isPast = (dateStr) => {
   return d < today;
 };
 
-// ─── Event signups raggruppati per evento ─────────────────────────────────────
+// ─── Event signups — layout master-detail ─────────────────────────────────────
+
+const SignupCard = ({ row, founderEmails, selectedIds, onToggleSelect, onConfirm, onTogglePayment, onDelete }) => (
+  <div className="bg-white rounded-2xl p-4 border border-tv-green-deep/10 flex flex-col sm:flex-row sm:items-center gap-3">
+    <input
+      type="checkbox"
+      checked={selectedIds.has(row.id)}
+      onChange={() => onToggleSelect(row.id)}
+      className="mt-1 w-4 h-4 accent-tv-green flex-shrink-0 cursor-pointer"
+    />
+    <div className="w-9 h-9 rounded-xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-base flex-shrink-0">
+      {(row.name?.[0] || "?").toUpperCase()}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-bold text-tv-green-deep">{row.name}</span>
+        {row.is_member && founderEmails.has((row.email || "").toLowerCase()) ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">
+            <UserCheck size={10} /> Socio Fondatore
+          </span>
+        ) : row.is_member ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2 py-0.5 rounded-full">
+            <UserCheck size={10} /> Socio
+          </span>
+        ) : null}
+        {row.confirmed && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
+            ✓ Confermato
+          </span>
+        )}
+        {row.num_persone > 1 && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-sky/30 text-tv-green-deep px-2 py-0.5 rounded-full">
+            👥 {row.num_persone} persone
+          </span>
+        )}
+        {row.opzione_scelta && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-mint/40 text-tv-green-deep px-2 py-0.5 rounded-full">
+            {row.opzione_scelta}
+          </span>
+        )}
+        {row.donazione_volontaria > 0 && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
+            💚 Donazione {row.donazione_volontaria}€
+          </span>
+        )}
+        {row.metodo_pagamento && (
+          row.payment_completed ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
+              💸 Pagato · {row.metodo_pagamento}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2 py-0.5 rounded-full">
+              ⏳ {row.metodo_pagamento} · da ricevere
+            </span>
+          )
+        )}
+        <span className="text-xs text-tv-green-deep/40">{fmtDate(row.created_at)}</span>
+      </div>
+      <div className="text-sm text-tv-green-deep/60 flex flex-wrap gap-x-3 mt-0.5">
+        {row.email && <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1"><Mail size={12} />{row.email}</a>}
+        {row.phone && <span>📞 {row.phone}</span>}
+      </div>
+      {row.message && <p className="text-xs text-tv-green-deep/50 italic mt-1">"{row.message}"</p>}
+      {row.ospiti?.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {row.ospiti.map((g, i) => (
+            <span key={i} className="text-[10px] bg-tv-cream px-2 py-0.5 rounded-full text-tv-green-deep/70 border border-tv-green-deep/10">
+              {g.nome} {g.cognome}{g.email ? ` · ${g.email}` : ""}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+    <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+      {!row.confirmed && (
+        <button
+          onClick={() => onConfirm(row)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
+        >
+          <UserCheck size={13} /> Conferma
+        </button>
+      )}
+      {row.metodo_pagamento && !row.payment_completed && (
+        <button
+          onClick={() => onTogglePayment(row)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green/40 transition-colors"
+          title="Segna come pagato"
+        >
+          💸 Pagato
+        </button>
+      )}
+      {row.metodo_pagamento && row.payment_completed && (
+        <button
+          onClick={() => onTogglePayment(row)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green-deep/10 text-tv-green-deep/60 font-bold text-xs hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux transition-colors"
+          title="Segna come da ricevere"
+        >
+          ↩ Da ricevere
+        </button>
+      )}
+      <button
+        onClick={() => onDelete(row.id)}
+        className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
+        aria-label="Elimina"
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  </div>
+);
 
 const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, onTogglePayment, token, onReload }) => {
-  const [closedGroups, setClosedGroups] = React.useState(() => {
-    const evMap = {};
-    (events || []).forEach(ev => { evMap[ev.id] = ev; });
-    const pastKeys = new Set();
-    (signups || []).forEach(s => {
-      const key = s.event_id || s.event_title || "—";
-      const ev = evMap[s.event_id];
-      if (ev && isPast(ev.date)) pastKeys.add(key);
-    });
-    return pastKeys;
-  });
   const [searchQuery, setSearchQuery] = useState("");
   const [reminderLoading, setReminderLoading] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  const toggleGroup = (key) => setClosedGroups(prev => {
-    const next = new Set(prev);
-    next.has(key) ? next.delete(key) : next.add(key);
-    return next;
-  });
+  const eventById = useMemo(() => {
+    const map = {};
+    (events || []).forEach(ev => { map[ev.id] = ev; });
+    return map;
+  }, [events]);
+
+  const groups = useMemo(() => {
+    const map = {};
+    (signups || []).forEach(s => {
+      const evId = s.event_id;
+      if (!evId || !eventById[evId]) return;
+      if (!map[evId]) map[evId] = { ev: eventById[evId], items: [] };
+      map[evId].items.push(s);
+    });
+    return Object.values(map).sort((a, b) => {
+      const pa = isPast(a.ev.date), pb = isPast(b.ev.date);
+      if (pa !== pb) return pa ? 1 : -1;
+      return new Date(b.ev.date) - new Date(a.ev.date);
+    });
+  }, [signups, eventById]);
+
+  const [selectedEventId, setSelectedEventId] = useState(null);
+
+  useEffect(() => {
+    setSelectedEventId(prev => {
+      if (prev && groups.find(g => g.ev.id === prev)) return prev;
+      return groups[0]?.ev.id ?? null;
+    });
+  }, [groups]);
+
+  const selectedGroup = groups.find(g => g.ev.id === selectedEventId) ?? null;
+
+  const founderEmails = useMemo(() =>
+    new Set((members || []).filter(m => !m.tessera_number).map(m => (m.email || "").toLowerCase())),
+    [members]
+  );
+
+  const filteredItems = useMemo(() => {
+    if (!selectedGroup) return [];
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return selectedGroup.items;
+    return selectedGroup.items.filter(s =>
+      (s.name || "").toLowerCase().includes(q) ||
+      (s.email || "").toLowerCase().includes(q)
+    );
+  }, [selectedGroup, searchQuery]);
 
   const toggleSelect = (id) => setSelectedIds(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
   });
-
-  const founderEmails = new Set(
-    (members || []).filter(m => !m.tessera_number).map(m => (m.email || "").toLowerCase())
-  );
 
   const exportGroup = (group) => {
     const rows = group.items.flatMap(s => {
@@ -1186,8 +1319,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
         "N. Persone": s.num_persone || 1, "Opzione": s.opzione_scelta || "",
         "Donazione (€)": s.donazione_volontaria || "",
         "Pagamento": s.metodo_pagamento || "", "Pagato": s.payment_completed ? "Sì" : "No",
-        "Confermato": s.confirmed ? "Sì" : "No",
-        "Note": s.message || "",
+        "Confermato": s.confirmed ? "Sì" : "No", "Note": s.message || "",
       };
       const guests = (s.ospiti || []).map(g => ({
         "Nome": `${g.nome} ${g.cognome}`, "Email": g.email || "", "Telefono": g.phone || "",
@@ -1199,9 +1331,9 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Partecipanti");
-    const fname = group.title.replace(/[^a-zA-Z0-9àèìòùÀÈÌÒÙ\s]/g, "").trim().replace(/\s+/g, "_");
+    const fname = group.ev.title.replace(/[^a-zA-Z0-9àèìòùÀÈÌÒÙ\s]/g, "").trim().replace(/\s+/g, "_");
     XLSX.writeFile(wb, `${fname}_partecipanti.xlsx`);
-    toast.success(`Export "${group.title}" scaricato!`);
+    toast.success(`Export "${group.ev.title}" scaricato!`);
   };
 
   const sendReminder = async (eventId, eventTitle) => {
@@ -1239,7 +1371,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     }
   };
 
-  if (!signups || signups.length === 0) {
+  if (!signups || signups.length === 0 || groups.length === 0) {
     return (
       <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
         Ancora nessuna richiesta evento.
@@ -1247,207 +1379,159 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     );
   }
 
-  const filtered = searchQuery.trim()
-    ? (signups || []).filter(s =>
-        (s.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.email || "").toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : (signups || []);
-
-  const grouped = filtered.reduce((acc, s) => {
-    const key = s.event_id || s.event_title || "—";
-    if (!acc[key]) acc[key] = { title: s.event_title || s.event_id || "Evento sconosciuto", items: [] };
-    acc[key].items.push(s);
-    return acc;
-  }, {});
-
-  const totalFilteredPeople = filtered.reduce((s, r) => s + (r.num_persone || 1), 0);
-
   return (
-    <div className="space-y-6">
-      {/* Search input */}
-      <div className="mb-4 relative">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tv-green-deep/40 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Cerca per nome o email…"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="w-full px-4 py-3 pl-10 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
-        />
+    <div className="flex gap-0 rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden" style={{ minHeight: "600px", height: "calc(100vh - 200px)" }}>
+
+      {/* ── Colonna sinistra: lista eventi ── */}
+      <div className="w-64 xl:w-72 flex-shrink-0 border-r border-tv-green-deep/10 overflow-y-auto bg-tv-cream/50">
+        <div className="p-4 border-b border-tv-green-deep/10">
+          <p className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/40">
+            {groups.length} {groups.length === 1 ? "evento" : "eventi"}
+          </p>
+        </div>
+        <div className="p-2 space-y-1">
+          {groups.map(({ ev, items }) => {
+            const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+            const pending = items.filter(r => !r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+            const isSelected = selectedEventId === ev.id;
+            const past = isPast(ev.date);
+            return (
+              <button
+                key={ev.id}
+                onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); }}
+                className={`w-full text-left px-3 py-3 rounded-xl transition-all ${
+                  isSelected
+                    ? "bg-tv-green-deep text-tv-cream shadow-md"
+                    : "hover:bg-tv-green-deep/8 text-tv-green-deep"
+                }`}
+              >
+                <div className={`font-bold text-sm leading-tight mb-1 line-clamp-2 ${isSelected ? "text-tv-cream" : "text-tv-green-deep"}`}>
+                  {ev.title}
+                </div>
+                <div className={`text-[11px] mb-2 ${isSelected ? "text-tv-cream/60" : "text-tv-green-deep/50"}`}>
+                  {fmtDate(ev.date)}{ev.time ? ` · ${ev.time}` : ""}
+                  {past && <span className="ml-1">(passato)</span>}
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isSelected ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-sky/40 text-tv-green-deep"
+                  }`}>
+                    {totalPeople} {totalPeople === 1 ? "persona" : "persone"}
+                  </span>
+                  {pending > 0 && (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      isSelected ? "bg-tv-orange/50 text-tv-cream" : "bg-tv-orange/20 text-tv-bordeaux"
+                    }`}>
+                      {pending} da conf.
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Bulk selection bar */}
-      {selectedIds.size > 0 && (
-        <div className="sticky top-0 z-10 mb-4 flex items-center gap-3 bg-tv-green/10 border border-tv-green/30 rounded-2xl px-4 py-3">
-          <span className="text-sm font-bold text-tv-green-deep flex-1">{selectedIds.size} selezionat{selectedIds.size === 1 ? "a" : "e"}</span>
-          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-tv-green-deep/60 hover:text-tv-bordeaux font-bold">Deseleziona tutto</button>
-          <button
-            onClick={bulkConfirm}
-            disabled={bulkLoading}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep disabled:opacity-50"
-          >
-            {bulkLoading ? <Loader2 size={13} className="animate-spin" /> : <UserCheck size={13} />}
-            Conferma selezionate
-          </button>
-        </div>
-      )}
-
-      {Object.entries(grouped).map(([key, group]) => {
-        const isOpen = !closedGroups.has(key);
-        return (
-        <div key={key}>
-          <div className="flex items-center gap-2 mb-4">
-            <button
-              onClick={() => toggleGroup(key)}
-              className="flex-1 flex items-center gap-3 pb-3 border-b-2 border-tv-green-deep/10 text-left"
-            >
-              <div className="w-9 h-9 rounded-xl bg-tv-sky/40 flex items-center justify-center text-lg flex-shrink-0">📅</div>
-              <h3 className="font-display font-black text-xl text-tv-green-deep flex-1 leading-tight">{group.title}</h3>
-              <span className="px-3 py-1 rounded-full bg-tv-sky/30 text-tv-green-deep font-bold text-xs flex-shrink-0">
-                {(() => {
-                  const tot = group.items.reduce((s, r) => s + (r.num_persone || 1), 0);
-                  const nReq = group.items.length;
-                  return `${tot} ${tot === 1 ? "persona" : "persone"} · ${nReq} ${nReq === 1 ? "richiesta" : "richieste"}`;
-                })()}
-              </span>
-              <span className="text-tv-green-deep/40 flex-shrink-0">
-                {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </span>
-            </button>
-            <button
-              onClick={() => exportGroup(group)}
-              className="pb-3 border-b-2 border-tv-green-deep/10 flex-shrink-0 p-2 rounded-xl hover:bg-tv-sky/20 text-tv-green-deep/60 hover:text-tv-green-deep transition-colors"
-              title="Esporta partecipanti"
-            >
-              <Download size={16} />
-            </button>
-            <button
-              onClick={() => sendReminder(key, group.title)}
-              disabled={reminderLoading === key}
-              className="pb-3 border-b-2 border-tv-green-deep/10 flex-shrink-0 p-2 rounded-xl hover:bg-tv-orange/20 text-tv-green-deep/60 hover:text-tv-orange transition-colors disabled:opacity-50"
-              title="Invia reminder email ai confermati"
-            >
-              {reminderLoading === key ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
-            </button>
-          </div>
-          {isOpen && <div className="grid gap-3">
-            {group.items.map((row) => (
-              <div
-                key={row.id}
-                className="bg-white rounded-2xl p-4 border border-tv-green-deep/10 flex flex-col sm:flex-row sm:items-center gap-3"
+      {/* ── Colonna destra: dettaglio evento selezionato ── */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {selectedGroup ? (
+          <>
+            {/* Header evento */}
+            <div className="flex items-start gap-3 px-6 py-4 border-b border-tv-green-deep/10 flex-shrink-0">
+              <div className="flex-1 min-w-0">
+                <h2 className="font-display font-black text-xl text-tv-green-deep leading-tight truncate">
+                  {selectedGroup.ev.title}
+                </h2>
+                <p className="text-xs text-tv-green-deep/50 mt-0.5">
+                  {fmtDate(selectedGroup.ev.date)}
+                  {selectedGroup.ev.time ? ` · ${selectedGroup.ev.time}` : ""}
+                  {selectedGroup.ev.location ? ` · ${selectedGroup.ev.location}` : ""}
+                  {" · "}
+                  <span className="font-semibold text-tv-green-deep/70">
+                    {selectedGroup.items.reduce((s, r) => s + (r.num_persone || 1), 0)} persone ·{" "}
+                    {selectedGroup.items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0)} confermate
+                  </span>
+                </p>
+              </div>
+              <button
+                onClick={() => exportGroup(selectedGroup)}
+                className="p-2 rounded-xl hover:bg-tv-sky/20 text-tv-green-deep/50 hover:text-tv-green-deep transition-colors flex-shrink-0"
+                title="Esporta partecipanti XLSX"
               >
+                <Download size={16} />
+              </button>
+              <button
+                onClick={() => sendReminder(selectedGroup.ev.id, selectedGroup.ev.title)}
+                disabled={reminderLoading === selectedGroup.ev.id}
+                className="p-2 rounded-xl hover:bg-tv-orange/20 text-tv-green-deep/50 hover:text-tv-orange transition-colors flex-shrink-0 disabled:opacity-40"
+                title="Invia reminder ai confermati"
+              >
+                {reminderLoading === selectedGroup.ev.id ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+              </button>
+            </div>
+
+            {/* Search + bulk bar */}
+            <div className="px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 space-y-2">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/40 pointer-events-none" />
                 <input
-                  type="checkbox"
-                  checked={selectedIds.has(row.id)}
-                  onChange={() => toggleSelect(row.id)}
-                  className="mt-1 w-4 h-4 accent-tv-green flex-shrink-0 cursor-pointer"
+                  type="text"
+                  placeholder="Cerca per nome o email…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-sm text-tv-green-deep"
                 />
-                <div className="w-9 h-9 rounded-xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-base flex-shrink-0">
-                  {(row.name?.[0] || "?").toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-tv-green-deep">{row.name}</span>
-                    {row.is_member && founderEmails.has((row.email || "").toLowerCase()) ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">
-                        <UserCheck size={10} /> Socio Fondatore
-                      </span>
-                    ) : row.is_member ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2 py-0.5 rounded-full">
-                        <UserCheck size={10} /> Socio
-                      </span>
-                    ) : null}
-                    {row.confirmed && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
-                        ✓ Confermato
-                      </span>
-                    )}
-                    {row.num_persone > 1 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-sky/30 text-tv-green-deep px-2 py-0.5 rounded-full">
-                        👥 {row.num_persone} persone
-                      </span>
-                    )}
-                    {row.opzione_scelta && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-mint/40 text-tv-green-deep px-2 py-0.5 rounded-full">
-                        {row.opzione_scelta}
-                      </span>
-                    )}
-                    {row.donazione_volontaria > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
-                        💚 Donazione {row.donazione_volontaria}€
-                      </span>
-                    )}
-                    {row.metodo_pagamento && (
-                      row.payment_completed ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">
-                          💸 Pagato · {row.metodo_pagamento}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2 py-0.5 rounded-full">
-                          ⏳ {row.metodo_pagamento} · da ricevere
-                        </span>
-                      )
-                    )}
-                    <span className="text-xs text-tv-green-deep/40">{fmtDate(row.created_at)}</span>
-                  </div>
-                  <div className="text-sm text-tv-green-deep/60 flex flex-wrap gap-x-3 mt-0.5">
-                    {row.email && <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1"><Mail size={12} />{row.email}</a>}
-                    {row.phone && <span>📞 {row.phone}</span>}
-                  </div>
-                  {row.message && <p className="text-xs text-tv-green-deep/50 italic mt-1">"{row.message}"</p>}
-                  {row.ospiti?.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {row.ospiti.map((g, i) => (
-                        <span key={i} className="text-[10px] bg-tv-cream px-2 py-0.5 rounded-full text-tv-green-deep/70 border border-tv-green-deep/10">
-                          {g.nome} {g.cognome}{g.email ? ` · ${g.email}` : ""}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
-                  {!row.confirmed && (
-                    <button
-                      onClick={() => onConfirm(row)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-orange text-tv-green-deep font-bold text-xs hover:bg-tv-orange/80 transition-colors"
-                    >
-                      <UserCheck size={13} /> Conferma
-                    </button>
-                  )}
-                  {row.metodo_pagamento && !row.payment_completed && (
-                    <button
-                      onClick={() => onTogglePayment(row)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green/40 transition-colors"
-                      title="Segna come pagato"
-                    >
-                      💸 Pagato
-                    </button>
-                  )}
-                  {row.metodo_pagamento && row.payment_completed && (
-                    <button
-                      onClick={() => onTogglePayment(row)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green-deep/10 text-tv-green-deep/60 font-bold text-xs hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux transition-colors"
-                      title="Segna come da ricevere"
-                    >
-                      ↩ Da ricevere
-                    </button>
-                  )}
+              </div>
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 bg-tv-green/10 border border-tv-green/30 rounded-xl px-3 py-2">
+                  <span className="text-xs font-bold text-tv-green-deep flex-1">
+                    {selectedIds.size} selezionat{selectedIds.size === 1 ? "a" : "e"}
+                  </span>
+                  <button onClick={() => setSelectedIds(new Set())} className="text-xs text-tv-green-deep/60 hover:text-tv-bordeaux font-bold">
+                    Deseleziona
+                  </button>
                   <button
-                    onClick={() => onDelete(row.id)}
-                    className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-                    aria-label="Elimina"
+                    onClick={bulkConfirm}
+                    disabled={bulkLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep disabled:opacity-50"
                   >
-                    <Trash2 size={14} />
+                    {bulkLoading ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
+                    Conferma selezionate
                   </button>
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
+
+            {/* Lista iscrizioni */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {filteredItems.length === 0 ? (
+                <div className="text-center text-tv-green-deep/40 py-12 text-sm">
+                  {searchQuery ? "Nessun risultato per la ricerca." : "Nessuna iscrizione per questo evento."}
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {filteredItems.map(row => (
+                    <SignupCard
+                      key={row.id}
+                      row={row}
+                      founderEmails={founderEmails}
+                      selectedIds={selectedIds}
+                      onToggleSelect={toggleSelect}
+                      onConfirm={onConfirm}
+                      onTogglePayment={onTogglePayment}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-tv-green-deep/30 text-sm">
+            Seleziona un evento dalla lista
           </div>
-          }
-        </div>
-        );
-      })}
+        )}
+      </div>
     </div>
   );
 };
