@@ -1816,47 +1816,128 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     {searchQuery ? "Nessun risultato per la ricerca." : isPastEvent ? "Nessun partecipante confermato per questo evento." : "Nessuna iscrizione."}
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="sticky top-0 bg-tv-cream/95 backdrop-blur-sm z-10">
-                        <tr className="text-left border-b border-tv-green-deep/10">
-                          <th className="py-2.5 pl-4 pr-2 w-8">
-                            <input type="checkbox"
-                              checked={filteredItems.filter(r=>!r.confirmed).length > 0 && filteredItems.filter(r=>!r.confirmed).every(r=>selectedIds.has(r.id))}
-                              onChange={() => {
-                                const pending = filteredItems.filter(r=>!r.confirmed);
-                                if (pending.every(r=>selectedIds.has(r.id))) setSelectedIds(new Set());
-                                else setSelectedIds(new Set(pending.map(r=>r.id)));
-                              }}
-                              className="w-4 h-4 accent-tv-green cursor-pointer"
+                  <>
+                    {/* Desktop: tabella */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="sticky top-0 bg-tv-cream/95 backdrop-blur-sm z-10">
+                          <tr className="text-left border-b border-tv-green-deep/10">
+                            <th className="py-2.5 pl-4 pr-2 w-8">
+                              <input type="checkbox"
+                                checked={filteredItems.filter(r=>!r.confirmed).length > 0 && filteredItems.filter(r=>!r.confirmed).every(r=>selectedIds.has(r.id))}
+                                onChange={() => {
+                                  const pending = filteredItems.filter(r=>!r.confirmed);
+                                  if (pending.every(r=>selectedIds.has(r.id))) setSelectedIds(new Set());
+                                  else setSelectedIds(new Set(pending.map(r=>r.id)));
+                                }}
+                                className="w-4 h-4 accent-tv-green cursor-pointer"
+                              />
+                            </th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Partecipante</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Contatti</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center">Persone</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Opzione</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Pagamento</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
+                            <th className="py-2.5 pr-4 w-24"/>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredItems.map(row => (
+                            <SignupRow
+                              key={row.id}
+                              row={row}
+                              founderEmails={founderEmails}
+                              isSelected={selectedIds.has(row.id)}
+                              onToggleSelect={toggleSelect}
+                              onConfirm={onConfirm}
+                              onTogglePayment={onTogglePayment}
+                              onDelete={onDelete}
+                              isPastEvent={isPastEvent}
                             />
-                          </th>
-                          <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Partecipante</th>
-                          <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Contatti</th>
-                          <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center">Persone</th>
-                          <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Opzione</th>
-                          <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Pagamento</th>
-                          <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
-                          <th className="py-2.5 pr-4 w-24"/>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredItems.map(row => (
-                          <SignupRow
-                            key={row.id}
-                            row={row}
-                            founderEmails={founderEmails}
-                            isSelected={selectedIds.has(row.id)}
-                            onToggleSelect={toggleSelect}
-                            onConfirm={onConfirm}
-                            onTogglePayment={onTogglePayment}
-                            onDelete={onDelete}
-                            isPastEvent={isPastEvent}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile: card list */}
+                    <div className="block md:hidden space-y-2 p-3">
+                      {filteredItems.map(row => {
+                        const isFounder = row.is_member && founderEmails.has((row.email || "").toLowerCase());
+                        return (
+                          <div key={row.id} className={`rounded-2xl border p-3 ${
+                            selectedIds.has(row.id) ? "border-tv-green/50 bg-tv-green/5"
+                            : row.confirmed ? "bg-white border-tv-green-deep/10"
+                            : "bg-amber-50 border-tv-orange/20"
+                          }`}>
+                            <div className="flex items-start gap-2 mb-2">
+                              {!isPastEvent && (
+                                <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)}
+                                  className="mt-1 w-4 h-4 accent-tv-green cursor-pointer shrink-0"/>
+                              )}
+                              <div className="w-8 h-8 rounded-lg bg-tv-green-deep text-tv-cream flex items-center justify-center font-black text-sm shrink-0">
+                                {(row.name?.[0] || "?").toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-semibold text-sm text-tv-green-deep">{row.name}</span>
+                                  {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fondatore</span>}
+                                  {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
+                                </div>
+                                {row.message && <p className="text-[11px] text-tv-green-deep/40 italic truncate">"{row.message}"</p>}
+                              </div>
+                              <div className="shrink-0">
+                                {row.confirmed
+                                  ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full whitespace-nowrap">✓ Conf.</span>
+                                  : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full whitespace-nowrap">⏳ Attesa</span>}
+                              </div>
+                            </div>
+                            <div className="space-y-1 mb-2 pl-10 text-xs text-tv-green-deep/60">
+                              {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux truncate"><Mail size={10}/>{row.email}</a>}
+                              {row.phone && <div>📞 {row.phone}</div>}
+                              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                <span>👥 {row.num_persone || 1} {(row.num_persone || 1) > 1 ? "persone" : "persona"}</span>
+                                {row.opzione_scelta && <span className="text-tv-green-deep/50">{row.opzione_scelta}</span>}
+                              </div>
+                              {(row.metodo_pagamento || row.donazione_volontaria > 0) && (
+                                <div className="flex flex-wrap gap-1">
+                                  {row.donazione_volontaria > 0 && <span className="text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">💚 {row.donazione_volontaria}€</span>}
+                                  {row.metodo_pagamento && (row.payment_completed
+                                    ? <span className="text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">✓ {row.metodo_pagamento}</span>
+                                    : <span className="text-[10px] font-bold bg-tv-orange/20 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ {row.metodo_pagamento}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 pl-10">
+                              {!row.confirmed && !isPastEvent && (
+                                <button onClick={() => onConfirm(row)} title="Conferma"
+                                  className="p-1.5 rounded-lg bg-tv-orange/20 text-tv-orange hover:bg-tv-orange hover:text-tv-cream transition-colors">
+                                  <UserCheck size={13}/>
+                                </button>
+                              )}
+                              {row.metodo_pagamento && !row.payment_completed && (
+                                <button onClick={() => onTogglePayment(row)} title="Segna pagato"
+                                  className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors text-xs">
+                                  💸
+                                </button>
+                              )}
+                              {row.metodo_pagamento && row.payment_completed && (
+                                <button onClick={() => onTogglePayment(row)} title="Annulla pagamento"
+                                  className="p-1.5 rounded-lg bg-tv-green-deep/10 text-tv-green-deep/50 hover:bg-tv-bordeaux/20 hover:text-tv-bordeaux transition-colors text-xs">
+                                  ↩
+                                </button>
+                              )}
+                              <button onClick={() => onDelete(row.id)} title="Elimina"
+                                className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+                                <Trash2 size={13}/>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
             </>
