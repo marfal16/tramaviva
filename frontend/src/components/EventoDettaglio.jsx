@@ -388,10 +388,47 @@ export const EventoDettaglio = () => {
                 </div>
               ) : done ? (
                 <div className="bg-tv-green text-tv-cream rounded-[2rem] p-7" data-testid="event-detail-success">
-                  <div className="font-display font-black text-2xl">Ci sei!</div>
-                  <p className="mt-2 text-sm opacity-90">
-                    Abbiamo ricevuto la tua richiesta. Ti confermiamo entro 24h.
+                  <div className="flex justify-center mb-5">
+                    <div className="w-16 h-16 rounded-full bg-tv-cream/20 flex items-center justify-center text-4xl">
+                      ✅
+                    </div>
+                  </div>
+                  <div className="font-display font-black text-2xl text-center">Richiesta inviata!</div>
+                  <p className="mt-2 text-sm opacity-90 text-center">
+                    Ti confermiamo la partecipazione entro 24h via email.
                   </p>
+                  <div className="my-5 border-t border-tv-cream/30" />
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <span>📅</span>
+                      <span className="font-semibold">{event.title}</span>
+                    </div>
+                    {(event.date || event.time) && (
+                      <div className="flex items-start gap-2">
+                        <span>🕐</span>
+                        <span>
+                          {event.date ? fmtDate(event.date) : ""}
+                          {event.date && event.time ? " · " : ""}
+                          {event.time || ""}
+                        </span>
+                      </div>
+                    )}
+                    {event.location && (
+                      <div className="flex items-start gap-2">
+                        <span>📍</span>
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-5 text-xs opacity-75 leading-relaxed">
+                    Nel frattempo, controlla la tua casella email per una copia della richiesta.
+                  </p>
+                  <Link
+                    to="/eventi"
+                    className="mt-5 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors"
+                  >
+                    Vedi altri eventi
+                  </Link>
                 </div>
               ) : (
                 <form

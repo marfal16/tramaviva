@@ -65,6 +65,40 @@ export const Eventi = () => {
     })();
   }, []);
 
+  const nextEvent = useMemo(() => {
+    return events
+      .filter(ev => !isPast(ev.date))
+      .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
+  }, [events]);
+
+  const [timeLeft, setTimeLeft] = useState(null);
+
+  useEffect(() => {
+    if (!nextEvent) return;
+    const calc = () => {
+      const now = new Date();
+      const target = new Date(nextEvent.date);
+      target.setHours(
+        nextEvent.time ? parseInt(nextEvent.time.split(':')[0]) : 9,
+        nextEvent.time ? parseInt(nextEvent.time.split(':')[1]) : 0,
+        0, 0
+      );
+      const diff = target - now;
+      if (diff <= 0) { setTimeLeft(null); return; }
+      setTimeLeft({
+        days: Math.floor(diff / 86400000),
+        hours: Math.floor((diff % 86400000) / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    calc();
+    const interval = setInterval(calc, 1000);
+    return () => clearInterval(interval);
+  }, [nextEvent]);
+
+  const isToday = nextEvent ? sameDay(new Date(nextEvent.date), new Date()) : false;
+
   const submit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email) {
@@ -115,6 +149,49 @@ export const Eventi = () => {
           <div className="text-tv-green-deep/60" data-testid="events-loading">Caricamento…</div>
         ) : (
           <>
+            {/* Prossimo evento countdown widget */}
+            {nextEvent && nextEvent.date && (
+              <div className="bg-tv-green-deep text-tv-cream rounded-[2rem] px-6 py-5 mb-8 flex items-center gap-6 flex-wrap">
+                {/* Left: emoji + title + date */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-12 h-12 rounded-full bg-tv-cream/10 flex items-center justify-center text-2xl shrink-0">
+                    📅
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold uppercase tracking-widest text-tv-cream/60 mb-0.5">Prossimo evento</div>
+                    <div className="font-display font-black text-xl leading-tight truncate">{nextEvent.title}</div>
+                    <div className="text-sm text-tv-cream/70">{fmtDate(nextEvent.date)}</div>
+                  </div>
+                </div>
+                {/* Right: countdown or "È oggi!" + Partecipa link */}
+                <div className="flex items-center gap-4 flex-wrap">
+                  {isToday ? (
+                    <span className="font-display font-black text-2xl">È oggi! 🎉</span>
+                  ) : timeLeft ? (
+                    <div className="flex gap-3 flex-wrap">
+                      {[
+                        { val: timeLeft.days, label: 'giorni' },
+                        { val: timeLeft.hours, label: 'ore' },
+                        { val: timeLeft.minutes, label: 'minuti' },
+                        { val: timeLeft.seconds, label: 'secondi' },
+                      ].map(({ val, label }) => (
+                        <div className="text-center" key={label}>
+                          <div className="font-display font-black text-2xl">{String(val).padStart(2, '0')}</div>
+                          <div className="text-[10px] uppercase text-tv-cream/60">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  <Link
+                    to={`/eventi/${nextEvent.slug || nextEvent.id}`}
+                    className="ml-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-cream text-tv-green-deep font-bold text-sm hover:bg-tv-orange transition-colors shrink-0"
+                  >
+                    Partecipa
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* View toggle */}
             <div className="flex items-center gap-2 mb-8" data-testid="eventi-view-toggle">
               <button

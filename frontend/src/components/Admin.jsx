@@ -246,6 +246,196 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
   );
 };
 
+// ─── Registrations — tabella + filtri ────────────────────────────────────────
+
+const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete }) => {
+  const isArchived = row.status === "archived";
+  const isApproved = row.is_member || row.status === "approved";
+  const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
+  return (
+    <tr className={`group border-b border-tv-green-deep/5 transition-colors ${
+      isArchived ? "opacity-40 hover:opacity-60" : isApproved ? "hover:bg-tv-cream/50" : "bg-amber-50/40 hover:bg-amber-50/70"
+    }`} data-testid={`admin-row-${row.id}`}>
+      <td className="py-3 pl-4 pr-4 min-w-[160px]">
+        <div className="flex items-center gap-2.5">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm flex-shrink-0 ${
+            isApproved ? "bg-tv-green text-tv-cream" : isArchived ? "bg-gray-200 text-gray-500" : "bg-tv-green-deep text-tv-cream"
+          }`}>{(name[0] || "?").toUpperCase()}</div>
+          <div className="min-w-0">
+            <div className="font-semibold text-sm text-tv-green-deep">{name}</div>
+            {row.is_minorenne && <span className="text-[9px] font-bold text-tv-bordeaux">👶 Minorenne</span>}
+          </div>
+        </div>
+      </td>
+      <td className="py-3 pr-4 hidden md:table-cell">
+        <div className="text-xs text-tv-green-deep/60 space-y-0.5">
+          {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux truncate max-w-[180px]"><Mail size={10}/>{row.email}</a>}
+          {(row.cellulare || row.phone) && <div className="text-tv-green-deep/40">📞 {row.cellulare || row.phone}</div>}
+        </div>
+      </td>
+      <td className="py-3 pr-4 hidden lg:table-cell">
+        <span className="text-xs text-tv-green-deep/45">{fmtDate(row.created_at)}</span>
+      </td>
+      <td className="py-3 pr-4">
+        {row.tessera_number
+          ? <span className="text-[10px] font-bold bg-tv-orange/25 text-tv-green-deep px-2 py-0.5 rounded-full">🎫 #{row.tessera_number}</span>
+          : <span className="text-tv-green-deep/20 text-xs">—</span>}
+      </td>
+      <td className="py-3 pr-4 hidden md:table-cell">
+        {row.document_downloaded
+          ? <span className="text-[10px] font-bold bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full">📥 Scaricato</span>
+          : <span className="text-tv-green-deep/20 text-xs">—</span>}
+      </td>
+      <td className="py-3 pr-4 hidden lg:table-cell">
+        {row.metodo_pagamento
+          ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-bordeaux"}`}>
+              {row.payment_completed ? "✓" : "⏳"} {row.metodo_pagamento}
+            </span>
+          : <span className="text-tv-green-deep/20 text-xs">—</span>}
+      </td>
+      <td className="py-3 pr-4">
+        {isArchived
+          ? <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Archiviato</span>
+          : isApproved
+          ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">✓ Socio</span>
+          : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ In attesa</span>}
+      </td>
+      <td className="py-3 pr-4">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!isArchived && <button onClick={() => onPdf(row.id)} disabled={pdfLoadingId === row.id} title="Scarica PDF"
+            className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
+            {pdfLoadingId === row.id ? <Loader2 size={13} className="animate-spin"/> : <Download size={13}/>}
+          </button>}
+          {row.email && <button onClick={() => onResend(row)} title="Reinvia email"
+            className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
+            <Mail size={13}/>
+          </button>}
+          {!isArchived && row.metodo_pagamento && <button onClick={() => onTogglePayment(row)}
+            title={row.payment_completed ? "Annulla pagamento" : "Segna pagato"}
+            className={`p-1.5 rounded-lg transition-colors text-xs ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10" : "bg-tv-orange/20 text-tv-green-deep hover:bg-tv-orange/40"}`}>
+            💸
+          </button>}
+          {!isArchived && !isApproved && <button onClick={() => onApprove(row)} title="Approva socio"
+            className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors">
+            <Sparkles size={13}/>
+          </button>}
+          {!isArchived && <button onClick={() => onCleanup(row)} title="Cancella dati"
+            className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux/20 transition-colors">
+            <ShieldOff size={13}/>
+          </button>}
+          <button onClick={() => onDelete(row.id)} title="Elimina"
+            className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+            <Trash2 size={13}/>
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
+const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete }) => {
+  const [activeFilter, setActiveFilter] = useState("pending");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState("created_at");
+  const [sortDir, setSortDir] = useState("desc");
+
+  const counts = useMemo(() => ({
+    pending: list.filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length,
+    approved: list.filter(r => r.is_member || r.status === "approved").length,
+    archived: list.filter(r => r.status === "archived").length,
+  }), [list]);
+
+  const filteredList = useMemo(() => {
+    let items = [...list];
+    if (activeFilter === "pending") items = items.filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived");
+    else if (activeFilter === "approved") items = items.filter(r => r.is_member || r.status === "approved");
+    else if (activeFilter === "archived") items = items.filter(r => r.status === "archived");
+    const q = searchQuery.trim().toLowerCase();
+    if (q) items = items.filter(r =>
+      (`${r.first_name || ""} ${r.last_name || ""}`).toLowerCase().includes(q) ||
+      (r.email || "").toLowerCase().includes(q)
+    );
+    items.sort((a, b) => {
+      const v = sortField === "name"
+        ? (`${a.first_name || ""} ${a.last_name || ""}`).localeCompare(`${b.first_name || ""} ${b.last_name || ""}`, "it")
+        : new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      return sortDir === "asc" ? v : -v;
+    });
+    return items;
+  }, [list, activeFilter, searchQuery, sortField, sortDir]);
+
+  const toggleSort = (field) => {
+    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("desc"); }
+  };
+  const SortArrow = ({ field }) => sortField === field
+    ? (sortDir === "asc" ? <ChevronUp size={10}/> : <ChevronDown size={10}/>)
+    : null;
+
+  if (list.length === 0) {
+    return (
+      <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
+        Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-[2rem] border border-tv-green-deep/10 overflow-hidden" data-testid="admin-list">
+      <div className="px-5 py-4 border-b border-tv-green-deep/10 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1">
+          {[
+            { key: "pending", label: `In attesa (${counts.pending})` },
+            { key: "approved", label: `Approvati (${counts.approved})` },
+            { key: "archived", label: `Archiviati (${counts.archived})` },
+          ].map(f => (
+            <button key={f.key} onClick={() => setActiveFilter(f.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                activeFilter === f.key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/50 hover:text-tv-green-deep"
+              }`}>{f.label}</button>
+          ))}
+        </div>
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
+          <input type="text" placeholder="Cerca nome o email…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
+        </div>
+      </div>
+      {filteredList.length === 0 ? (
+        <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-tv-cream/70 sticky top-0">
+              <tr className="border-b border-tv-green-deep/10">
+                <th className="py-2.5 pl-4 pr-4 text-left">
+                  <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Nome <SortArrow field="name"/></button>
+                </th>
+                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">Contatti</th>
+                <th className="py-2.5 pr-4 text-left hidden lg:table-cell">
+                  <button onClick={() => toggleSort("created_at")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Data <SortArrow field="created_at"/></button>
+                </th>
+                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Tessera</th>
+                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">PDF</th>
+                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
+                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
+                <th className="py-2.5 pr-4 w-36"/>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredList.map(row => (
+                <RegistrationRow key={row.id} row={row} onPdf={onPdf} pdfLoadingId={pdfLoadingId}
+                  onTogglePayment={onTogglePayment} onApprove={onApprove} onCleanup={onCleanup}
+                  onResend={onResend} onDelete={onDelete}/>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DashboardHome = ({ data, onNavigate }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
@@ -530,6 +720,8 @@ const Dashboard = ({ token, onLogout }) => {
   // Esegue l'inizializzazione controllata evitando loop infiniti reattivi
   useEffect(() => {
     loadAll();
+    const interval = setInterval(loadAll, 60_000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -755,7 +947,16 @@ const Dashboard = ({ token, onLogout }) => {
                   : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
                 }`}
             >
-              <item.icon size={18} className="flex-shrink-0" />
+              <span className="relative flex-shrink-0">
+                <item.icon size={18} />
+                {(() => {
+                  let dot = 0;
+                  if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+                  else if (item.key === "event-signups") dot = (data["event-signups"] || []).filter(s => !s.confirmed).length;
+                  else if (item.key === "contacts") dot = (data.contacts || []).length;
+                  return dot > 0 ? <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux border border-tv-green-deep" /> : null;
+                })()}
+              </span>
               {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
               {sidebarOpen && data[item.key] && item.key !== "home" && (
                 <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
@@ -850,27 +1051,16 @@ const Dashboard = ({ token, onLogout }) => {
               onDelete={(id) => remove("members", id)}
             />
           ) : tab === "registrations" ? (
-            list.length === 0 ? (
-              <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
-                Ancora niente qui. Quando qualcuno invierà un modulo, lo vedrai apparire.
-              </div>
-            ) : (
-              <div className="grid gap-4" data-testid="admin-list">
-                {list.map(row => (
-                  <RegistrationCard
-                    key={row.id}
-                    row={row}
-                    onPdf={openTesseraModal}
-                    pdfLoadingId={pdfLoadingId}
-                    onTogglePayment={togglePayment}
-                    onApprove={promoteToMember}
-                    onCleanup={cleanupRegistration}
-                    onResend={resendEmail}
-                    onDelete={(id) => remove("registrations", id)}
-                  />
-                ))}
-              </div>
-            )
+            <RegistrationsManager
+              list={list}
+              onPdf={openTesseraModal}
+              pdfLoadingId={pdfLoadingId}
+              onTogglePayment={togglePayment}
+              onApprove={promoteToMember}
+              onCleanup={cleanupRegistration}
+              onResend={resendEmail}
+              onDelete={(id) => remove("registrations", id)}
+            />
           ) : tab === "event-signups" ? (
             <EventSignupsManager
               signups={data["event-signups"]}
@@ -1153,7 +1343,11 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
 
   return (
     <>
-      <tr className={`group border-b border-tv-green-deep/5 transition-colors ${isSelected ? "bg-tv-green/5" : "hover:bg-tv-cream/70"}`}>
+      <tr className={`group border-b border-tv-green-deep/5 transition-colors ${
+        isSelected ? "bg-tv-green/5"
+        : !row.confirmed ? "bg-amber-50/50 hover:bg-amber-50/80"
+        : "hover:bg-tv-cream/60"
+      }`}>
         <td className="py-3 pl-4 pr-2 w-8">
           <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(row.id)}
             className="w-4 h-4 accent-tv-green cursor-pointer" />
@@ -1312,11 +1506,16 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
       ? base.filter(r => r.confirmed)
       : base;
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return afterFilter;
-    return afterFilter.filter(s =>
-      (s.name || "").toLowerCase().includes(q) ||
-      (s.email || "").toLowerCase().includes(q)
-    );
+    const result = q
+      ? afterFilter.filter(s =>
+          (s.name || "").toLowerCase().includes(q) ||
+          (s.email || "").toLowerCase().includes(q)
+        )
+      : afterFilter;
+    return [...result].sort((a, b) => {
+      if (a.confirmed !== b.confirmed) return a.confirmed ? 1 : -1;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
   }, [selectedGroup, isPastEvent, activeFilter, searchQuery]);
 
   const toggleSelect = (id) => setSelectedIds(prev => {
@@ -1932,13 +2131,29 @@ const MembersManager = ({ members, registrations, onCreate, onEdit, onDelete }) 
     catch { return d; }
   };
 
-  const founders = members
-    .filter(m => !m.tessera_number)
-    .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, "it"));
-  const numbered = members
-    .filter(m => m.tessera_number)
-    .sort((a, b) => parseInt(a.tessera_number) - parseInt(b.tessera_number));
-  const sorted = [...numbered, ...founders];
+  const [sortField, setSortField] = useState("tessera");
+  const [memberSearch, setMemberSearch] = useState("");
+
+  const founders = members.filter(m => !m.tessera_number);
+  const numbered = members.filter(m => m.tessera_number);
+
+  const sorted = useMemo(() => {
+    let list = [...members];
+    if (memberSearch.trim()) {
+      const q = memberSearch.trim().toLowerCase();
+      list = list.filter(m =>
+        (`${m.first_name || ""} ${m.last_name || ""}`).toLowerCase().includes(q) ||
+        (m.email || "").toLowerCase().includes(q) ||
+        (m.tessera_number || "").includes(q)
+      );
+    }
+    if (sortField === "name") return list.sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, "it"));
+    if (sortField === "date") return list.sort((a, b) => new Date(b.joined_at || 0) - new Date(a.joined_at || 0));
+    // default: tessera — numbered first ascending, then founders alphabetically
+    const num = list.filter(m => m.tessera_number).sort((a, b) => parseInt(a.tessera_number) - parseInt(b.tessera_number));
+    const fnd = list.filter(m => !m.tessera_number).sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, "it"));
+    return [...num, ...fnd];
+  }, [members, sortField, memberSearch]);
 
   const tessereNumeri = numbered.map(m => parseInt(m.tessera_number)).filter(n => !isNaN(n));
   const regRiservate = (registrations || [])
@@ -1965,6 +2180,22 @@ const MembersManager = ({ members, registrations, onCreate, onEdit, onDelete }) 
           <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">
             ⭐ {founders.length} fondatori
           </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative flex-1 min-w-[180px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
+          <input type="text" placeholder="Cerca per nome, email o tessera…" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
+            className="w-full pl-8 pr-4 py-2 rounded-xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-sm text-tv-green-deep"/>
+        </div>
+        <div className="flex items-center gap-1 bg-white rounded-xl p-1 border border-tv-green-deep/10">
+          <span className="text-[10px] text-tv-green-deep/40 px-2 font-bold uppercase tracking-wider">Ordina</span>
+          {[{ key: "tessera", label: "Tessera" }, { key: "name", label: "Nome" }, { key: "date", label: "Data" }].map(s => (
+            <button key={s.key} onClick={() => setSortField(s.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${sortField === s.key ? "bg-tv-green-deep text-tv-cream" : "text-tv-green-deep/50 hover:text-tv-green-deep"}`}>
+              {s.label}
+            </button>
+          ))}
         </div>
       </div>
 
