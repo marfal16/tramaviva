@@ -151,43 +151,43 @@ export const Eventi = () => {
           <>
             {/* Prossimo evento countdown widget */}
             {nextEvent && nextEvent.date && (
-              <div className="bg-tv-green-deep text-tv-cream rounded-[2rem] px-6 py-5 mb-8 flex items-center gap-6 flex-wrap">
-                {/* Left: emoji + title + date */}
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-12 h-12 rounded-full bg-tv-cream/10 flex items-center justify-center text-2xl shrink-0">
-                    📅
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold uppercase tracking-widest text-tv-cream/60 mb-0.5">Prossimo evento</div>
-                    <div className="font-display font-black text-xl leading-tight truncate">{nextEvent.title}</div>
-                    <div className="text-sm text-tv-cream/70">{fmtDate(nextEvent.date)}</div>
-                  </div>
-                </div>
-                {/* Right: countdown or "È oggi!" + Partecipa link */}
-                <div className="flex items-center gap-4 flex-wrap">
-                  {isToday ? (
-                    <span className="font-display font-black text-2xl">È oggi! 🎉</span>
-                  ) : timeLeft ? (
-                    <div className="flex gap-3 flex-wrap">
-                      {[
-                        { val: timeLeft.days, label: 'giorni' },
-                        { val: timeLeft.hours, label: 'ore' },
-                        { val: timeLeft.minutes, label: 'minuti' },
-                        { val: timeLeft.seconds, label: 'secondi' },
-                      ].map(({ val, label }) => (
-                        <div className="text-center" key={label}>
-                          <div className="font-display font-black text-2xl">{String(val).padStart(2, '0')}</div>
-                          <div className="text-[10px] uppercase text-tv-cream/60">{label}</div>
-                        </div>
-                      ))}
+              <div className="bg-tv-green-deep text-tv-cream rounded-[2rem] px-5 py-5 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Left: emoji + title + date */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-tv-cream/10 flex items-center justify-center text-xl shrink-0">📅</div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-tv-cream/55 mb-0.5">Prossimo evento</div>
+                      <div className="font-display font-black text-lg leading-tight truncate">{nextEvent.title}</div>
+                      <div className="text-xs text-tv-cream/65">{fmtDate(nextEvent.date)}{nextEvent.time ? ` · ${nextEvent.time}` : ""}</div>
                     </div>
-                  ) : null}
-                  <Link
-                    to={`/eventi/${nextEvent.slug || nextEvent.id}`}
-                    className="ml-2 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-cream text-tv-green-deep font-bold text-sm hover:bg-tv-orange transition-colors shrink-0"
-                  >
-                    Partecipa
-                  </Link>
+                  </div>
+                  {/* Right: countdown + button */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                    {isToday ? (
+                      <span className="font-display font-black text-xl">È oggi! 🎉</span>
+                    ) : timeLeft ? (
+                      <div className="flex gap-2">
+                        {[
+                          { val: timeLeft.days, label: 'gg' },
+                          { val: timeLeft.hours, label: 'hh' },
+                          { val: timeLeft.minutes, label: 'mm' },
+                          { val: timeLeft.seconds, label: 'ss' },
+                        ].map(({ val, label }) => (
+                          <div key={label} className="text-center bg-tv-cream/10 rounded-xl px-2 py-1.5 min-w-[40px]">
+                            <div className="font-display font-black text-lg leading-none">{String(val).padStart(2, '0')}</div>
+                            <div className="text-[9px] uppercase text-tv-cream/50 mt-0.5">{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <Link
+                      to={`/eventi/${nextEvent.slug || nextEvent.id}`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-tv-cream text-tv-green-deep font-bold text-sm hover:bg-tv-orange transition-colors shrink-0"
+                    >
+                      Partecipa
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}

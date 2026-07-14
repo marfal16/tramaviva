@@ -309,7 +309,7 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
           : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ In attesa</span>}
       </td>
       <td className="py-3 pr-4">
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
           {!isArchived && <button onClick={() => onPdf(row.id)} disabled={pdfLoadingId === row.id} title="Scarica PDF"
             className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
             {pdfLoadingId === row.id ? <Loader2 size={13} className="animate-spin"/> : <Download size={13}/>}
@@ -1414,7 +1414,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             : <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-1 rounded-full whitespace-nowrap">⏳ In attesa</span>}
         </td>
         <td className="py-3 pr-4 text-right">
-          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
             {!row.confirmed && !isPastEvent && (
               <button onClick={() => onConfirm(row)} title="Conferma"
                 className="p-1.5 rounded-lg bg-tv-orange/20 text-tv-orange hover:bg-tv-orange hover:text-tv-cream transition-colors">
@@ -1604,20 +1604,20 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   }
 
   return (
-    <div className="flex rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden" style={{ minHeight: "600px", height: "calc(100vh - 200px)" }}>
+    <div className="flex flex-col md:flex-row rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden md:h-[calc(100vh-200px)] md:min-h-[600px]">
 
-      {/* ── Colonna sinistra: lista eventi ── */}
-      <div className="w-60 xl:w-64 flex-shrink-0 border-r border-tv-green-deep/10 overflow-y-auto flex flex-col bg-tv-cream/40">
-        <div className="px-4 py-3 border-b border-tv-green-deep/10 flex-shrink-0">
+      {/* ── Selezione evento: orizzontale (mobile) / sidebar verticale (desktop) ── */}
+      <div className="flex-shrink-0 border-b border-tv-green-deep/10 md:border-b-0 md:border-r md:w-60 xl:w-64 bg-tv-cream/40 md:flex md:flex-col md:overflow-y-auto">
+        <div className="px-4 py-3 border-b border-tv-green-deep/10 hidden md:block flex-shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40">
             {groups.length} {groups.length === 1 ? "evento" : "eventi"}
           </p>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        {/* On mobile: horizontal scroll row; on desktop: vertical list */}
+        <div className="flex flex-row overflow-x-auto md:flex-col md:flex-1 md:overflow-y-auto p-2 gap-1.5 md:gap-0 md:space-y-0.5">
           {groups.map(({ ev, items }) => {
             const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
             const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-            const pending = totalPeople - confirmedPpl;
             const past = isPast(ev.date);
             const isSelected = selectedEventId === ev.id;
             const pct = totalPeople > 0 ? Math.round((confirmedPpl / totalPeople) * 100) : 0;
@@ -1625,23 +1625,22 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
               <button
                 key={ev.id}
                 onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
-                className={`w-full text-left px-3 py-3 rounded-xl transition-all ${
+                className={`flex-shrink-0 w-[170px] md:w-full text-left px-3 py-3 rounded-xl transition-all ${
                   isSelected
                     ? past ? "bg-gray-400/70 shadow-md" : "bg-tv-green-deep shadow-md"
                     : past ? "hover:bg-gray-200/60 opacity-60 hover:opacity-80" : "hover:bg-tv-green-deep/6"
                 }`}
               >
-                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-2 ${
+                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-1 md:line-clamp-2 ${
                   isSelected ? "text-white" : past ? "text-gray-400" : "text-tv-green-deep"
                 }`}>
                   {ev.title}
                 </div>
-                <div className={`text-[10px] mb-2 ${
+                <div className={`text-[10px] mb-1.5 md:mb-2 truncate ${
                   isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
                 }`}>
-                  {fmtDay(ev.date)}{ev.time ? ` · ${ev.time}` : ""}{past ? " · concluso" : ""}
+                  {fmtDay(ev.date)}{past ? " · concluso" : ""}
                 </div>
-                {/* Progress bar */}
                 <div className={`h-1 rounded-full mb-1.5 ${
                   isSelected ? "bg-white/20" : past ? "bg-gray-300/50" : "bg-tv-green-deep/10"
                 }`}>
@@ -1657,7 +1656,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                 <div className={`text-[10px] font-bold ${
                   isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
                 }`}>
-                  <span>{confirmedPpl}/{totalPeople} conf.</span>
+                  {confirmedPpl}/{totalPeople} conf.
                 </div>
               </button>
             );
