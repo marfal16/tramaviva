@@ -1670,24 +1670,44 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
 
       {/* ── Selezione evento: dropdown (mobile) / sidebar verticale (desktop) ── */}
 
-      {/* Mobile: select nativo — garantito zero overflow */}
+      {/* Mobile: select + prev/next */}
       <div className="block md:hidden px-3 py-3 border-b border-tv-green-deep/10 bg-tv-cream/40 flex-shrink-0">
-        <select
-          value={selectedEventId || ""}
-          onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
-          className="w-full px-3 py-2.5 rounded-xl bg-white border border-tv-green-deep/15 text-sm font-semibold text-tv-green-deep outline-none appearance-none"
-        >
-          {groups.map(({ ev, items }) => {
-            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-            const total = items.reduce((s, r) => s + (r.num_persone || 1), 0);
-            const past = isPast(ev.date);
-            return (
-              <option key={ev.id} value={ev.id}>
-                {past ? "✓ " : "📅 "}{ev.title} · {fmtDay(ev.date)} · {confirmedPpl}/{total}
-              </option>
-            );
-          })}
-        </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const idx = groups.findIndex(g => g.ev.id === selectedEventId);
+              if (idx > 0) { setSelectedEventId(groups[idx-1].ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }
+            }}
+            disabled={groups.findIndex(g => g.ev.id === selectedEventId) <= 0}
+            className="p-2 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep disabled:opacity-30 shrink-0"
+            title="Evento precedente"
+          >‹</button>
+          <select
+            value={selectedEventId || ""}
+            onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
+            className="flex-1 px-3 py-2 rounded-xl bg-white border border-tv-green-deep/15 text-sm font-semibold text-tv-green-deep outline-none"
+          >
+            {groups.map(({ ev, items }) => {
+              const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+              const total = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+              const past = isPast(ev.date);
+              return (
+                <option key={ev.id} value={ev.id}>
+                  {past ? "✓ " : "📅 "}{ev.title} · {fmtDay(ev.date)} · {confirmedPpl}/{total}
+                </option>
+              );
+            })}
+          </select>
+          <button
+            onClick={() => {
+              const idx = groups.findIndex(g => g.ev.id === selectedEventId);
+              if (idx < groups.length - 1) { setSelectedEventId(groups[idx+1].ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }
+            }}
+            disabled={groups.findIndex(g => g.ev.id === selectedEventId) >= groups.length - 1}
+            className="p-2 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep disabled:opacity-30 shrink-0"
+            title="Evento successivo"
+          >›</button>
+        </div>
       </div>
 
       {/* Desktop: sidebar verticale */}
@@ -1795,46 +1815,52 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
               </div>
 
               {/* Toolbar: filtri + search + bulk */}
-              <div className="px-3 md:px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 flex flex-wrap items-center gap-2 md:gap-3">
-                {/* Filter tabs */}
-                <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1">
-                  {[
-                    { key: "all", label: `Tutti (${isPastEvent ? allItems.filter(r=>r.confirmed).length : allItems.length})` },
-                    ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingCount})` }] : []),
-                    { key: "confirmed", label: `Confermati (${allItems.filter(r=>r.confirmed).length})` },
-                  ].map(f => (
-                    <button key={f.key} onClick={() => setActiveFilter(f.key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                        activeFilter === f.key
-                          ? "bg-tv-green-deep text-tv-cream shadow-sm"
-                          : "text-tv-green-deep/50 hover:text-tv-green-deep"
-                      }`}>
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-                {/* Search */}
-                <div className="relative flex-1 min-w-[160px]">
-                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
-                  <input type="text" placeholder="Cerca nome o email…" value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
-                </div>
-                {/* Bulk confirm bar */}
-                {selectedIds.size > 0 ? (
-                  <div className="flex items-center gap-2 bg-tv-green/10 border border-tv-green/25 rounded-xl px-3 py-1.5">
-                    <span className="text-xs font-bold text-tv-green-deep">{selectedIds.size} sel.</span>
-                    <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-tv-green-deep/50 hover:text-tv-bordeaux font-bold">✕</button>
-                    <button onClick={bulkConfirm} disabled={bulkLoading}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tv-green text-tv-cream font-bold text-[11px] hover:bg-tv-green-deep disabled:opacity-50">
-                      {bulkLoading ? <Loader2 size={11} className="animate-spin"/> : <UserCheck size={11}/>} Conferma
-                    </button>
+              <div className="px-3 md:px-6 py-2.5 border-b border-tv-green-deep/10 flex-shrink-0 space-y-2">
+                {/* Row 1: filter tabs (scrollabili su mobile) + bulk */}
+                <div className="flex items-center gap-2">
+                  <div className="overflow-x-auto no-scrollbar flex-1">
+                    <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1 w-fit">
+                      {[
+                        { key: "all", label: `Tutti (${isPastEvent ? allItems.filter(r=>r.confirmed).length : allItems.length})` },
+                        ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingCount})` }] : []),
+                        { key: "confirmed", label: `Conf. (${allItems.filter(r=>r.confirmed).length})` },
+                      ].map(f => (
+                        <button key={f.key} onClick={() => setActiveFilter(f.key)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                            activeFilter === f.key
+                              ? "bg-tv-green-deep text-tv-cream shadow-sm"
+                              : "text-tv-green-deep/50 hover:text-tv-green-deep"
+                          }`}>
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ) : !isPastEvent && filteredItems.some(r => !r.confirmed) && (
-                  <button onClick={selectAll} className="text-xs text-tv-green-deep/50 hover:text-tv-green-deep font-bold whitespace-nowrap">
-                    Seleziona tutti in attesa
-                  </button>
-                )}
+                  {selectedIds.size > 0 && (
+                    <div className="flex items-center gap-1.5 bg-tv-green/10 border border-tv-green/25 rounded-xl px-2.5 py-1.5 shrink-0">
+                      <span className="text-xs font-bold text-tv-green-deep">{selectedIds.size} sel.</span>
+                      <button onClick={() => setSelectedIds(new Set())} className="text-[10px] text-tv-green-deep/50 hover:text-tv-bordeaux font-bold">✕</button>
+                      <button onClick={bulkConfirm} disabled={bulkLoading}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tv-green text-tv-cream font-bold text-[11px] hover:bg-tv-green-deep disabled:opacity-50">
+                        {bulkLoading ? <Loader2 size={11} className="animate-spin"/> : <UserCheck size={11}/>} Conf.
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {/* Row 2: search + seleziona tutti */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
+                    <input type="text" placeholder="Cerca nome o email…" value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
+                  </div>
+                  {selectedIds.size === 0 && !isPastEvent && filteredItems.some(r => !r.confirmed) && (
+                    <button onClick={selectAll} className="text-xs text-tv-green-deep/50 hover:text-tv-green-deep font-bold whitespace-nowrap shrink-0">
+                      Sel. tutti
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Tabella */}
@@ -1892,10 +1918,15 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     <div className="block md:hidden space-y-2 p-3">
                       {filteredItems.map(row => (
                         <div key={row.id} className={`rounded-2xl border p-3 ${
-                          row.confirmed ? "bg-white border-tv-green/25" : "bg-amber-50 border-tv-orange/20"
+                          selectedIds.has(row.id) ? "border-tv-green/50 bg-tv-green/5"
+                          : row.confirmed ? "bg-white border-tv-green/25" : "bg-amber-50 border-tv-orange/20"
                         }`}>
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="min-w-0">
+                          <div className="flex items-start gap-2 mb-2">
+                            {!row.confirmed && !isPastEvent && (
+                              <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)}
+                                className="mt-0.5 w-4 h-4 accent-tv-green cursor-pointer shrink-0"/>
+                            )}
+                            <div className="flex-1 min-w-0">
                               <div className="font-semibold text-sm text-tv-green-deep">{row.name || "—"}</div>
                               {row.email && <div className="text-[11px] text-tv-green-deep/50 truncate">{row.email}</div>}
                               {row.opzione && <div className="text-[11px] text-tv-green-deep/40 mt-0.5">{row.opzione}</div>}

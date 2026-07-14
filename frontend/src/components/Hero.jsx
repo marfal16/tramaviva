@@ -28,6 +28,13 @@ export const Hero = () => {
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [events]);
 
+  // Timer live — aggiorna ogni secondo per il countdown
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <section
       id="hero"
@@ -143,44 +150,56 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* Prossimi eventi — countdown compatto per ogni evento */}
+      {/* Prossimi eventi — countdown live per ogni evento */}
       {upcomingEvents.length > 0 && (
         <div className="border-b border-tv-green-deep/10 bg-tv-green-deep/[0.03]">
           <div className="mx-auto max-w-7xl px-4 md:px-10 py-3">
             <div className="text-[9px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-2">
               Prossimi eventi
             </div>
-            <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
               {upcomingEvents.map(ev => {
-                const msLeft = new Date(ev.date).setHours(0,0,0,0) - new Date().setHours(0,0,0,0);
-                const daysLeft = Math.max(0, Math.floor(msLeft / 86400000));
-                const hoursLeft = Math.floor((Math.max(0, msLeft) % 86400000) / 3600000);
-                const isToday = daysLeft === 0;
+                const target = new Date(ev.date);
+                if (ev.time) {
+                  const [h, m] = ev.time.split(":");
+                  target.setHours(parseInt(h), parseInt(m), 0, 0);
+                } else {
+                  target.setHours(0, 0, 0, 0);
+                }
+                const msLeft = Math.max(0, target - now);
+                const days = Math.floor(msLeft / 86400000);
+                const hours = Math.floor((msLeft % 86400000) / 3600000);
+                const minutes = Math.floor((msLeft % 3600000) / 60000);
+                const seconds = Math.floor((msLeft % 60000) / 1000);
+                const isToday = days === 0 && msLeft > 0;
+                const units = isToday
+                  ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
+                  : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
                 return (
                   <Link
                     key={ev.id}
                     to={`/eventi/${ev.slug || ev.id}`}
-                    className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors group"
+                    className="flex flex-col gap-2 px-4 py-3 rounded-2xl bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors"
                   >
                     <div className="min-w-0">
-                      <div className="text-[10px] text-tv-cream/50 mb-0.5 whitespace-nowrap">
-                        {ev.date ? new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : ""}
+                      <div className="text-[9px] text-tv-cream/45 mb-0.5">
+                        {new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
                         {ev.time ? ` · ${ev.time}` : ""}
                       </div>
-                      <div className="text-xs font-bold leading-tight max-w-[140px] truncate">{ev.title}</div>
+                      <div className="text-sm font-bold leading-snug line-clamp-1">{ev.title}</div>
                     </div>
-                    {isToday ? (
-                      <span className="text-sm font-black text-tv-orange whitespace-nowrap">Oggi! 🎉</span>
+                    {msLeft === 0 ? (
+                      <span className="text-sm font-black text-tv-orange">Concluso</span>
                     ) : (
-                      <div className="flex gap-1.5 shrink-0">
-                        <div className="text-center bg-tv-cream/10 rounded-xl px-2 py-1.5">
-                          <div className="font-display font-black text-base leading-none">{daysLeft}</div>
-                          <div className="text-[8px] uppercase text-tv-cream/45 mt-0.5">gg</div>
-                        </div>
-                        <div className="text-center bg-tv-cream/10 rounded-xl px-2 py-1.5">
-                          <div className="font-display font-black text-base leading-none">{String(hoursLeft).padStart(2,'0')}</div>
-                          <div className="text-[8px] uppercase text-tv-cream/45 mt-0.5">hh</div>
-                        </div>
+                      <div className="flex gap-1.5">
+                        {units.map(({ v, l }) => (
+                          <div key={l} className="text-center bg-tv-cream/10 rounded-xl px-2 py-1.5 flex-1">
+                            <div className="font-display font-black text-lg leading-none tabular-nums">
+                              {String(v).padStart(2, "0")}
+                            </div>
+                            <div className="text-[8px] uppercase text-tv-cream/45 mt-0.5">{l}</div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </Link>
