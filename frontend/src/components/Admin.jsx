@@ -412,33 +412,95 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
       {filteredList.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-tv-cream/70 sticky top-0">
-              <tr className="border-b border-tv-green-deep/10">
-                <th className="py-2.5 pl-4 pr-4 text-left">
-                  <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Nome <SortArrow field="name"/></button>
-                </th>
-                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">Contatti</th>
-                <th className="py-2.5 pr-4 text-left hidden lg:table-cell">
-                  <button onClick={() => toggleSort("created_at")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Data <SortArrow field="created_at"/></button>
-                </th>
-                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Tessera</th>
-                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">PDF</th>
-                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
-                <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
-                <th className="py-2.5 pr-4 w-36"/>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredList.map(row => (
-                <RegistrationRow key={row.id} row={row} onPdf={onPdf} pdfLoadingId={pdfLoadingId}
-                  onTogglePayment={onTogglePayment} onApprove={onApprove} onCleanup={onCleanup}
-                  onResend={onResend} onDelete={onDelete}/>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Desktop: tabella */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-tv-cream/70 sticky top-0">
+                <tr className="border-b border-tv-green-deep/10">
+                  <th className="py-2.5 pl-4 pr-4 text-left">
+                    <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Nome <SortArrow field="name"/></button>
+                  </th>
+                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">Contatti</th>
+                  <th className="py-2.5 pr-4 text-left hidden lg:table-cell">
+                    <button onClick={() => toggleSort("created_at")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Data <SortArrow field="created_at"/></button>
+                  </th>
+                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Tessera</th>
+                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">PDF</th>
+                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
+                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
+                  <th className="py-2.5 pr-4 w-36"/>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredList.map(row => (
+                  <RegistrationRow key={row.id} row={row} onPdf={onPdf} pdfLoadingId={pdfLoadingId}
+                    onTogglePayment={onTogglePayment} onApprove={onApprove} onCleanup={onCleanup}
+                    onResend={onResend} onDelete={onDelete}/>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile: card list */}
+          <div className="block md:hidden space-y-2 p-3">
+            {filteredList.map(row => {
+              const isArchived = row.status === "archived";
+              const isApproved = row.is_member || row.status === "approved";
+              const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
+              return (
+                <div key={row.id} className={`rounded-2xl border p-3 ${
+                  isArchived ? "opacity-50 bg-gray-50 border-gray-200"
+                  : isApproved ? "bg-white border-tv-green/25"
+                  : "bg-amber-50 border-tv-orange/20"
+                }`}>
+                  <div className="flex items-start gap-2.5 mb-2.5">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                      isApproved ? "bg-tv-green text-tv-cream" : isArchived ? "bg-gray-200 text-gray-500" : "bg-tv-green-deep text-tv-cream"
+                    }`}>{(name[0] || "?").toUpperCase()}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm text-tv-green-deep">{name}</div>
+                      {row.email && <div className="text-[11px] text-tv-green-deep/50 truncate">{row.email}</div>}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {row.tessera_number && <span className="text-[10px] font-bold bg-tv-orange/25 text-tv-green-deep px-2 py-0.5 rounded-full">🎫 #{row.tessera_number}</span>}
+                      {isArchived
+                        ? <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Archiviato</span>
+                        : isApproved
+                        ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">✓ Socio</span>
+                        : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ In attesa</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {!isArchived && <button onClick={() => onPdf(row.id)} disabled={pdfLoadingId === row.id} title="PDF"
+                      className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
+                      {pdfLoadingId === row.id ? <Loader2 size={13} className="animate-spin"/> : <Download size={13}/>}
+                    </button>}
+                    {row.email && <button onClick={() => onResend(row)} title="Reinvia email"
+                      className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
+                      <Mail size={13}/>
+                    </button>}
+                    {!isArchived && row.metodo_pagamento && <button onClick={() => onTogglePayment(row)}
+                      title={row.payment_completed ? "Annulla pagamento" : "Segna pagato"}
+                      className={`p-1.5 rounded-lg transition-colors text-xs ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-bordeaux"}`}>💸</button>}
+                    {!isArchived && !isApproved && <button onClick={() => onApprove(row)} title="Approva socio"
+                      className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors">
+                      <Sparkles size={13}/>
+                    </button>}
+                    {!isArchived && <button onClick={() => onCleanup(row)} title="Cancella dati"
+                      className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux/20 transition-colors">
+                      <ShieldOff size={13}/>
+                    </button>}
+                    <button onClick={() => onDelete(row.id)} title="Elimina"
+                      className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+                      <Trash2 size={13}/>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
@@ -1774,45 +1836,98 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     {searchQuery ? "Nessun risultato per la ricerca." : isPastEvent ? "Nessun partecipante confermato per questo evento." : "Nessuna iscrizione."}
                   </div>
                 ) : (
-                  <table className="w-full">
-                    <thead className="sticky top-0 bg-tv-cream/95 backdrop-blur-sm z-10">
-                      <tr className="text-left border-b border-tv-green-deep/10">
-                        <th className="py-2.5 pl-4 pr-2 w-8">
-                          <input type="checkbox"
-                            checked={filteredItems.filter(r=>!r.confirmed).length > 0 && filteredItems.filter(r=>!r.confirmed).every(r=>selectedIds.has(r.id))}
-                            onChange={() => {
-                              const pending = filteredItems.filter(r=>!r.confirmed);
-                              if (pending.every(r=>selectedIds.has(r.id))) setSelectedIds(new Set());
-                              else setSelectedIds(new Set(pending.map(r=>r.id)));
-                            }}
-                            className="w-4 h-4 accent-tv-green cursor-pointer"
-                          />
-                        </th>
-                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Partecipante</th>
-                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">Contatti</th>
-                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center">Persone</th>
-                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Opzione</th>
-                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
-                        <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
-                        <th className="py-2.5 pr-4 w-24"/>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <>
+                    {/* Desktop: tabella */}
+                    <div className="hidden md:block">
+                      <table className="w-full">
+                        <thead className="sticky top-0 bg-tv-cream/95 backdrop-blur-sm z-10">
+                          <tr className="text-left border-b border-tv-green-deep/10">
+                            <th className="py-2.5 pl-4 pr-2 w-8">
+                              <input type="checkbox"
+                                checked={filteredItems.filter(r=>!r.confirmed).length > 0 && filteredItems.filter(r=>!r.confirmed).every(r=>selectedIds.has(r.id))}
+                                onChange={() => {
+                                  const pending = filteredItems.filter(r=>!r.confirmed);
+                                  if (pending.every(r=>selectedIds.has(r.id))) setSelectedIds(new Set());
+                                  else setSelectedIds(new Set(pending.map(r=>r.id)));
+                                }}
+                                className="w-4 h-4 accent-tv-green cursor-pointer"
+                              />
+                            </th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Partecipante</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">Contatti</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center">Persone</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Opzione</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
+                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
+                            <th className="py-2.5 pr-4 w-24"/>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredItems.map(row => (
+                            <SignupRow
+                              key={row.id}
+                              row={row}
+                              founderEmails={founderEmails}
+                              isSelected={selectedIds.has(row.id)}
+                              onToggleSelect={toggleSelect}
+                              onConfirm={onConfirm}
+                              onTogglePayment={onTogglePayment}
+                              onDelete={onDelete}
+                              isPastEvent={isPastEvent}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile: card list */}
+                    <div className="block md:hidden space-y-2 p-3">
                       {filteredItems.map(row => (
-                        <SignupRow
-                          key={row.id}
-                          row={row}
-                          founderEmails={founderEmails}
-                          isSelected={selectedIds.has(row.id)}
-                          onToggleSelect={toggleSelect}
-                          onConfirm={onConfirm}
-                          onTogglePayment={onTogglePayment}
-                          onDelete={onDelete}
-                          isPastEvent={isPastEvent}
-                        />
+                        <div key={row.id} className={`rounded-2xl border p-3 ${
+                          row.confirmed ? "bg-white border-tv-green/25" : "bg-amber-50 border-tv-orange/20"
+                        }`}>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="min-w-0">
+                              <div className="font-semibold text-sm text-tv-green-deep">{row.name || "—"}</div>
+                              {row.email && <div className="text-[11px] text-tv-green-deep/50 truncate">{row.email}</div>}
+                              {row.opzione && <div className="text-[11px] text-tv-green-deep/40 mt-0.5">{row.opzione}</div>}
+                            </div>
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <span className="text-[10px] font-bold bg-tv-sky/30 text-tv-green-deep px-2 py-0.5 rounded-full">
+                                👥 {row.num_persone || 1}
+                              </span>
+                              {row.confirmed
+                                ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">✓ Conf.</span>
+                                : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ Attesa</span>}
+                              {row.metodo_pagamento && (
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/10 text-tv-bordeaux"}`}>
+                                  {row.payment_completed ? "✓" : "⚠️"} {row.metodo_pagamento}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {!row.confirmed && !isPastEvent && (
+                              <button onClick={() => onConfirm(row)} title="Conferma"
+                                className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors">
+                                <UserCheck size={13}/>
+                              </button>
+                            )}
+                            {row.metodo_pagamento && (
+                              <button onClick={() => onTogglePayment(row)} title={row.payment_completed ? "Annulla" : "Segna pagato"}
+                                className={`p-1.5 rounded-lg transition-colors text-xs ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-bordeaux"}`}>
+                                💸
+                              </button>
+                            )}
+                            <button onClick={() => onDelete(row)} title="Elimina"
+                              className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+                              <Trash2 size={13}/>
+                            </button>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 )}
               </div>
             </>
