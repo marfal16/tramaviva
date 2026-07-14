@@ -1671,7 +1671,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
       {/* ── Selezione evento: dropdown (mobile) / sidebar verticale (desktop) ── */}
 
       {/* Sidebar verticale: lista eventi */}
-      <div className="flex flex-shrink-0 w-60 xl:w-64 border-r border-tv-green-deep/10 bg-tv-cream/40 flex-col overflow-y-auto">
+      <div className="flex flex-shrink-0 w-full md:w-60 xl:w-64 border-b md:border-b-0 md:border-r border-tv-green-deep/10 bg-tv-cream/40 flex-col max-h-48 md:max-h-none overflow-y-auto">
         <div className="px-4 py-3 border-b border-tv-green-deep/10 flex-shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40">
             {groups.length} {groups.length === 1 ? "evento" : "eventi"}

@@ -47,7 +47,7 @@ export const Hero = () => {
       <div className="absolute top-40 -left-24 w-[320px] h-[320px] rounded-full bg-tv-mint/50 blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-1/3 w-[280px] h-[280px] rounded-full bg-tv-sky/25 blur-3xl pointer-events-none" />
 
-      <div className="relative mx-auto max-w-7xl px-6 md:px-10 grid md:grid-cols-12 gap-10 items-end">
+      <div className="relative mx-auto max-w-7xl px-6 md:px-10 grid md:grid-cols-12 gap-10 items-start">
         <div className="md:col-span-8">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-tv-green-deep/90 text-tv-cream text-xs font-bold uppercase tracking-wider mb-8">
             <Sparkles size={14} />
@@ -95,8 +95,8 @@ export const Hero = () => {
               Ogni<br />filo<br />conta.
             </div>
             <div className="mt-4 text-sm opacity-90">
-              Vogliamo intrecciare storie, passioni e persone per creare una community fatta di valori condivisi. 
-              Diamo vita ad esperienze e momenti di condivisione autentici, in cui sentirci liberi di creare legami veri. Diventa socio e prendi parte all’avventura. 
+              Vogliamo intrecciare storie, passioni e persone per creare una community fatta di valori condivisi.
+              Diamo vita ad esperienze e momenti di condivisione autentici, in cui sentirci liberi di creare legami veri. Diventa socio e prendi parte all’avventura.
             </div>
             <svg viewBox="0 0 100 100" className="absolute -bottom-6 -right-6 w-20 h-20 opacity-90">
               <circle cx="50" cy="50" r="44" fill="#F9ECD4" />
@@ -119,6 +119,72 @@ export const Hero = () => {
               Appena nati, già pieni di idee. Porta le tue.
             </div>
           </div>
+
+          {/* Countdown prossimo evento */}
+          {upcomingEvents.length > 0 && (() => {
+            const primary = upcomingEvents[0];
+            const others = upcomingEvents.slice(1);
+            const target = new Date(primary.date);
+            if (primary.time) {
+              const [h, m] = primary.time.split(":");
+              target.setHours(parseInt(h), parseInt(m), 0, 0);
+            } else {
+              target.setHours(0, 0, 0, 0);
+            }
+            const msLeft = Math.max(0, target - now);
+            const days = Math.floor(msLeft / 86400000);
+            const hours = Math.floor((msLeft % 86400000) / 3600000);
+            const minutes = Math.floor((msLeft % 3600000) / 60000);
+            const seconds = Math.floor((msLeft % 60000) / 1000);
+            const units = days === 0
+              ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
+              : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
+            return (
+              <div className="mt-5 rounded-[2rem] border border-tv-green-deep/10 bg-white shadow-[0_4px_24px_-8px_rgba(5,47,23,0.08)] p-5">
+                <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-2">📅 Prossimo evento</div>
+                <h3 className="font-display font-black text-base leading-tight text-tv-green-deep mb-0.5">{primary.title}</h3>
+                <p className="text-xs text-tv-green-deep/45 mb-3">
+                  {new Date(primary.date).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
+                  {primary.time ? ` · ${primary.time}` : ""}
+                  {primary.location ? ` · ${primary.location}` : ""}
+                </p>
+                {msLeft === 0 ? (
+                  <span className="font-display font-black text-xl text-tv-orange">È ora! 🎉</span>
+                ) : (
+                  <div className="flex gap-1.5 mb-3">
+                    {units.map(({ v, l }) => (
+                      <div key={l} className="text-center bg-tv-green-deep/[0.06] rounded-xl px-2 py-2 flex-1">
+                        <div className="font-display font-black text-xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
+                        <div className="text-[9px] uppercase text-tv-green-deep/30 mt-0.5">{l}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Link
+                  to={`/eventi/${primary.slug || primary.id}`}
+                  className="block text-center px-4 py-2 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors"
+                >
+                  Partecipa →
+                </Link>
+                {others.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-tv-green-deep/8 flex flex-wrap gap-1.5">
+                    {others.map(ev => {
+                      const evDay = new Date(ev.date); evDay.setHours(0,0,0,0);
+                      const todayDay = new Date(now); todayDay.setHours(0,0,0,0);
+                      const d = Math.max(0, Math.floor((evDay - todayDay) / 86400000));
+                      return (
+                        <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tv-green-deep/6 hover:bg-tv-green-deep/12 transition-colors">
+                          <span className="text-[9px] font-black text-tv-orange">{d === 0 ? "Oggi" : `${d}gg`}</span>
+                          <span className="text-[10px] text-tv-green-deep/55 truncate max-w-[90px]">{ev.title}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -150,82 +216,6 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* Prossimi eventi — card countdown live */}
-      {upcomingEvents.length > 0 && (() => {
-        const primary = upcomingEvents[0];
-        const others = upcomingEvents.slice(1);
-        const target = new Date(primary.date);
-        if (primary.time) {
-          const [h, m] = primary.time.split(":");
-          target.setHours(parseInt(h), parseInt(m), 0, 0);
-        } else {
-          target.setHours(0, 0, 0, 0);
-        }
-        const msLeft = Math.max(0, target - now);
-        const days = Math.floor(msLeft / 86400000);
-        const hours = Math.floor((msLeft % 86400000) / 3600000);
-        const minutes = Math.floor((msLeft % 3600000) / 60000);
-        const seconds = Math.floor((msLeft % 60000) / 1000);
-        const units = days === 0
-          ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
-          : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
-        return (
-          <div className="bg-tv-cream border-t border-tv-green-deep/8">
-            <div className="mx-auto max-w-7xl px-5 md:px-10 py-5">
-              <div className="rounded-[2rem] border border-tv-green-deep/10 bg-white shadow-[0_4px_24px_-8px_rgba(5,47,23,0.08)] px-6 py-5">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-1.5">📅 Prossimo evento</div>
-                    <h3 className="font-display font-black text-xl leading-tight text-tv-green-deep mb-0.5">{primary.title}</h3>
-                    <p className="text-sm text-tv-green-deep/45">
-                      {new Date(primary.date).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
-                      {primary.time ? ` · ${primary.time}` : ""}
-                      {primary.location ? ` · ${primary.location}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    {msLeft === 0 ? (
-                      <span className="font-display font-black text-2xl text-tv-orange">È ora! 🎉</span>
-                    ) : (
-                      <div className="flex gap-2">
-                        {units.map(({ v, l }) => (
-                          <div key={l} className="text-center bg-tv-green-deep/[0.06] rounded-2xl px-3 py-2.5 min-w-[52px]">
-                            <div className="font-display font-black text-2xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
-                            <div className="text-[9px] uppercase text-tv-green-deep/30 mt-1">{l}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <Link
-                      to={`/eventi/${primary.slug || primary.id}`}
-                      className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors"
-                    >
-                      Partecipa →
-                    </Link>
-                  </div>
-                </div>
-                {others.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-tv-green-deep/8 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/25 shrink-0">Anche</span>
-                    {others.map(ev => {
-                      const evDay = new Date(ev.date); evDay.setHours(0,0,0,0);
-                      const todayDay = new Date(now); todayDay.setHours(0,0,0,0);
-                      const d = Math.max(0, Math.floor((evDay - todayDay) / 86400000));
-                      return (
-                        <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`}
-                          className="flex-shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tv-green-deep/6 hover:bg-tv-green-deep/12 transition-colors">
-                          <span className="text-[10px] font-black text-tv-orange">{d === 0 ? "Oggi" : `${d}gg`}</span>
-                          <span className="text-xs text-tv-green-deep/55 max-w-[130px] truncate">{ev.title}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </section>
   );
 };
