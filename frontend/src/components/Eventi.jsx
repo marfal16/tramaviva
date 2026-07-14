@@ -65,40 +65,6 @@ export const Eventi = () => {
     })();
   }, []);
 
-  const nextEvent = useMemo(() => {
-    return events
-      .filter(ev => !isPast(ev.date))
-      .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
-  }, [events]);
-
-  const [timeLeft, setTimeLeft] = useState(null);
-
-  useEffect(() => {
-    if (!nextEvent) return;
-    const calc = () => {
-      const now = new Date();
-      const target = new Date(nextEvent.date);
-      target.setHours(
-        nextEvent.time ? parseInt(nextEvent.time.split(':')[0]) : 9,
-        nextEvent.time ? parseInt(nextEvent.time.split(':')[1]) : 0,
-        0, 0
-      );
-      const diff = target - now;
-      if (diff <= 0) { setTimeLeft(null); return; }
-      setTimeLeft({
-        days: Math.floor(diff / 86400000),
-        hours: Math.floor((diff % 86400000) / 3600000),
-        minutes: Math.floor((diff % 3600000) / 60000),
-        seconds: Math.floor((diff % 60000) / 1000),
-      });
-    };
-    calc();
-    const interval = setInterval(calc, 1000);
-    return () => clearInterval(interval);
-  }, [nextEvent]);
-
-  const isToday = nextEvent ? sameDay(new Date(nextEvent.date), new Date()) : false;
-
   const submit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.email) {
@@ -149,49 +115,6 @@ export const Eventi = () => {
           <div className="text-tv-green-deep/60" data-testid="events-loading">Caricamento…</div>
         ) : (
           <>
-            {/* Prossimo evento countdown widget */}
-            {nextEvent && nextEvent.date && (
-              <div className="bg-tv-green-deep text-tv-cream rounded-[2rem] px-5 py-5 mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {/* Left: emoji + title + date */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-tv-cream/10 flex items-center justify-center text-xl shrink-0">📅</div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-tv-cream/55 mb-0.5">Prossimo evento</div>
-                      <div className="font-display font-black text-lg leading-tight truncate">{nextEvent.title}</div>
-                      <div className="text-xs text-tv-cream/65">{fmtDate(nextEvent.date)}{nextEvent.time ? ` · ${nextEvent.time}` : ""}</div>
-                    </div>
-                  </div>
-                  {/* Right: countdown + button */}
-                  <div className="flex items-center justify-between sm:justify-end gap-4">
-                    {isToday ? (
-                      <span className="font-display font-black text-xl">È oggi! 🎉</span>
-                    ) : timeLeft ? (
-                      <div className="flex gap-2">
-                        {[
-                          { val: timeLeft.days, label: 'gg' },
-                          { val: timeLeft.hours, label: 'hh' },
-                          { val: timeLeft.minutes, label: 'mm' },
-                          { val: timeLeft.seconds, label: 'ss' },
-                        ].map(({ val, label }) => (
-                          <div key={label} className="text-center bg-tv-cream/10 rounded-xl px-2 py-1.5 min-w-[40px]">
-                            <div className="font-display font-black text-lg leading-none">{String(val).padStart(2, '0')}</div>
-                            <div className="text-[9px] uppercase text-tv-cream/50 mt-0.5">{label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                    <Link
-                      to={`/eventi/${nextEvent.slug || nextEvent.id}`}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-tv-cream text-tv-green-deep font-bold text-sm hover:bg-tv-orange transition-colors shrink-0"
-                    >
-                      Partecipa
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* View toggle */}
             <div className="flex items-center gap-2 mb-8" data-testid="eventi-view-toggle">
               <button
