@@ -1775,20 +1775,22 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
               </div>
 
               {/* Toolbar: filtri + search + bulk */}
-              <div className="px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1">
-                  {[
-                    { key: "all", label: `Tutti (${isPastEvent ? allItems.filter(r=>r.confirmed).length : allItems.length})` },
-                    ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingCount})` }] : []),
-                    { key: "confirmed", label: `Confermati (${allItems.filter(r=>r.confirmed).length})` },
-                  ].map(f => (
-                    <button key={f.key} onClick={() => setActiveFilter(f.key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
-                        activeFilter === f.key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/50 hover:text-tv-green-deep"
-                      }`}>{f.label}</button>
-                  ))}
+              <div className="px-3 md:px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 flex flex-wrap items-center gap-2 md:gap-3">
+                <div className="overflow-x-auto no-scrollbar">
+                  <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1 w-max">
+                    {[
+                      { key: "all", label: `Tutti (${isPastEvent ? allItems.filter(r=>r.confirmed).length : allItems.length})` },
+                      ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingCount})` }] : []),
+                      { key: "confirmed", label: `Confermati (${allItems.filter(r=>r.confirmed).length})` },
+                    ].map(f => (
+                      <button key={f.key} onClick={() => setActiveFilter(f.key)}
+                        className={`px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                          activeFilter === f.key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/50 hover:text-tv-green-deep"
+                        }`}>{f.label}</button>
+                    ))}
+                  </div>
                 </div>
-                <div className="relative flex-1 min-w-[160px]">
+                <div className="relative flex-1 min-w-0">
                   <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
                   <input type="text" placeholder="Cerca nome o email…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
@@ -1810,7 +1812,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
               </div>
 
               {/* Tabella */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 min-w-0 overflow-y-auto">
                 {filteredItems.length === 0 ? (
                   <div className="text-center text-tv-green-deep/35 py-16 text-sm">
                     {searchQuery ? "Nessun risultato per la ricerca." : isPastEvent ? "Nessun partecipante confermato per questo evento." : "Nessuna iscrizione."}
@@ -1861,11 +1863,11 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     </div>
 
                     {/* Mobile: card list */}
-                    <div className="block md:hidden space-y-2 p-3">
+                    <div className="block md:hidden space-y-2 p-3 overflow-x-hidden">
                       {filteredItems.map(row => {
                         const isFounder = row.is_member && founderEmails.has((row.email || "").toLowerCase());
                         return (
-                          <div key={row.id} className={`rounded-2xl border p-3 ${
+                          <div key={row.id} className={`rounded-2xl border p-3 min-w-0 ${
                             selectedIds.has(row.id) ? "border-tv-green/50 bg-tv-green/5"
                             : row.confirmed ? "bg-white border-tv-green-deep/10"
                             : "bg-amber-50 border-tv-orange/20"
@@ -1893,7 +1895,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                               </div>
                             </div>
                             <div className="space-y-1 mb-2 pl-10 text-xs text-tv-green-deep/60">
-                              {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux truncate"><Mail size={10}/>{row.email}</a>}
+                              {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux min-w-0"><Mail size={10} className="shrink-0"/><span className="truncate">{row.email}</span></a>}
                               {row.phone && <div>📞 {row.phone}</div>}
                               <div className="flex flex-wrap gap-x-3 gap-y-1">
                                 <span>👥 {row.num_persone || 1} {(row.num_persone || 1) > 1 ? "persone" : "persona"}</span>
