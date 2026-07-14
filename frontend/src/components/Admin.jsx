@@ -1441,7 +1441,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             </div>
           </div>
         </td>
-        <td className="py-3 pr-4 hidden md:table-cell">
+        <td className="py-3 pr-4">
           <div className="text-xs text-tv-green-deep/60 space-y-0.5">
             {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux truncate max-w-[180px]"><Mail size={10}/>{row.email}</a>}
             {row.phone && <div className="text-tv-green-deep/40">📞 {row.phone}</div>}
@@ -1455,10 +1455,10 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             </button>
           ) : <span className="text-sm text-tv-green-deep/40">1</span>}
         </td>
-        <td className="py-3 pr-4 hidden lg:table-cell">
+        <td className="py-3 pr-4">
           <span className="text-xs text-tv-green-deep/70">{row.opzione_scelta || <span className="text-tv-green-deep/25">—</span>}</span>
         </td>
-        <td className="py-3 pr-4 hidden lg:table-cell">
+        <td className="py-3 pr-4">
           <div className="space-y-1">
             {row.donazione_volontaria > 0 && (
               <span className="block text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">💚 {row.donazione_volontaria}€</span>

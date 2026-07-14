@@ -140,10 +140,10 @@ export const Hero = () => {
               ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
               : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
             return (
-              <div className="mt-5 rounded-[2rem] border border-tv-green-deep/10 bg-white shadow-[0_4px_24px_-8px_rgba(5,47,23,0.08)] p-5">
-                <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-2">📅 Prossimo evento</div>
+              <div className="mt-5 rounded-[2rem] border border-tv-green/30 bg-tv-green/10 p-5">
+                <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50 mb-2">📅 Prossimo evento</div>
                 <h3 className="font-display font-black text-base leading-tight text-tv-green-deep mb-0.5">{primary.title}</h3>
-                <p className="text-xs text-tv-green-deep/45 mb-3">
+                <p className="text-xs text-tv-green-deep/55 mb-3">
                   {new Date(primary.date).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
                   {primary.time ? ` · ${primary.time}` : ""}
                   {primary.location ? ` · ${primary.location}` : ""}
@@ -153,9 +153,9 @@ export const Hero = () => {
                 ) : (
                   <div className="flex gap-1.5 mb-3">
                     {units.map(({ v, l }) => (
-                      <div key={l} className="text-center bg-tv-green-deep/[0.06] rounded-xl px-2 py-2 flex-1">
+                      <div key={l} className="text-center bg-tv-green-deep/10 rounded-xl px-2 py-2 flex-1">
                         <div className="font-display font-black text-xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
-                        <div className="text-[9px] uppercase text-tv-green-deep/30 mt-0.5">{l}</div>
+                        <div className="text-[9px] uppercase text-tv-green-deep/45 mt-0.5">{l}</div>
                       </div>
                     ))}
                   </div>
@@ -167,16 +167,17 @@ export const Hero = () => {
                   Partecipa →
                 </Link>
                 {others.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-tv-green-deep/8 flex flex-wrap gap-1.5">
+                  <div className="mt-3 pt-3 border-t border-tv-green-deep/15 flex flex-col gap-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40">Anche in arrivo</span>
                     {others.map(ev => {
                       const evDay = new Date(ev.date); evDay.setHours(0,0,0,0);
                       const todayDay = new Date(now); todayDay.setHours(0,0,0,0);
                       const d = Math.max(0, Math.floor((evDay - todayDay) / 86400000));
                       return (
                         <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tv-green-deep/6 hover:bg-tv-green-deep/12 transition-colors">
-                          <span className="text-[9px] font-black text-tv-orange">{d === 0 ? "Oggi" : `${d}gg`}</span>
-                          <span className="text-[10px] text-tv-green-deep/55 truncate max-w-[90px]">{ev.title}</span>
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-tv-green-deep/8 hover:bg-tv-green-deep/15 transition-colors">
+                          <span className="text-[10px] font-black text-tv-orange shrink-0">{d === 0 ? "Oggi" : `${d}gg`}</span>
+                          <span className="text-xs text-tv-green-deep/70 font-medium leading-tight">{ev.title}</span>
                         </Link>
                       );
                     })}
