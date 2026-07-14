@@ -1415,29 +1415,38 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                 key={ev.id}
                 onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
                 className={`w-full text-left px-3 py-3 rounded-xl transition-all ${
-                  isSelected ? "bg-tv-green-deep shadow-md" : "hover:bg-tv-green-deep/6"
+                  isSelected
+                    ? past ? "bg-gray-400/70 shadow-md" : "bg-tv-green-deep shadow-md"
+                    : past ? "hover:bg-gray-200/60 opacity-60 hover:opacity-80" : "hover:bg-tv-green-deep/6"
                 }`}
               >
-                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-2 ${isSelected ? "text-tv-cream" : "text-tv-green-deep"}`}>
+                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-2 ${
+                  isSelected ? "text-white" : past ? "text-gray-400" : "text-tv-green-deep"
+                }`}>
                   {ev.title}
                 </div>
-                <div className={`text-[10px] mb-2 ${isSelected ? "text-tv-cream/55" : "text-tv-green-deep/45"}`}>
-                  {fmtDate(ev.date)}{ev.time ? ` · ${ev.time}` : ""}{past ? " · passato" : ""}
+                <div className={`text-[10px] mb-2 ${
+                  isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
+                }`}>
+                  {fmtDate(ev.date)}{ev.time ? ` · ${ev.time}` : ""}{past ? " · concluso" : ""}
                 </div>
                 {/* Progress bar */}
-                <div className={`h-1 rounded-full mb-1.5 ${isSelected ? "bg-tv-cream/20" : "bg-tv-green-deep/10"}`}>
+                <div className={`h-1 rounded-full mb-1.5 ${
+                  isSelected ? "bg-white/20" : past ? "bg-gray-300/50" : "bg-tv-green-deep/10"
+                }`}>
                   <div
-                    className={`h-1 rounded-full transition-all ${pct === 100 ? "bg-tv-green" : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"}`}
+                    className={`h-1 rounded-full transition-all ${
+                      past ? (isSelected ? "bg-white/50" : "bg-gray-400/60")
+                           : pct === 100 ? "bg-tv-green"
+                           : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"
+                    }`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className={`flex items-center justify-between text-[10px] font-bold ${isSelected ? "text-tv-cream/60" : "text-tv-green-deep/45"}`}>
+                <div className={`text-[10px] font-bold ${
+                  isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
+                }`}>
                   <span>{confirmedPpl}/{totalPeople} conf.</span>
-                  {!past && pending > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full ${isSelected ? "bg-tv-orange/50 text-tv-cream" : "bg-tv-orange/20 text-tv-bordeaux"}`}>
-                      {pending} in attesa
-                    </span>
-                  )}
                 </div>
               </button>
             );
