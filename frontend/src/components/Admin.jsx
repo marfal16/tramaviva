@@ -384,10 +384,10 @@ const DashboardHome = ({ data, onNavigate }) => {
         <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-6">
           <h3 className="font-display font-black text-lg text-tv-green-deep mb-5">Partecipazione per evento</h3>
           {(() => {
-            const validIds = new Set(data.events.map(e => e.id));
+            const eventTitleById = Object.fromEntries(data.events.map(e => [e.id, e.title]));
             const byEvent = {};
-            data["event-signups"].filter(s => validIds.has(s.event_id)).forEach(s => {
-              const k = s.event_title || s.event_id || "—";
+            data["event-signups"].filter(s => eventTitleById[s.event_id]).forEach(s => {
+              const k = eventTitleById[s.event_id];
               byEvent[k] = (byEvent[k] || 0) + (s.num_persone || 1);
             });
             const sorted = Object.entries(byEvent).sort((a, b) => b[1] - a[1]).slice(0, 6);
