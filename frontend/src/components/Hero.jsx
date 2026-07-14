@@ -150,7 +150,7 @@ export const Hero = () => {
         </div>
       </div>
 
-      {/* Prossimi eventi — banner countdown live */}
+      {/* Prossimi eventi — card countdown live */}
       {upcomingEvents.length > 0 && (() => {
         const primary = upcomingEvents[0];
         const others = upcomingEvents.slice(1);
@@ -170,58 +170,58 @@ export const Hero = () => {
           ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
           : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
         return (
-          <div className="bg-tv-green-deep text-tv-cream">
-            <div className="mx-auto max-w-7xl px-5 md:px-10 py-6 md:py-7">
-              {/* Evento principale */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-tv-cream/40 mb-2">📅 Prossimo evento</div>
-                  <h3 className="font-display font-black text-xl md:text-2xl leading-tight mb-1">{primary.title}</h3>
-                  <p className="text-sm text-tv-cream/50">
-                    {new Date(primary.date).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
-                    {primary.time ? ` · ${primary.time}` : ""}
-                    {primary.location ? ` · ${primary.location}` : ""}
-                  </p>
+          <div className="bg-tv-cream border-t border-tv-green-deep/8">
+            <div className="mx-auto max-w-7xl px-5 md:px-10 py-5">
+              <div className="rounded-[2rem] border border-tv-green-deep/10 bg-white shadow-[0_4px_24px_-8px_rgba(5,47,23,0.08)] px-6 py-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-1.5">📅 Prossimo evento</div>
+                    <h3 className="font-display font-black text-xl leading-tight text-tv-green-deep mb-0.5">{primary.title}</h3>
+                    <p className="text-sm text-tv-green-deep/45">
+                      {new Date(primary.date).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
+                      {primary.time ? ` · ${primary.time}` : ""}
+                      {primary.location ? ` · ${primary.location}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {msLeft === 0 ? (
+                      <span className="font-display font-black text-2xl text-tv-orange">È ora! 🎉</span>
+                    ) : (
+                      <div className="flex gap-2">
+                        {units.map(({ v, l }) => (
+                          <div key={l} className="text-center bg-tv-green-deep/[0.06] rounded-2xl px-3 py-2.5 min-w-[52px]">
+                            <div className="font-display font-black text-2xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
+                            <div className="text-[9px] uppercase text-tv-green-deep/30 mt-1">{l}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Link
+                      to={`/eventi/${primary.slug || primary.id}`}
+                      className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors"
+                    >
+                      Partecipa →
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-3">
-                  {msLeft === 0 ? (
-                    <span className="font-display font-black text-2xl text-tv-orange">È ora! 🎉</span>
-                  ) : (
-                    <div className="flex gap-2">
-                      {units.map(({ v, l }) => (
-                        <div key={l} className="text-center bg-tv-cream/10 rounded-2xl px-3 py-2.5 min-w-[52px]">
-                          <div className="font-display font-black text-2xl leading-none tabular-nums">{String(v).padStart(2, "0")}</div>
-                          <div className="text-[9px] uppercase text-tv-cream/40 mt-1">{l}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <Link
-                    to={`/eventi/${primary.slug || primary.id}`}
-                    className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-cream text-tv-green-deep font-bold text-sm hover:bg-tv-orange transition-colors"
-                  >
-                    Partecipa →
-                  </Link>
-                </div>
+                {others.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-tv-green-deep/8 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/25 shrink-0">Anche</span>
+                    {others.map(ev => {
+                      const evDay = new Date(ev.date); evDay.setHours(0,0,0,0);
+                      const todayDay = new Date(now); todayDay.setHours(0,0,0,0);
+                      const d = Math.max(0, Math.floor((evDay - todayDay) / 86400000));
+                      return (
+                        <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`}
+                          className="flex-shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tv-green-deep/6 hover:bg-tv-green-deep/12 transition-colors">
+                          <span className="text-[10px] font-black text-tv-orange">{d === 0 ? "Oggi" : `${d}gg`}</span>
+                          <span className="text-xs text-tv-green-deep/55 max-w-[130px] truncate">{ev.title}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              {/* Altri eventi */}
-              {others.length > 0 && (
-                <div className="mt-5 pt-4 border-t border-tv-cream/10 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-tv-cream/30 shrink-0">Anche</span>
-                  {others.map(ev => {
-                    const evDay = new Date(ev.date); evDay.setHours(0,0,0,0);
-                    const todayDay = new Date(now); todayDay.setHours(0,0,0,0);
-                    const d = Math.max(0, Math.floor((evDay - todayDay) / 86400000));
-                    return (
-                      <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`}
-                        className="flex-shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tv-cream/10 hover:bg-tv-cream/20 transition-colors">
-                        <span className="text-[10px] font-black text-tv-orange">{d === 0 ? "Oggi" : `${d}gg`}</span>
-                        <span className="text-xs text-tv-cream/65 max-w-[140px] truncate">{ev.title}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
         );
