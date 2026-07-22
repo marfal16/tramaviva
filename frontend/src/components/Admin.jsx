@@ -515,7 +515,8 @@ const STATUS_LABELS = {
 
 const BOOK_EMPTY = {
   title: "", author: "", cover_url: "", genre: "", status: "in_lettura",
-  start_date: "", end_date: "", description: "", recensione: "", linked_event_ids: [],
+  reading_month: "", start_date: "", end_date: "", description: "", recensione: "",
+  linked_event_ids: [], in_biblioteca: false, is_lent: false, lent_to: "", lent_date: "",
 };
 
 const BookEditor = ({ book, events, onSave, onClose, token }) => {
@@ -540,11 +541,16 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
         cover_url: form.cover_url.trim() || null,
         genre: form.genre.trim() || null,
         status: form.status,
+        reading_month: form.reading_month || null,
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         description: form.description.trim() || null,
         recensione: form.recensione.trim() || null,
         linked_event_ids: form.linked_event_ids || [],
+        in_biblioteca: !!form.in_biblioteca,
+        is_lent: !!form.is_lent,
+        lent_to: form.lent_to?.trim() || null,
+        lent_date: form.lent_date || null,
       };
       if (isNew) {
         const res = await axios.post(`${API}/admin/books`, payload, authHeader);
@@ -597,7 +603,11 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               </select>
             </label>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
+            <label>
+              <div className={labelClass}>Mese lettura (AAAA-MM)</div>
+              <input className={fieldClass} value={form.reading_month || ""} onChange={e => set("reading_month", e.target.value)} placeholder="es. 2025-07" />
+            </label>
             <label>
               <div className={labelClass}>Data inizio</div>
               <input type="date" className={fieldClass} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
@@ -616,9 +626,39 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
             <textarea className={`${fieldClass} resize-none`} rows={3} value={form.description || ""} onChange={e => set("description", e.target.value)} />
           </label>
           <label>
-            <div className={labelClass}>Recensione (dopo la lettura)</div>
+            <div className={labelClass}>Recensione redazione (dopo la lettura)</div>
             <textarea className={`${fieldClass} resize-none`} rows={4} value={form.recensione || ""} onChange={e => set("recensione", e.target.value)} />
           </label>
+
+          {/* Biblioteca */}
+          <div className="rounded-2xl border border-tv-green-deep/10 p-4 grid gap-3">
+            <div className="text-xs font-black uppercase tracking-wider text-tv-green-deep/50">Biblioteca fisica</div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={!!form.in_biblioteca} onChange={e => set("in_biblioteca", e.target.checked)} className="w-4 h-4 accent-tv-green-deep" />
+              <span className="text-sm font-bold text-tv-green-deep">Disponibile in sede</span>
+            </label>
+            {form.in_biblioteca && (
+              <>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={!!form.is_lent} onChange={e => set("is_lent", e.target.checked)} className="w-4 h-4 accent-tv-bordeaux" />
+                  <span className="text-sm font-bold text-tv-bordeaux">In prestito (Libro sospeso)</span>
+                </label>
+                {form.is_lent && (
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <label>
+                      <div className={labelClass}>Prestato a</div>
+                      <input className={fieldClass} value={form.lent_to || ""} onChange={e => set("lent_to", e.target.value)} placeholder="Nome del lettore" />
+                    </label>
+                    <label>
+                      <div className={labelClass}>Data prestito</div>
+                      <input type="date" className={fieldClass} value={form.lent_date || ""} onChange={e => set("lent_date", e.target.value)} />
+                    </label>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
           {events && events.length > 0 && (
             <div>
               <div className={labelClass}>Collega a eventi</div>
@@ -653,8 +693,9 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
   );
 };
 
-const BookManager = ({ books, events, token, onReload }) => {
+const BookManager = ({ books, events, reviews, token, onReload }) => {
   const [editor, setEditor] = useState(null);
+  const [expandedReviews, setExpandedReviews] = useState(null);
 
   const handleSave = () => onReload();
 
@@ -666,6 +707,24 @@ const BookManager = ({ books, events, token, onReload }) => {
       onReload();
     } catch { toast.error("Errore nell'eliminazione."); }
   };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Eliminare questa recensione?")) return;
+    try {
+      await axios.delete(`${API}/admin/reviews/${reviewId}`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Recensione eliminata.");
+      onReload();
+    } catch { toast.error("Errore nell'eliminazione."); }
+  };
+
+  const reviewsByBook = useMemo(() => {
+    const map = {};
+    (reviews || []).forEach(r => {
+      if (!map[r.book_id]) map[r.book_id] = [];
+      map[r.book_id].push(r);
+    });
+    return map;
+  }, [reviews]);
 
   return (
     <div>
@@ -689,50 +748,85 @@ const BookManager = ({ books, events, token, onReload }) => {
             const st = STATUS_LABELS[book.status] || STATUS_LABELS.prossimamente;
             const linkedEvents = (book.linked_event_ids || [])
               .map(id => events.find(e => e.id === id)?.title).filter(Boolean);
+            const bookReviews = reviewsByBook[book.id] || [];
             return (
-              <div key={book.id} className="bg-white rounded-3xl border border-tv-green-deep/10 flex gap-4 p-5">
-                {book.cover_url ? (
-                  <img src={book.cover_url} alt={book.title} className="w-16 h-24 object-cover rounded-2xl shrink-0" />
-                ) : (
-                  <div className="w-16 h-24 rounded-2xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
-                    <BookOpen size={24} className="text-tv-green-deep/30" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 flex-wrap">
-                    <div>
-                      <h3 className="font-display font-black text-lg text-tv-green-deep leading-tight">{book.title}</h3>
-                      <div className="text-sm text-tv-green-deep/60">{book.author}{book.genre ? ` · ${book.genre}` : ""}</div>
-                    </div>
-                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 ${st.color}`}>
-                      {st.label}
-                    </span>
-                  </div>
-                  {book.description && (
-                    <p className="mt-2 text-sm text-tv-green-deep/65 line-clamp-2">{book.description}</p>
-                  )}
-                  {linkedEvents.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {linkedEvents.map(t => (
-                        <span key={t} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-tv-sky/30 text-tv-green-deep">📅 {t}</span>
-                      ))}
+              <div key={book.id} className="bg-white rounded-3xl border border-tv-green-deep/10 overflow-hidden">
+                <div className="flex gap-4 p-5">
+                  {book.cover_url ? (
+                    <img src={book.cover_url} alt={book.title} className="w-16 h-24 object-cover rounded-2xl shrink-0" />
+                  ) : (
+                    <div className="w-16 h-24 rounded-2xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
+                      <BookOpen size={24} className="text-tv-green-deep/30" />
                     </div>
                   )}
-                  <div className="mt-3 flex items-center gap-2">
-                    <button
-                      onClick={() => setEditor(book)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green-deep/5"
-                    >
-                      <Pencil size={11} /> Modifica
-                    </button>
-                    <button
-                      onClick={() => handleDelete(book.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-bordeaux/20 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/5"
-                    >
-                      <Trash2 size={11} /> Elimina
-                    </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div>
+                        <h3 className="font-display font-black text-lg text-tv-green-deep leading-tight">{book.title}</h3>
+                        <div className="text-sm text-tv-green-deep/60">{book.author}{book.genre ? ` · ${book.genre}` : ""}</div>
+                        {book.reading_month && <div className="text-xs text-tv-green-deep/40 mt-0.5">📅 {book.reading_month}</div>}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${st.color}`}>
+                          {st.label}
+                        </span>
+                        {book.in_biblioteca && (
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${book.is_lent ? "bg-tv-bordeaux/15 text-tv-bordeaux" : "bg-tv-sky/30 text-tv-green-deep"}`}>
+                            {book.is_lent ? "📤 In prestito" : "🏛 In sede"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {book.description && (
+                      <p className="mt-2 text-sm text-tv-green-deep/65 line-clamp-2">{book.description}</p>
+                    )}
+                    {linkedEvents.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {linkedEvents.map(t => (
+                          <span key={t} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-tv-sky/30 text-tv-green-deep">📅 {t}</span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => setEditor(book)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green-deep/5"
+                      >
+                        <Pencil size={11} /> Modifica
+                      </button>
+                      <button
+                        onClick={() => handleDelete(book.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-bordeaux/20 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/5"
+                      >
+                        <Trash2 size={11} /> Elimina
+                      </button>
+                      {bookReviews.length > 0 && (
+                        <button
+                          onClick={() => setExpandedReviews(expandedReviews === book.id ? null : book.id)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-sky/40 text-tv-green-deep font-bold text-xs hover:bg-tv-sky/10"
+                        >
+                          💬 {bookReviews.length} recension{bookReviews.length === 1 ? "e" : "i"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
+                {expandedReviews === book.id && (
+                  <div className="border-t border-tv-green-deep/8 px-5 py-4 bg-tv-sky/10 flex flex-col gap-3">
+                    {bookReviews.map(r => (
+                      <div key={r.id} className="flex items-start justify-between gap-3 bg-white rounded-2xl p-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-black text-tv-green-deep">{r.reviewer_name}</div>
+                          <div className="text-xs text-tv-green-deep/50 mt-0.5">{fmtDate(r.created_at)}</div>
+                          <p className="text-sm text-tv-green-deep/75 mt-1 leading-snug">{r.content}</p>
+                        </div>
+                        <button onClick={() => handleDeleteReview(r.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux shrink-0">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -985,7 +1079,7 @@ const DashboardHome = ({ data, onNavigate }) => {
 const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("home");
   const [data, setData] = useState({
-    registrations: [], "event-signups": [], contacts: [], events: [], members: [], books: [],
+    registrations: [], "event-signups": [], contacts: [], events: [], members: [], books: [], reviews: [],
   });
   const [loading, setLoading] = useState(true);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
@@ -1006,13 +1100,14 @@ const Dashboard = ({ token, onLogout }) => {
 
     setLoading(true);
     try {
-      const [r, es, c, ev, mem, bk] = await Promise.all([
+      const [r, es, c, ev, mem, bk, rv] = await Promise.all([
         axios.get(`${API}/admin/registrations`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
         axios.get(`${API}/admin/events`, authHeader),
         axios.get(`${API}/admin/members`, authHeader),
         axios.get(`${API}/books`, authHeader),
+        axios.get(`${API}/admin/reviews`, authHeader),
       ]);
       setData({
         registrations: r.data || [],
@@ -1021,6 +1116,7 @@ const Dashboard = ({ token, onLogout }) => {
         events: ev.data || [],
         members: mem.data || [],
         books: bk.data || [],
+        reviews: rv.data || [],
       });
     } catch (err) {
       if (err.response?.status === 401) {
@@ -1366,6 +1462,7 @@ const Dashboard = ({ token, onLogout }) => {
             <BookManager
               books={data.books}
               events={data.events}
+              reviews={data.reviews}
               token={token}
               onReload={loadAll}
             />

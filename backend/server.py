@@ -190,11 +190,16 @@ class Book(BaseModel):
     cover_url: Optional[str] = None
     genre: Optional[str] = None
     status: str = "in_lettura"  # "in_lettura" | "concluso" | "prossimamente"
+    reading_month: Optional[str] = None  # "YYYY-MM" del mese di lettura
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     description: Optional[str] = None
     recensione: Optional[str] = None
     linked_event_ids: List[str] = Field(default_factory=list)
+    in_biblioteca: bool = False
+    is_lent: bool = False
+    lent_to: Optional[str] = None
+    lent_date: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class BookCreate(BaseModel):
@@ -203,11 +208,16 @@ class BookCreate(BaseModel):
     cover_url: Optional[str] = None
     genre: Optional[str] = None
     status: str = "in_lettura"
+    reading_month: Optional[str] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     description: Optional[str] = None
     recensione: Optional[str] = None
     linked_event_ids: List[str] = Field(default_factory=list)
+    in_biblioteca: bool = False
+    is_lent: bool = False
+    lent_to: Optional[str] = None
+    lent_date: Optional[str] = None
 
 class BookUpdate(BaseModel):
     title: Optional[str] = None
@@ -215,11 +225,29 @@ class BookUpdate(BaseModel):
     cover_url: Optional[str] = None
     genre: Optional[str] = None
     status: Optional[str] = None
+    reading_month: Optional[str] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
     description: Optional[str] = None
     recensione: Optional[str] = None
     linked_event_ids: Optional[List[str]] = None
+    in_biblioteca: Optional[bool] = None
+    is_lent: Optional[bool] = None
+    lent_to: Optional[str] = None
+    lent_date: Optional[str] = None
+
+class Review(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    book_id: str
+    book_title: str = ""
+    reviewer_name: str
+    content: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class ReviewCreate(BaseModel):
+    reviewer_name: str
+    content: str
 
 class MemberCreate(BaseModel):
     first_name: str
@@ -1088,6 +1116,43 @@ async def get_book(book_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Libro non trovato")
     return doc
+
+# ========== REVIEWS: PUBLIC ==========
+
+@api_router.get("/reviews")
+async def get_reviews():
+    docs = await db.reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+@api_router.post("/books/{book_id}/reviews")
+async def submit_review(book_id: str, payload: ReviewCreate):
+    if not payload.reviewer_name.strip() or not payload.content.strip():
+        raise HTTPException(status_code=400, detail="Nome e testo sono obbligatori")
+    book = await db.books.find_one({"id": book_id}, {"_id": 0})
+    if not book:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    review = Review(
+        book_id=book_id,
+        book_title=book.get("title", ""),
+        reviewer_name=payload.reviewer_name.strip(),
+        content=payload.content.strip(),
+    )
+    await db.reviews.insert_one(review.model_dump())
+    return review.model_dump()
+
+# ========== ADMIN: REVIEWS ==========
+
+@api_router.get("/admin/reviews", dependencies=[Depends(require_admin)])
+async def admin_get_reviews():
+    docs = await db.reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+@api_router.delete("/admin/reviews/{review_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_review(review_id: str):
+    res = await db.reviews.delete_one({"id": review_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Recensione non trovata")
+    return {"ok": True}
 
 # ========== ADMIN: BOOKS ==========
 
