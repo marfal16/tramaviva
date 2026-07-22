@@ -13,6 +13,7 @@ import Contatti from "./components/Contatti";
 import Footer from "./components/Footer";
 import Admin from "./components/Admin";
 import EventoDettaglio from "./components/EventoDettaglio";
+import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
 
 const Home = () => {
   useEffect(() => {
@@ -34,6 +35,7 @@ const Home = () => {
       <Hero />
       <ChiSiamo />
       <Attivita />
+      <ClubDelLibroTeaser />
       <Eventi />
       <Iscrizione />
       <Contatti />
@@ -74,6 +76,17 @@ const IscrizionePageWrapper = () => {
   );
 };
 
+const ClubDelLibroPageWrapper = () => {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  return (
+    <div className="App bg-tv-cream min-h-screen">
+      <Navbar />
+      <ClubDelLibro />
+      <Footer />
+    </div>
+  );
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -84,6 +97,7 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/eventi/:slug" element={<EventoDettaglio />} />
         <Route path="/iscrizione" element={<IscrizionePageWrapper />} />
+        <Route path="/club-del-libro" element={<ClubDelLibroPageWrapper />} />
       </Routes>
     </BrowserRouter>
   );

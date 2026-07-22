@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -101,6 +101,7 @@ const Login = ({ onLogin }) => {
 const NAV = [
   { key: "home",          label: "Dashboard",           icon: LayoutDashboard },
   { key: "events",        label: "Eventi",               icon: CalendarPlus },
+  { key: "books",         label: "Club del Libro",       icon: BookOpen },
   { key: "members",       label: "Soci tesserati",       icon: IdCard },
   { key: "registrations", label: "Richieste iscrizione", icon: Users },
   { key: "event-signups", label: "Richieste eventi",     icon: Calendar },
@@ -506,6 +507,251 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
   );
 };
 
+const STATUS_LABELS = {
+  in_lettura: { label: "In lettura", color: "bg-tv-green/20 text-tv-green-deep" },
+  concluso:   { label: "Concluso",   color: "bg-tv-sky/30 text-tv-green-deep" },
+  prossimamente: { label: "Prossimamente", color: "bg-tv-orange/30 text-tv-green-deep" },
+};
+
+const BOOK_EMPTY = {
+  title: "", author: "", cover_url: "", genre: "", status: "in_lettura",
+  start_date: "", end_date: "", description: "", recensione: "", linked_event_ids: [],
+};
+
+const BookEditor = ({ book, events, onSave, onClose, token }) => {
+  const isNew = !book.id;
+  const [form, setForm] = useState({ ...BOOK_EMPTY, ...book });
+  const [saving, setSaving] = useState(false);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.author.trim()) {
+      toast.error("Titolo e autore sono obbligatori.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+      const payload = {
+        title: form.title.trim(),
+        author: form.author.trim(),
+        cover_url: form.cover_url.trim() || null,
+        genre: form.genre.trim() || null,
+        status: form.status,
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
+        description: form.description.trim() || null,
+        recensione: form.recensione.trim() || null,
+        linked_event_ids: form.linked_event_ids || [],
+      };
+      if (isNew) {
+        const res = await axios.post(`${API}/admin/books`, payload, authHeader);
+        toast.success("Libro aggiunto!");
+        onSave(res.data);
+      } else {
+        const res = await axios.put(`${API}/admin/books/${book.id}`, payload, authHeader);
+        toast.success("Libro aggiornato!");
+        onSave(res.data);
+      }
+      onClose();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSaving(false); }
+  };
+
+  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
+          <h2 className="font-display font-black text-xl text-tv-green-deep">
+            {isNew ? "Aggiungi libro" : "Modifica libro"}
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
+        </div>
+        <form onSubmit={submit} className="p-6 grid gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <label>
+              <div className={labelClass}>Titolo *</div>
+              <input className={fieldClass} value={form.title} onChange={e => set("title", e.target.value)} required />
+            </label>
+            <label>
+              <div className={labelClass}>Autore *</div>
+              <input className={fieldClass} value={form.author} onChange={e => set("author", e.target.value)} required />
+            </label>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <label>
+              <div className={labelClass}>Genere</div>
+              <input className={fieldClass} value={form.genre} onChange={e => set("genre", e.target.value)} placeholder="es. Giallo, Romanzo…" />
+            </label>
+            <label>
+              <div className={labelClass}>Stato</div>
+              <select className={fieldClass} value={form.status} onChange={e => set("status", e.target.value)}>
+                <option value="in_lettura">In lettura</option>
+                <option value="concluso">Concluso</option>
+                <option value="prossimamente">Prossimamente</option>
+              </select>
+            </label>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <label>
+              <div className={labelClass}>Data inizio</div>
+              <input type="date" className={fieldClass} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
+            </label>
+            <label>
+              <div className={labelClass}>Data fine</div>
+              <input type="date" className={fieldClass} value={form.end_date || ""} onChange={e => set("end_date", e.target.value)} />
+            </label>
+          </div>
+          <label>
+            <div className={labelClass}>URL copertina</div>
+            <input className={fieldClass} value={form.cover_url || ""} onChange={e => set("cover_url", e.target.value)} placeholder="https://..." />
+          </label>
+          <label>
+            <div className={labelClass}>Descrizione / perché lo leggiamo</div>
+            <textarea className={`${fieldClass} resize-none`} rows={3} value={form.description || ""} onChange={e => set("description", e.target.value)} />
+          </label>
+          <label>
+            <div className={labelClass}>Recensione (dopo la lettura)</div>
+            <textarea className={`${fieldClass} resize-none`} rows={4} value={form.recensione || ""} onChange={e => set("recensione", e.target.value)} />
+          </label>
+          {events && events.length > 0 && (
+            <div>
+              <div className={labelClass}>Collega a eventi</div>
+              <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                {events.map(ev => (
+                  <label key={ev.id} className="flex items-center gap-2 text-sm text-tv-green-deep cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={(form.linked_event_ids || []).includes(ev.id)}
+                      onChange={e => {
+                        const ids = form.linked_event_ids || [];
+                        set("linked_event_ids", e.target.checked ? [...ids, ev.id] : ids.filter(id => id !== ev.id));
+                      }}
+                    />
+                    {ev.title}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep/5">
+              Annulla
+            </button>
+            <button type="submit" disabled={saving} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
+              {saving ? "Salvo…" : isNew ? "Aggiungi" : "Salva"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const BookManager = ({ books, events, token, onReload }) => {
+  const [editor, setEditor] = useState(null);
+
+  const handleSave = () => onReload();
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Eliminare questo libro?")) return;
+    try {
+      await axios.delete(`${API}/admin/books/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Libro eliminato.");
+      onReload();
+    } catch { toast.error("Errore nell'eliminazione."); }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-display font-black text-2xl text-tv-green-deep">Club del Libro</h2>
+        <button
+          onClick={() => setEditor(BOOK_EMPTY)}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors"
+        >
+          <Plus size={16} /> Aggiungi libro
+        </button>
+      </div>
+
+      {books.length === 0 ? (
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+          Nessun libro ancora. Aggiungine uno per iniziare!
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {books.map(book => {
+            const st = STATUS_LABELS[book.status] || STATUS_LABELS.prossimamente;
+            const linkedEvents = (book.linked_event_ids || [])
+              .map(id => events.find(e => e.id === id)?.title).filter(Boolean);
+            return (
+              <div key={book.id} className="bg-white rounded-3xl border border-tv-green-deep/10 flex gap-4 p-5">
+                {book.cover_url ? (
+                  <img src={book.cover_url} alt={book.title} className="w-16 h-24 object-cover rounded-2xl shrink-0" />
+                ) : (
+                  <div className="w-16 h-24 rounded-2xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
+                    <BookOpen size={24} className="text-tv-green-deep/30" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div>
+                      <h3 className="font-display font-black text-lg text-tv-green-deep leading-tight">{book.title}</h3>
+                      <div className="text-sm text-tv-green-deep/60">{book.author}{book.genre ? ` · ${book.genre}` : ""}</div>
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 ${st.color}`}>
+                      {st.label}
+                    </span>
+                  </div>
+                  {book.description && (
+                    <p className="mt-2 text-sm text-tv-green-deep/65 line-clamp-2">{book.description}</p>
+                  )}
+                  {linkedEvents.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {linkedEvents.map(t => (
+                        <span key={t} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-tv-sky/30 text-tv-green-deep">📅 {t}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      onClick={() => setEditor(book)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green-deep/5"
+                    >
+                      <Pencil size={11} /> Modifica
+                    </button>
+                    <button
+                      onClick={() => handleDelete(book.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-bordeaux/20 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/5"
+                    >
+                      <Trash2 size={11} /> Elimina
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {editor !== null && (
+        <BookEditor
+          book={editor}
+          events={events}
+          token={token}
+          onSave={handleSave}
+          onClose={() => setEditor(null)}
+        />
+      )}
+    </div>
+  );
+};
+
 const DashboardHome = ({ data, onNavigate }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
@@ -739,7 +985,7 @@ const DashboardHome = ({ data, onNavigate }) => {
 const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("home");
   const [data, setData] = useState({
-    registrations: [], "event-signups": [], contacts: [], events: [], members: [],
+    registrations: [], "event-signups": [], contacts: [], events: [], members: [], books: [],
   });
   const [loading, setLoading] = useState(true);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
@@ -760,12 +1006,13 @@ const Dashboard = ({ token, onLogout }) => {
 
     setLoading(true);
     try {
-      const [r, es, c, ev, mem] = await Promise.all([
+      const [r, es, c, ev, mem, bk] = await Promise.all([
         axios.get(`${API}/admin/registrations`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
         axios.get(`${API}/admin/events`, authHeader),
         axios.get(`${API}/admin/members`, authHeader),
+        axios.get(`${API}/books`, authHeader),
       ]);
       setData({
         registrations: r.data || [],
@@ -773,6 +1020,7 @@ const Dashboard = ({ token, onLogout }) => {
         contacts: c.data || [],
         events: ev.data || [],
         members: mem.data || [],
+        books: bk.data || [],
       });
     } catch (err) {
       if (err.response?.status === 401) {
@@ -1115,6 +1363,13 @@ const Dashboard = ({ token, onLogout }) => {
               onCreate={() => setEventEditor("new")}
               onEdit={(ev) => setEventEditor(ev)}
               onDelete={(id) => remove("events", id)}
+            />
+          ) : tab === "books" ? (
+            <BookManager
+              books={data.books}
+              events={data.events}
+              token={token}
+              onReload={loadAll}
             />
           ) : tab === "members" ? (
             <MembersManager

@@ -182,6 +182,45 @@ class PaymentStatusUpdate(BaseModel):
 class BulkConfirmPayload(BaseModel):
     signup_ids: List[str]
 
+class Book(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    author: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    status: str = "in_lettura"  # "in_lettura" | "concluso" | "prossimamente"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    description: Optional[str] = None
+    recensione: Optional[str] = None
+    linked_event_ids: List[str] = Field(default_factory=list)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class BookCreate(BaseModel):
+    title: str
+    author: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    status: str = "in_lettura"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    description: Optional[str] = None
+    recensione: Optional[str] = None
+    linked_event_ids: List[str] = Field(default_factory=list)
+
+class BookUpdate(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = None
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    description: Optional[str] = None
+    recensione: Optional[str] = None
+    linked_event_ids: Optional[List[str]] = None
+
 class MemberCreate(BaseModel):
     first_name: str
     last_name: str
@@ -1035,6 +1074,45 @@ async def admin_update_event(event_id: str, payload: EventUpdate):
         raise HTTPException(status_code=404, detail="Evento non trovato")
     doc = await db.events.find_one({"id": event_id}, {"_id": 0})
     return doc
+
+# ========== BOOKS: PUBLIC ==========
+
+@api_router.get("/books")
+async def get_books():
+    docs = await db.books.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+@api_router.get("/books/{book_id}")
+async def get_book(book_id: str):
+    doc = await db.books.find_one({"id": book_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    return doc
+
+# ========== ADMIN: BOOKS ==========
+
+@api_router.post("/admin/books", dependencies=[Depends(require_admin)])
+async def admin_create_book(payload: BookCreate):
+    obj = Book(**payload.model_dump())
+    await db.books.insert_one(obj.model_dump())
+    return obj.model_dump()
+
+@api_router.put("/admin/books/{book_id}", dependencies=[Depends(require_admin)])
+async def admin_update_book(book_id: str, payload: BookUpdate):
+    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    res = await db.books.update_one({"id": book_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    return await db.books.find_one({"id": book_id}, {"_id": 0})
+
+@api_router.delete("/admin/books/{book_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_book(book_id: str):
+    res = await db.books.delete_one({"id": book_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    return {"ok": True}
 
 app.include_router(api_router)
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { Menu, X } from "lucide-react";
 
@@ -95,6 +95,13 @@ export const Navbar = () => {
                 {l.label}
               </a>
             ))}
+            <Link
+              to="/club-del-libro"
+              onClick={() => setOpen(false)}
+              className="px-4 py-2 rounded-full text-sm font-semibold text-tv-green-deep/80 hover:text-tv-green-deep hover:bg-tv-mint/40 transition-colors"
+            >
+              Club del Libro
+            </Link>
             <a
               href="#iscrizione"
               onClick={scrollTo("#iscrizione")}
@@ -129,6 +136,13 @@ export const Navbar = () => {
                 {l.label}
               </a>
             ))}
+            <Link
+              to="/club-del-libro"
+              onClick={() => setOpen(false)}
+              className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40"
+            >
+              Club del Libro
+            </Link>
             <a
               href="#iscrizione"
               onClick={scrollTo("#iscrizione")}
