@@ -55,7 +55,7 @@ const StarDisplay = ({ rating, size = "sm" }) => {
 // ── Media stelle ─────────────────────────────────────────────────────────────
 export const AvgStars = ({ reviews }) => {
   if (!reviews || reviews.length === 0) return null;
-  const avg = reviews.reduce((sum, r) => sum + (r.rating || 5), 0) / reviews.length;
+  const avg = reviews.reduce((sum, r) => sum + (r.rating ?? 5), 0) / reviews.length;
   return (
     <div className="flex items-center gap-1.5">
       <StarDisplay rating={avg} size="sm" />

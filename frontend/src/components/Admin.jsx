@@ -834,7 +834,11 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
       await axios.delete(`${API}/admin/reviews/${reviewId}`, { headers: { Authorization: `Bearer ${token}` } });
       toast.success("Recensione eliminata.");
       onReload();
-    } catch { toast.error("Errore nell'eliminazione."); }
+    } catch (err) {
+      console.error("Delete review error:", err?.response?.status, err?.response?.data);
+      const msg = err?.response?.data?.detail || err?.message || "Errore nell'eliminazione.";
+      toast.error(msg);
+    }
   };
 
   const reviewsByBook = useMemo(() => {

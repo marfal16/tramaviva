@@ -1206,6 +1206,7 @@ async def submit_review(book_id: str, payload: ReviewCreate):
         book_title=book.get("title", ""),
         reviewer_name=payload.reviewer_name.strip(),
         content=payload.content.strip(),
+        rating=payload.rating,
     )
     await db.reviews.insert_one(review.model_dump())
     return review.model_dump()

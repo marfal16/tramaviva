@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send, Copy, MessageCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send, Copy, MessageCircle, BookOpen, ArrowRight } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { ThreadsBg } from "./ThreadsBg";
@@ -253,6 +253,28 @@ export const EventoDettaglio = () => {
               <p className="mt-8 text-lg md:text-xl text-tv-green-deep/80 leading-relaxed whitespace-pre-wrap">
                 {event.description}
               </p>
+
+              {/* Club del Libro banner */}
+              {event.title?.toLowerCase().includes("club del libro") && (
+                <Link
+                  to="/club-del-libro"
+                  className="group mt-10 flex items-center gap-4 rounded-[2rem] bg-tv-green-deep/[0.05] border border-tv-green-deep/12 px-5 py-4 hover:bg-tv-green-deep/10 hover:border-tv-green-deep/20 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-tv-green-deep flex items-center justify-center shrink-0">
+                    <BookOpen size={18} className="text-tv-cream" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-0.5">Club del Libro · Trama Viva</div>
+                    <div className="font-bold text-tv-green-deep text-sm leading-tight">
+                      Questo è un evento del nostro club di lettura mensile.
+                    </div>
+                    <div className="text-xs text-tv-green-deep/50 mt-0.5">Proposte, recensioni, biblioteca condivisa — scopri come funziona.</div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-tv-green-deep/50 group-hover:text-tv-green-deep transition-colors shrink-0">
+                    Scopri il club <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                </Link>
+              )}
 
               {/* Share */}
               <div className="mt-10 flex flex-wrap items-center gap-3" data-testid="event-share">

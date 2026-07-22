@@ -427,23 +427,23 @@ export const ClubDelLibro = () => {
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-3">
                   <Library size={18} className="text-tv-orange" />
-                  <span className="text-xs font-black uppercase tracking-widest text-tv-cream/50">Biblioteca</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-tv-cream/50">Biblioteca condivisa</span>
                 </div>
-                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">Libri in sede &amp; prestiti</h2>
-                <p className="mt-2 text-tv-cream/55">Questi libri sono disponibili nella nostra sede fisica. Puoi prenderli in prestito — chiedici!</p>
+                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">Libri in circolazione</h2>
+                <p className="mt-2 text-tv-cream/55">Libri messi a disposizione dalla nostra comunità. Puoi prenderli in prestito e restituirli al prossimo incontro — contattaci per sapere come.</p>
               </div>
 
               {biblioteca.length === 0 ? (
                 <div className="rounded-[2rem] bg-tv-cream/10 border border-tv-cream/10 p-10 text-center text-tv-cream/40">
                   <Library size={36} className="mx-auto mb-3 opacity-30" />
-                  <p className="font-bold">Nessun libro in sede ancora.</p>
-                  <p className="text-sm mt-1 opacity-70">I libri marcati come "disponibili in sede" dall'admin appariranno qui.</p>
+                  <p className="font-bold">Nessun libro disponibile al momento.</p>
+                  <p className="text-sm mt-1 opacity-70">Torna presto — la nostra biblioteca condivisa è in continua crescita.</p>
                 </div>
               ) : (
                 <>
                   {disponibili.length > 0 && (
                     <div className="mb-10">
-                      <div className="text-xs font-black uppercase tracking-widest text-tv-cream/40 mb-4">✅ Disponibili in sede ({disponibili.length})</div>
+                      <div className="text-xs font-black uppercase tracking-widest text-tv-cream/40 mb-4">✅ Disponibili ({disponibili.length})</div>
                       <div className="grid md:grid-cols-2 gap-4">
                         {disponibili.map((b) => (
                           <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-cream/10 border border-tv-cream/10 p-4">
@@ -485,7 +485,7 @@ export const ClubDelLibro = () => {
   );
 };
 
-// ── Teaser home ──────────────────────────────────────────────────────────────
+// ── Card club per la sezione "I nostri club" in home ─────────────────────────
 export const ClubDelLibroTeaser = () => {
   const [current, setCurrent] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -505,52 +505,66 @@ export const ClubDelLibroTeaser = () => {
 
   const bookReviews = current ? reviews.filter((r) => r.book_id === current.id) : [];
   const avgRating = bookReviews.length
-    ? (bookReviews.reduce((s, r) => s + (r.rating || 5), 0) / bookReviews.length).toFixed(1)
+    ? (bookReviews.reduce((s, r) => s + (r.rating ?? 5), 0) / bookReviews.length).toFixed(1)
     : null;
 
   return (
-    <section className="py-10 md:py-12">
-      <div className="mx-auto max-w-7xl px-6 md:px-10">
-        <Link
-          to="/club-del-libro"
-          className="group flex flex-col sm:flex-row items-start sm:items-center gap-5 rounded-[2rem] bg-tv-green-deep/[0.04] border border-tv-green-deep/10 px-6 py-5 hover:bg-tv-green-deep/8 transition-colors"
-        >
-          {current?.cover_url ? (
-            <img src={current.cover_url} alt={current.title} className="w-14 h-20 object-cover rounded-xl shrink-0 shadow-md" />
-          ) : (
-            <div className="w-12 h-12 rounded-2xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
-              <BookOpen size={22} className="text-tv-green-deep/40" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-1">Club del Libro · Trama Viva</div>
-            {current ? (
-              <>
-                <div className="font-display font-black text-lg text-tv-green-deep leading-tight">
-                  Stiamo leggendo: <span className="italic">{current.title}</span>
-                </div>
-                <div className="text-sm text-tv-green-deep/55 mt-0.5">{current.author}{current.genre ? ` · ${current.genre}` : ""}</div>
-                {avgRating && (
-                  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-tv-green-deep/50">
-                    <span className="text-tv-orange">{"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}</span>
-                    <span className="font-bold">{avgRating}</span>
-                    <span>· {bookReviews.length} recension{bookReviews.length === 1 ? "e" : "i"}</span>
-                  </div>
-                )}
-              </>
+    <Link
+      to="/club-del-libro"
+      className="group flex flex-col rounded-[2rem] bg-white border border-tv-green-deep/10 overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] hover:border-tv-green-deep/20 transition-all"
+    >
+      {/* Accent top */}
+      <div className="h-1.5 bg-gradient-to-r from-tv-green to-tv-green-deep" />
+
+      <div className="p-6 flex-1 flex flex-col gap-5">
+        {/* Header */}
+        <div>
+          <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">
+            <BookOpen size={11} /> Club del Libro
+          </div>
+          <p className="text-sm text-tv-green-deep/55 leading-relaxed">
+            Ci ritroviamo ogni mese attorno a un libro. Si legge, si discute, si lascia qualcosa — una recensione, un voto, un consiglio.
+          </p>
+        </div>
+
+        {/* Libro in lettura */}
+        {current ? (
+          <div className="flex gap-3 items-start rounded-2xl bg-tv-green-deep/[0.04] p-3">
+            {current.cover_url ? (
+              <img src={current.cover_url} alt={current.title} className="w-10 h-14 object-cover rounded-xl shrink-0 shadow-sm" />
             ) : (
-              <>
-                <div className="font-display font-black text-lg text-tv-green-deep">Club del Libro</div>
-                <div className="text-sm text-tv-green-deep/50">Proposte, recensioni e biblioteca in sede</div>
-              </>
+              <div className="w-10 h-14 rounded-xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
+                <BookOpen size={16} className="text-tv-green-deep/30" />
+              </div>
             )}
+            <div className="min-w-0">
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-0.5">Stiamo leggendo</div>
+              <div className="font-bold text-tv-green-deep text-sm leading-tight truncate">{current.title}</div>
+              <div className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{current.author}</div>
+              {avgRating && (
+                <div className="mt-1.5 flex items-center gap-1 text-xs text-tv-green-deep/45">
+                  <span className="text-tv-orange text-[11px]">{"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}</span>
+                  <span className="font-bold">{avgRating}</span>
+                  <span>· {bookReviews.length} rec.</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm shrink-0 group-hover:bg-tv-green transition-colors">
-            Scopri il club <ArrowRight size={14} />
+        ) : (
+          <div className="rounded-2xl bg-tv-green-deep/[0.04] p-3 text-xs text-tv-green-deep/35 italic">
+            Nessuna lettura attiva al momento — le proposte del mese ti aspettano.
           </div>
-        </Link>
+        )}
+
+        {/* CTA */}
+        <div className="mt-auto pt-1 flex items-center justify-between">
+          <span className="text-xs text-tv-green-deep/35">Proposte · Recensioni · Biblioteca</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-tv-green-deep group-hover:text-tv-green transition-colors">
+            Entra nel club <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+          </span>
+        </div>
       </div>
-    </section>
+    </Link>
   );
 };
 

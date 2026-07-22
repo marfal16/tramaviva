@@ -16,6 +16,29 @@ import EventoDettaglio from "./components/EventoDettaglio";
 import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
 import { LibroDettaglio } from "./components/LibroDettaglio";
 
+const ClubsSection = () => (
+  <section className="py-14 md:py-20 px-6 md:px-10">
+    <div className="mx-auto max-w-7xl">
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="w-2.5 h-2.5 rounded-full bg-tv-bordeaux" />
+          <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40">I nostri club</span>
+        </div>
+        <h2 className="font-display font-black text-3xl md:text-4xl text-tv-green-deep leading-tight">
+          Gruppi che si ritrovano, sempre.
+        </h2>
+        <p className="mt-2 text-tv-green-deep/55 max-w-xl">
+          Non eventi isolati, ma comunità con un ritmo: incontri periodici, discussioni, un filo che lega ogni appuntamento al successivo.
+        </p>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <ClubDelLibroTeaser />
+        {/* Future clubs: <CineforumTeaser />, <GiochiDaTavoloTeaser />, … */}
+      </div>
+    </div>
+  </section>
+);
+
 const Home = () => {
   useEffect(() => {
     const io = new IntersectionObserver(
@@ -36,8 +59,8 @@ const Home = () => {
       <Hero />
       <ChiSiamo />
       <Attivita />
-      <ClubDelLibroTeaser />
       <Eventi />
+      <ClubsSection />
       <Iscrizione />
       <Contatti />
       <Footer />
