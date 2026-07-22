@@ -236,6 +236,26 @@ class BookUpdate(BaseModel):
     lent_to: Optional[str] = None
     lent_date: Optional[str] = None
 
+class BookProposal(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    author: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    description: Optional[str] = None
+    proposed_month: str  # "YYYY-MM"
+    votes: int = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class BookProposalCreate(BaseModel):
+    title: str
+    author: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    description: Optional[str] = None
+    proposed_month: Optional[str] = None
+
 class Review(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -243,11 +263,13 @@ class Review(BaseModel):
     book_title: str = ""
     reviewer_name: str
     content: str
+    rating: int = Field(default=5, ge=1, le=5)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class ReviewCreate(BaseModel):
     reviewer_name: str
     content: str
+    rating: int = Field(default=5, ge=1, le=5)
 
 class MemberCreate(BaseModel):
     first_name: str
@@ -1116,6 +1138,54 @@ async def get_book(book_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Libro non trovato")
     return doc
+
+# ========== BOOK PROPOSALS: PUBLIC ==========
+
+@api_router.get("/proposals")
+async def get_proposals(month: Optional[str] = None):
+    query = {"proposed_month": month} if month else {}
+    docs = await db.proposals.find(query, {"_id": 0}).sort("votes", -1).to_list(1000)
+    return docs
+
+@api_router.post("/proposals")
+async def create_proposal(payload: BookProposalCreate):
+    if not payload.title.strip() or not payload.author.strip():
+        raise HTTPException(status_code=400, detail="Titolo e autore sono obbligatori")
+    month = payload.proposed_month or datetime.now(timezone.utc).strftime("%Y-%m")
+    obj = BookProposal(
+        title=payload.title.strip(),
+        author=payload.author.strip(),
+        cover_url=payload.cover_url or None,
+        genre=payload.genre or None,
+        description=payload.description or None,
+        proposed_month=month,
+    )
+    await db.proposals.insert_one(obj.model_dump())
+    return obj.model_dump()
+
+@api_router.post("/proposals/{proposal_id}/vote")
+async def vote_proposal(proposal_id: str):
+    doc = await db.proposals.find_one_and_update(
+        {"id": proposal_id},
+        {"$inc": {"votes": 1}},
+        return_document=True,
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/admin/proposals", dependencies=[Depends(require_admin)])
+async def admin_get_proposals():
+    docs = await db.proposals.find({}, {"_id": 0}).sort("votes", -1).to_list(1000)
+    return docs
+
+@api_router.delete("/admin/proposals/{proposal_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_proposal(proposal_id: str):
+    res = await db.proposals.delete_one({"id": proposal_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    return {"ok": True}
 
 # ========== REVIEWS: PUBLIC ==========
 
