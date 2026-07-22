@@ -1039,8 +1039,6 @@ const Dashboard = ({ token, onLogout }) => {
   // Esegue l'inizializzazione controllata evitando loop infiniti reattivi
   useEffect(() => {
     loadAll();
-    const interval = setInterval(loadAll, 60_000);
-    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
