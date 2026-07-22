@@ -1120,7 +1120,6 @@ const Dashboard = ({ token, onLogout }) => {
             <MembersManager
               members={data.members}
               registrations={data.registrations}
-              onCreate={() => setMemberEditor("new")}
               onEdit={(m) => setMemberEditor(m)}
               onDelete={(id) => remove("members", id)}
             />
@@ -2263,7 +2262,7 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
   </label>
 );
 
-const MembersManager = ({ members, registrations, onCreate, onEdit, onDelete }) => {
+const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
   const fmtDay = (d) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
     catch { return d; }
@@ -2307,10 +2306,7 @@ const MembersManager = ({ members, registrations, onCreate, onEdit, onDelete }) 
 
   return (
     <div data-testid="admin-members-manager">
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <button onClick={onCreate} className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold">
-          <Plus size={18} /> Aggiungi socio
-        </button>
+      <div className="flex items-center justify-end flex-wrap gap-3 mb-4">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs">
             <Users size={13} /> {numbered.length} soci
