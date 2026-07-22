@@ -196,8 +196,11 @@ class Book(BaseModel):
     description: Optional[str] = None
     recensione: Optional[str] = None
     linked_event_ids: List[str] = Field(default_factory=list)
+    pages: Optional[int] = None
     in_biblioteca: bool = False
     is_lent: bool = False
+    is_to_find: bool = False
+    quantity: int = Field(default=1, ge=1)
     lent_to: Optional[str] = None
     lent_date: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -214,8 +217,11 @@ class BookCreate(BaseModel):
     description: Optional[str] = None
     recensione: Optional[str] = None
     linked_event_ids: List[str] = Field(default_factory=list)
+    pages: Optional[int] = None
     in_biblioteca: bool = False
     is_lent: bool = False
+    is_to_find: bool = False
+    quantity: int = Field(default=1, ge=1)
     lent_to: Optional[str] = None
     lent_date: Optional[str] = None
 
@@ -231,8 +237,11 @@ class BookUpdate(BaseModel):
     description: Optional[str] = None
     recensione: Optional[str] = None
     linked_event_ids: Optional[List[str]] = None
+    pages: Optional[int] = None
     in_biblioteca: Optional[bool] = None
     is_lent: Optional[bool] = None
+    is_to_find: Optional[bool] = None
+    quantity: Optional[int] = None
     lent_to: Optional[str] = None
     lent_date: Optional[str] = None
 
@@ -246,6 +255,10 @@ class BookProposal(BaseModel):
     description: Optional[str] = None
     proposed_month: str  # "YYYY-MM"
     votes: int = 0
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
+    in_community_whatsapp: Optional[bool] = None
+    voters: List[dict] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class BookProposalCreate(BaseModel):
@@ -255,6 +268,14 @@ class BookProposalCreate(BaseModel):
     genre: Optional[str] = None
     description: Optional[str] = None
     proposed_month: Optional[str] = None
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
+    in_community_whatsapp: Optional[bool] = None
+
+class VoterCreate(BaseModel):
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
+    in_community_whatsapp: Optional[bool] = None
 
 class Review(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1161,15 +1182,22 @@ async def create_proposal(payload: BookProposalCreate):
         genre=payload.genre or None,
         description=payload.description or None,
         proposed_month=month,
+        nome=payload.nome or None,
+        cognome=payload.cognome or None,
+        in_community_whatsapp=payload.in_community_whatsapp,
     )
     await db.proposals.insert_one(obj.model_dump())
     return obj.model_dump()
 
 @api_router.post("/proposals/{proposal_id}/vote")
-async def vote_proposal(proposal_id: str):
+async def vote_proposal(proposal_id: str, voter: VoterCreate):
+    voter_data = {k: v for k, v in voter.model_dump().items() if v is not None}
+    update_op = {"$inc": {"votes": 1}}
+    if voter_data:
+        update_op["$push"] = {"voters": voter_data}
     doc = await db.proposals.find_one_and_update(
         {"id": proposal_id},
-        {"$inc": {"votes": 1}},
+        update_op,
         return_document=True,
     )
     if not doc:

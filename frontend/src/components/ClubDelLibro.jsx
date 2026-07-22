@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, Send } from "lucide-react";
+import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, MessageCircle } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const VOTED_KEY = "tv_voted_proposals";
+const WHATSAPP_COMMUNITY = "https://chat.whatsapp.com/IXeTAXUIfdK54NiJEaO7Pt";
 
 const getVoted = () => {
   try { return new Set(JSON.parse(localStorage.getItem(VOTED_KEY) || "[]")); }
@@ -26,11 +27,19 @@ const fmtMonthYear = (iso) => {
   catch { return iso; }
 };
 
-const SectionHeading = ({ dot, label, title, sub }) => (
+const getNextMonthTitle = () => {
+  try {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d.toLocaleDateString("it-IT", { month: "long" });
+  } catch { return null; }
+};
+
+const SectionHeading = ({ dot, label, title, sub, labelSize = "text-xs" }) => (
   <div className="mb-8">
     <div className="flex items-center gap-2 mb-3">
       <span className={`w-2.5 h-2.5 rounded-full ${dot}`} />
-      <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/50">{label}</span>
+      <span className={`${labelSize} font-black uppercase tracking-widest text-tv-green-deep/50`}>{label}</span>
     </div>
     <h2 className="font-display font-black text-3xl md:text-4xl text-tv-green-deep leading-tight">{title}</h2>
     {sub && <p className="mt-2 text-tv-green-deep/60">{sub}</p>}
@@ -54,7 +63,9 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="font-display font-black text-lg leading-tight text-tv-green-deep">{book.title}</h3>
+          <Link to={`/club-del-libro/${book.id}`}>
+            <h3 className="font-display font-black text-lg leading-tight text-tv-green-deep hover:text-tv-bordeaux transition-colors">{book.title}</h3>
+          </Link>
           <div className="text-sm text-tv-green-deep/55 mt-0.5">
             {book.author}{book.genre && <span className="italic"> · {book.genre}</span>}
           </div>
@@ -99,7 +110,10 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
 
 // ── Form proposta libro ──────────────────────────────────────────────────────
 const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
-  const [form, setForm] = useState({ title: "", author: "", genre: "", cover_url: "", description: "", proposed_month: currentMonth });
+  const [form, setForm] = useState({
+    title: "", author: "", genre: "", cover_url: "", description: "",
+    proposed_month: currentMonth, nome: "", cognome: "", in_community_whatsapp: null,
+  });
   const [sending, setSending] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -118,6 +132,9 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           cover_url: form.cover_url.trim() || null,
           description: form.description.trim() || null,
           proposed_month: form.proposed_month || currentMonth,
+          nome: form.nome.trim() || null,
+          cognome: form.cognome.trim() || null,
+          in_community_whatsapp: form.in_community_whatsapp,
         }),
       });
       if (!res.ok) throw new Error();
@@ -140,7 +157,30 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
         <form onSubmit={submit} className="p-6 grid gap-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <label>
-              <div className={labelClass}>Titolo *</div>
+              <div className={labelClass}>Il tuo nome *</div>
+              <input className={fieldClass} value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="es. Maria" required />
+            </label>
+            <label>
+              <div className={labelClass}>Il tuo cognome *</div>
+              <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="es. Rossi" required />
+            </label>
+          </div>
+          <div>
+            <div className={labelClass}>Sei nella community WhatsApp del Club del Libro? *</div>
+            <div className="flex gap-3">
+              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+                <input type="radio" name="whatsapp" className="hidden" onChange={() => set("in_community_whatsapp", true)} />
+                ✅ Sì
+              </label>
+              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+                <input type="radio" name="whatsapp" className="hidden" onChange={() => set("in_community_whatsapp", false)} />
+                ❌ No
+              </label>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <label>
+              <div className={labelClass}>Titolo libro *</div>
               <input className={fieldClass} value={form.title} onChange={(e) => set("title", e.target.value)} required />
             </label>
             <label>
@@ -178,40 +218,197 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
   );
 };
 
-// ── Riga proposta nella lista ────────────────────────────────────────────────
-const ProposalRow = ({ proposal, voted, onVote }) => {
-  const hasVoted = voted.has(proposal.id);
+// ── Modal voto (raccoglie nome/cognome/whatsapp) ──────────────────────────────
+const VoteModal = ({ proposal, onVote, onClose }) => {
+  const [form, setForm] = useState({ nome: "", cognome: "", in_community_whatsapp: null });
+  const [sending, setSending] = useState(false);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.nome.trim() || !form.cognome.trim()) return;
+    setSending(true);
+    try {
+      await onVote(proposal.id, { nome: form.nome.trim(), cognome: form.cognome.trim(), in_community_whatsapp: form.in_community_whatsapp });
+      onClose();
+    } catch {}
+    finally { setSending(false); }
+  };
+
+  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
+
   return (
-    <div className="flex items-center gap-4 py-4 border-b border-tv-green-deep/6 last:border-0">
-      {proposal.cover_url ? (
-        <img src={proposal.cover_url} alt={proposal.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
-      ) : (
-        <div className="w-10 h-14 rounded-xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-          <BookOpen size={16} className="text-tv-green-deep/20" />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-tv-green-deep/60 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-tv-green-deep/10">
+          <span className="font-bold text-tv-green-deep text-base">Vota «{proposal.title}»</span>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-tv-green-deep/10"><X size={16} /></button>
         </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="font-bold text-tv-green-deep leading-tight truncate">{proposal.title}</div>
-        <div className="text-sm text-tv-green-deep/55">
-          {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
+        <form onSubmit={submit} className="p-5 grid gap-3">
+          <p className="text-xs text-tv-green-deep/50">Lascia il tuo nome per registrare il voto.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <label>
+              <div className={labelClass}>Nome *</div>
+              <input className={fieldClass} value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Maria" required />
+            </label>
+            <label>
+              <div className={labelClass}>Cognome *</div>
+              <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="Rossi" required />
+            </label>
+          </div>
+          <div>
+            <div className={labelClass}>Sei nella community WhatsApp?</div>
+            <div className="flex gap-2">
+              <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+                <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", true)} /> ✅ Sì
+              </label>
+              <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+                <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", false)} /> ❌ No
+              </label>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
+            <button type="submit" disabled={sending} className="flex-1 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60 flex items-center justify-center gap-1.5">
+              <ThumbsUp size={13} /> {sending ? "…" : "Vota!"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ── Modal dettaglio proposta ─────────────────────────────────────────────────
+const ProposalDetailModal = ({ proposal, voted, onVoteRequest, onClose }) => {
+  const hasVoted = voted.has(proposal.id);
+  const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
+          <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40">Proposta del mese</span>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
+        </div>
+        <div className="p-6 flex gap-5">
+          {proposal.cover_url ? (
+            <img src={proposal.cover_url} alt={proposal.title} className="w-28 h-40 object-cover rounded-2xl shrink-0 shadow-md" />
+          ) : (
+            <div className="w-28 h-40 rounded-2xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
+              <BookOpen size={36} className="text-tv-green-deep/20" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display font-black text-xl leading-tight text-tv-green-deep">{proposal.title}</h3>
+            <div className="text-sm text-tv-green-deep/55 mt-1">
+              {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
+            </div>
+            {proposal.proposed_month && (
+              <div className="mt-2 text-xs text-tv-green-deep/40 flex items-center gap-1">
+                <Calendar size={10} /> Proposto per {fmtMonthYear(proposal.proposed_month)}
+              </div>
+            )}
+            {initials && (
+              <div className="mt-2 flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-full bg-tv-bordeaux text-tv-cream flex items-center justify-center text-[10px] font-black shrink-0">{initials}</div>
+                <span className="text-xs text-tv-green-deep/50">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
+              </div>
+            )}
+            <div className="mt-4">
+              <button
+                onClick={() => { if (!hasVoted) onVoteRequest(); }}
+                disabled={hasVoted}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${
+                  hasVoted
+                    ? "bg-tv-green/15 border border-tv-green/30 text-tv-green-deep cursor-default"
+                    : "bg-tv-orange text-tv-green-deep hover:bg-tv-orange/80 cursor-pointer"
+                }`}
+              >
+                <ThumbsUp size={14} /> {hasVoted ? `Votato · ${proposal.votes}` : `Vota · ${proposal.votes}`}
+              </button>
+            </div>
+          </div>
         </div>
         {proposal.description && (
-          <p className="text-xs text-tv-green-deep/50 mt-0.5 line-clamp-2 leading-relaxed">{proposal.description}</p>
+          <div className="px-6 pb-6">
+            <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
+            <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
+          </div>
         )}
       </div>
-      <button
-        onClick={() => !hasVoted && onVote(proposal.id)}
-        disabled={hasVoted}
-        className={`shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl border transition-colors min-w-[52px] ${
-          hasVoted
-            ? "bg-tv-green/15 border-tv-green/30 text-tv-green-deep cursor-default"
-            : "border-tv-green-deep/15 text-tv-green-deep/50 hover:bg-tv-green-deep/5 hover:border-tv-green-deep/30 cursor-pointer"
-        }`}
-      >
-        <ThumbsUp size={14} />
-        <span className="font-black text-sm">{proposal.votes}</span>
-      </button>
     </div>
+  );
+};
+
+// ── Card proposta nella griglia ──────────────────────────────────────────────
+const ProposalCard = ({ proposal, voted, onVote }) => {
+  const hasVoted = voted.has(proposal.id);
+  const [showDetail, setShowDetail] = useState(false);
+  const [showVoteModal, setShowVoteModal] = useState(false);
+  const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
+
+  return (
+    <>
+      <div className="flex flex-col rounded-[2rem] bg-white border border-tv-green-deep/8 overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] transition-shadow cursor-pointer group"
+           onClick={() => setShowDetail(true)}>
+        {/* Cover */}
+        <div className="relative bg-tv-green-deep/5">
+          {proposal.cover_url ? (
+            <img src={proposal.cover_url} alt={proposal.title}
+                 className="w-full h-52 object-cover group-hover:scale-[1.02] transition-transform duration-300" />
+          ) : (
+            <div className="w-full h-52 flex items-center justify-center">
+              <BookOpen size={40} className="text-tv-green-deep/15" />
+            </div>
+          )}
+          {/* Vote badge */}
+          <div className={`absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black shadow-sm ${
+            hasVoted ? "bg-tv-green text-tv-cream" : "bg-white/90 text-tv-green-deep/70"
+          }`}>
+            <ThumbsUp size={11} /> {proposal.votes}
+          </div>
+        </div>
+
+        {/* Info */}
+        <div className="p-4 flex-1 flex flex-col gap-2">
+          <div>
+            <div className="font-display font-black text-base leading-tight text-tv-green-deep group-hover:text-tv-bordeaux transition-colors line-clamp-2">
+              {proposal.title}
+            </div>
+            <div className="text-sm text-tv-green-deep/55 mt-0.5 truncate">
+              {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
+            </div>
+          </div>
+
+          <div className="mt-auto flex items-center justify-between">
+            {initials ? (
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-5 rounded-full bg-tv-bordeaux/80 text-tv-cream flex items-center justify-center text-[9px] font-black shrink-0">{initials}</div>
+                <span className="text-xs text-tv-green-deep/35 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
+              </div>
+            ) : <span />}
+            <span className="text-xs text-tv-green-deep/30 shrink-0">{fmtMonthYear(proposal.proposed_month)}</span>
+          </div>
+        </div>
+      </div>
+
+      {showDetail && !showVoteModal && (
+        <ProposalDetailModal
+          proposal={proposal}
+          voted={voted}
+          onVoteRequest={() => { setShowDetail(false); setShowVoteModal(true); }}
+          onClose={() => setShowDetail(false)}
+        />
+      )}
+      {showVoteModal && (
+        <VoteModal
+          proposal={proposal}
+          onVote={onVote}
+          onClose={() => setShowVoteModal(false)}
+        />
+      )}
+    </>
   );
 };
 
@@ -232,7 +429,6 @@ const ProposalsSection = () => {
       .finally(() => setLoading(false));
   }, [selectedMonth]);
 
-  // Fetch all proposals to derive available months
   const [allMonths, setAllMonths] = useState([]);
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/proposals`)
@@ -248,9 +444,13 @@ const ProposalsSection = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleVote = async (id) => {
+  const handleVote = async (id, voterInfo) => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/proposals/${id}/vote`, { method: "POST" });
+      const res = await fetch(`${BACKEND_URL}/api/proposals/${id}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(voterInfo || {}),
+      });
       if (!res.ok) throw new Error();
       const updated = await res.json();
       setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)).sort((a, b) => b.votes - a.votes));
@@ -261,6 +461,9 @@ const ProposalsSection = () => {
     } catch {}
   };
 
+  const nextMonthLabel = getNextMonthTitle();
+  const sectionTitle = nextMonthLabel ? `Cosa leggiamo a ${nextMonthLabel}` : "Cosa leggiamo dopo?";
+
   return (
     <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
       <div className="mx-auto max-w-5xl">
@@ -268,7 +471,7 @@ const ProposalsSection = () => {
           <SectionHeading
             dot="bg-tv-orange"
             label="Proposte del mese"
-            title="Cosa leggiamo dopo?"
+            title={sectionTitle}
             sub="Proponi un libro e vota i tuoi preferiti. I più votati diventano le prossime letture."
           />
           <button
@@ -281,7 +484,7 @@ const ProposalsSection = () => {
 
         {/* Filtro mese */}
         {allMonths.length > 1 && (
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-1 no-scrollbar">
+          <div className="flex gap-2 mb-8 overflow-x-auto pb-1 no-scrollbar">
             {allMonths.map((m) => (
               <button
                 key={m}
@@ -296,7 +499,7 @@ const ProposalsSection = () => {
           </div>
         )}
 
-        {/* Lista proposte */}
+        {/* Griglia proposte */}
         {loading ? (
           <div className="text-tv-green-deep/30 text-sm py-8 text-center">Caricamento…</div>
         ) : proposals.length === 0 ? (
@@ -309,9 +512,9 @@ const ProposalsSection = () => {
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 px-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {proposals.map((p) => (
-              <ProposalRow key={p.id} proposal={p} voted={voted} onVote={handleVote} />
+              <ProposalCard key={p.id} proposal={p} voted={voted} onVote={handleVote} />
             ))}
           </div>
         )}
@@ -356,15 +559,16 @@ export const ClubDelLibro = () => {
   const conclusi    = books.filter((b) => b.status === "concluso");
   const prossimi    = books.filter((b) => b.status === "prossimamente");
   const biblioteca  = books.filter((b) => b.in_biblioteca);
-  const disponibili = biblioteca.filter((b) => !b.is_lent);
+  const disponibili = biblioteca.filter((b) => !b.is_lent && !b.is_to_find);
   const inPrestito  = biblioteca.filter((b) => b.is_lent);
+  const daReperire  = books.filter((b) => b.is_to_find);
 
   const cardProps = { reviewsByBook, events };
 
   return (
     <div className="bg-tv-cream">
       {/* Hero */}
-      <section className="pt-32 pb-16 md:pt-40 md:pb-20 px-6 md:px-10">
+      <section className="pt-32 pb-6 md:pt-40 md:pb-8 px-6 md:px-10">
         <div className="mx-auto max-w-5xl">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-tv-green-deep/90 text-tv-cream text-xs font-bold uppercase tracking-wider mb-7">
             <BookOpen size={13} /> Club del Libro · Trama Viva APS
@@ -373,10 +577,29 @@ export const ClubDelLibro = () => {
             Leggiamo <span className="italic font-light text-tv-bordeaux">insieme</span>,<br />cresciamo insieme.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/65">
-            Ogni mese scegliamo un libro, lo discutiamo e lasciamo traccia di quello che ci ha mosso. Puoi leggere, recensire, votare le proposte e prendere in prestito libri dalla nostra biblioteca in sede.
+            Ogni mese scegliamo un libro, lo discutiamo e lasciamo traccia di quello che ci ha mosso. Puoi leggere, recensire, votare le proposte e prendere in prestito libri dalla nostra comunità.
           </p>
         </div>
       </section>
+
+      {/* WhatsApp community strip */}
+      <div className="px-6 md:px-10 pb-6 md:pb-8">
+        <div className="mx-auto max-w-5xl">
+          <a
+            href={WHATSAPP_COMMUNITY}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group"
+          >
+            <MessageCircle size={18} className="text-[#25D366] shrink-0" />
+            <div className="min-w-0">
+              <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/50 mb-0.5">Community WhatsApp</div>
+              <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Club del Libro</div>
+            </div>
+            <ArrowRight size={14} className="text-tv-green-deep/30 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
+          </a>
+        </div>
+      </div>
 
       {loading ? (
         <div className="text-center text-tv-green-deep/40 py-24">Caricamento…</div>
@@ -384,9 +607,9 @@ export const ClubDelLibro = () => {
         <>
           {/* Stiamo leggendo — on top */}
           {inLettura.length > 0 && (
-            <section className="py-14 md:py-20 px-6 md:px-10">
+            <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
               <div className="mx-auto max-w-5xl">
-                <SectionHeading dot="bg-tv-green" label="Ora" title="Stiamo leggendo" />
+                <SectionHeading dot="bg-tv-green" label="Ora in corso" title="Stiamo leggendo" labelSize="text-sm" />
                 <div className="grid md:grid-cols-2 gap-5">
                   {inLettura.map((b) => <BookCard key={b.id} book={b} {...cardProps} />)}
                 </div>
@@ -429,29 +652,30 @@ export const ClubDelLibro = () => {
                   <Library size={18} className="text-tv-orange" />
                   <span className="text-xs font-black uppercase tracking-widest text-tv-cream/50">Biblioteca condivisa</span>
                 </div>
-                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">Libri in circolazione</h2>
+                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">Libri in sospeso</h2>
                 <p className="mt-2 text-tv-cream/55">Libri messi a disposizione dalla nostra comunità. Puoi prenderli in prestito e restituirli al prossimo incontro — contattaci per sapere come.</p>
               </div>
 
-              {biblioteca.length === 0 ? (
+              {biblioteca.length === 0 && daReperire.length === 0 ? (
                 <div className="rounded-[2rem] bg-tv-cream/10 border border-tv-cream/10 p-10 text-center text-tv-cream/40">
                   <Library size={36} className="mx-auto mb-3 opacity-30" />
                   <p className="font-bold">Nessun libro disponibile al momento.</p>
                   <p className="text-sm mt-1 opacity-70">Torna presto — la nostra biblioteca condivisa è in continua crescita.</p>
                 </div>
               ) : (
-                <>
+                <div className="grid gap-8">
                   {disponibili.length > 0 && (
-                    <div className="mb-10">
+                    <div>
                       <div className="text-xs font-black uppercase tracking-widest text-tv-cream/40 mb-4">✅ Disponibili ({disponibili.length})</div>
                       <div className="grid md:grid-cols-2 gap-4">
                         {disponibili.map((b) => (
                           <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-cream/10 border border-tv-cream/10 p-4">
                             {b.cover_url ? <img src={b.cover_url} alt={b.title} className="w-12 h-16 object-cover rounded-xl shrink-0" /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
                               <div className="text-sm text-tv-cream/55">{b.author}</div>
                               {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
+                              {(b.quantity || 1) > 1 && <div className="text-xs text-tv-green/70 mt-1 font-bold">{b.quantity} cop. disponibili</div>}
                             </div>
                           </div>
                         ))}
@@ -460,22 +684,47 @@ export const ClubDelLibro = () => {
                   )}
                   {inPrestito.length > 0 && (
                     <div>
-                      <div className="text-xs font-black uppercase tracking-widest text-tv-orange/80 mb-4">📤 Libro sospeso — in prestito ({inPrestito.length})</div>
+                      <div className="text-xs font-black uppercase tracking-widest text-tv-orange/80 mb-4">📤 In prestito ({inPrestito.length})</div>
                       <div className="grid md:grid-cols-2 gap-4">
                         {inPrestito.map((b) => (
                           <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-bordeaux/20 border border-tv-bordeaux/30 p-4">
                             {b.cover_url ? <img src={b.cover_url} alt={b.title} className="w-12 h-16 object-cover rounded-xl shrink-0 opacity-70" /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
                               <div className="text-sm text-tv-cream/55">{b.author}</div>
-                              {b.lent_date && <div className="text-xs text-tv-orange/70 mt-1 flex items-center gap-1"><Calendar size={10} /> In prestito dal {fmtDay(b.lent_date)}</div>}
+                              {b.lent_to && (
+                                <div className="text-xs text-tv-orange/80 mt-1 flex items-center gap-1.5 font-bold">
+                                  <span className="w-5 h-5 rounded-full bg-tv-orange/30 flex items-center justify-center text-[9px]">{b.lent_to.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}</span>
+                                  {b.lent_to}
+                                </div>
+                              )}
+                              {b.lent_date && <div className="text-xs text-tv-orange/60 mt-0.5 flex items-center gap-1"><Calendar size={10} /> dal {fmtDay(b.lent_date)}</div>}
+                              {(b.quantity || 1) > 1 && <div className="text-xs text-tv-cream/50 mt-1">{b.quantity} copie totali</div>}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
-                </>
+                  {daReperire.length > 0 && (
+                    <div>
+                      <div className="text-xs font-black uppercase tracking-widest text-tv-sky/80 mb-4">🔍 Da reperire in autonomia ({daReperire.length})</div>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        {daReperire.map((b) => (
+                          <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-sky/10 border border-tv-sky/20 p-4">
+                            {b.cover_url ? <img src={b.cover_url} alt={b.title} className="w-12 h-16 object-cover rounded-xl shrink-0 opacity-70" /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
+                            <div className="min-w-0">
+                              <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
+                              <div className="text-sm text-tv-cream/55">{b.author}</div>
+                              {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
+                              <div className="text-xs text-tv-sky/70 mt-1">Acquistalo o cercalo in biblioteca</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </section>
@@ -513,11 +762,9 @@ export const ClubDelLibroTeaser = () => {
       to="/club-del-libro"
       className="group flex flex-col rounded-[2rem] bg-white border border-tv-green-deep/10 overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] hover:border-tv-green-deep/20 transition-all"
     >
-      {/* Accent top */}
       <div className="h-1.5 bg-gradient-to-r from-tv-green to-tv-green-deep" />
 
       <div className="p-6 flex-1 flex flex-col gap-5">
-        {/* Header */}
         <div>
           <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">
             <BookOpen size={11} /> Club del Libro
@@ -527,7 +774,6 @@ export const ClubDelLibroTeaser = () => {
           </p>
         </div>
 
-        {/* Libro in lettura */}
         {current ? (
           <div className="flex gap-3 items-start rounded-2xl bg-tv-green-deep/[0.04] p-3">
             {current.cover_url ? (
@@ -556,7 +802,6 @@ export const ClubDelLibroTeaser = () => {
           </div>
         )}
 
-        {/* CTA */}
         <div className="mt-auto pt-1 flex items-center justify-between">
           <span className="text-xs text-tv-green-deep/35">Proposte · Recensioni · Biblioteca</span>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-tv-green-deep group-hover:text-tv-green transition-colors">

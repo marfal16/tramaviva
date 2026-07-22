@@ -17,7 +17,7 @@ import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
 import { LibroDettaglio } from "./components/LibroDettaglio";
 
 const ClubsSection = () => (
-  <section className="py-14 md:py-20 px-6 md:px-10">
+  <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
     <div className="mx-auto max-w-7xl">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">

@@ -516,7 +516,7 @@ const STATUS_LABELS = {
 const BOOK_EMPTY = {
   title: "", author: "", cover_url: "", genre: "", status: "in_lettura",
   reading_month: "", start_date: "", end_date: "", description: "", recensione: "",
-  linked_event_ids: [], in_biblioteca: false, is_lent: false, lent_to: "", lent_date: "",
+  pages: "", linked_event_ids: [], in_biblioteca: false, is_lent: false, is_to_find: false, quantity: 1, lent_to: "", lent_date: "",
 };
 
 const BookEditor = ({ book, events, onSave, onClose, token }) => {
@@ -538,17 +538,20 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
       const payload = {
         title: form.title.trim(),
         author: form.author.trim(),
-        cover_url: form.cover_url.trim() || null,
-        genre: form.genre.trim() || null,
+        cover_url: form.cover_url?.trim() || null,
+        genre: form.genre?.trim() || null,
         status: form.status,
         reading_month: form.reading_month || null,
         start_date: form.start_date || null,
         end_date: form.end_date || null,
-        description: form.description.trim() || null,
-        recensione: form.recensione.trim() || null,
+        description: form.description?.trim() || null,
+        recensione: form.recensione?.trim() || null,
         linked_event_ids: form.linked_event_ids || [],
+        pages: form.pages ? parseInt(form.pages, 10) : null,
         in_biblioteca: !!form.in_biblioteca,
         is_lent: !!form.is_lent,
+        is_to_find: !!form.is_to_find,
+        quantity: form.quantity ? parseInt(form.quantity, 10) : 1,
         lent_to: form.lent_to?.trim() || null,
         lent_date: form.lent_date || null,
       };
@@ -603,10 +606,14 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               </select>
             </label>
           </div>
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-4 gap-4">
             <label>
               <div className={labelClass}>Mese lettura (AAAA-MM)</div>
               <input className={fieldClass} value={form.reading_month || ""} onChange={e => set("reading_month", e.target.value)} placeholder="es. 2025-07" />
+            </label>
+            <label>
+              <div className={labelClass}>Pagine</div>
+              <input type="number" min="1" className={fieldClass} value={form.pages || ""} onChange={e => set("pages", e.target.value)} placeholder="es. 320" />
             </label>
             <label>
               <div className={labelClass}>Data inizio</div>
@@ -641,6 +648,16 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               <input type="checkbox" checked={!!form.is_lent} onChange={e => set("is_lent", e.target.checked)} className="w-4 h-4 accent-tv-bordeaux" />
               <span className="text-sm font-bold text-tv-bordeaux">In prestito (Libro sospeso)</span>
             </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={!!form.is_to_find} onChange={e => set("is_to_find", e.target.checked)} className="w-4 h-4 accent-tv-orange" />
+              <span className="text-sm font-bold text-tv-orange">Da reperire in autonomia</span>
+            </label>
+            {(form.in_biblioteca || form.is_lent || form.is_to_find) && (
+              <label>
+                <div className={labelClass}>Numero copie disponibili</div>
+                <input type="number" min="1" className={fieldClass} value={form.quantity || 1} onChange={e => set("quantity", e.target.value)} placeholder="es. 1" />
+              </label>
+            )}
             {form.is_lent && (
               <div className="grid sm:grid-cols-2 gap-3">
                 <label>
@@ -655,11 +672,11 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
             )}
           </div>
 
-          {events && events.length > 0 && (
+          {events && events.filter(ev => ev.title?.toLowerCase().includes("club del libro")).length > 0 && (
             <div>
               <div className={labelClass}>Collega a eventi</div>
               <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-                {events.map(ev => (
+                {events.filter(ev => ev.title?.toLowerCase().includes("club del libro")).map(ev => (
                   <label key={ev.id} className="flex items-center gap-2 text-sm text-tv-green-deep cursor-pointer">
                     <input
                       type="checkbox"
@@ -807,6 +824,68 @@ const LoanManager = ({ books, token, onReload }) => {
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+// ── ProposalAdminCard ─────────────────────────────────────────────────────────
+const ProposalAdminCard = ({ p, onDelete }) => {
+  const [showVoters, setShowVoters] = useState(false);
+  const voters = p.voters || [];
+  return (
+    <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-4 flex items-start gap-4">
+      {p.cover_url ? (
+        <img src={p.cover_url} alt={p.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
+      ) : (
+        <div className="w-10 h-14 rounded-xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
+          <BookOpen size={16} className="text-tv-green-deep/25" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="font-bold text-tv-green-deep">{p.title}</span>
+          <span className="text-sm text-tv-green-deep/55">{p.author}</span>
+          {p.genre && <span className="text-xs text-tv-green-deep/40 italic">{p.genre}</span>}
+          <span className="text-xs font-black text-tv-orange">👍 {p.votes} voti</span>
+          <span className="text-xs text-tv-green-deep/30">{p.proposed_month}</span>
+        </div>
+        {(p.nome || p.cognome) && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-tv-green-deep/55">Proposto da: <strong>{[p.nome, p.cognome].filter(Boolean).join(" ")}</strong></span>
+            {p.in_community_whatsapp !== null && p.in_community_whatsapp !== undefined && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                {p.in_community_whatsapp ? "📱 Community" : "Non in community"}
+              </span>
+            )}
+          </div>
+        )}
+        {voters.length > 0 && (
+          <button onClick={() => setShowVoters(v => !v)}
+            className="mt-1.5 text-[11px] font-bold text-tv-sky hover:text-tv-green-deep transition-colors flex items-center gap-1">
+            👥 {voters.length} {voters.length === 1 ? "votante" : "votanti"} {showVoters ? "▲" : "▼"}
+          </button>
+        )}
+        {showVoters && voters.length > 0 && (
+          <div className="mt-2 pl-2 border-l-2 border-tv-sky/30 grid gap-1">
+            {voters.map((v, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-tv-green-deep/70">
+                <div className="w-5 h-5 rounded-full bg-tv-sky/30 text-tv-green-deep flex items-center justify-center font-black text-[9px] shrink-0">
+                  {(v.nome?.[0] || "?").toUpperCase()}
+                </div>
+                <span className="font-medium">{[v.nome, v.cognome].filter(Boolean).join(" ") || "Anonimo"}</span>
+                {v.in_community_whatsapp !== null && v.in_community_whatsapp !== undefined && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${v.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                    {v.in_community_whatsapp ? "📱" : "–"}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux shrink-0">
+        <Trash2 size={13} />
+      </button>
     </div>
   );
 };
@@ -1050,28 +1129,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
           ) : (
             <div className="grid gap-3">
               {[...(proposals || [])].sort((a, b) => b.votes - a.votes).map(p => (
-                <div key={p.id} className="bg-white rounded-2xl border border-tv-green-deep/10 p-4 flex items-start gap-4">
-                  {p.cover_url ? (
-                    <img src={p.cover_url} alt={p.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
-                  ) : (
-                    <div className="w-10 h-14 rounded-xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-                      <BookOpen size={16} className="text-tv-green-deep/25" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="font-bold text-tv-green-deep">{p.title}</span>
-                      <span className="text-sm text-tv-green-deep/55">{p.author}</span>
-                      {p.genre && <span className="text-xs text-tv-green-deep/40 italic">{p.genre}</span>}
-                      <span className="text-xs font-black text-tv-orange">👍 {p.votes} voti</span>
-                      <span className="text-xs text-tv-green-deep/30">{p.proposed_month}</span>
-                    </div>
-                    {p.description && <p className="text-sm text-tv-green-deep/60 mt-1 leading-snug line-clamp-2">{p.description}</p>}
-                  </div>
-                  <button onClick={() => handleDeleteProposal(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux shrink-0">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+                <ProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} />
               ))}
             </div>
           )}
@@ -2498,6 +2556,19 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                                 <span>👥 {row.num_persone || 1} {(row.num_persone || 1) > 1 ? "persone" : "persona"}</span>
                                 {row.opzione_scelta && <span className="text-tv-green-deep/50">{row.opzione_scelta}</span>}
                               </div>
+                              {(row.ospiti || []).length > 0 && (
+                                <div className="mt-1 space-y-0.5">
+                                  {row.ospiti.map((g, i) => (
+                                    <div key={i} className="flex items-center gap-1.5">
+                                      <div className="w-4 h-4 rounded-md bg-tv-green-deep/10 text-tv-green-deep flex items-center justify-center font-bold text-[9px] shrink-0">
+                                        {(g.nome?.[0] || "?").toUpperCase()}
+                                      </div>
+                                      <span className="text-[11px] text-tv-green-deep/60">{g.nome} {g.cognome}</span>
+                                      {g.email && <span className="text-[11px] text-tv-green-deep/35 truncate">· {g.email}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                               {(row.metodo_pagamento || row.donazione_volontaria > 0) && (
                                 <div className="flex flex-wrap gap-1">
                                   {row.donazione_volontaria > 0 && <span className="text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">💚 {row.donazione_volontaria}€</span>}
