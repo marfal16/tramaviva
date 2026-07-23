@@ -1143,7 +1143,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
           </div>
         ) : (
           <div className="grid gap-4">
-            {books.filter(b => !b.is_lent).map(book => {
+            {books.filter(b => !b.is_lent && !b.is_library_book).map(book => {
               const st = STATUS_LABELS[book.status] || STATUS_LABELS.prossimamente;
               const linkedEvents = (book.linked_event_ids || [])
                 .map(id => events.find(e => e.id === id)?.title).filter(Boolean);

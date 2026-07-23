@@ -737,43 +737,24 @@ export const ClubDelLibro = () => {
                 </div>
               ) : (
                 <div className="grid gap-8">
-                  {disponibili.length > 0 && (
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-widest text-tv-cream/40 mb-4">✅ Disponibili ({disponibili.length})</div>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {disponibili.map((b) => (
-                          <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-cream/10 border border-tv-cream/10 p-4">
-                            {b.cover_url ? <img src={b.cover_url} alt={b.title} className="w-12 h-16 object-cover rounded-xl shrink-0" /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
-                              <div className="text-sm text-tv-cream/55">{b.author}</div>
-                              {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
-                              {(b.quantity || 1) > 1 && <div className="text-xs text-tv-green/70 mt-1 font-bold">{b.quantity} cop. disponibili</div>}
+                  {(disponibili.length > 0 || inPrestito.length > 0) && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {[...disponibili, ...inPrestito].map((b) => (
+                        <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-cream/10 border border-tv-cream/10 p-4">
+                          {b.cover_url ? <img src={b.cover_url} alt={b.title} className={`w-12 h-16 object-cover rounded-xl shrink-0${b.is_lent ? " opacity-70" : ""}`} /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
+                            <div className="text-sm text-tv-cream/55">{b.author}</div>
+                            {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
+                            <div className="mt-1 text-xs font-bold">
+                              {b.is_lent
+                                ? <span className="text-tv-orange/70">📤 In prestito{b.lent_date ? <span className="font-normal text-tv-cream/40"> · dal {fmtDay(b.lent_date)}</span> : ""}</span>
+                                : <span className="text-tv-green/70">✅ Disponibile{(b.quantity || 1) > 1 ? <span className="font-normal text-tv-cream/40"> · {b.quantity} cop.</span> : ""}</span>
+                              }
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {inPrestito.length > 0 && (
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-widest text-tv-orange/80 mb-4">📤 In prestito ({inPrestito.length})</div>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {inPrestito.map((b) => (
-                          <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-bordeaux/20 border border-tv-bordeaux/30 p-4">
-                            {b.cover_url ? <img src={b.cover_url} alt={b.title} className="w-12 h-16 object-cover rounded-xl shrink-0 opacity-70" /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
-                              <div className="text-sm text-tv-cream/55">{b.author}</div>
-                              {b.lent_to && (
-                                <div className="text-xs text-tv-orange/60 mt-1 font-medium">📤 In prestito</div>
-                              )}
-                              {b.lent_date && <div className="text-xs text-tv-orange/60 mt-0.5 flex items-center gap-1"><Calendar size={10} /> dal {fmtDay(b.lent_date)}</div>}
-                              {(b.quantity || 1) > 1 && <div className="text-xs text-tv-cream/50 mt-1">{b.quantity} copie totali</div>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                   {daReperire.length > 0 && (
