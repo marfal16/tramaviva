@@ -774,8 +774,8 @@ export const ClubDelLibro = () => {
                   <Library size={18} className="text-tv-orange" />
                   <span className="text-xs font-black uppercase tracking-widest text-tv-cream/50">Biblioteca condivisa</span>
                 </div>
-                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">Libri in sospeso</h2>
-                <p className="mt-2 text-tv-cream/55">Libri messi a disposizione dalla nostra comunità. Puoi prenderli in prestito e restituirli al prossimo incontro — contattaci per sapere come.</p>
+                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">«Il libro sospeso»</h2>
+                <p className="mt-2 text-tv-cream/55">Libri messi a disposizione dalla nostra community. Puoi prenderli in prestito e restituirli al prossimo incontro — contattaci per sapere come.</p>
               </div>
 
               {disponibili.length === 0 && inPrestito.length === 0 && daReperire.length === 0 ? (
@@ -815,10 +815,7 @@ export const ClubDelLibro = () => {
                               <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
                               <div className="text-sm text-tv-cream/55">{b.author}</div>
                               {b.lent_to && (
-                                <div className="text-xs text-tv-orange/80 mt-1 flex items-center gap-1.5 font-bold">
-                                  <span className="w-5 h-5 rounded-full bg-tv-orange/30 flex items-center justify-center text-[9px]">{b.lent_to.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}</span>
-                                  {b.lent_to}
-                                </div>
+                                <div className="text-xs text-tv-orange/60 mt-1 font-medium">📤 In prestito</div>
                               )}
                               {b.lent_date && <div className="text-xs text-tv-orange/60 mt-0.5 flex items-center gap-1"><Calendar size={10} /> dal {fmtDay(b.lent_date)}</div>}
                               {(b.quantity || 1) > 1 && <div className="text-xs text-tv-cream/50 mt-1">{b.quantity} copie totali</div>}
