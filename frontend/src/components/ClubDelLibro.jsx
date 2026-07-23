@@ -629,9 +629,9 @@ export const ClubDelLibro = () => {
     return map;
   }, [reviews]);
 
-  const inLettura   = books.filter((b) => b.status === "in_lettura" && !b.is_lent);
-  const conclusi    = books.filter((b) => b.status === "concluso");
-  const prossimi    = books.filter((b) => b.status === "prossimamente");
+  const inLettura   = books.filter((b) => b.status === "in_lettura" && !b.is_lent && !b.is_library_book);
+  const conclusi    = books.filter((b) => b.status === "concluso" && !b.is_library_book);
+  const prossimi    = books.filter((b) => b.status === "prossimamente" && !b.is_library_book);
   const disponibili = books.filter((b) => b.in_biblioteca && !b.is_lent && !b.is_to_find);
   const inPrestito  = books.filter((b) => b.is_lent);
   const daReperire  = books.filter((b) => b.is_to_find);
