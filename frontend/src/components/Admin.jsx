@@ -833,9 +833,22 @@ const LoanManager = ({ books, token, onReload }) => {
 };
 
 // ── ProposalAdminCard ─────────────────────────────────────────────────────────
-const ProposalAdminCard = ({ p, onDelete }) => {
+const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   const [showVoters, setShowVoters] = useState(false);
+  const [clearingAnon, setClearingAnon] = useState(false);
   const voters = p.voters || [];
+  const anonCount = p.votes - voters.length;
+
+  const handleClearAnon = async () => {
+    if (!window.confirm(`Rimuovere ${anonCount} vot${anonCount === 1 ? "o anonimo" : "i anonimi"}? Rimarranno solo i voti con nome registrato.`)) return;
+    setClearingAnon(true);
+    try {
+      await axios.post(`${API}/admin/proposals/${p.id}/remove-anon-votes`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Voti anonimi rimossi.");
+      onReload();
+    } catch { toast.error("Errore."); }
+    finally { setClearingAnon(false); }
+  };
   return (
     <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-4 flex items-start gap-4">
       {p.cover_url ? (
@@ -887,9 +900,21 @@ const ProposalAdminCard = ({ p, onDelete }) => {
           </div>
         )}
       </div>
-      <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux shrink-0">
-        <Trash2 size={13} />
-      </button>
+      <div className="flex flex-col gap-1 shrink-0">
+        {anonCount > 0 && (
+          <button
+            onClick={handleClearAnon}
+            disabled={clearingAnon}
+            title={`Rimuovi ${anonCount} vot${anonCount === 1 ? "o anonimo" : "i anonimi"}`}
+            className="text-[10px] font-bold px-2 py-1 rounded-full bg-tv-green-deep/8 text-tv-green-deep/50 hover:bg-tv-orange/15 hover:text-tv-orange transition-colors disabled:opacity-50"
+          >
+            {clearingAnon ? "…" : `🕵 ${anonCount} anon.`}
+          </button>
+        )}
+        <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux self-end">
+          <Trash2 size={13} />
+        </button>
+      </div>
     </div>
   );
 };
@@ -1096,7 +1121,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
           ) : (
             <div className="grid gap-3">
               {[...(proposals || [])].sort((a, b) => b.votes - a.votes).map(p => (
-                <ProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} />
+                <ProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />
               ))}
             </div>
           )}

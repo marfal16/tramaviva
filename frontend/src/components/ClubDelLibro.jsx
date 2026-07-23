@@ -371,7 +371,7 @@ const ProposalDetailModal = ({ proposal, voted, onVoteRequest, onUnvoteRequest, 
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
-      <div className="bg-tv-cream rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
           <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40">Proposta del mese</span>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
@@ -476,7 +476,7 @@ const ProposalCard = ({ proposal, voted, onVote, onUnvote }) => {
                 <span className="text-xs text-tv-green-deep/35 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
             ) : <span />}
-            <span className="text-xs text-tv-green-deep/30 shrink-0">{fmtMonthYear(proposal.proposed_month)}</span>
+            <span />
           </div>
         </div>
       </div>

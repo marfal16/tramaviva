@@ -1257,6 +1257,20 @@ async def admin_get_proposals():
     docs = await db.proposals.find({}, {"_id": 0}).sort("votes", -1).to_list(1000)
     return docs
 
+@api_router.post("/admin/proposals/{proposal_id}/remove-anon-votes", dependencies=[Depends(require_admin)])
+async def remove_anon_votes(proposal_id: str):
+    proposal = await db.proposals.find_one({"id": proposal_id})
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    named_voters = [v for v in proposal.get("voters", []) if v.get("nome") or v.get("cognome")]
+    doc = await db.proposals.find_one_and_update(
+        {"id": proposal_id},
+        {"$set": {"voters": named_voters, "votes": len(named_voters)}},
+        return_document=True,
+    )
+    doc.pop("_id", None)
+    return doc
+
 @api_router.delete("/admin/proposals/{proposal_id}", dependencies=[Depends(require_admin)])
 async def admin_delete_proposal(proposal_id: str):
     res = await db.proposals.delete_one({"id": proposal_id})
