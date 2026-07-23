@@ -734,9 +734,10 @@ const LoanManager = ({ books, token, onReload }) => {
   const lentBooks = books.filter(b => b.is_lent);
 
   const handleReturn = async (book) => {
+    if (!window.confirm(`Segnare "${book.title}" come restituito? Il record verrà eliminato.`)) return;
     try {
-      await axios.put(`${API}/admin/books/${book.id}`, { is_lent: false, lent_to: null, lent_date: null }, authHeader);
-      toast.success("Libro segnato come restituito.");
+      await axios.delete(`${API}/admin/books/${book.id}`, authHeader);
+      toast.success("Prestito eliminato.");
       onReload();
     } catch { toast.error("Errore."); }
   };
@@ -749,7 +750,6 @@ const LoanManager = ({ books, token, onReload }) => {
       await axios.post(`${API}/admin/books`, {
         title: form.title.trim(),
         author: form.author.trim() || "—",
-        status: "prossimamente",
         is_lent: true,
         in_biblioteca: true,
         lent_to: form.lent_to.trim(),
