@@ -203,6 +203,7 @@ class Book(BaseModel):
     quantity: int = Field(default=1, ge=1)
     lent_to: Optional[str] = None
     lent_date: Optional[str] = None
+    is_library_book: Optional[bool] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class BookCreate(BaseModel):
@@ -224,6 +225,7 @@ class BookCreate(BaseModel):
     quantity: int = Field(default=1, ge=1)
     lent_to: Optional[str] = None
     lent_date: Optional[str] = None
+    is_library_book: Optional[bool] = None
 
 class BookUpdate(BaseModel):
     title: Optional[str] = None
@@ -244,6 +246,7 @@ class BookUpdate(BaseModel):
     quantity: Optional[int] = None
     lent_to: Optional[str] = None
     lent_date: Optional[str] = None
+    is_library_book: Optional[bool] = None
 
 class BookProposal(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -1327,7 +1330,7 @@ async def admin_create_book(payload: BookCreate):
 
 @api_router.put("/admin/books/{book_id}", dependencies=[Depends(require_admin)])
 async def admin_update_book(book_id: str, payload: BookUpdate):
-    update = {k: v for k, v in payload.model_dump().items() if v is not None}
+    update = {k: v for k, v in payload.model_dump(exclude_unset=True).items()}
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
     res = await db.books.update_one({"id": book_id}, {"$set": update})

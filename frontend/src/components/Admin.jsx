@@ -730,16 +730,55 @@ const LoanManager = ({ books, token, onReload }) => {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ title: "", author: "", cover_url: "", lent_to: "", lent_date: "" });
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
 
-  const lentBooks = books.filter(b => b.is_lent);
+  const libraryBooks = books.filter(b => b.is_library_book || (b.in_biblioteca && b.is_lent));
 
   const handleReturn = async (book) => {
-    if (!window.confirm(`Segnare "${book.title}" come restituito? Il record verrà eliminato.`)) return;
     try {
-      await axios.delete(`${API}/admin/books/${book.id}`, authHeader);
-      toast.success("Prestito eliminato.");
+      await axios.put(`${API}/admin/books/${book.id}`,
+        { is_lent: false, lent_to: null, lent_date: null, is_library_book: true },
+        authHeader
+      );
+      toast.success("Segnato come disponibile.");
       onReload();
     } catch { toast.error("Errore."); }
+  };
+
+  const handleDelete = async (book) => {
+    if (!window.confirm(`Eliminare "${book.title}"?`)) return;
+    try {
+      await axios.delete(`${API}/admin/books/${book.id}`, authHeader);
+      toast.success("Libro eliminato.");
+      onReload();
+    } catch { toast.error("Errore nell'eliminazione."); }
+  };
+
+  const startEdit = (book) => {
+    setEditingId(book.id);
+    setEditForm({ title: book.title || "", author: book.author || "", cover_url: book.cover_url || "", lent_to: book.lent_to || "", lent_date: book.lent_date || "" });
+  };
+
+  const handleSaveEdit = async (book) => {
+    setSavingEdit(true);
+    try {
+      const lent_to = editForm.lent_to.trim();
+      await axios.put(`${API}/admin/books/${book.id}`, {
+        title: editForm.title.trim() || book.title,
+        author: editForm.author.trim() || "—",
+        cover_url: editForm.cover_url.trim() || null,
+        lent_to: lent_to || null,
+        lent_date: editForm.lent_date || null,
+        is_lent: !!lent_to,
+        is_library_book: true,
+      }, authHeader);
+      toast.success("Salvato.");
+      setEditingId(null);
+      onReload();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSavingEdit(false); }
   };
 
   const handleAdd = async (e) => {
@@ -747,16 +786,18 @@ const LoanManager = ({ books, token, onReload }) => {
     if (!form.title.trim()) { toast.error("Inserisci il titolo del libro."); return; }
     setSaving(true);
     try {
+      const lent_to = form.lent_to.trim();
       await axios.post(`${API}/admin/books`, {
         title: form.title.trim(),
         author: form.author.trim() || "—",
         cover_url: form.cover_url.trim() || null,
-        is_lent: true,
-        in_biblioteca: true,
-        lent_to: form.lent_to.trim(),
+        is_lent: !!lent_to,
+        lent_to: lent_to || null,
         lent_date: form.lent_date || null,
+        in_biblioteca: true,
+        is_library_book: true,
       }, authHeader);
-      toast.success("Prestito registrato.");
+      toast.success("Libro aggiunto.");
       setForm({ title: "", author: "", cover_url: "", lent_to: "", lent_date: "" });
       setAdding(false);
       onReload();
@@ -765,29 +806,23 @@ const LoanManager = ({ books, token, onReload }) => {
   };
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
+  const editFieldClass = "w-full px-3 py-2 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
 
   return (
     <div className="space-y-6">
-      {/* Header + bottone aggiungi */}
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-display font-black text-xl text-tv-green-deep">Libri in prestito</h3>
-        </div>
-        <button
-          onClick={() => setAdding(a => !a)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-sm hover:bg-tv-bordeaux/80 transition-colors"
-        >
-          <Plus size={15} /> Registra prestito
+        <h3 className="font-display font-black text-xl text-tv-green-deep">Biblioteca condivisa</h3>
+        <button onClick={() => setAdding(a => !a)} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-sm hover:bg-tv-bordeaux/80 transition-colors">
+          <Plus size={15} /> Aggiungi libro
         </button>
       </div>
 
-      {/* Form aggiunta prestito */}
       {adding && (
         <form onSubmit={handleAdd} className="rounded-2xl border border-tv-bordeaux/20 bg-tv-bordeaux/5 p-5 grid gap-4">
-          <div className="text-sm font-black text-tv-bordeaux uppercase tracking-wider">Nuovo prestito</div>
+          <div className="text-sm font-black text-tv-bordeaux uppercase tracking-wider">Nuovo libro</div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Titolo libro *</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Titolo *</label>
               <input className={fieldClass} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="es. La montagna sei tu" required />
             </div>
             <div>
@@ -801,7 +836,7 @@ const LoanManager = ({ books, token, onReload }) => {
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Prestato a</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Prestato a <span className="text-tv-green-deep/30 normal-case font-normal">(vuoto = disponibile)</span></label>
               <input className={fieldClass} value={form.lent_to} onChange={e => setForm(f => ({ ...f, lent_to: e.target.value }))} placeholder="Nome e cognome del lettore" />
             </div>
             <div>
@@ -811,41 +846,88 @@ const LoanManager = ({ books, token, onReload }) => {
           </div>
           <div className="flex gap-3">
             <button type="button" onClick={() => setAdding(false)} className="px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
-            <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-sm disabled:opacity-60">{saving ? "Salvo…" : "Conferma prestito"}</button>
+            <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-sm disabled:opacity-60">{saving ? "Salvo…" : "Conferma"}</button>
           </div>
         </form>
       )}
 
-      {/* Lista prestiti attivi */}
-      {lentBooks.length === 0 ? (
+      {libraryBooks.length === 0 ? (
         <div className="rounded-2xl bg-white border border-tv-green-deep/10 p-8 text-center text-tv-green-deep/40">
-          Nessun libro in prestito al momento.
+          Nessun libro registrato.
         </div>
       ) : (
         <div className="grid gap-3">
-          {lentBooks.map(book => (
-            <div key={book.id} className="bg-white rounded-2xl border border-tv-bordeaux/15 p-4 flex items-center gap-4">
-              {book.cover_url ? (
-                <img src={book.cover_url} alt={book.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
-              ) : (
-                <div className="w-10 h-14 rounded-xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-                  <BookOpen size={16} className="text-tv-green-deep/25" />
+          {libraryBooks.map(book => (
+            <div key={book.id} className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+              <div className="p-4 flex items-center gap-4">
+                {book.cover_url ? (
+                  <img src={book.cover_url} alt={book.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
+                ) : (
+                  <div className="w-10 h-14 rounded-xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
+                    <BookOpen size={16} className="text-tv-green-deep/25" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-tv-green-deep leading-tight truncate">{book.title}</div>
+                  <div className="text-sm text-tv-green-deep/50">{book.author}</div>
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                    {book.is_lent ? (
+                      <>
+                        <span className="text-tv-bordeaux font-bold">📤 In prestito</span>
+                        {book.lent_to && <span className="text-tv-green-deep/60">👤 {book.lent_to}</span>}
+                        {book.lent_date && <span className="text-tv-green-deep/60">📅 dal {fmtDay(book.lent_date)}</span>}
+                      </>
+                    ) : (
+                      <span className="text-tv-green-deep/60 font-bold">✅ Disponibile</span>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-tv-green-deep leading-tight truncate">{book.title}</div>
-                <div className="text-sm text-tv-green-deep/50">{book.author}</div>
-                <div className="mt-1 flex flex-wrap gap-2 text-xs text-tv-green-deep/60">
-                  {book.lent_to && <span>👤 {book.lent_to}</span>}
-                  {book.lent_date && <span>📅 dal {fmtDay(book.lent_date)}</span>}
+                <div className="flex items-center gap-1 shrink-0">
+                  {book.is_lent && (
+                    <button onClick={() => handleReturn(book)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green/40 transition-colors">
+                      ✓ Restituito
+                    </button>
+                  )}
+                  <button onClick={() => editingId === book.id ? setEditingId(null) : startEdit(book)} className="p-2 rounded-full hover:bg-tv-green-deep/8 text-tv-green-deep/40 hover:text-tv-green-deep transition-colors" title="Modifica">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => handleDelete(book)} className="p-2 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux/40 hover:text-tv-bordeaux transition-colors" title="Elimina">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => handleReturn(book)}
-                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green/40 transition-colors"
-              >
-                ✓ Restituito
-              </button>
+              {editingId === book.id && (
+                <div className="border-t border-tv-green-deep/8 bg-tv-cream/60 p-4 grid gap-3">
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1">Titolo</label>
+                      <input className={editFieldClass} value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1">Autore</label>
+                      <input className={editFieldClass} value={editForm.author} onChange={e => setEditForm(f => ({ ...f, author: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1">URL copertina</label>
+                    <input className={editFieldClass} value={editForm.cover_url} onChange={e => setEditForm(f => ({ ...f, cover_url: e.target.value }))} placeholder="https://..." />
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1">Prestato a <span className="text-tv-green-deep/25 normal-case font-normal">(vuoto = disponibile)</span></label>
+                      <input className={editFieldClass} value={editForm.lent_to} onChange={e => setEditForm(f => ({ ...f, lent_to: e.target.value }))} placeholder="Nome e cognome" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1">Data prestito</label>
+                      <input type="date" className={editFieldClass} value={editForm.lent_date} onChange={e => setEditForm(f => ({ ...f, lent_date: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setEditingId(null)} className="px-3 py-1.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-xs">Annulla</button>
+                    <button type="button" onClick={() => handleSaveEdit(book)} disabled={savingEdit} className="px-4 py-1.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-xs disabled:opacity-60">{savingEdit ? "…" : "Salva"}</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
