@@ -513,6 +513,25 @@ const STATUS_LABELS = {
   prossimamente: { label: "Prossimamente", color: "bg-tv-orange/30 text-tv-green-deep" },
 };
 
+const BOOK_GENRES = [
+  "Romanzo", "Romanzo storico", "Romanzo contemporaneo", "Romanzo rosa",
+  "Giallo", "Thriller", "Mystery", "Horror",
+  "Fantasy", "Fantascienza", "Avventura",
+  "Classico", "Letteratura italiana", "Letteratura straniera",
+  "Narrativa", "Raccolta di racconti",
+  "Biografia", "Autobiografia", "Memorie",
+  "Saggio", "Saggistica",
+  "Self-help", "Crescita personale", "Benessere e Self-Help",
+  "Psicologia", "Filosofia", "Spiritualità",
+  "Storia", "Scienza", "Natura",
+  "Economia", "Business",
+  "Poesia", "Teatro",
+  "Young Adult", "Graphic novel", "Fumetto",
+  "Umorismo", "Satira",
+  "Viaggio", "Arte", "Cucina",
+  "Altro",
+];
+
 const BOOK_EMPTY = {
   title: "", author: "", cover_url: "", genre: "", status: "in_lettura",
   reading_month: "", start_date: "", end_date: "", description: "", recensione: "",
@@ -595,7 +614,10 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
           <div className="grid sm:grid-cols-2 gap-4">
             <label>
               <div className={labelClass}>Genere</div>
-              <input className={fieldClass} value={form.genre} onChange={e => set("genre", e.target.value)} placeholder="es. Giallo, Romanzo…" />
+              <select className={fieldClass} value={form.genre || ""} onChange={e => set("genre", e.target.value)}>
+                <option value="">— Seleziona —</option>
+                {BOOK_GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
             </label>
             <label>
               <div className={labelClass}>Stato</div>
@@ -606,9 +628,9 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               </select>
             </label>
           </div>
-          <div className="grid sm:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-4 gap-4 items-end">
             <label>
-              <div className={labelClass}>Mese lettura (AAAA-MM)</div>
+              <div className={labelClass}>Mese lettura</div>
               <input className={fieldClass} value={form.reading_month || ""} onChange={e => set("reading_month", e.target.value)} placeholder="es. 2025-07" />
             </label>
             <label>
@@ -721,7 +743,7 @@ const LoanManager = ({ books, token, onReload }) => {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.lent_to.trim()) { toast.error("Inserisci il titolo del libro e il nome del lettore."); return; }
+    if (!form.title.trim()) { toast.error("Inserisci il titolo del libro."); return; }
     setSaving(true);
     try {
       await axios.post(`${API}/admin/books`, {
@@ -866,7 +888,7 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
             <span className="text-xs text-tv-green-deep/55">Proposto da: <strong>{[p.nome, p.cognome].filter(Boolean).join(" ")}</strong></span>
             {p.in_community_whatsapp !== null && p.in_community_whatsapp !== undefined && (
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                {p.in_community_whatsapp ? "📱 Community" : "Non in community"}
+                {p.in_community_whatsapp ? "Community" : "Non nella community"}
               </span>
             )}
           </div>
@@ -885,11 +907,9 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
                   {(v.nome?.[0] || "?").toUpperCase()}
                 </div>
                 <span className="font-medium">{[v.nome, v.cognome].filter(Boolean).join(" ") || "Anonimo"}</span>
-                {v.in_community_whatsapp !== null && v.in_community_whatsapp !== undefined && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${v.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                    {v.in_community_whatsapp ? "📱" : "–"}
-                  </span>
-                )}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${v.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  {v.in_community_whatsapp ? "Community" : "Non nella community"}
+                </span>
               </div>
             ))}
           </div>
@@ -919,6 +939,9 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   const [subTab, setSubTab] = useState("catalogo");
   const [editor, setEditor] = useState(null);
   const [expandedReviews, setExpandedReviews] = useState(null);
+  const [addingProposal, setAddingProposal] = useState(false);
+  const [proposalForm, setProposalForm] = useState({ title: "", author: "", genre: "", cover_url: "", description: "" });
+  const [savingProposal, setSavingProposal] = useState(false);
 
   const handleSave = () => onReload();
 
@@ -963,6 +986,28 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
       toast.success("Proposta eliminata.");
       onReload();
     } catch { toast.error("Errore nell'eliminazione."); }
+  };
+
+  const handleAddProposal = async (e) => {
+    e.preventDefault();
+    if (!proposalForm.title.trim() || !proposalForm.author.trim()) { toast.error("Titolo e autore sono obbligatori."); return; }
+    setSavingProposal(true);
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      await axios.post(`${API}/proposals`, {
+        title: proposalForm.title.trim(),
+        author: proposalForm.author.trim(),
+        genre: proposalForm.genre || null,
+        cover_url: proposalForm.cover_url.trim() || null,
+        description: proposalForm.description.trim() || null,
+        proposed_month: currentMonth,
+      });
+      toast.success("Proposta aggiunta.");
+      setProposalForm({ title: "", author: "", genre: "", cover_url: "", description: "" });
+      setAddingProposal(false);
+      onReload();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSavingProposal(false); }
   };
 
   const tabBtn = (key, label, count) => (
@@ -1108,7 +1153,49 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
       {/* ── Proposte ── */}
       {subTab === "proposte" && (
         <div>
-          <h3 className="font-display font-black text-xl text-tv-green-deep mb-5">Proposte dei lettori</h3>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-display font-black text-xl text-tv-green-deep">Proposte dei lettori</h3>
+            <button
+              onClick={() => setAddingProposal(a => !a)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors"
+            >
+              <Plus size={15} /> Aggiungi proposta
+            </button>
+          </div>
+          {addingProposal && (
+            <form onSubmit={handleAddProposal} className="rounded-2xl border border-tv-orange/20 bg-tv-orange/5 p-5 grid gap-4 mb-5">
+              <div className="text-sm font-black text-tv-orange uppercase tracking-wider">Nuova proposta</div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Titolo *</label>
+                  <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.title} onChange={e => setProposalForm(f => ({ ...f, title: e.target.value }))} required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Autore *</label>
+                  <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.author} onChange={e => setProposalForm(f => ({ ...f, author: e.target.value }))} required />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Genere</label>
+                <select className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.genre} onChange={e => setProposalForm(f => ({ ...f, genre: e.target.value }))}>
+                  <option value="">— Seleziona un genere —</option>
+                  {BOOK_GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">URL copertina</label>
+                <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.cover_url} onChange={e => setProposalForm(f => ({ ...f, cover_url: e.target.value }))} placeholder="https://..." />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Descrizione / trama</label>
+                <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm resize-none" rows={3} value={proposalForm.description} onChange={e => setProposalForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setAddingProposal(false)} className="px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
+                <button type="submit" disabled={savingProposal} className="px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60">{savingProposal ? "Salvo…" : "Aggiungi proposta"}</button>
+              </div>
+            </form>
+          )}
           {(proposals || []).length === 0 ? (
             <div className="rounded-2xl bg-white border border-tv-green-deep/10 p-8 text-center text-tv-green-deep/40">
               Nessuna proposta ancora.

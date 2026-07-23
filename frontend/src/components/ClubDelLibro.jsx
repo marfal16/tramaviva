@@ -7,6 +7,25 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const VOTED_KEY = "tv_voted_proposals";
 const WHATSAPP_COMMUNITY = "https://chat.whatsapp.com/IXeTAXUIfdK54NiJEaO7Pt";
 
+const BOOK_GENRES = [
+  "Romanzo", "Romanzo storico", "Romanzo contemporaneo", "Romanzo rosa",
+  "Giallo", "Thriller", "Mystery", "Horror",
+  "Fantasy", "Fantascienza", "Avventura",
+  "Classico", "Letteratura italiana", "Letteratura straniera",
+  "Narrativa", "Raccolta di racconti",
+  "Biografia", "Autobiografia", "Memorie",
+  "Saggio", "Saggistica",
+  "Self-help", "Crescita personale", "Benessere e Self-Help",
+  "Psicologia", "Filosofia", "Spiritualità",
+  "Storia", "Scienza", "Natura",
+  "Economia", "Business",
+  "Poesia", "Teatro",
+  "Young Adult", "Graphic novel", "Fumetto",
+  "Umorismo", "Satira",
+  "Viaggio", "Arte", "Cucina",
+  "Altro",
+];
+
 const getVoted = () => {
   try { return new Set(JSON.parse(localStorage.getItem(VOTED_KEY) || "[]")); }
   catch { return new Set(); }
@@ -178,6 +197,22 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
               </label>
             </div>
           </div>
+          {form.in_community_whatsapp === false && (
+            <div className="rounded-2xl bg-tv-bordeaux/10 border border-tv-bordeaux/25 p-4 grid gap-3">
+              <p className="text-sm font-bold text-tv-green-deep">
+                🔒 Solo i membri della community WhatsApp possono proporre libri.
+              </p>
+              <p className="text-xs text-tv-green-deep/60">Unisciti al gruppo e poi torna qui per fare la tua proposta!</p>
+              <a
+                href={WHATSAPP_COMMUNITY}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-sm hover:bg-[#25D366]/80 transition-colors self-start"
+              >
+                <MessageCircle size={15} /> Unisciti alla community
+              </a>
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 gap-4">
             <label>
               <div className={labelClass}>Titolo libro *</div>
@@ -188,16 +223,13 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
               <input className={fieldClass} value={form.author} onChange={(e) => set("author", e.target.value)} required />
             </label>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <label>
-              <div className={labelClass}>Genere</div>
-              <input className={fieldClass} value={form.genre} onChange={(e) => set("genre", e.target.value)} placeholder="es. Giallo, Romanzo…" />
-            </label>
-            <label>
-              <div className={labelClass}>Mese proposta</div>
-              <input className={fieldClass} value={form.proposed_month} onChange={(e) => set("proposed_month", e.target.value)} placeholder="AAAA-MM" />
-            </label>
-          </div>
+          <label>
+            <div className={labelClass}>Genere</div>
+            <select className={fieldClass} value={form.genre} onChange={(e) => set("genre", e.target.value)}>
+              <option value="">— Seleziona un genere —</option>
+              {BOOK_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </label>
           <label>
             <div className={labelClass}>URL copertina (opzionale)</div>
             <input className={fieldClass} value={form.cover_url} onChange={(e) => set("cover_url", e.target.value)} placeholder="https://..." />
@@ -208,7 +240,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           </label>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
-            <button type="submit" disabled={sending} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
+            <button type="submit" disabled={sending || form.in_community_whatsapp === false} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
               {sending ? "Invio…" : "Proponi"}
             </button>
           </div>
@@ -389,11 +421,6 @@ const ProposalDetailModal = ({ proposal, voted, onVoteRequest, onUnvoteRequest, 
             <div className="text-sm text-tv-green-deep/55 mt-1">
               {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
             </div>
-            {proposal.proposed_month && (
-              <div className="mt-2 text-xs text-tv-green-deep/40 flex items-center gap-1">
-                <Calendar size={10} /> Proposto per {fmtMonthYear(proposal.proposed_month)}
-              </div>
-            )}
             {initials && (
               <div className="mt-2 flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full bg-tv-bordeaux text-tv-cream flex items-center justify-center text-[10px] font-black shrink-0">{initials}</div>
