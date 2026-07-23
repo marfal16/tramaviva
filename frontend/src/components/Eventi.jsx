@@ -327,6 +327,8 @@ const FeaturedCard = ({ ev, onParticipate }) => (
           <Users size={15} />
           {ev.spots <= 0 ? (
             <span className="font-bold opacity-80">🔴 Posti esauriti</span>
+          ) : ev.spots === 1 ? (
+            <span className="font-bold text-tv-orange">⚡ Ultimo posto disponibile!</span>
           ) : ev.spots <= 5 ? (
             <span className="font-bold text-tv-orange">⚡ Ultimi {ev.spots} posti!</span>
           ) : (
@@ -419,6 +421,8 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
           <Users size={14} />
           {ev.spots <= 0 ? (
             <span className="text-tv-bordeaux font-bold">Posti esauriti</span>
+          ) : ev.spots === 1 ? (
+            <span className="text-orange-500 font-bold">⚡ Ultimo posto disponibile!</span>
           ) : ev.spots <= 5 ? (
             <span className="text-orange-500 font-bold">⚡ Ultimi {ev.spots} posti!</span>
           ) : (

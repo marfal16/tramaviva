@@ -331,6 +331,8 @@ export const EventoDettaglio = () => {
                     <Users size={15} />
                     {event.spots <= 0 ? (
                       <span className="font-bold">🔴 Posti esauriti</span>
+                    ) : event.spots === 1 ? (
+                      <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
                     ) : event.spots <= 5 ? (
                       <span className="font-bold text-orange-300">⚡ Ultimi {event.spots} posti!</span>
                     ) : (
