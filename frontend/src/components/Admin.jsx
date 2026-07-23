@@ -930,7 +930,6 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   }, [reviews]);
 
   const lentCount = books.filter(b => b.is_lent).length;
-  const reviewCount = reviews?.length || 0;
   const proposalCount = proposals?.length || 0;
 
   const handleDeleteProposal = async (id) => {
@@ -977,7 +976,6 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
       <div className="flex gap-1 mb-6 p-1 bg-tv-green-deep/5 rounded-2xl w-fit flex-wrap">
         {tabBtn("catalogo", "Catalogo libri", 0)}
         {tabBtn("prestiti", "Prestiti", lentCount)}
-        {tabBtn("recensioni", "Recensioni", reviewCount)}
         {tabBtn("proposte", "Proposte", proposalCount)}
       </div>
 
@@ -989,7 +987,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
           </div>
         ) : (
           <div className="grid gap-4">
-            {books.map(book => {
+            {books.filter(b => !b.is_lent).map(book => {
               const st = STATUS_LABELS[book.status] || STATUS_LABELS.prossimamente;
               const linkedEvents = (book.linked_event_ids || [])
                 .map(id => events.find(e => e.id === id)?.title).filter(Boolean);
@@ -1081,41 +1079,6 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
       {/* ── Prestiti ── */}
       {subTab === "prestiti" && (
         <LoanManager books={books} token={token} onReload={onReload} />
-      )}
-
-      {/* ── Recensioni ── */}
-      {subTab === "recensioni" && (
-        <div>
-          <h3 className="font-display font-black text-xl text-tv-green-deep mb-5">Recensioni dei lettori</h3>
-          {(reviews || []).length === 0 ? (
-            <div className="rounded-2xl bg-white border border-tv-green-deep/10 p-8 text-center text-tv-green-deep/40">
-              Nessuna recensione ancora.
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {(reviews || []).map(r => (
-                <div key={r.id} className="bg-white rounded-2xl border border-tv-green-deep/10 p-4 flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="font-bold text-tv-green-deep text-sm">{r.reviewer_name}</span>
-                      <span className="text-xs text-tv-bordeaux/70">su «{r.book_title}»</span>
-                      <span className="text-xs text-tv-green-deep/35">{fmtDate(r.created_at)}</span>
-                      {r.rating && (
-                        <span className="text-xs font-bold text-tv-orange">
-                          {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-tv-green-deep/70 mt-1 leading-snug">{r.content}</p>
-                  </div>
-                  <button onClick={() => handleDeleteReview(r.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux shrink-0">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       )}
 
       {/* ── Proposte ── */}

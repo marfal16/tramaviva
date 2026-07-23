@@ -222,17 +222,31 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
 const VoteModal = ({ proposal, onVote, onClose }) => {
   const [form, setForm] = useState({ nome: "", cognome: "", in_community_whatsapp: null });
   const [sending, setSending] = useState(false);
+  const [duplicateOf, setDuplicateOf] = useState(null); // nome+cognome del duplicato trovato
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const submit = async (e) => {
-    e.preventDefault();
-    if (!form.nome.trim() || !form.cognome.trim()) return;
+  const doVote = async () => {
     setSending(true);
     try {
       await onVote(proposal.id, { nome: form.nome.trim(), cognome: form.cognome.trim(), in_community_whatsapp: form.in_community_whatsapp });
       onClose();
     } catch {}
     finally { setSending(false); }
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.nome.trim() || !form.cognome.trim()) return;
+    const nome = form.nome.trim().toLowerCase();
+    const cognome = form.cognome.trim().toLowerCase();
+    const existing = (proposal.voters || []).find(
+      (v) => v.nome?.trim().toLowerCase() === nome && v.cognome?.trim().toLowerCase() === cognome
+    );
+    if (existing) {
+      setDuplicateOf(`${existing.nome} ${existing.cognome}`);
+      return;
+    }
+    await doVote();
   };
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
@@ -246,34 +260,54 @@ const VoteModal = ({ proposal, onVote, onClose }) => {
           <button onClick={onClose} className="p-1.5 rounded-full hover:bg-tv-green-deep/10"><X size={16} /></button>
         </div>
         <form onSubmit={submit} className="p-5 grid gap-3">
-          <p className="text-xs text-tv-green-deep/50">Lascia il tuo nome per registrare il voto.</p>
-          <div className="grid grid-cols-2 gap-3">
-            <label>
-              <div className={labelClass}>Nome *</div>
-              <input className={fieldClass} value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Maria" required />
-            </label>
-            <label>
-              <div className={labelClass}>Cognome *</div>
-              <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="Rossi" required />
-            </label>
-          </div>
-          <div>
-            <div className={labelClass}>Sei nella community WhatsApp?</div>
-            <div className="flex gap-2">
-              <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", true)} /> ✅ Sì
-              </label>
-              <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", false)} /> ❌ No
-              </label>
+          {duplicateOf && (
+            <div className="rounded-2xl bg-tv-orange/10 border border-tv-orange/30 p-4 grid gap-3">
+              <p className="text-sm font-bold text-tv-green-deep">
+                ⚠️ È già stato registrato un voto a nome <span className="text-tv-bordeaux">{duplicateOf}</span>.
+              </p>
+              <p className="text-xs text-tv-green-deep/55">Se sei un omonimo puoi comunque procedere.</p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setDuplicateOf(null)} className="flex-1 px-3 py-2 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-xs">
+                  Annulla
+                </button>
+                <button type="button" onClick={doVote} disabled={sending} className="flex-1 px-3 py-2 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-xs disabled:opacity-60">
+                  {sending ? "…" : "Sono un omonimo, vota"}
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
-            <button type="submit" disabled={sending} className="flex-1 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60 flex items-center justify-center gap-1.5">
-              <ThumbsUp size={13} /> {sending ? "…" : "Vota!"}
-            </button>
-          </div>
+          )}
+          {!duplicateOf && (
+            <>
+              <p className="text-xs text-tv-green-deep/50">Lascia il tuo nome per registrare il voto.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <label>
+                  <div className={labelClass}>Nome *</div>
+                  <input className={fieldClass} value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Maria" required />
+                </label>
+                <label>
+                  <div className={labelClass}>Cognome *</div>
+                  <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="Rossi" required />
+                </label>
+              </div>
+              <div>
+                <div className={labelClass}>Sei nella community WhatsApp?</div>
+                <div className="flex gap-2">
+                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+                    <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", true)} /> ✅ Sì
+                  </label>
+                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+                    <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", false)} /> ❌ No
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
+                <button type="submit" disabled={sending} className="flex-1 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60 flex items-center justify-center gap-1.5">
+                  <ThumbsUp size={13} /> {sending ? "…" : "Vota!"}
+                </button>
+              </div>
+            </>
+          )}
         </form>
       </div>
     </div>
@@ -462,7 +496,8 @@ const ProposalsSection = () => {
   };
 
   const nextMonthLabel = getNextMonthTitle();
-  const sectionTitle = nextMonthLabel ? `Cosa leggiamo a ${nextMonthLabel}` : "Cosa leggiamo dopo?";
+  const nextMonthPrep = nextMonthLabel && /^[aeiouAEIOU]/.test(nextMonthLabel) ? "ad" : "a";
+  const sectionTitle = nextMonthLabel ? `Cosa leggiamo ${nextMonthPrep} ${nextMonthLabel}` : "Cosa leggiamo dopo?";
 
   return (
     <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
@@ -555,7 +590,7 @@ export const ClubDelLibro = () => {
     return map;
   }, [reviews]);
 
-  const inLettura   = books.filter((b) => b.status === "in_lettura");
+  const inLettura   = books.filter((b) => b.status === "in_lettura" && !b.is_lent);
   const conclusi    = books.filter((b) => b.status === "concluso");
   const prossimi    = books.filter((b) => b.status === "prossimamente");
   const biblioteca  = books.filter((b) => b.in_biblioteca);
@@ -577,7 +612,7 @@ export const ClubDelLibro = () => {
             Leggiamo <span className="italic font-light text-tv-bordeaux">insieme</span>,<br />cresciamo insieme.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/65">
-            Ogni mese scegliamo un libro, lo discutiamo e lasciamo traccia di quello che ci ha mosso. Puoi leggere, recensire, votare le proposte e prendere in prestito libri dalla nostra comunità.
+            Ogni mese scegliamo un libro, lo discutiamo e condividiamo impressioni, voti e recensioni. Puoi proporre titoli, votare quelli degli altri e prendere libri in prestito dalla nostra comunità.
           </p>
         </div>
       </section>
