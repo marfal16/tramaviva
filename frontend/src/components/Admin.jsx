@@ -734,7 +734,7 @@ const LoanManager = ({ books, token, onReload }) => {
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const libraryBooks = books.filter(b => b.is_library_book || (b.in_biblioteca && b.is_lent));
+  const libraryBooks = books.filter(b => b.is_library_book || b.in_biblioteca);
 
   const handleReturn = async (book) => {
     try {
