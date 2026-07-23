@@ -314,8 +314,67 @@ const VoteModal = ({ proposal, onVote, onClose }) => {
   );
 };
 
+// ── Modal rimozione voto ─────────────────────────────────────────────────────
+const UnvoteModal = ({ proposal, onUnvote, onClose }) => {
+  const [form, setForm] = useState({ nome: "", cognome: "" });
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.nome.trim() || !form.cognome.trim()) return;
+    setSending(true);
+    setError(null);
+    try {
+      await onUnvote(proposal.id, { nome: form.nome.trim(), cognome: form.cognome.trim() });
+      onClose();
+    } catch (err) {
+      setError(err?.message || "Nessun voto trovato per questo nome. Controlla di aver scritto nome e cognome esattamente come quando hai votato.");
+    } finally { setSending(false); }
+  };
+
+  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-tv-green-deep/60 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-tv-green-deep/10">
+          <span className="font-bold text-tv-green-deep text-base">Rimuovi voto da «{proposal.title}»</span>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-tv-green-deep/10"><X size={16} /></button>
+        </div>
+        <form onSubmit={submit} className="p-5 grid gap-3">
+          <p className="text-xs text-tv-green-deep/50">Inserisci nome e cognome usati al momento del voto per rimuoverlo.</p>
+          {error && (
+            <div className="rounded-2xl bg-tv-bordeaux/10 border border-tv-bordeaux/25 p-3 text-xs font-medium text-tv-bordeaux">
+              {error}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <label>
+              <div className={labelClass}>Nome *</div>
+              <input className={fieldClass} value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Maria" required />
+            </label>
+            <label>
+              <div className={labelClass}>Cognome *</div>
+              <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="Rossi" required />
+            </label>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
+            <button type="submit" disabled={sending} className="flex-1 px-4 py-2.5 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-sm disabled:opacity-60">
+              {sending ? "…" : "Rimuovi voto"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ── Modal dettaglio proposta ─────────────────────────────────────────────────
-const ProposalDetailModal = ({ proposal, voted, onVoteRequest, onClose }) => {
+const ProposalDetailModal = ({ proposal, voted, onVoteRequest, onUnvoteRequest, onClose }) => {
   const hasVoted = voted.has(proposal.id);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
   return (
@@ -349,18 +408,20 @@ const ProposalDetailModal = ({ proposal, voted, onVoteRequest, onClose }) => {
                 <span className="text-xs text-tv-green-deep/50">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
             )}
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col gap-2">
               <button
-                onClick={() => { if (!hasVoted) onVoteRequest(); }}
-                disabled={hasVoted}
+                onClick={() => hasVoted ? onUnvoteRequest() : onVoteRequest()}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${
                   hasVoted
-                    ? "bg-tv-green/15 border border-tv-green/30 text-tv-green-deep cursor-default"
-                    : "bg-tv-orange text-tv-green-deep hover:bg-tv-orange/80 cursor-pointer"
+                    ? "bg-tv-green/15 border border-tv-green/30 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:border-tv-bordeaux/30 hover:text-tv-bordeaux"
+                    : "bg-tv-orange text-tv-green-deep hover:bg-tv-orange/80"
                 }`}
               >
                 <ThumbsUp size={14} /> {hasVoted ? `Votato · ${proposal.votes}` : `Vota · ${proposal.votes}`}
               </button>
+              {hasVoted && (
+                <span className="text-[10px] text-tv-green-deep/35">Clicca per rimuovere il tuo voto</span>
+              )}
             </div>
           </div>
         </div>
@@ -376,10 +437,11 @@ const ProposalDetailModal = ({ proposal, voted, onVoteRequest, onClose }) => {
 };
 
 // ── Card proposta nella griglia ──────────────────────────────────────────────
-const ProposalCard = ({ proposal, voted, onVote }) => {
+const ProposalCard = ({ proposal, voted, onVote, onUnvote }) => {
   const hasVoted = voted.has(proposal.id);
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
+  const [showUnvoteModal, setShowUnvoteModal] = useState(false);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
 
   return (
@@ -427,11 +489,12 @@ const ProposalCard = ({ proposal, voted, onVote }) => {
         </div>
       </div>
 
-      {showDetail && !showVoteModal && (
+      {showDetail && !showVoteModal && !showUnvoteModal && (
         <ProposalDetailModal
           proposal={proposal}
           voted={voted}
           onVoteRequest={() => { setShowDetail(false); setShowVoteModal(true); }}
+          onUnvoteRequest={() => { setShowDetail(false); setShowUnvoteModal(true); }}
           onClose={() => setShowDetail(false)}
         />
       )}
@@ -440,6 +503,13 @@ const ProposalCard = ({ proposal, voted, onVote }) => {
           proposal={proposal}
           onVote={onVote}
           onClose={() => setShowVoteModal(false)}
+        />
+      )}
+      {showUnvoteModal && (
+        <UnvoteModal
+          proposal={proposal}
+          onUnvote={onUnvote}
+          onClose={() => setShowUnvoteModal(false)}
         />
       )}
     </>
@@ -493,6 +563,25 @@ const ProposalsSection = () => {
       setVoted(newVoted);
       saveVoted(newVoted);
     } catch {}
+  };
+
+  const handleUnvote = async (id, voterInfo) => {
+    const res = await fetch(`${BACKEND_URL}/api/proposals/${id}/unvote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(voterInfo || {}),
+    });
+    if (!res.ok) {
+      let msg = "Nessun voto trovato per questo nome. Controlla di aver scritto nome e cognome esattamente come quando hai votato.";
+      try { const data = await res.json(); if (data?.detail) msg = data.detail; } catch {}
+      throw new Error(msg);
+    }
+    const updated = await res.json();
+    setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)).sort((a, b) => b.votes - a.votes));
+    const newVoted = new Set(voted);
+    newVoted.delete(id);
+    setVoted(newVoted);
+    saveVoted(newVoted);
   };
 
   const nextMonthLabel = getNextMonthTitle();
@@ -549,7 +638,7 @@ const ProposalsSection = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {proposals.map((p) => (
-              <ProposalCard key={p.id} proposal={p} voted={voted} onVote={handleVote} />
+              <ProposalCard key={p.id} proposal={p} voted={voted} onVote={handleVote} onUnvote={handleUnvote} />
             ))}
           </div>
         )}

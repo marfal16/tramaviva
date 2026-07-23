@@ -1205,6 +1205,36 @@ async def vote_proposal(proposal_id: str, voter: VoterCreate):
     doc.pop("_id", None)
     return doc
 
+@api_router.post("/proposals/{proposal_id}/unvote")
+async def unvote_proposal(proposal_id: str, voter: VoterCreate):
+    if not voter.nome or not voter.cognome:
+        raise HTTPException(status_code=400, detail="Nome e cognome sono obbligatori per rimuovere il voto")
+    proposal = await db.proposals.find_one({"id": proposal_id})
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    nome_lower = voter.nome.strip().lower()
+    cognome_lower = voter.cognome.strip().lower()
+    voters = proposal.get("voters", [])
+    # find index of first matching voter (case-insensitive)
+    idx = next(
+        (i for i, v in enumerate(voters)
+         if v.get("nome", "").strip().lower() == nome_lower
+         and v.get("cognome", "").strip().lower() == cognome_lower),
+        None,
+    )
+    if idx is None:
+        raise HTTPException(status_code=404, detail="Nessun voto trovato per questo nome")
+    new_voters = [v for i, v in enumerate(voters) if i != idx]
+    doc = await db.proposals.find_one_and_update(
+        {"id": proposal_id},
+        {"$set": {"voters": new_voters}, "$inc": {"votes": -1}},
+        return_document=True,
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    doc.pop("_id", None)
+    return doc
+
 @api_router.get("/admin/proposals", dependencies=[Depends(require_admin)])
 async def admin_get_proposals():
     docs = await db.proposals.find({}, {"_id": 0}).sort("votes", -1).to_list(1000)
