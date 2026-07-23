@@ -710,11 +710,10 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
 const LoanManager = ({ books, token, onReload }) => {
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ book_id: "", lent_to: "", lent_date: "" });
+  const [form, setForm] = useState({ title: "", author: "", lent_to: "", lent_date: "" });
   const [saving, setSaving] = useState(false);
 
   const lentBooks = books.filter(b => b.is_lent);
-  const availableBooks = books.filter(b => !b.is_lent);
 
   const handleReturn = async (book) => {
     try {
@@ -726,16 +725,20 @@ const LoanManager = ({ books, token, onReload }) => {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!form.book_id || !form.lent_to.trim()) { toast.error("Seleziona il libro e inserisci il nome."); return; }
+    if (!form.title.trim() || !form.lent_to.trim()) { toast.error("Inserisci il titolo del libro e il nome del lettore."); return; }
     setSaving(true);
     try {
-      await axios.put(`${API}/admin/books/${form.book_id}`, {
+      await axios.post(`${API}/admin/books`, {
+        title: form.title.trim(),
+        author: form.author.trim() || "—",
+        status: "prossimamente",
         is_lent: true,
+        in_biblioteca: true,
         lent_to: form.lent_to.trim(),
         lent_date: form.lent_date || null,
       }, authHeader);
       toast.success("Prestito registrato.");
-      setForm({ book_id: "", lent_to: "", lent_date: "" });
+      setForm({ title: "", author: "", lent_to: "", lent_date: "" });
       setAdding(false);
       onReload();
     } catch { toast.error("Errore nel salvataggio."); }
@@ -764,19 +767,20 @@ const LoanManager = ({ books, token, onReload }) => {
       {adding && (
         <form onSubmit={handleAdd} className="rounded-2xl border border-tv-bordeaux/20 bg-tv-bordeaux/5 p-5 grid gap-4">
           <div className="text-sm font-black text-tv-bordeaux uppercase tracking-wider">Nuovo prestito</div>
-          <div className="grid sm:grid-cols-3 gap-3">
-            <div className="sm:col-span-1">
-              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Libro</label>
-              <select className={fieldClass} value={form.book_id} onChange={e => setForm(f => ({ ...f, book_id: e.target.value }))} required>
-                <option value="">Scegli…</option>
-                {availableBooks.map(b => (
-                  <option key={b.id} value={b.id}>{b.title}</option>
-                ))}
-              </select>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Titolo libro *</label>
+              <input className={fieldClass} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="es. La montagna sei tu" required />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Prestato a</label>
-              <input className={fieldClass} value={form.lent_to} onChange={e => setForm(f => ({ ...f, lent_to: e.target.value }))} placeholder="Nome lettore" required />
+              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Autore</label>
+              <input className={fieldClass} value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="es. Silvia Avallone" />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Prestato a *</label>
+              <input className={fieldClass} value={form.lent_to} onChange={e => setForm(f => ({ ...f, lent_to: e.target.value }))} placeholder="Nome e cognome del lettore" required />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Data prestito</label>

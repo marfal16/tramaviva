@@ -222,31 +222,23 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
 const VoteModal = ({ proposal, onVote, onClose }) => {
   const [form, setForm] = useState({ nome: "", cognome: "", in_community_whatsapp: null });
   const [sending, setSending] = useState(false);
-  const [duplicateOf, setDuplicateOf] = useState(null); // nome+cognome del duplicato trovato
+  const [duplicateOf, setDuplicateOf] = useState(null);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const doVote = async () => {
+  const vote = async (force = false) => {
     setSending(true);
     try {
-      await onVote(proposal.id, { nome: form.nome.trim(), cognome: form.cognome.trim(), in_community_whatsapp: form.in_community_whatsapp });
+      await onVote(proposal.id, { nome: form.nome.trim(), cognome: form.cognome.trim(), in_community_whatsapp: form.in_community_whatsapp }, force);
       onClose();
-    } catch {}
-    finally { setSending(false); }
+    } catch (err) {
+      if (err?.isDuplicate) setDuplicateOf(err.duplicateName);
+    } finally { setSending(false); }
   };
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.nome.trim() || !form.cognome.trim()) return;
-    const nome = form.nome.trim().toLowerCase();
-    const cognome = form.cognome.trim().toLowerCase();
-    const existing = (proposal.voters || []).find(
-      (v) => v.nome?.trim().toLowerCase() === nome && v.cognome?.trim().toLowerCase() === cognome
-    );
-    if (existing) {
-      setDuplicateOf(`${existing.nome} ${existing.cognome}`);
-      return;
-    }
-    await doVote();
+    await vote(false);
   };
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
@@ -270,7 +262,7 @@ const VoteModal = ({ proposal, onVote, onClose }) => {
                 <button type="button" onClick={() => setDuplicateOf(null)} className="flex-1 px-3 py-2 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-xs">
                   Annulla
                 </button>
-                <button type="button" onClick={doVote} disabled={sending} className="flex-1 px-3 py-2 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-xs disabled:opacity-60">
+                <button type="button" onClick={() => vote(true)} disabled={sending} className="flex-1 px-3 py-2 rounded-full bg-tv-bordeaux text-tv-cream font-bold text-xs disabled:opacity-60">
                   {sending ? "…" : "Sono un omonimo, vota"}
                 </button>
               </div>
@@ -548,21 +540,28 @@ const ProposalsSection = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleVote = async (id, voterInfo) => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/proposals/${id}/vote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(voterInfo || {}),
-      });
-      if (!res.ok) throw new Error();
-      const updated = await res.json();
-      setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)).sort((a, b) => b.votes - a.votes));
-      const newVoted = new Set(voted);
-      newVoted.add(id);
-      setVoted(newVoted);
-      saveVoted(newVoted);
-    } catch {}
+  const handleVote = async (id, voterInfo, force = false) => {
+    const url = `${BACKEND_URL}/api/proposals/${id}/vote${force ? "?force=true" : ""}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(voterInfo || {}),
+    });
+    if (res.status === 409) {
+      const data = await res.json();
+      const detail = data?.detail || "";
+      const err = new Error("duplicate");
+      err.isDuplicate = true;
+      err.duplicateName = detail.startsWith("DUPLICATE:") ? detail.slice(10).trim() : "questo nome";
+      throw err;
+    }
+    if (!res.ok) throw new Error("vote failed");
+    const updated = await res.json();
+    setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)).sort((a, b) => b.votes - a.votes));
+    const newVoted = new Set(voted);
+    newVoted.add(id);
+    setVoted(newVoted);
+    saveVoted(newVoted);
   };
 
   const handleUnvote = async (id, voterInfo) => {
@@ -682,9 +681,8 @@ export const ClubDelLibro = () => {
   const inLettura   = books.filter((b) => b.status === "in_lettura" && !b.is_lent);
   const conclusi    = books.filter((b) => b.status === "concluso");
   const prossimi    = books.filter((b) => b.status === "prossimamente");
-  const biblioteca  = books.filter((b) => b.in_biblioteca);
-  const disponibili = biblioteca.filter((b) => !b.is_lent && !b.is_to_find);
-  const inPrestito  = biblioteca.filter((b) => b.is_lent);
+  const disponibili = books.filter((b) => b.in_biblioteca && !b.is_lent && !b.is_to_find);
+  const inPrestito  = books.filter((b) => b.is_lent);
   const daReperire  = books.filter((b) => b.is_to_find);
 
   const cardProps = { reviewsByBook, events };
@@ -701,7 +699,7 @@ export const ClubDelLibro = () => {
             Leggiamo <span className="italic font-light text-tv-bordeaux">insieme</span>,<br />cresciamo insieme.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/65">
-            Ogni mese scegliamo un libro, lo discutiamo e condividiamo impressioni, voti e recensioni. Puoi proporre titoli, votare quelli degli altri e prendere libri in prestito dalla nostra comunità.
+            Ogni mese scegliamo un libro, lo discutiamo e condividiamo impressioni, voti e recensioni. Puoi proporre titoli, votare quelli degli altri e prendere libri in prestito dalla nostra community.
           </p>
         </div>
       </section>
@@ -780,7 +778,7 @@ export const ClubDelLibro = () => {
                 <p className="mt-2 text-tv-cream/55">Libri messi a disposizione dalla nostra comunità. Puoi prenderli in prestito e restituirli al prossimo incontro — contattaci per sapere come.</p>
               </div>
 
-              {biblioteca.length === 0 && daReperire.length === 0 ? (
+              {disponibili.length === 0 && inPrestito.length === 0 && daReperire.length === 0 ? (
                 <div className="rounded-[2rem] bg-tv-cream/10 border border-tv-cream/10 p-10 text-center text-tv-cream/40">
                   <Library size={36} className="mx-auto mb-3 opacity-30" />
                   <p className="font-bold">Nessun libro disponibile al momento.</p>

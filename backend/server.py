@@ -1190,7 +1190,24 @@ async def create_proposal(payload: BookProposalCreate):
     return obj.model_dump()
 
 @api_router.post("/proposals/{proposal_id}/vote")
-async def vote_proposal(proposal_id: str, voter: VoterCreate):
+async def vote_proposal(proposal_id: str, voter: VoterCreate, force: bool = False):
+    if voter.nome and voter.cognome and not force:
+        proposal = await db.proposals.find_one({"id": proposal_id})
+        if not proposal:
+            raise HTTPException(status_code=404, detail="Proposta non trovata")
+        nome_lower = voter.nome.strip().lower()
+        cognome_lower = voter.cognome.strip().lower()
+        existing = next(
+            (v for v in proposal.get("voters", [])
+             if v.get("nome", "").strip().lower() == nome_lower
+             and v.get("cognome", "").strip().lower() == cognome_lower),
+            None,
+        )
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"DUPLICATE:{existing.get('nome', '')} {existing.get('cognome', '')}",
+            )
     voter_data = {k: v for k, v in voter.model_dump().items() if v is not None}
     update_op = {"$inc": {"votes": 1}}
     if voter_data:
