@@ -645,14 +645,10 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               <span className="text-sm font-bold text-tv-green-deep">Disponibile in sede</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={!!form.is_lent} onChange={e => set("is_lent", e.target.checked)} className="w-4 h-4 accent-tv-bordeaux" />
-              <span className="text-sm font-bold text-tv-bordeaux">In prestito (Libro sospeso)</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={!!form.is_to_find} onChange={e => set("is_to_find", e.target.checked)} className="w-4 h-4 accent-tv-orange" />
               <span className="text-sm font-bold text-tv-orange">Da reperire in autonomia</span>
             </label>
-            {(form.in_biblioteca || form.is_lent || form.is_to_find) && (
+            {(form.in_biblioteca || form.is_to_find) && (
               <label>
                 <div className={labelClass}>Numero copie disponibili</div>
                 <input type="number" min="1" className={fieldClass} value={form.quantity || 1} onChange={e => set("quantity", e.target.value)} placeholder="es. 1" />
@@ -753,7 +749,6 @@ const LoanManager = ({ books, token, onReload }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-display font-black text-xl text-tv-green-deep">Libri in prestito</h3>
-          <p className="text-sm text-tv-green-deep/50 mt-0.5">Libri attualmente fuori sede — "Libri sospesi"</p>
         </div>
         <button
           onClick={() => setAdding(a => !a)}
@@ -774,13 +769,13 @@ const LoanManager = ({ books, token, onReload }) => {
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Autore</label>
-              <input className={fieldClass} value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="es. Silvia Avallone" />
+              <input className={fieldClass} value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="es. Elena Ferrante" />
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Prestato a *</label>
-              <input className={fieldClass} value={form.lent_to} onChange={e => setForm(f => ({ ...f, lent_to: e.target.value }))} placeholder="Nome e cognome del lettore" required />
+              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Prestato a</label>
+              <input className={fieldClass} value={form.lent_to} onChange={e => setForm(f => ({ ...f, lent_to: e.target.value }))} placeholder="Nome e cognome del lettore" />
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Data prestito</label>
