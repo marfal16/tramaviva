@@ -728,7 +728,7 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
 const LoanManager = ({ books, token, onReload }) => {
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ title: "", author: "", lent_to: "", lent_date: "" });
+  const [form, setForm] = useState({ title: "", author: "", cover_url: "", lent_to: "", lent_date: "" });
   const [saving, setSaving] = useState(false);
 
   const lentBooks = books.filter(b => b.is_lent);
@@ -750,13 +750,14 @@ const LoanManager = ({ books, token, onReload }) => {
       await axios.post(`${API}/admin/books`, {
         title: form.title.trim(),
         author: form.author.trim() || "—",
+        cover_url: form.cover_url.trim() || null,
         is_lent: true,
         in_biblioteca: true,
         lent_to: form.lent_to.trim(),
         lent_date: form.lent_date || null,
       }, authHeader);
       toast.success("Prestito registrato.");
-      setForm({ title: "", author: "", lent_to: "", lent_date: "" });
+      setForm({ title: "", author: "", cover_url: "", lent_to: "", lent_date: "" });
       setAdding(false);
       onReload();
     } catch { toast.error("Errore nel salvataggio."); }
@@ -793,6 +794,10 @@ const LoanManager = ({ books, token, onReload }) => {
               <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Autore</label>
               <input className={fieldClass} value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="es. Elena Ferrante" />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">URL copertina</label>
+            <input className={fieldClass} value={form.cover_url} onChange={e => setForm(f => ({ ...f, cover_url: e.target.value }))} placeholder="https://..." />
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
