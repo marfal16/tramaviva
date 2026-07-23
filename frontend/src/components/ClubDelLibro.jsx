@@ -816,7 +816,7 @@ export const ClubDelLibroTeaser = () => {
     ])
       .then(([bk, rv]) => {
         const books = Array.isArray(bk) ? bk : [];
-        setCurrent(books.find((b) => b.status === "in_lettura") || null);
+        setCurrent(books.find((b) => b.status === "in_lettura" && !b.is_lent) || null);
         setReviews(Array.isArray(rv) ? rv : []);
       })
       .catch(() => {});
