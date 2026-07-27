@@ -938,8 +938,12 @@ const LoanManager = ({ books, token, onReload }) => {
 
 // ── ProposalAdminCard ─────────────────────────────────────────────────────────
 const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
+  const authHeader = { headers: { Authorization: `Bearer ${token}` } };
   const [showVoters, setShowVoters] = useState(false);
   const [clearingAnon, setClearingAnon] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
   const voters = p.voters || [];
   const anonCount = p.votes - voters.length;
 
@@ -947,76 +951,143 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
     if (!window.confirm(`Rimuovere ${anonCount} vot${anonCount === 1 ? "o anonimo" : "i anonimi"}? Rimarranno solo i voti con nome registrato.`)) return;
     setClearingAnon(true);
     try {
-      await axios.post(`${API}/admin/proposals/${p.id}/remove-anon-votes`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.post(`${API}/admin/proposals/${p.id}/remove-anon-votes`, {}, authHeader);
       toast.success("Voti anonimi rimossi.");
       onReload();
     } catch { toast.error("Errore."); }
     finally { setClearingAnon(false); }
   };
+
+  const startEdit = () => {
+    setEditForm({ title: p.title || "", author: p.author || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "" });
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    setSavingEdit(true);
+    try {
+      await axios.put(`${API}/admin/proposals/${p.id}`, {
+        title: editForm.title.trim() || p.title,
+        author: editForm.author.trim() || p.author,
+        genre: editForm.genre.trim() || null,
+        cover_url: editForm.cover_url.trim() || null,
+        description: editForm.description.trim() || null,
+      }, authHeader);
+      toast.success("Proposta aggiornata.");
+      setEditing(false);
+      onReload();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSavingEdit(false); }
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-4 flex items-start gap-4">
-      {p.cover_url ? (
-        <img src={p.cover_url} alt={p.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
-      ) : (
-        <div className="w-10 h-14 rounded-xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-          <BookOpen size={16} className="text-tv-green-deep/25" />
+    <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+      <div className="p-4 flex items-start gap-4">
+        {p.cover_url ? (
+          <img src={p.cover_url} alt={p.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
+        ) : (
+          <div className="w-10 h-14 rounded-xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
+            <BookOpen size={16} className="text-tv-green-deep/25" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-bold text-tv-green-deep">{p.title}</span>
+            <span className="text-sm text-tv-green-deep/55">{p.author}</span>
+            {p.genre && <span className="text-xs text-tv-green-deep/40 italic">{p.genre}</span>}
+            <span className="text-xs font-black text-tv-orange">👍 {p.votes} voti</span>
+            <span className="text-xs text-tv-green-deep/30">{p.proposed_month}</span>
+          </div>
+          {(p.nome || p.cognome) && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-tv-green-deep/55">Proposto da: <strong>{[p.nome, p.cognome].filter(Boolean).join(" ")}</strong></span>
+              {p.in_community_whatsapp !== null && p.in_community_whatsapp !== undefined && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  {p.in_community_whatsapp ? "Community" : "Non nella community"}
+                </span>
+              )}
+            </div>
+          )}
+          {voters.length > 0 && (
+            <button onClick={() => setShowVoters(v => !v)}
+              className="mt-1.5 text-[11px] font-bold text-tv-sky hover:text-tv-green-deep transition-colors flex items-center gap-1">
+              👥 {voters.length} {voters.length === 1 ? "votante" : "votanti"} {showVoters ? "▲" : "▼"}
+            </button>
+          )}
+          {showVoters && voters.length > 0 && (
+            <div className="mt-2 pl-2 border-l-2 border-tv-sky/30 grid gap-1">
+              {voters.map((v, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-tv-green-deep/70">
+                  <div className="w-5 h-5 rounded-full bg-tv-sky/30 text-tv-green-deep flex items-center justify-center font-black text-[9px] shrink-0">
+                    {(v.nome?.[0] || "?").toUpperCase()}
+                  </div>
+                  <span className="font-medium">{[v.nome, v.cognome].filter(Boolean).join(" ") || "Anonimo"}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${v.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                    {v.in_community_whatsapp ? "Community" : "Non nella community"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1 shrink-0">
+          {anonCount > 0 && (
+            <button
+              onClick={handleClearAnon}
+              disabled={clearingAnon}
+              title={`Rimuovi ${anonCount} vot${anonCount === 1 ? "o anonimo" : "i anonimi"}`}
+              className="text-[10px] font-bold px-2 py-1 rounded-full bg-tv-green-deep/8 text-tv-green-deep/50 hover:bg-tv-orange/15 hover:text-tv-orange transition-colors disabled:opacity-50"
+            >
+              {clearingAnon ? "…" : `🕵 ${anonCount} anon.`}
+            </button>
+          )}
+          <button onClick={startEdit} className="p-1.5 rounded-full hover:bg-tv-sky/10 text-tv-sky self-end" title="Modifica">
+            <Pencil size={13} />
+          </button>
+          <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux self-end" title="Elimina">
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+      {editing && (
+        <div className="border-t border-tv-green-deep/10 bg-tv-cream/30 p-4 grid gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Titolo</label>
+              <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Autore</label>
+              <input value={editForm.author} onChange={e => setEditForm(f => ({ ...f, author: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Genere</label>
+              <input value={editForm.genre} onChange={e => setEditForm(f => ({ ...f, genre: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">URL Copertina</label>
+              <input value={editForm.cover_url} onChange={e => setEditForm(f => ({ ...f, cover_url: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Descrizione</label>
+            <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30 resize-none" />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setEditing(false)} className="text-xs px-3 py-1 rounded-lg border border-tv-green-deep/20 text-tv-green-deep/50 hover:bg-tv-green-deep/5">Annulla</button>
+            <button onClick={handleSaveEdit} disabled={savingEdit} className="text-xs px-3 py-1 rounded-lg bg-tv-green-deep text-white font-bold hover:bg-tv-green-deep/80 disabled:opacity-50">
+              {savingEdit ? "Salvataggio…" : "Salva"}
+            </button>
+          </div>
         </div>
       )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="font-bold text-tv-green-deep">{p.title}</span>
-          <span className="text-sm text-tv-green-deep/55">{p.author}</span>
-          {p.genre && <span className="text-xs text-tv-green-deep/40 italic">{p.genre}</span>}
-          <span className="text-xs font-black text-tv-orange">👍 {p.votes} voti</span>
-          <span className="text-xs text-tv-green-deep/30">{p.proposed_month}</span>
-        </div>
-        {(p.nome || p.cognome) && (
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-tv-green-deep/55">Proposto da: <strong>{[p.nome, p.cognome].filter(Boolean).join(" ")}</strong></span>
-            {p.in_community_whatsapp !== null && p.in_community_whatsapp !== undefined && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                {p.in_community_whatsapp ? "Community" : "Non nella community"}
-              </span>
-            )}
-          </div>
-        )}
-        {voters.length > 0 && (
-          <button onClick={() => setShowVoters(v => !v)}
-            className="mt-1.5 text-[11px] font-bold text-tv-sky hover:text-tv-green-deep transition-colors flex items-center gap-1">
-            👥 {voters.length} {voters.length === 1 ? "votante" : "votanti"} {showVoters ? "▲" : "▼"}
-          </button>
-        )}
-        {showVoters && voters.length > 0 && (
-          <div className="mt-2 pl-2 border-l-2 border-tv-sky/30 grid gap-1">
-            {voters.map((v, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-tv-green-deep/70">
-                <div className="w-5 h-5 rounded-full bg-tv-sky/30 text-tv-green-deep flex items-center justify-center font-black text-[9px] shrink-0">
-                  {(v.nome?.[0] || "?").toUpperCase()}
-                </div>
-                <span className="font-medium">{[v.nome, v.cognome].filter(Boolean).join(" ") || "Anonimo"}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${v.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                  {v.in_community_whatsapp ? "Community" : "Non nella community"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-1 shrink-0">
-        {anonCount > 0 && (
-          <button
-            onClick={handleClearAnon}
-            disabled={clearingAnon}
-            title={`Rimuovi ${anonCount} vot${anonCount === 1 ? "o anonimo" : "i anonimi"}`}
-            className="text-[10px] font-bold px-2 py-1 rounded-full bg-tv-green-deep/8 text-tv-green-deep/50 hover:bg-tv-orange/15 hover:text-tv-orange transition-colors disabled:opacity-50"
-          >
-            {clearingAnon ? "…" : `🕵 ${anonCount} anon.`}
-          </button>
-        )}
-        <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux self-end">
-          <Trash2 size={13} />
-        </button>
-      </div>
     </div>
   );
 };

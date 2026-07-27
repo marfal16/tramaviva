@@ -1275,6 +1275,17 @@ async def remove_anon_votes(proposal_id: str):
     doc.pop("_id", None)
     return doc
 
+@api_router.put("/admin/proposals/{proposal_id}", dependencies=[Depends(require_admin)])
+async def admin_update_proposal(proposal_id: str, payload: dict):
+    allowed = {"title", "author", "genre", "cover_url", "description"}
+    update = {k: v for k, v in payload.items() if k in allowed}
+    if not update:
+        raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    res = await db.proposals.update_one({"id": proposal_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    return await db.proposals.find_one({"id": proposal_id}, {"_id": 0})
+
 @api_router.delete("/admin/proposals/{proposal_id}", dependencies=[Depends(require_admin)])
 async def admin_delete_proposal(proposal_id: str):
     res = await db.proposals.delete_one({"id": proposal_id})
