@@ -1067,6 +1067,31 @@ async def send_event_reminder(event_id: str):
             logger.warning(f"Reminder non inviato a {s.get('email')}: {e}")
     return {"ok": True, "sent": sent}
 
+class NotifyParticipantPayload(BaseModel):
+    email: str
+    name: str
+    subject: str
+    body_text: str
+    notification_type: str
+
+@api_router.post("/admin/events/{event_id}/notify-participant", dependencies=[Depends(require_admin)])
+async def notify_event_participant(event_id: str, payload: NotifyParticipantPayload):
+    event = await db.events.find_one({"id": event_id}, {"_id": 0, "image_data": 0})
+    if not event:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    if not payload.email:
+        raise HTTPException(status_code=400, detail="Email destinatario mancante")
+    email_svc = EmailService()
+    await email_svc.send_participant_notification(
+        email=payload.email,
+        name=payload.name,
+        subject=payload.subject,
+        body_text=payload.body_text,
+        notification_type=payload.notification_type,
+        event_title=event.get("title", ""),
+    )
+    return {"ok": True}
+
 @api_router.post("/admin/event-signups/bulk-confirm", dependencies=[Depends(require_admin)])
 async def bulk_confirm_signups(payload: BulkConfirmPayload):
     confirmed_count = 0

@@ -291,6 +291,58 @@ class EmailService:
         </body>
         </html>"""
 
+    async def send_participant_notification(self, email: str, name: str, subject: str, body_text: str, notification_type: str, event_title: str):
+        if not HAS_SMTP or not self.smtp_user:
+            logger.warning(f"Email service non configurato. Notifica saltata per {email}")
+            return
+        try:
+            html_body = self._get_participant_notification_template(
+                body_text=body_text, notification_type=notification_type, event_title=event_title
+            )
+            await self._send_smtp(email, subject, html_body)
+            logger.info(f"Notifica partecipante inviata a {email} [{notification_type}]")
+        except Exception as e:
+            logger.error(f"Errore invio notifica partecipante: {e}")
+            raise
+
+    def _get_participant_notification_template(self, body_text: str, notification_type: str, event_title: str) -> str:
+        configs = {
+            "cambio_location": {"emoji": "📍", "label": "Aggiornamento location", "header": "linear-gradient(135deg, #F97316 0%, #FBBF24 100%)"},
+            "cambio_data":     {"emoji": "📅", "label": "Cambio data",            "header": "linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)"},
+            "cambio_orario":   {"emoji": "🕐", "label": "Cambio orario",          "header": "linear-gradient(135deg, #D97706 0%, #F59E0B 100%)"},
+            "annullamento":    {"emoji": "❌", "label": "Evento annullato",        "header": "linear-gradient(135deg, #5D1723 0%, #8c2a38 100%)"},
+            "avviso_generico": {"emoji": "📢", "label": "Avviso",                 "header": "linear-gradient(135deg, #2D3A18 0%, #5CB176 100%)"},
+        }
+        cfg = configs.get(notification_type, configs["avviso_generico"])
+        body_html = "".join(
+            f"<p style='margin:0 0 12px;font-size:15px;color:#2D3A18;line-height:1.65;'>{line.replace(chr(10), '<br>')}</p>"
+            for line in body_text.split("\n\n") if line.strip()
+        )
+        return f"""<!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8">
+        <style>
+            {self._base_styles()}
+            .header {{ background: {cfg["header"]}; }}
+        </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <p style="margin:0 0 4px;font-size:12px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.7);">{cfg["emoji"]} {cfg["label"]}</p>
+                    <h1 style="margin:0;font-size:22px;font-weight:900;color:white;">{event_title}</h1>
+                </div>
+                <div class="content">
+                    {body_html}
+                </div>
+                <div class="footer">
+                    <p>Trama Viva APS | "Intrecciamo storie, persone e opportunità"</p>
+                    <p style="margin:4px 0 0;font-size:11px;color:#999;">Hai ricevuto questa email perché sei iscritto a un nostro evento.</p>
+                </div>
+            </div>
+        </body>
+        </html>"""
+
     def _get_event_cancellation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str) -> str:
         return f"""<!DOCTYPE html>
         <html>

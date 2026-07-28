@@ -2295,9 +2295,122 @@ const isPast = (dateStr) => {
   return d < today;
 };
 
+// ─── Notifica partecipante ────────────────────────────────────────────────────
+
+const NOTIFY_PRESETS = {
+  cambio_location: {
+    label: "📍 Cambio location",
+    subject: (t) => `📍 Aggiornamento location: ${t}`,
+    body: (n, t) => `Ciao ${n},\n\nAbbiamo un aggiornamento importante su ${t}: l'evento si terrà in una nuova location!\n\n📍 Nuova location: [inserisci qui la nuova location]\n\nTutte le altre informazioni rimangono invariate. Non vediamo l'ora di vederti!\n\nA presto,\nIl team di Trama Viva APS`,
+  },
+  cambio_data: {
+    label: "📅 Cambio data",
+    subject: (t) => `📅 Cambio data: ${t}`,
+    body: (n, t) => `Ciao ${n},\n\nTi scriviamo per informarti che la data di ${t} è cambiata.\n\n📅 Nuova data: [inserisci qui la nuova data]\n\nSperiamo di rivederti presto! Per qualsiasi domanda scrivici a tramavivaaps@gmail.com.\n\nA presto,\nIl team di Trama Viva APS`,
+  },
+  cambio_orario: {
+    label: "🕐 Cambio orario",
+    subject: (t) => `🕐 Cambio orario: ${t}`,
+    body: (n, t) => `Ciao ${n},\n\nTi scriviamo per informarti che l'orario di ${t} è cambiato.\n\n🕐 Nuovo orario: [inserisci qui il nuovo orario]\n\nTutte le altre informazioni rimangono invariate. A presto!\n\nIl team di Trama Viva APS`,
+  },
+  annullamento: {
+    label: "❌ Annullamento",
+    subject: (t) => `Evento annullato: ${t}`,
+    body: (n, t) => `Ciao ${n},\n\nPurtroppo dobbiamo comunicarti che ${t} è stato annullato.\n\nCi dispiace molto — stiamo già lavorando per organizzare nuovi appuntamenti. Tienici d'occhio!\n\nA presto,\nIl team di Trama Viva APS`,
+  },
+  avviso_generico: {
+    label: "📢 Avviso generico",
+    subject: (t) => `Aggiornamento: ${t}`,
+    body: (n, t) => `Ciao ${n},\n\nHai un messaggio da Trama Viva APS riguardo a ${t}.\n\n[Scrivi qui il tuo messaggio]\n\nA presto,\nIl team di Trama Viva APS`,
+  },
+};
+
+const NotifyModal = ({ signup, event, token, onClose }) => {
+  const name = signup.name || [signup.first_name, signup.last_name].filter(Boolean).join(" ") || "partecipante";
+  const [type, setType] = useState("cambio_location");
+  const [subject, setSubject] = useState(() => NOTIFY_PRESETS.cambio_location.subject(event.title));
+  const [body, setBody] = useState(() => NOTIFY_PRESETS.cambio_location.body(name, event.title));
+  const [sending, setSending] = useState(false);
+
+  const handleTypeChange = (t) => {
+    setType(t);
+    setSubject(NOTIFY_PRESETS[t].subject(event.title));
+    setBody(NOTIFY_PRESETS[t].body(name, event.title));
+  };
+
+  const handleSend = async () => {
+    if (!signup.email) { toast.error("Questo partecipante non ha un'email registrata."); return; }
+    setSending(true);
+    try {
+      await axios.post(`${API}/admin/events/${event.id}/notify-participant`, {
+        email: signup.email, name, subject, body_text: body, notification_type: type,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(`Notifica inviata a ${signup.email}`);
+      onClose();
+    } catch { toast.error("Errore nell'invio della notifica."); }
+    finally { setSending(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-t-[2rem] sm:rounded-[2rem] w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+        <div className="bg-tv-green-deep px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="min-w-0">
+            <p className="text-tv-cream/60 text-[10px] font-bold uppercase tracking-wider">Notifica partecipante</p>
+            <h2 className="text-tv-cream font-black text-base leading-tight truncate">{event.title}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-cream/10 text-tv-cream/60 hover:text-tv-cream ml-3 shrink-0"><X size={16}/></button>
+        </div>
+        <div className="p-5 space-y-4 overflow-y-auto">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1.5">Destinatario</label>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-tv-cream/60 border border-tv-green-deep/10">
+              <Mail size={13} className="text-tv-green-deep/40 shrink-0"/>
+              <span className="text-sm font-semibold text-tv-green-deep truncate">{name}</span>
+              {signup.email && <><span className="text-tv-green-deep/30 shrink-0">·</span><span className="text-xs text-tv-green-deep/55 truncate">{signup.email}</span></>}
+              {!signup.email && <span className="text-xs text-tv-bordeaux font-bold">nessuna email</span>}
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1.5">Tipo avviso</label>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {Object.entries(NOTIFY_PRESETS).map(([key, preset]) => (
+                <button key={key} onClick={() => handleTypeChange(key)}
+                  className={`text-left px-3 py-2 rounded-xl border text-xs font-bold transition-all ${type === key ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/60 hover:border-tv-green-deep/30 hover:bg-tv-cream/50"}`}>
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1.5">Oggetto</label>
+            <input value={subject} onChange={e => setSubject(e.target.value)}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-tv-green-deep/20"/>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1.5">
+              Testo email <span className="normal-case font-normal text-tv-green-deep/30">— modificabile</span>
+            </label>
+            <textarea value={body} onChange={e => setBody(e.target.value)} rows={9}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-tv-green-deep/20 resize-none leading-relaxed"/>
+          </div>
+          <div className="flex gap-2 justify-end pt-1">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl border border-tv-green-deep/20 text-sm text-tv-green-deep/50 hover:bg-tv-cream/60">Annulla</button>
+            <button onClick={handleSend} disabled={sending || !signup.email}
+              className="px-5 py-2 rounded-xl bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green disabled:opacity-50 flex items-center gap-2">
+              {sending ? <Loader2 size={14} className="animate-spin"/> : <Mail size={14}/>}
+              {sending ? "Invio…" : "Invia notifica"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Event signups — master-detail con tabella compatta ──────────────────────
 
-const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onTogglePayment, onDelete, isPastEvent }) => {
+const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onTogglePayment, onDelete, onNotify, isPastEvent }) => {
   const [showGuests, setShowGuests] = useState(false);
   const hasGuests = (row.ospiti || []).length > 0;
   const isFounder = row.is_member && founderEmails.has((row.email || "").toLowerCase());
@@ -2382,6 +2495,12 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
                 ↩
               </button>
             )}
+            {row.email && (
+              <button onClick={() => onNotify(row)} title="Invia notifica email"
+                className="p-1.5 rounded-lg bg-tv-sky/20 text-tv-sky hover:bg-tv-sky hover:text-tv-cream transition-colors">
+                <Mail size={13}/>
+              </button>
+            )}
             <button onClick={() => onDelete(row.id)} title="Elimina"
               className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
               <Trash2 size={13}/>
@@ -2416,6 +2535,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   const [reminderLoading, setReminderLoading] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [notifyTarget, setNotifyTarget] = useState(null);
 
   const eventById = useMemo(() => {
     const map = {};
@@ -2742,6 +2862,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                               onConfirm={onConfirm}
                               onTogglePayment={onTogglePayment}
                               onDelete={onDelete}
+                              onNotify={(row) => setNotifyTarget({ signup: row, event: selectedGroup.ev })}
                               isPastEvent={isPastEvent}
                             />
                           ))}
@@ -2830,6 +2951,12 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                                   ↩
                                 </button>
                               )}
+                              {row.email && (
+                                <button onClick={() => setNotifyTarget({ signup: row, event: selectedGroup.ev })} title="Invia notifica email"
+                                  className="p-1.5 rounded-lg bg-tv-sky/20 text-tv-sky hover:bg-tv-sky hover:text-tv-cream transition-colors">
+                                  <Mail size={13}/>
+                                </button>
+                              )}
                               <button onClick={() => onDelete(row.id)} title="Elimina"
                                 className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
                                 <Trash2 size={13}/>
@@ -2850,6 +2977,14 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
           </div>
         )}
       </div>
+      {notifyTarget && (
+        <NotifyModal
+          signup={notifyTarget.signup}
+          event={notifyTarget.event}
+          token={token}
+          onClose={() => setNotifyTarget(null)}
+        />
+      )}
     </div>
   );
 };
