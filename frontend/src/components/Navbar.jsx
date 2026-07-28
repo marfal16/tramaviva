@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Logo } from "./Logo";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut, ChevronDown } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 
 const links = [
@@ -13,11 +14,24 @@ const links = [
 
 const NAVBAR_HEIGHT = 80; // pixel offset for smooth scroll
 
+const API = process.env.REACT_APP_BACKEND_URL;
+
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  useEffect(() => {
+    const handleClick = e => { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false); };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const handleLogout = () => { logout(); navigate("/"); setUserMenuOpen(false); };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -102,14 +116,51 @@ export const Navbar = () => {
             >
               Club del Libro
             </Link>
-            <a
-              href="#iscrizione"
-              onClick={scrollTo("#iscrizione")}
-              data-testid="nav-cta-iscrizione"
-              className="btn-tv ml-2 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green"
-            >
-              Diventa socio: unisciti alla trama
-            </a>
+            {user ? (
+              <div className="relative ml-2" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(o => !o)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-mint/40 transition-colors"
+                >
+                  {user.has_avatar ? (
+                    <img src={`${API}/api/users/${user.id}/avatar`} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-tv-green-deep text-tv-cream flex items-center justify-center text-xs font-black">
+                      {user.name?.charAt(0)?.toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-sm font-semibold max-w-[100px] truncate">{user.name?.split(" ")[0]}</span>
+                  <ChevronDown size={13} className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-2xl border border-tv-green-deep/10 shadow-lg overflow-hidden z-50">
+                    <Link to="/area-soci" onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-3 text-sm text-tv-green-deep hover:bg-tv-mint/30 transition-colors">
+                      <User size={14} /> Area soci
+                    </Link>
+                    <button onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-sm text-tv-bordeaux hover:bg-tv-bordeaux/5 transition-colors border-t border-tv-green-deep/8">
+                      <LogOut size={14} /> Esci
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link to="/login"
+                className="btn-tv ml-2 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green">
+                Area soci
+              </Link>
+            )}
+            {!user && (
+              <a
+                href="#iscrizione"
+                onClick={scrollTo("#iscrizione")}
+                data-testid="nav-cta-iscrizione"
+                className="btn-tv ml-1 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+              >
+                Diventa socio: unisciti alla trama
+              </a>
+            )}
           </nav>
           <button
             className="md:hidden p-2 rounded-full bg-tv-green-deep text-tv-cream"
@@ -143,14 +194,33 @@ export const Navbar = () => {
             >
               Club del Libro
             </Link>
-            <a
-              href="#iscrizione"
-              onClick={scrollTo("#iscrizione")}
-              className="mt-2 text-center px-4 py-3 rounded-2xl text-base font-bold bg-tv-green-deep text-tv-cream"
-              data-testid="nav-mobile-cta"
-            >
-              Diventa socio: unisciti alla trama
-            </a>
+            {user ? (
+              <>
+                <Link to="/area-soci" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40">
+                  <User size={16} /> Area soci
+                </Link>
+                <button onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-3 rounded-2xl text-base font-semibold text-tv-bordeaux hover:bg-tv-bordeaux/5">
+                  <LogOut size={16} /> Esci
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" onClick={() => setOpen(false)}
+                  className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40">
+                  Area soci — Accedi
+                </Link>
+                <a
+                  href="#iscrizione"
+                  onClick={scrollTo("#iscrizione")}
+                  className="mt-2 text-center px-4 py-3 rounded-2xl text-base font-bold bg-tv-green-deep text-tv-cream"
+                  data-testid="nav-mobile-cta"
+                >
+                  Diventa socio: unisciti alla trama
+                </a>
+              </>
+            )}
           </div>
         )}
       </div>

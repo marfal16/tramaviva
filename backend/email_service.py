@@ -104,6 +104,44 @@ class EmailService:
         except Exception as e:
             logger.error(f"Errore invio email cancellazione evento: {e}")
 
+    async def send_password_reset(self, email: str, name: str, reset_url: str):
+        if not HAS_SMTP or not self.smtp_user:
+            logger.warning(f"SMTP non configurato. Email reset saltata per {email}")
+            return
+        try:
+            subject = "🔑 Reimposta la tua password — Trama Viva APS"
+            html_body = self._get_password_reset_template(name, reset_url)
+            await self._send_smtp(email, subject, html_body)
+            logger.info(f"Email reset password inviata a {email}")
+        except Exception as e:
+            logger.error(f"Errore invio email reset: {e}")
+
+    def _get_password_reset_template(self, name: str, reset_url: str) -> str:
+        return f"""<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Reimposta password</title></head>
+<body style="margin:0;padding:0;background:#F5F0E8;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F0E8;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="100%" style="max-width:560px;background:white;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(5,47,23,0.10);">
+      <tr><td style="background:linear-gradient(135deg,#2D3A18 0%,#5CB176 100%);padding:36px 40px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:8px;">🔑</div>
+        <div style="color:#E8F5E9;font-size:13px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Trama Viva APS</div>
+      </td></tr>
+      <tr><td style="padding:36px 40px;">
+        <p style="margin:0 0 12px;font-size:22px;font-weight:800;color:#2D3A18;">Reimposta la password</p>
+        <p style="margin:0 0 24px;font-size:15px;color:#4a5568;line-height:1.7;">Ciao {name},<br>hai richiesto di reimpostare la password del tuo account. Clicca sul bottone qui sotto — il link è valido per <strong>30 minuti</strong>.</p>
+        <div style="text-align:center;margin:28px 0;">
+          <a href="{reset_url}" style="display:inline-block;background:#2D3A18;color:white;padding:14px 32px;border-radius:99px;text-decoration:none;font-weight:800;font-size:15px;letter-spacing:0.5px;">Reimposta password →</a>
+        </div>
+        <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;line-height:1.6;">Se non hai richiesto il reset, ignora questa email — la tua password rimane invariata.<br>Per problemi scrivi a <a href="mailto:tramavivaaps@gmail.com" style="color:#5CB176;">tramavivaaps@gmail.com</a></p>
+      </td></tr>
+      <tr><td style="background:#2D3A18;padding:20px 40px;text-align:center;">
+        <p style="margin:0;font-size:12px;color:#9ca3af;">© Trama Viva APS · <a href="https://www.tramavivaaps.com" style="color:#5CB176;text-decoration:none;">tramavivaaps.com</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>"""
+
     async def _send_smtp(self, to_email: str, subject: str, html_body: str):
         if not HAS_SMTP:
             logger.warning("aiosmtplib non disponibile")

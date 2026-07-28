@@ -15,6 +15,9 @@ import Admin from "./components/Admin";
 import EventoDettaglio from "./components/EventoDettaglio";
 import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
 import { LibroDettaglio } from "./components/LibroDettaglio";
+import { AuthProvider } from "./context/AuthContext";
+import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./components/Auth";
+import { AreaSoci } from "./components/AreaSoci";
 
 const ClubsSection = () => (
   <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
@@ -125,16 +128,23 @@ const LibroDettaglioPageWrapper = () => {
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-center" richColors />
-      <PaymentReturnHandler />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/eventi/:slug" element={<EventoDettaglio />} />
-        <Route path="/iscrizione" element={<IscrizionePageWrapper />} />
-        <Route path="/club-del-libro" element={<ClubDelLibroPageWrapper />} />
-        <Route path="/club-del-libro/:bookId" element={<LibroDettaglioPageWrapper />} />
-      </Routes>
+      <AuthProvider>
+        <Toaster position="top-center" richColors />
+        <PaymentReturnHandler />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/eventi/:slug" element={<EventoDettaglio />} />
+          <Route path="/iscrizione" element={<IscrizionePageWrapper />} />
+          <Route path="/club-del-libro" element={<ClubDelLibroPageWrapper />} />
+          <Route path="/club-del-libro/:bookId" element={<LibroDettaglioPageWrapper />} />
+          <Route path="/area-soci" element={<AreaSoci />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/registrati" element={<RegisterPage />} />
+          <Route path="/password-dimenticata" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

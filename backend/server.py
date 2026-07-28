@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, Response
 import base64
+import re
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -9,9 +10,16 @@ from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import httpx
 import sys
+
+try:
+    from passlib.context import CryptContext
+    from jose import JWTError, jwt
+    HAS_AUTH = True
+except ImportError:
+    HAS_AUTH = False
 
 # IMPORTANTE: Importiamo il servizio PDF che hai appena configurato
 from pdf_service import PDFService
@@ -712,6 +720,68 @@ async def create_sumup_checkout(payload: PaymentRequest):
 # ========== ADMIN AUTH ==========
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "admin123")
 
+# ========== SOCIO AUTH ==========
+JWT_SECRET = os.environ.get("JWT_SECRET", "tramaviva-secret-CHANGE-IN-PRODUCTION")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_DAYS = 7
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://www.tramavivaaps.com")
+
+if HAS_AUTH:
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+class SocioCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+    name: str
+
+class SocioLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class SocioUpdate(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8)
+
+class AvatarUpload(BaseModel):
+    image_data: str  # base64 dataURL
+
+def _hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def _verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
+
+def _create_access_token(user_id: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRE_DAYS)
+    return jwt.encode({"sub": user_id, "exp": expire}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def require_socio(authorization: Optional[str] = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Accesso riservato ai soci")
+    token = authorization.split(" ", 1)[1].strip()
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Token non valido")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Sessione scaduta, effettua di nuovo il login")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0, "avatar_data": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Utente non trovato")
+    return user
+
 def require_admin(authorization: Optional[str] = Header(default=None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Token mancante")
@@ -726,6 +796,125 @@ async def admin_login(payload: dict):
     if token != ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Password non valida")
     return {"ok": True}
+
+# ========== SOCIO AUTH ENDPOINTS ==========
+
+@api_router.post("/auth/register")
+async def socio_register(payload: SocioCreate):
+    email = payload.email.lower().strip()
+    member = await db.members.find_one({"email": re.compile(f"^{re.escape(email)}$", re.IGNORECASE)})
+    if not member:
+        raise HTTPException(status_code=403, detail="Email non trovata nel registro soci. Contatta l'associazione per diventare socio.")
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=409, detail="Esiste già un account con questa email.")
+    user_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    await db.users.insert_one({
+        "id": user_id,
+        "email": email,
+        "name": payload.name.strip(),
+        "password_hash": _hash_password(payload.password),
+        "bio": None,
+        "has_avatar": False,
+        "created_at": now,
+    })
+    token = _create_access_token(user_id)
+    return {"token": token, "user": {"id": user_id, "email": email, "name": payload.name.strip(), "bio": None, "has_avatar": False}}
+
+@api_router.post("/auth/login")
+async def socio_login(payload: SocioLogin):
+    email = payload.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if not user or not _verify_password(payload.password, user.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Email o password non corretti.")
+    token = _create_access_token(user["id"])
+    return {"token": token, "user": {"id": user["id"], "email": user["email"], "name": user["name"], "bio": user.get("bio"), "has_avatar": user.get("has_avatar", False)}}
+
+@api_router.get("/auth/me")
+async def socio_me(user=Depends(require_socio)):
+    return user
+
+@api_router.put("/auth/me")
+async def socio_update_profile(payload: SocioUpdate, user=Depends(require_socio)):
+    update = {}
+    if payload.name is not None:
+        update["name"] = payload.name.strip()
+    if payload.bio is not None:
+        update["bio"] = payload.bio.strip() or None
+    if update:
+        await db.users.update_one({"id": user["id"]}, {"$set": update})
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password_hash": 0, "avatar_data": 0})
+    return updated
+
+@api_router.post("/auth/me/change-password")
+async def socio_change_password(payload: PasswordChange, user=Depends(require_socio)):
+    full_user = await db.users.find_one({"id": user["id"]})
+    if not _verify_password(payload.current_password, full_user.get("password_hash", "")):
+        raise HTTPException(status_code=400, detail="Password attuale non corretta.")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"password_hash": _hash_password(payload.new_password)}})
+    return {"ok": True}
+
+@api_router.post("/auth/me/avatar")
+async def socio_upload_avatar(payload: AvatarUpload, user=Depends(require_socio)):
+    if not payload.image_data.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="Formato immagine non valido.")
+    await db.users.update_one({"id": user["id"]}, {"$set": {"avatar_data": payload.image_data, "has_avatar": True}})
+    return {"ok": True}
+
+@api_router.get("/users/{user_id}/avatar")
+async def get_user_avatar(user_id: str):
+    user = await db.users.find_one({"id": user_id}, {"avatar_data": 1, "_id": 0})
+    if not user or not user.get("avatar_data"):
+        raise HTTPException(status_code=404, detail="Avatar non trovato")
+    data_url = user["avatar_data"]
+    if "," in data_url:
+        header, b64 = data_url.split(",", 1)
+        content_type = header.split(":")[1].split(";")[0] if ":" in header else "image/jpeg"
+    else:
+        b64, content_type = data_url, "image/jpeg"
+    return Response(content=base64.b64decode(b64), media_type=content_type)
+
+@api_router.post("/auth/forgot-password")
+async def socio_forgot_password(payload: PasswordResetRequest):
+    email = payload.email.lower().strip()
+    user = await db.users.find_one({"email": email})
+    if user:
+        token = str(uuid.uuid4())
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        await db.password_reset_tokens.delete_many({"user_id": user["id"]})
+        await db.password_reset_tokens.insert_one({
+            "token": token, "user_id": user["id"], "email": email, "expires_at": expires_at,
+        })
+        reset_url = f"{FRONTEND_URL}/reset-password/{token}"
+        try:
+            email_svc = EmailService()
+            await email_svc.send_password_reset(email, user.get("name", ""), reset_url)
+        except Exception as e:
+            logger.error(f"Errore invio email reset: {e}")
+    return {"ok": True}
+
+@api_router.post("/auth/reset-password")
+async def socio_reset_password(payload: PasswordReset):
+    record = await db.password_reset_tokens.find_one({"token": payload.token})
+    if not record:
+        raise HTTPException(status_code=400, detail="Link non valido o già utilizzato.")
+    expires = record["expires_at"]
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires:
+        raise HTTPException(status_code=400, detail="Link scaduto. Richiedine uno nuovo.")
+    await db.users.update_one({"id": record["user_id"]}, {"$set": {"password_hash": _hash_password(payload.new_password)}})
+    await db.password_reset_tokens.delete_one({"token": payload.token})
+    return {"ok": True}
+
+@api_router.get("/auth/me/events")
+async def socio_my_events(user=Depends(require_socio)):
+    signups = await db.event_signups.find(
+        {"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)},
+        {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1}
+    ).sort("created_at", -1).to_list(100)
+    return signups
 
 # ========== ADMIN: MEMBERSHIPS & REGISTRATIONS ==========
 @api_router.get("/admin/memberships", dependencies=[Depends(require_admin)])
