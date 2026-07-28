@@ -38,10 +38,10 @@ export const Footer = () => (
           </div>
           <ul className="space-y-2">
             {[
-              ["#chi-siamo", "Chi siamo"],
-              ["#attivita", "Attività"],
-              ["#eventi", "Eventi"],
-              ["#contatti", "Contatti"],
+              ["/#chi-siamo", "Chi siamo"],
+              ["/#attivita", "Attività"],
+              ["/#eventi", "Eventi"],
+              ["/#contatti", "Contatti"],
             ].map(([h, l]) => (
               <li key={h}>
                 <a href={h} className="hover:text-tv-mint transition-colors">{l}</a>
@@ -58,7 +58,7 @@ export const Footer = () => (
               </Link>
             </li>
             <li>
-              <a href="#iscrizione" className="hover:text-tv-mint transition-colors">
+              <a href="/#iscrizione" className="hover:text-tv-mint transition-colors">
                 Diventa socio
               </a>
             </li>
