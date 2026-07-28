@@ -725,11 +725,11 @@ export const AreaSoci = () => {
                                   )}
                                 </div>
 
-                                {m.category && (
+                                {(m.event_title || m.category) && (
                                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-block mb-1 ${
                                     m.unlocked ? "bg-tv-sky/20 text-tv-green-deep/60" : "bg-tv-green-deep/8 text-tv-green-deep/30"
                                   }`}>
-                                    {m.category}
+                                    {m.event_title || m.category}
                                   </span>
                                 )}
 
@@ -752,9 +752,12 @@ export const AreaSoci = () => {
                               <div className="mt-2 flex items-center justify-between text-[10px] text-tv-green-deep/30">
                                 <span className="flex items-center gap-1">
                                   <Lock size={9} />
-                                  Ancora {remaining} event{remaining === 1 ? "o" : "i"}{m.category ? ` di "${m.category}"` : ""}
+                                  {m.event_id
+                                    ? `Partecipa a "${m.event_title || "questo evento"}"`
+                                    : `Ancora ${remaining} event${remaining === 1 ? "o" : "i"}${m.category ? ` di "${m.category}"` : ""}`
+                                  }
                                 </span>
-                                <span>{m.current_count}/{m.required_events}</span>
+                                {!m.event_id && <span>{m.current_count}/{m.required_events}</span>}
                               </div>
                             ) : (
                               <p className="mt-2 text-[10px] text-amber-600 font-semibold flex items-center gap-1">

@@ -3452,7 +3452,7 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
 
 // ── MissionsManager ──────────────────────────────────────────────────────────
 
-const MISSION_EMPTY = { title: "", description: "", reward: "", required_events: 1, emoji: "🏆", category: "", order: 0, active: true };
+const MISSION_EMPTY = { title: "", description: "", reward: "", required_events: 1, emoji: "🏆", event_id: "", event_title: "", category: "", order: 0, active: true };
 
 const MissionsManager = ({ missions, events, token, onReload }) => {
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -3464,8 +3464,8 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  // Categorie distinte dagli eventi esistenti
   const availableCategories = [...new Set((events || []).map(e => e.category).filter(Boolean))].sort();
+  const sortedEvents = [...(events || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const handleCreate = async e => {
     e.preventDefault();
@@ -3543,26 +3543,58 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Premio / Gadget *</label>
             <input value={form.reward} onChange={set("reward")} required className={fieldCls} placeholder="Es. Segnalibro Trama Viva" />
           </div>
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Categoria evento</label>
-            <input value={form.category} onChange={set("category")} className={fieldCls} placeholder="Lascia vuoto = tutti gli eventi" />
-            {availableCategories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                <span className="text-[10px] text-tv-green-deep/35 self-center">Categorie esistenti:</span>
+          {/* Tipo condizione */}
+          <div className="col-span-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-2">Condizione sblocco *</label>
+            <div className="flex gap-2 mb-3">
+              {[["all","Tutti gli eventi"],["event","Evento specifico"],["category","Tipologia"]].map(([v,l]) => {
+                const active = v === "all" ? (!form.event_id && !form.category) : v === "event" ? !!form.event_id : !!form.category;
+                return (
+                  <button key={v} type="button"
+                    onClick={() => setForm(f => ({ ...f, event_id: "", event_title: "", category: "" }))}
+                    className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold border transition-colors ${active ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/40"}`}>
+                    {l}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Evento specifico */}
+            {form.event_id !== undefined && (
+              <>
+                <select value={form.event_id} onChange={e => {
+                  const ev = sortedEvents.find(x => x.id === e.target.value);
+                  setForm(f => ({ ...f, event_id: e.target.value, event_title: ev?.title || "", required_events: 1 }));
+                }} className={fieldCls}>
+                  <option value="">— seleziona evento specifico —</option>
+                  {sortedEvents.map(ev => (
+                    <option key={ev.id} value={ev.id}>{ev.title} ({ev.date ? new Date(ev.date).toLocaleDateString("it-IT", { day:"numeric", month:"short", year:"numeric" }) : ""})</option>
+                  ))}
+                </select>
+                {form.event_id && (
+                  <p className="text-[10px] text-tv-green-deep/40 mt-1">La missione si sblocca se il socio ha partecipato a questo evento.</p>
+                )}
+              </>
+            )}
+            {/* Tipologia */}
+            {!form.event_id && availableCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
                 {availableCategories.map(cat => (
                   <button key={cat} type="button"
-                    onClick={() => setForm(f => ({ ...f, category: cat }))}
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${form.category === cat ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/50 hover:text-tv-green-deep"}`}>
+                    onClick={() => setForm(f => ({ ...f, category: cat, event_id: "", event_title: "" }))}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${form.category === cat ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/50"}`}>
                     {cat}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Eventi richiesti *</label>
-            <input type="number" min={1} value={form.required_events} onChange={set("required_events")} required className={fieldCls} />
-          </div>
+          {/* Numero eventi (solo se non è evento specifico) */}
+          {!form.event_id && (
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Eventi richiesti *</label>
+              <input type="number" min={1} value={form.required_events} onChange={set("required_events")} required className={fieldCls} />
+            </div>
+          )}
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Ordine</label>
             <input type="number" min={0} value={form.order} onChange={set("order")} className={fieldCls} />
@@ -3638,17 +3670,33 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
                     <input value={editForm.reward || ""} onChange={e => setEditForm(f => ({ ...f, reward: e.target.value }))} className={fieldCls} placeholder="Premio / Gadget" />
                   </div>
                   <div className="col-span-2">
-                    <input value={editForm.category || ""} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} className={fieldCls} placeholder="Categoria evento (vuoto = tutti)" />
-                    {availableCategories.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {availableCategories.map(cat => (
-                          <button key={cat} type="button"
-                            onClick={() => setEditForm(f => ({ ...f, category: cat }))}
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${editForm.category === cat ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/50"}`}>
-                            {cat}
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 block mb-1">Evento specifico</label>
+                    <select value={editForm.event_id || ""} onChange={e => {
+                      const ev = sortedEvents.find(x => x.id === e.target.value);
+                      setEditForm(f => ({ ...f, event_id: e.target.value, event_title: ev?.title || "", category: e.target.value ? "" : f.category }));
+                    }} className={fieldCls}>
+                      <option value="">— nessun evento specifico —</option>
+                      {sortedEvents.map(ev => (
+                        <option key={ev.id} value={ev.id}>{ev.title}</option>
+                      ))}
+                    </select>
+                    {!editForm.event_id && (
+                      <>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 block mt-2 mb-1">Oppure tipologia</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          <button type="button" onClick={() => setEditForm(f => ({ ...f, category: "" }))}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${!editForm.category ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/50"}`}>
+                            Tutti
                           </button>
-                        ))}
-                      </div>
+                          {availableCategories.map(cat => (
+                            <button key={cat} type="button"
+                              onClick={() => setEditForm(f => ({ ...f, category: cat }))}
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${editForm.category === cat ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/50"}`}>
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
                   <input type="number" min={1} value={editForm.required_events || 1} onChange={e => setEditForm(f => ({ ...f, required_events: e.target.value }))} className={fieldCls} />

@@ -334,9 +334,11 @@ class Mission(BaseModel):
     title: str
     description: str
     reward: str
-    required_events: int
+    required_events: int = 1
     emoji: str = "🏆"
-    category: Optional[str] = None  # se valorizzato, conta solo eventi di questa categoria
+    event_id: Optional[str] = None    # evento specifico (priorità su category)
+    event_title: Optional[str] = None # denormalizzato per display
+    category: Optional[str] = None    # conta eventi per categoria
     order: int = 0
     active: bool = True
 
@@ -346,6 +348,8 @@ class MissionUpdate(BaseModel):
     reward: Optional[str] = None
     required_events: Optional[int] = None
     emoji: Optional[str] = None
+    event_id: Optional[str] = None
+    event_title: Optional[str] = None
     category: Optional[str] = None
     order: Optional[int] = None
     active: Optional[bool] = None
@@ -989,6 +993,7 @@ async def socio_my_missions(user=Depends(require_socio)):
 
     if is_fondatore:
         all_events = await db.events.find({}, {"_id": 0, "id": 1, "category": 1}).to_list(2000)
+        attended_ids: set = {e["id"] for e in all_events}
         total_count = len(all_events)
         category_counts: dict = {}
         for ev in all_events:
@@ -1001,12 +1006,12 @@ async def socio_my_missions(user=Depends(require_socio)):
             {"email": email_re, "confirmed": True},
             {"_id": 0, "event_id": 1}
         ).to_list(2000)
-        event_ids = [s["event_id"] for s in signups]
-        total_count = len(event_ids)
+        attended_ids: set = {s["event_id"] for s in signups}
+        total_count = len(attended_ids)
         category_counts: dict = {}
-        if event_ids:
+        if attended_ids:
             events = await db.events.find(
-                {"id": {"$in": event_ids}},
+                {"id": {"$in": list(attended_ids)}},
                 {"_id": 0, "id": 1, "category": 1}
             ).to_list(2000)
             for ev in events:
@@ -1016,10 +1021,20 @@ async def socio_my_missions(user=Depends(require_socio)):
 
     missions = await db.missions.find({"active": True}, {"_id": 0}).sort("order", 1).to_list(100)
     for m in missions:
+        eid = m.get("event_id")
         cat = (m.get("category") or "").strip()
-        current = category_counts.get(cat, 0) if cat else total_count
-        m["current_count"] = current
-        m["unlocked"] = current >= m["required_events"]
+        if eid:
+            # Missione legata a evento specifico — binario
+            current = 1 if eid in attended_ids else 0
+            m["current_count"] = current
+            m["unlocked"] = current >= 1
+        elif cat:
+            current = category_counts.get(cat, 0)
+            m["current_count"] = current
+            m["unlocked"] = current >= m["required_events"]
+        else:
+            m["current_count"] = total_count
+            m["unlocked"] = total_count >= m["required_events"]
 
     return {"event_count": total_count, "category_counts": category_counts, "is_fondatore": is_fondatore, "missions": missions}
 
