@@ -305,43 +305,72 @@ class EmailService:
             logger.error(f"Errore invio notifica partecipante: {e}")
             raise
 
+    def _render_notification_markdown(self, text: str, accent: str) -> str:
+        import re
+        paragraphs = text.split("\n\n")
+        rendered = []
+        for para in paragraphs:
+            if not para.strip():
+                continue
+            para = re.sub(
+                r'\*\*(.*?)\*\*',
+                lambda m: f'<strong style="color:{accent};">{m.group(1)}</strong>',
+                para
+            )
+            para = re.sub(
+                r'\[([^\]]+)\]\(([^)]+)\)',
+                lambda m: (
+                    f'<br><a href="{m.group(2)}" style="display:inline-block;background:{accent};color:white;'
+                    f'padding:11px 22px;border-radius:99px;text-decoration:none;font-weight:800;font-size:14px;margin:6px 0;">'
+                    f'{m.group(1)} →</a><br>'
+                ),
+                para
+            )
+            para = para.replace('\n', '<br>')
+            rendered.append(f'<p style="margin:0 0 16px;font-size:15px;color:#2D3A18;line-height:1.75;">{para}</p>')
+        return "".join(rendered)
+
     def _get_participant_notification_template(self, body_text: str, notification_type: str, event_title: str) -> str:
         configs = {
-            "cambio_location": {"emoji": "📍", "label": "Aggiornamento location", "header": "linear-gradient(135deg, #F97316 0%, #FBBF24 100%)"},
-            "cambio_data":     {"emoji": "📅", "label": "Cambio data",            "header": "linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)"},
-            "cambio_orario":   {"emoji": "🕐", "label": "Cambio orario",          "header": "linear-gradient(135deg, #D97706 0%, #F59E0B 100%)"},
-            "annullamento":    {"emoji": "❌", "label": "Evento annullato",        "header": "linear-gradient(135deg, #5D1723 0%, #8c2a38 100%)"},
-            "avviso_generico": {"emoji": "📢", "label": "Avviso",                 "header": "linear-gradient(135deg, #2D3A18 0%, #5CB176 100%)"},
+            "reminder":        {"emoji": "📅", "label": "Reminder evento",         "header": "linear-gradient(135deg, #2D3A18 0%, #5CB176 100%)", "accent": "#2D6A4F", "bg": "#F0F7F4"},
+            "cambio_location": {"emoji": "📍", "label": "Aggiornamento location",  "header": "linear-gradient(135deg, #F97316 0%, #FB923C 100%)",  "accent": "#EA580C", "bg": "#FFF7ED"},
+            "cambio_data":     {"emoji": "📅", "label": "Cambio data",             "header": "linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)",  "accent": "#0369A1", "bg": "#F0F9FF"},
+            "cambio_orario":   {"emoji": "🕐", "label": "Cambio orario",           "header": "linear-gradient(135deg, #B45309 0%, #F59E0B 100%)",  "accent": "#92400E", "bg": "#FFFBEB"},
+            "annullamento":    {"emoji": "❌", "label": "Evento annullato",         "header": "linear-gradient(135deg, #5D1723 0%, #9F1239 100%)",  "accent": "#881337", "bg": "#FFF1F2"},
+            "avviso_generico": {"emoji": "📢", "label": "Avviso",                  "header": "linear-gradient(135deg, #2D3A18 0%, #5CB176 100%)", "accent": "#2D6A4F", "bg": "#F0F7F4"},
         }
         cfg = configs.get(notification_type, configs["avviso_generico"])
-        body_html = "".join(
-            f"<p style='margin:0 0 12px;font-size:15px;color:#2D3A18;line-height:1.65;'>{line.replace(chr(10), '<br>')}</p>"
-            for line in body_text.split("\n\n") if line.strip()
-        )
+        body_html = self._render_notification_markdown(body_text, cfg["accent"])
         return f"""<!DOCTYPE html>
-        <html>
-        <head><meta charset="UTF-8">
-        <style>
-            {self._base_styles()}
-            .header {{ background: {cfg["header"]}; }}
-        </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <p style="margin:0 0 4px;font-size:12px;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.7);">{cfg["emoji"]} {cfg["label"]}</p>
-                    <h1 style="margin:0;font-size:22px;font-weight:900;color:white;">{event_title}</h1>
-                </div>
-                <div class="content">
-                    {body_html}
-                </div>
-                <div class="footer">
-                    <p>Trama Viva APS | "Intrecciamo storie, persone e opportunità"</p>
-                    <p style="margin:4px 0 0;font-size:11px;color:#999;">Hai ricevuto questa email perché sei iscritto a un nostro evento.</p>
-                </div>
-            </div>
-        </body>
-        </html>"""
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9ECD4;margin:0;padding:24px 12px;">
+  <div style="max-width:600px;margin:0 auto;border-radius:24px;overflow:hidden;box-shadow:0 6px 30px rgba(0,0,0,0.15);">
+
+    <!-- Header -->
+    <div style="background:{cfg['header']};padding:36px 32px 30px;">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.70);">{cfg['emoji']} {cfg['label']}</p>
+      <h1 style="margin:0;font-size:28px;font-weight:900;color:white;line-height:1.2;letter-spacing:-.02em;">{event_title}</h1>
+    </div>
+
+    <!-- Accent stripe -->
+    <div style="height:5px;background:{cfg['accent']};opacity:.35;"></div>
+
+    <!-- Content -->
+    <div style="background:white;padding:36px 32px 28px;">
+      {body_html}
+    </div>
+
+    <!-- Colored footer band -->
+    <div style="background:{cfg['bg']};border-top:2px solid {cfg['accent']}22;padding:22px 32px;text-align:center;">
+      <p style="margin:0;font-size:13px;font-weight:700;color:{cfg['accent']};">Trama Viva APS</p>
+      <p style="margin:4px 0 0;font-size:12px;color:#888;">"Intrecciamo storie, persone e opportunità"</p>
+      <p style="margin:10px 0 0;font-size:11px;color:#aaa;">Hai ricevuto questa email perché sei iscritto a un nostro evento.</p>
+    </div>
+
+  </div>
+</body>
+</html>"""
 
     def _get_event_cancellation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str) -> str:
         return f"""<!DOCTYPE html>
