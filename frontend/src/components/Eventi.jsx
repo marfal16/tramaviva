@@ -286,14 +286,14 @@ const ListView = ({ events, onParticipate }) => {
       )}
       {past.length > 0 && (
         <>
-          <div className="mt-16 mb-8 flex items-center gap-4">
+          <div className="mt-16 mb-6 flex items-center gap-4">
             <div className="flex-1 border-t border-tv-green-deep/10" />
-            <span className="text-xs font-bold uppercase tracking-[0.3em] text-tv-green-deep/40">📁 Storico eventi</span>
+            <span className="text-xs font-bold uppercase tracking-[0.3em] text-tv-green-deep/30">Storico eventi</span>
             <div className="flex-1 border-t border-tv-green-deep/10" />
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {past.map((ev) => (
-              <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} past />
+              <PastEventCard key={ev.id} ev={ev} />
             ))}
           </div>
         </>
@@ -471,6 +471,43 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
     </article>
   );
 };
+
+const PastEventCard = ({ ev }) => (
+  <Link
+    to={`/eventi/${ev.slug || ev.id}`}
+    data-testid={`event-card-${ev.id}`}
+    className="group bg-white border border-tv-green-deep/[0.08] rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_-8px_rgba(5,47,23,0.15)] hover:border-tv-green-deep/20"
+  >
+    {ev.has_image ? (
+      <div className="overflow-hidden h-28">
+        <img
+          src={`${API}/events/${ev.id}/image`}
+          alt={ev.title}
+          className="w-full h-full object-cover grayscale opacity-60 group-hover:opacity-90 group-hover:grayscale-0 transition-all duration-500"
+        />
+      </div>
+    ) : (
+      <div className="h-12 flex items-center justify-center pt-3">
+        <span className="text-3xl opacity-35 group-hover:opacity-55 transition-opacity">{ev.emoji}</span>
+      </div>
+    )}
+    <div className="p-3.5 flex flex-col flex-1">
+      <span className="self-start px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-tv-green-deep/[0.07] text-tv-green-deep/40 mb-2">
+        {ev.category}
+      </span>
+      <h3 className="font-display font-black text-sm leading-tight text-tv-green-deep/50 group-hover:text-tv-green-deep/75 transition-colors">
+        {ev.title}
+      </h3>
+      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-tv-green-deep/30">
+        <CalendarIcon size={10} />
+        {new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
+      </div>
+      <div className="mt-auto pt-3 flex items-center justify-end">
+        <ArrowRight size={13} className="text-tv-green-deep/20 group-hover:text-tv-green-deep/50 group-hover:translate-x-0.5 transition-all" />
+      </div>
+    </div>
+  </Link>
+);
 
 // ---------- Calendar view ----------
 const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
