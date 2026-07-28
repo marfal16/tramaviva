@@ -305,6 +305,30 @@ class EmailService:
             logger.error(f"Errore invio notifica partecipante: {e}")
             raise
 
+    def _render_notification_markdown(self, text: str, accent: str) -> str:
+        import re
+        rendered = []
+        for para in text.split("\n\n"):
+            if not para.strip():
+                continue
+            para = re.sub(
+                r'\*\*(.*?)\*\*',
+                lambda m: f'<strong style="color:{accent};">{m.group(1)}</strong>',
+                para, flags=re.DOTALL
+            )
+            para = re.sub(
+                r'\[([^\]]+)\]\(([^)]+)\)',
+                lambda m: (
+                    f'<br><a href="{m.group(2)}" style="display:inline-block;background:{accent};'
+                    f'color:white;padding:10px 22px;border-radius:99px;text-decoration:none;'
+                    f'font-weight:800;font-size:14px;margin:6px 0;">{m.group(1)} →</a><br>'
+                ),
+                para
+            )
+            para = para.replace('\n', '<br>')
+            rendered.append(f'<p style="margin:0 0 16px;font-size:15px;color:#2D3A18;line-height:1.75;">{para}</p>')
+        return "".join(rendered)
+
     def _get_participant_notification_template(self, body_text: str, notification_type: str, event_title: str) -> str:
         configs = {
             "reminder":        {"emoji": "📅", "label": "Reminder evento",         "header": "linear-gradient(135deg, #2D3A18 0%, #5CB176 100%)", "accent": "#2D6A4F", "bg": "#F0F7F4"},
@@ -315,10 +339,7 @@ class EmailService:
             "avviso_generico": {"emoji": "📢", "label": "Avviso",                  "header": "linear-gradient(135deg, #2D3A18 0%, #5CB176 100%)", "accent": "#2D6A4F", "bg": "#F0F7F4"},
         }
         cfg = configs.get(notification_type, configs["avviso_generico"])
-        body_html = "".join(
-            f"<p style='margin:0 0 16px;font-size:15px;color:#2D3A18;line-height:1.75;'>{para.replace(chr(10), '<br>')}</p>"
-            for para in body_text.split("\n\n") if para.strip()
-        )
+        body_html = self._render_notification_markdown(body_text, cfg["accent"])
         return f"""<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"></head>
