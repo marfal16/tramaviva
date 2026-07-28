@@ -1,6 +1,7 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
-import { Instagram, Mail, Send, Facebook } from "lucide-react";
+import { Instagram, Mail, Facebook } from "lucide-react";
 
 export const Footer = () => (
   <footer
@@ -40,19 +41,27 @@ export const Footer = () => (
               ["#chi-siamo", "Chi siamo"],
               ["#attivita", "Attività"],
               ["#eventi", "Eventi"],
-              ["#iscrizione", "Iscrizione"],
               ["#contatti", "Contatti"],
             ].map(([h, l]) => (
               <li key={h}>
-                <a
-                  href={h}
-                  data-testid={`footer-link-${h.replace("#", "")}`}
-                  className="hover:text-tv-mint transition-colors"
-                >
-                  {l}
-                </a>
+                <a href={h} className="hover:text-tv-mint transition-colors">{l}</a>
               </li>
             ))}
+            <li>
+              <Link to="/club-del-libro" className="hover:text-tv-mint transition-colors">
+                Club del Libro
+              </Link>
+            </li>
+            <li>
+              <Link to="/area-soci" className="hover:text-tv-mint transition-colors">
+                Area soci
+              </Link>
+            </li>
+            <li>
+              <a href="#iscrizione" className="hover:text-tv-mint transition-colors">
+                Diventa socio
+              </a>
+            </li>
           </ul>
         </div>
         <div className="md:col-span-3">
