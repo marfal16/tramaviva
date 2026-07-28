@@ -2010,6 +2010,7 @@ const Dashboard = ({ token, onLogout }) => {
           ) : tab === "missions" ? (
             <MissionsManager
               missions={data.missions || []}
+              events={data.events || []}
               token={token}
               onReload={loadAll}
             />
@@ -3453,7 +3454,7 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
 
 const MISSION_EMPTY = { title: "", description: "", reward: "", required_events: 1, emoji: "🏆", category: "", order: 0, active: true };
 
-const MissionsManager = ({ missions, token, onReload }) => {
+const MissionsManager = ({ missions, events, token, onReload }) => {
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(MISSION_EMPTY);
@@ -3462,6 +3463,9 @@ const MissionsManager = ({ missions, token, onReload }) => {
   const [saving, setSaving] = useState(false);
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  // Categorie distinte dagli eventi esistenti
+  const availableCategories = [...new Set((events || []).map(e => e.category).filter(Boolean))].sort();
 
   const handleCreate = async e => {
     e.preventDefault();
@@ -3541,8 +3545,19 @@ const MissionsManager = ({ missions, token, onReload }) => {
           </div>
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Categoria evento</label>
-            <input value={form.category} onChange={set("category")} className={fieldCls} placeholder="Es. Club del Libro (vuoto = tutti)" />
-            <p className="text-[10px] text-tv-green-deep/35 mt-1">Lascia vuoto per contare tutti gli eventi. Usa il nome esatto della categoria.</p>
+            <input value={form.category} onChange={set("category")} className={fieldCls} placeholder="Lascia vuoto = tutti gli eventi" />
+            {availableCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                <span className="text-[10px] text-tv-green-deep/35 self-center">Categorie esistenti:</span>
+                {availableCategories.map(cat => (
+                  <button key={cat} type="button"
+                    onClick={() => setForm(f => ({ ...f, category: cat }))}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${form.category === cat ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/50 hover:text-tv-green-deep"}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Eventi richiesti *</label>
@@ -3624,6 +3639,17 @@ const MissionsManager = ({ missions, token, onReload }) => {
                   </div>
                   <div className="col-span-2">
                     <input value={editForm.category || ""} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} className={fieldCls} placeholder="Categoria evento (vuoto = tutti)" />
+                    {availableCategories.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {availableCategories.map(cat => (
+                          <button key={cat} type="button"
+                            onClick={() => setEditForm(f => ({ ...f, category: cat }))}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors ${editForm.category === cat ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/50"}`}>
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <input type="number" min={1} value={editForm.required_events || 1} onChange={e => setEditForm(f => ({ ...f, required_events: e.target.value }))} className={fieldCls} />
                   <input type="number" min={0} value={editForm.order || 0} onChange={e => setEditForm(f => ({ ...f, order: e.target.value }))} className={fieldCls} placeholder="Ordine" />
