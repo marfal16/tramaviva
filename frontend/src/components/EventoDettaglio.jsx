@@ -599,7 +599,6 @@ export const EventoDettaglio = () => {
                           <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Come vuoi pagare? *</div>
                           <div className="flex gap-2">
                             {[
-                              { v: "contanti", label: "💵 Contanti" },
                               { v: "bonifico", label: "🏦 Bonifico" },
                               { v: "elettronico", label: "💳 Carta" },
                             ].map(({ v, label }) => (
