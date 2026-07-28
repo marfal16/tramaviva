@@ -533,13 +533,30 @@ export const AreaSoci = () => {
         </div>
 
         {/* Tab nav */}
-        <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-tv-green-deep/8 mb-6">
-          {tabs.map(({ key, label, icon: Icon }) => (
-            <button key={key} onClick={() => setTab(key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${tab === key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/60 hover:text-tv-green-deep hover:bg-tv-mint/30"}`}>
-              <Icon size={14} /> <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
+        <div className="flex gap-1.5 mb-6">
+          {/* Bacheca — tab in evidenza */}
+          <button onClick={() => setTab("bacheca")}
+            className={`relative flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-black transition-all flex-1 sm:flex-none ${
+              tab === "bacheca"
+                ? "bg-tv-bordeaux text-white shadow-[0_4px_20px_-4px_rgba(120,20,40,0.4)]"
+                : "bg-white border border-tv-bordeaux/25 text-tv-bordeaux hover:bg-tv-bordeaux/8"
+            }`}>
+            <Users size={15} />
+            <span>Bacheca</span>
+            {tab !== "bacheca" && (
+              <span className="w-2 h-2 rounded-full bg-tv-bordeaux animate-pulse absolute -top-0.5 -right-0.5" />
+            )}
+          </button>
+
+          {/* Altri tab */}
+          <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-tv-green-deep/8 flex-1">
+            {tabs.filter(t => t.key !== "bacheca").map(({ key, label, icon: Icon }) => (
+              <button key={key} onClick={() => setTab(key)}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${tab === key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/55 hover:text-tv-green-deep hover:bg-tv-mint/30"}`}>
+                <Icon size={14} /> <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Tab: eventi ── */}
