@@ -326,7 +326,7 @@ const FeaturedCard = ({ ev, onParticipate }) => (
         <div className="flex items-center gap-2">
           <Users size={15} />
           {ev.spots <= 0 ? (
-            <span className="font-bold opacity-80">🔴 Posti esauriti</span>
+            <span className="opacity-50">Posti esauriti</span>
           ) : ev.spots === 1 ? (
             <span className="font-bold text-tv-orange">⚡ Ultimo posto disponibile!</span>
           ) : ev.spots <= 5 ? (
@@ -341,124 +341,136 @@ const FeaturedCard = ({ ev, onParticipate }) => (
           💶 Contributo: {ev.contributo}€
         </div>
       )}
-      <div className="mt-7 flex items-center gap-3 flex-wrap">
-        {ev.spots <= 0 && (
-          <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-tv-bordeaux/15 text-tv-bordeaux font-black text-sm tracking-wider">
-            🔴 SOLD OUT
-          </span>
+      <div className="mt-7">
+        {ev.spots <= 0 ? (
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] font-black tracking-[.18em] text-tv-cream/50 uppercase shrink-0">Sold out</span>
+            <div className="w-10 border-t border-dashed border-tv-cream/20 shrink-0" />
+            <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-featured-detail-${ev.id}`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm text-tv-cream/65 border border-tv-cream/20 hover:text-tv-cream hover:border-tv-cream/50 transition-all">
+              Vedi dettagli <ArrowRight size={14} />
+            </Link>
+          </div>
+        ) : (
+          <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-featured-detail-${ev.id}`}
+            className="btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold bg-tv-orange text-tv-green-deep hover:bg-tv-orange/80">
+            Vedi dettagli e Partecipa <ArrowRight size={16} />
+          </Link>
         )}
-        <Link
-          to={`/eventi/${ev.slug || ev.id}`}
-          data-testid={`event-featured-detail-${ev.id}`}
-          className={`btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold hover:bg-tv-orange/80 ${ev.spots <= 0 ? "bg-tv-green-deep/10 text-tv-green-deep/70 hover:bg-tv-green-deep/20" : "bg-tv-orange text-tv-green-deep"}`}
-        >
-          {ev.spots <= 0 ? "Vedi dettagli" : "Vedi dettagli e Partecipa"}
-          {ev.spots > 0 && <ArrowRight size={16} />}
-        </Link>
       </div>
     </div>
     <div className="relative md:col-span-5 flex items-center justify-center">
       {ev.has_image ? (
-        <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className="w-full max-w-xs rounded-2xl object-cover aspect-square" />
+        <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className={`w-full max-w-xs rounded-2xl object-cover aspect-square ${ev.spots <= 0 ? "opacity-60 grayscale-[20%]" : ""}`} />
       ) : (
-        <span className="text-[10rem] md:text-[12rem] leading-none">{ev.emoji}</span>
+        <span className={`text-[10rem] md:text-[12rem] leading-none ${ev.spots <= 0 ? "opacity-50 grayscale" : ""}`}>{ev.emoji}</span>
       )}
     </div>
   </article>
 );
 
-const EventCard = ({ ev, onParticipate, compact = false, past = false }) => (
-  <article
-    data-testid={`event-card-${ev.id}`}
-    className={`group bg-white border border-tv-green-deep/10 rounded-[2rem] overflow-hidden ${
-      compact ? "p-5" : "p-6"
-    } flex flex-col transition-all duration-500 ${
-      past ? "opacity-60" : "hover:-translate-y-2 hover:shadow-[0_20px_50px_-20px_rgba(5,47,23,0.25)]"
-    }`}
-  >
-    {!compact && ev.has_image && (
-      <div className="-mx-6 -mt-6 mb-4">
-        <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className="w-full h-44 object-cover" />
-      </div>
-    )}
-    <div className="flex items-center justify-between mb-4">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span
-          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-            past ? "bg-tv-green-deep/10 text-tv-green-deep/50" : (categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep")
-          }`}
-        >
-          {ev.category}
-        </span>
-        {past && (
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/50">
-            Concluso
+const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
+  const soldOut = !past && ev.spots <= 0;
+  return (
+    <article
+      data-testid={`event-card-${ev.id}`}
+      className={`group bg-white border rounded-[2rem] overflow-hidden ${
+        compact ? "p-5" : "p-6"
+      } flex flex-col transition-all duration-500 ${
+        past
+          ? "opacity-60 border-tv-green-deep/10"
+          : soldOut
+            ? "border-tv-bordeaux/25 hover:-translate-y-1 hover:shadow-[0_12px_40px_-15px_rgba(93,23,35,0.18)]"
+            : "border-tv-green-deep/10 hover:-translate-y-2 hover:shadow-[0_20px_50px_-20px_rgba(5,47,23,0.25)]"
+      }`}
+    >
+      {!compact && ev.has_image && (
+        <div className="-mx-6 -mt-6 mb-4 relative">
+          <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className={`w-full h-44 object-cover ${soldOut ? "opacity-60 grayscale-[30%]" : ""}`} />
+        </div>
+      )}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              past ? "bg-tv-green-deep/10 text-tv-green-deep/50" : (categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep")
+            }`}
+          >
+            {ev.category}
           </span>
-        )}
-        {!past && ev.spots <= 0 && (
-          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux text-tv-cream">
-            Sold out
-          </span>
-        )}
-      </div>
-      <span className="text-3xl">{ev.emoji}</span>
-    </div>
-    <h3 className="font-display font-black text-xl md:text-2xl text-tv-green-deep leading-tight">
-      {ev.title}
-    </h3>
-    <div className="mt-4 space-y-1.5 text-sm text-tv-green-deep/80">
-      <div className="flex items-center gap-2">
-        <CalendarIcon size={14} /> {fmtDate(ev.date)}
-      </div>
-      <div className="flex items-center gap-2">
-        <Clock size={14} /> {ev.time}
-      </div>
-      <div className="flex items-center gap-2">
-        <MapPin size={14} /> {ev.location}
-      </div>
-      {!compact && !past && (
-        <div className="flex items-center gap-2">
-          <Users size={14} />
-          {ev.spots <= 0 ? (
-            <span className="text-tv-bordeaux font-bold">Posti esauriti</span>
-          ) : ev.spots === 1 ? (
-            <span className="text-orange-500 font-bold">⚡ Ultimo posto disponibile!</span>
-          ) : ev.spots <= 5 ? (
-            <span className="text-orange-500 font-bold">⚡ Ultimi {ev.spots} posti!</span>
-          ) : (
-            <>{ev.spots} posti disponibili</>
+          {past && (
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/50">
+              Concluso
+            </span>
+          )}
+          {soldOut && (
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[.12em] bg-tv-bordeaux/10 text-tv-bordeaux border border-tv-bordeaux/20">
+              Sold out
+            </span>
           )}
         </div>
-      )}
-      {!compact && ev.contributo > 0 && (
-        <div className="flex items-center gap-2 font-semibold">
-          💶 Contributo: {ev.contributo}€
+        <span className="text-3xl">{ev.emoji}</span>
+      </div>
+      <h3 className="font-display font-black text-xl md:text-2xl text-tv-green-deep leading-tight">
+        {ev.title}
+      </h3>
+      <div className="mt-4 space-y-1.5 text-sm text-tv-green-deep/80">
+        <div className="flex items-center gap-2">
+          <CalendarIcon size={14} /> {fmtDate(ev.date)}
         </div>
-      )}
-    </div>
-    <div className="mt-auto pt-5 flex flex-col gap-2">
-      {!past && ev.spots <= 0 && (
-        <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 rounded-full font-black text-xs tracking-wider bg-tv-bordeaux/15 text-tv-bordeaux">
-          🔴 SOLD OUT
-        </span>
-      )}
-      <Link
-        to={`/eventi/${ev.slug || ev.id}`}
-        data-testid={`event-detail-${ev.id}`}
-        className={`inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
-          past
-            ? "bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-green-deep hover:text-tv-cream"
-            : !past && ev.spots <= 0
-              ? "bg-tv-green-deep/10 border border-tv-green-deep/15 text-tv-green-deep/70 hover:bg-tv-green-deep/20"
-              : "btn-tv bg-tv-green-deep text-tv-cream hover:bg-tv-green"
-        }`}
-      >
-        Vedi dettagli
-        {!past && ev.spots > 0 && <> e Partecipa <ArrowRight size={16} /></>}
-      </Link>
-    </div>
-  </article>
-);
+        <div className="flex items-center gap-2">
+          <Clock size={14} /> {ev.time}
+        </div>
+        <div className="flex items-center gap-2">
+          <MapPin size={14} /> {ev.location}
+        </div>
+        {!compact && !past && (
+          <div className="flex items-center gap-2">
+            <Users size={14} />
+            {ev.spots <= 0 ? (
+              <span className="text-tv-bordeaux/60">Posti esauriti</span>
+            ) : ev.spots === 1 ? (
+              <span className="text-orange-500 font-bold">⚡ Ultimo posto disponibile!</span>
+            ) : ev.spots <= 5 ? (
+              <span className="text-orange-500 font-bold">⚡ Ultimi {ev.spots} posti!</span>
+            ) : (
+              <>{ev.spots} posti disponibili</>
+            )}
+          </div>
+        )}
+        {!compact && ev.contributo > 0 && (
+          <div className="flex items-center gap-2 font-semibold">
+            💶 Contributo: {ev.contributo}€
+          </div>
+        )}
+      </div>
+      <div className="mt-auto pt-5">
+        {soldOut ? (
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-black tracking-[.18em] text-tv-bordeaux uppercase shrink-0">Sold out</span>
+            <div className="flex-1 border-t border-dashed border-tv-bordeaux/20" />
+            <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-detail-${ev.id}`}
+              className="text-sm font-bold text-tv-green-deep/50 hover:text-tv-green-deep transition-colors shrink-0 flex items-center gap-1">
+              Vedi dettagli <ArrowRight size={13} />
+            </Link>
+          </div>
+        ) : (
+          <Link
+            to={`/eventi/${ev.slug || ev.id}`}
+            data-testid={`event-detail-${ev.id}`}
+            className={`inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
+              past
+                ? "bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-green-deep hover:text-tv-cream"
+                : "btn-tv bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+            }`}
+          >
+            {past ? "Vedi dettagli" : <>Vedi dettagli e Partecipa <ArrowRight size={16} /></>}
+          </Link>
+        )}
+      </div>
+    </article>
+  );
+};
 
 // ---------- Calendar view ----------
 const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
