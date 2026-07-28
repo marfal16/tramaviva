@@ -2303,9 +2303,9 @@ const NOTIFY_PRESETS = {
     subject: (t) => `📅 Reminder: ${t} — ci vediamo presto!`,
     body: (n, t, ev) => {
       const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }); } catch { return d; } };
-      const lines = [`Ciao ${n},\n\nti scriviamo per ricordarti che **${t}** si avvicina — non vediamo l'ora di vederti!`];
-      if (ev?.date) lines.push(`📅 **${fmtDate(ev.date)}${ev.time ? ` alle ${ev.time}` : ""}**`);
-      if (ev?.location) lines.push(`📍 **${ev.location}**`);
+      const lines = [`Ciao ${n},\n\nti scriviamo per ricordarti che "${t}" si avvicina — non vediamo l'ora di vederti!`];
+      if (ev?.date) lines.push(`📅 ${fmtDate(ev.date)}${ev.time ? ` alle ${ev.time}` : ""}`);
+      if (ev?.location) lines.push(`📍 ${ev.location}`);
       lines.push(`Se per qualsiasi motivo non riesci a venire, ti chiediamo gentilmente di avvisarci scrivendo a tramavivaaps@gmail.com.\n\nA presto,\nIl team di Trama Viva APS`);
       return lines.join("\n\n");
     },
@@ -2313,27 +2313,27 @@ const NOTIFY_PRESETS = {
   cambio_location: {
     label: "📍 Cambio location",
     subject: (t) => `📍 Aggiornamento location: ${t}`,
-    body: (n, t) => `Ciao ${n},\n\nAbbiamo un aggiornamento importante su **${t}**: l'evento si terrà in una nuova location!\n\n**📍 Nuova location: [inserisci qui la nuova location]**\n\n[📍 Apri su Google Maps](https://maps.google.com/?q=inserisci+indirizzo)\n\nTutte le altre informazioni rimangono invariate. Non vediamo l'ora di vederti!\n\nA presto,\nIl team di Trama Viva APS`,
+    body: (n, t) => `Ciao ${n},\n\nAbbiamo un aggiornamento importante su "${t}": l'evento si terrà in una nuova location!\n\n📍 Nuova location: SCRIVI QUI LA NUOVA LOCATION\n\nTutte le altre informazioni rimangono invariate. Non vediamo l'ora di vederti!\n\nA presto,\nIl team di Trama Viva APS`,
   },
   cambio_data: {
     label: "📅 Cambio data",
     subject: (t) => `📅 Cambio data: ${t}`,
-    body: (n, t) => `Ciao ${n},\n\nTi scriviamo per informarti che la data di **${t}** è cambiata.\n\n**📅 Nuova data: [inserisci qui la nuova data]**\n\nSperiamo di rivederti presto! Per qualsiasi domanda scrivici a tramavivaaps@gmail.com.\n\nA presto,\nIl team di Trama Viva APS`,
+    body: (n, t) => `Ciao ${n},\n\nTi scriviamo per informarti che la data di "${t}" è cambiata.\n\n📅 Nuova data: SCRIVI QUI LA NUOVA DATA\n\nSperiamo di rivederti presto! Per qualsiasi domanda scrivici a tramavivaaps@gmail.com.\n\nA presto,\nIl team di Trama Viva APS`,
   },
   cambio_orario: {
     label: "🕐 Cambio orario",
     subject: (t) => `🕐 Cambio orario: ${t}`,
-    body: (n, t) => `Ciao ${n},\n\nTi scriviamo per informarti che l'orario di **${t}** è cambiato.\n\n**🕐 Nuovo orario: [inserisci qui il nuovo orario]**\n\nTutte le altre informazioni rimangono invariate. A presto!\n\nIl team di Trama Viva APS`,
+    body: (n, t) => `Ciao ${n},\n\nTi scriviamo per informarti che l'orario di "${t}" è cambiato.\n\n🕐 Nuovo orario: SCRIVI QUI IL NUOVO ORARIO\n\nTutte le altre informazioni rimangono invariate. A presto!\n\nIl team di Trama Viva APS`,
   },
   annullamento: {
     label: "❌ Annullamento",
     subject: (t) => `Evento annullato: ${t}`,
-    body: (n, t) => `Ciao ${n},\n\nPurtroppo dobbiamo comunicarti che **${t}** è stato annullato.\n\nCi dispiace molto — stiamo già lavorando per organizzare nuovi appuntamenti. Tienici d'occhio!\n\nA presto,\nIl team di Trama Viva APS`,
+    body: (n, t) => `Ciao ${n},\n\nPurtroppo dobbiamo comunicarti che "${t}" è stato annullato.\n\nCi dispiace molto — stiamo già lavorando per organizzare nuovi appuntamenti. Tienici d'occhio!\n\nA presto,\nIl team di Trama Viva APS`,
   },
   avviso_generico: {
     label: "📢 Avviso generico",
     subject: (t) => `Aggiornamento: ${t}`,
-    body: (n, t) => `Ciao ${n},\n\nHai un messaggio da Trama Viva APS riguardo a **${t}**.\n\n[Scrivi qui il tuo messaggio]\n\nA presto,\nIl team di Trama Viva APS`,
+    body: (n, t) => `Ciao ${n},\n\nHai un messaggio da Trama Viva APS riguardo a "${t}".\n\nSCRIVI QUI IL TUO MESSAGGIO\n\nA presto,\nIl team di Trama Viva APS`,
   },
 };
 
@@ -2404,12 +2404,7 @@ const NotifyModal = ({ signup, event, token, onClose }) => {
               Testo email <span className="normal-case font-normal text-tv-green-deep/30">— modificabile</span>
             </label>
             <textarea value={body} onChange={e => setBody(e.target.value)} rows={9}
-              className="w-full text-sm border border-tv-green-deep/20 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-tv-green-deep/20 resize-none leading-relaxed font-mono"/>
-            <p className="mt-1.5 text-[10px] text-tv-green-deep/35 leading-relaxed">
-              <span className="font-bold text-tv-green-deep/45">Formattazione:</span>{" "}
-              <code className="bg-tv-cream/80 px-1 py-0.5 rounded">**testo**</code> → <strong>grassetto colorato</strong>{" · "}
-              <code className="bg-tv-cream/80 px-1 py-0.5 rounded">[Testo link](https://url)</code> → bottone cliccabile
-            </p>
+              className="w-full text-sm border border-tv-green-deep/20 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-tv-green-deep/20 resize-none leading-relaxed"/>
           </div>
           <div className="flex gap-2 justify-end pt-1">
             <button onClick={onClose} className="px-4 py-2 rounded-xl border border-tv-green-deep/20 text-sm text-tv-green-deep/50 hover:bg-tv-cream/60">Annulla</button>
@@ -2417,6 +2412,114 @@ const NotifyModal = ({ signup, event, token, onClose }) => {
               className="px-5 py-2 rounded-xl bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green disabled:opacity-50 flex items-center gap-2">
               {sending ? <Loader2 size={14} className="animate-spin"/> : <Mail size={14}/>}
               {sending ? "Invio…" : "Invia notifica"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BulkNotifyModal = ({ signupIds, allItems, event, token, onClose }) => {
+  const selectedSignups = allItems.filter(s => signupIds.has(s.id));
+  const emailTargets = [];
+  selectedSignups.forEach(s => {
+    if (s.email) emailTargets.push({ name: s.name, email: s.email });
+    (s.ospiti || []).forEach(o => {
+      if (o.email) emailTargets.push({ name: `${o.nome || ""} ${o.cognome || ""}`.trim(), email: o.email });
+    });
+  });
+
+  const [type, setType] = useState("reminder");
+  const [subject, setSubject] = useState(() => NOTIFY_PRESETS.reminder.subject(event.title));
+  const [body, setBody] = useState(() => NOTIFY_PRESETS.reminder.body("a tutte/i", event.title, event));
+  const [sending, setSending] = useState(false);
+  const [showEmails, setShowEmails] = useState(false);
+
+  const handleTypeChange = (t) => {
+    setType(t);
+    setSubject(NOTIFY_PRESETS[t].subject(event.title));
+    setBody(NOTIFY_PRESETS[t].body("a tutte/i", event.title, event));
+  };
+
+  const handleSend = async () => {
+    if (emailTargets.length === 0) { toast.error("Nessun destinatario ha un'email registrata."); return; }
+    if (!window.confirm(`Inviare la notifica a ${emailTargets.length} destinatari?`)) return;
+    setSending(true);
+    try {
+      const res = await axios.post(`${API}/admin/events/${event.id}/notify-all`, {
+        signup_ids: [...signupIds], subject, body_text: body, notification_type: type,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(`Notifica inviata a ${res.data.sent} destinatari!`);
+      onClose();
+    } catch { toast.error("Errore nell'invio."); }
+    finally { setSending(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-t-[2rem] sm:rounded-[2rem] w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
+        <div className="bg-tv-green-deep px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="min-w-0">
+            <p className="text-tv-cream/60 text-[10px] font-bold uppercase tracking-wider">Notifica di gruppo</p>
+            <h2 className="text-tv-cream font-black text-base leading-tight truncate">{event.title}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-cream/10 text-tv-cream/60 hover:text-tv-cream ml-3 shrink-0"><X size={16}/></button>
+        </div>
+        <div className="p-5 space-y-4 overflow-y-auto">
+          <div>
+            <button onClick={() => setShowEmails(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-tv-cream/60 border border-tv-green-deep/10 text-left">
+              <div className="flex items-center gap-2">
+                <Mail size={13} className="text-tv-green-deep/40 shrink-0"/>
+                <span className="text-sm font-semibold text-tv-green-deep">{emailTargets.length} destinatari</span>
+                <span className="text-xs text-tv-green-deep/40">({signupIds.size} selezionati + eventuali ospiti)</span>
+              </div>
+              <span className="text-[10px] text-tv-green-deep/40 font-bold">{showEmails ? "▲" : "▼"}</span>
+            </button>
+            {showEmails && (
+              <div className="mt-1 max-h-32 overflow-y-auto border border-tv-green-deep/10 rounded-xl divide-y divide-tv-green-deep/5">
+                {emailTargets.length === 0
+                  ? <p className="text-xs text-tv-green-deep/40 p-3">Nessuna email disponibile.</p>
+                  : emailTargets.map((t, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-1.5">
+                      <span className="text-xs font-medium text-tv-green-deep truncate">{t.name}</span>
+                      <span className="text-[10px] text-tv-green-deep/40 truncate">{t.email}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1.5">Tipo avviso</label>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {Object.entries(NOTIFY_PRESETS).map(([key, preset]) => (
+                <button key={key} onClick={() => handleTypeChange(key)}
+                  className={`text-left px-3 py-2 rounded-xl border text-xs font-bold transition-all ${type === key ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/60 hover:border-tv-green-deep/30 hover:bg-tv-cream/50"}`}>
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1.5">Oggetto</label>
+            <input value={subject} onChange={e => setSubject(e.target.value)}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-tv-green-deep/20"/>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 mb-1.5">
+              Testo email <span className="normal-case font-normal text-tv-green-deep/30">— uguale per tutti i destinatari</span>
+            </label>
+            <textarea value={body} onChange={e => setBody(e.target.value)} rows={9}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-tv-green-deep/20 resize-none leading-relaxed"/>
+          </div>
+          <div className="flex gap-2 justify-end pt-1">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl border border-tv-green-deep/20 text-sm text-tv-green-deep/50 hover:bg-tv-cream/60">Annulla</button>
+            <button onClick={handleSend} disabled={sending || emailTargets.length === 0}
+              className="px-5 py-2 rounded-xl bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green disabled:opacity-50 flex items-center gap-2">
+              {sending ? <Loader2 size={14} className="animate-spin"/> : <Mail size={14}/>}
+              {sending ? "Invio in corso…" : `Invia a ${emailTargets.length} destinatari`}
             </button>
           </div>
         </div>
@@ -2553,6 +2656,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState(null);
+  const [bulkNotifyOpen, setBulkNotifyOpen] = useState(false);
 
   const eventById = useMemo(() => {
     const map = {};
@@ -2827,6 +2931,10 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tv-green text-tv-cream font-bold text-[11px] hover:bg-tv-green-deep disabled:opacity-50">
                       {bulkLoading ? <Loader2 size={11} className="animate-spin"/> : <UserCheck size={11}/>} Conferma
                     </button>
+                    <button onClick={() => setBulkNotifyOpen(true)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-tv-sky/80 text-tv-cream font-bold text-[11px] hover:bg-tv-sky">
+                      <Mail size={11}/> Notifica
+                    </button>
                   </div>
                 ) : !isPastEvent && filteredItems.some(r => !r.confirmed) && (
                   <button onClick={selectAll} className="text-xs text-tv-green-deep/50 hover:text-tv-green-deep font-bold whitespace-nowrap">
@@ -3000,6 +3108,15 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
           event={notifyTarget.event}
           token={token}
           onClose={() => setNotifyTarget(null)}
+        />
+      )}
+      {bulkNotifyOpen && selectedGroup && (
+        <BulkNotifyModal
+          signupIds={selectedIds}
+          allItems={selectedGroup.items}
+          event={selectedGroup.ev}
+          token={token}
+          onClose={() => setBulkNotifyOpen(false)}
         />
       )}
     </div>

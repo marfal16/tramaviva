@@ -1092,6 +1092,50 @@ async def notify_event_participant(event_id: str, payload: NotifyParticipantPayl
     )
     return {"ok": True}
 
+class BulkNotifyPayload(BaseModel):
+    signup_ids: List[str]
+    subject: str
+    body_text: str
+    notification_type: str
+
+@api_router.post("/admin/events/{event_id}/notify-all", dependencies=[Depends(require_admin)])
+async def bulk_notify_participants(event_id: str, payload: BulkNotifyPayload):
+    event = await db.events.find_one({"id": event_id}, {"_id": 0, "image_data": 0})
+    if not event:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    email_svc = EmailService()
+    sent = 0
+    errors = 0
+    for signup_id in payload.signup_ids:
+        signup = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+        if not signup:
+            continue
+        if signup.get("email"):
+            try:
+                await email_svc.send_participant_notification(
+                    email=signup["email"], name=signup.get("name", ""),
+                    subject=payload.subject, body_text=payload.body_text,
+                    notification_type=payload.notification_type, event_title=event.get("title", ""),
+                )
+                sent += 1
+            except Exception as e:
+                logger.warning(f"Notifica non inviata a {signup.get('email')}: {e}")
+                errors += 1
+        for ospite in signup.get("ospiti", []):
+            if ospite.get("email"):
+                try:
+                    await email_svc.send_participant_notification(
+                        email=ospite["email"],
+                        name=f"{ospite.get('nome', '')} {ospite.get('cognome', '')}".strip(),
+                        subject=payload.subject, body_text=payload.body_text,
+                        notification_type=payload.notification_type, event_title=event.get("title", ""),
+                    )
+                    sent += 1
+                except Exception as e:
+                    logger.warning(f"Notifica non inviata a ospite {ospite.get('email')}: {e}")
+                    errors += 1
+    return {"ok": True, "sent": sent, "errors": errors}
+
 @api_router.post("/admin/event-signups/bulk-confirm", dependencies=[Depends(require_admin)])
 async def bulk_confirm_signups(payload: BulkConfirmPayload):
     confirmed_count = 0
