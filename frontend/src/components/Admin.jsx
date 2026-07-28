@@ -3451,7 +3451,7 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
 
 // ── MissionsManager ──────────────────────────────────────────────────────────
 
-const MISSION_EMPTY = { title: "", description: "", reward: "", required_events: 1, emoji: "🏆", order: 0, active: true };
+const MISSION_EMPTY = { title: "", description: "", reward: "", required_events: 1, emoji: "🏆", category: "", order: 0, active: true };
 
 const MissionsManager = ({ missions, token, onReload }) => {
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
@@ -3540,6 +3540,11 @@ const MissionsManager = ({ missions, token, onReload }) => {
             <input value={form.reward} onChange={set("reward")} required className={fieldCls} placeholder="Es. Segnalibro Trama Viva" />
           </div>
           <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Categoria evento</label>
+            <input value={form.category} onChange={set("category")} className={fieldCls} placeholder="Es. Club del Libro (vuoto = tutti)" />
+            <p className="text-[10px] text-tv-green-deep/35 mt-1">Lascia vuoto per contare tutti gli eventi. Usa il nome esatto della categoria.</p>
+          </div>
+          <div>
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Eventi richiesti *</label>
             <input type="number" min={1} value={form.required_events} onChange={set("required_events")} required className={fieldCls} />
           </div>
@@ -3578,6 +3583,11 @@ const MissionsManager = ({ missions, token, onReload }) => {
                     <span className="text-[10px] font-black uppercase tracking-wider bg-tv-orange/15 text-tv-orange px-2 py-0.5 rounded-full">
                       {m.required_events} {m.required_events === 1 ? "evento" : "eventi"}
                     </span>
+                    {m.category && (
+                      <span className="text-[10px] font-bold bg-tv-sky/20 text-tv-green-deep/60 px-2 py-0.5 rounded-full">
+                        {m.category}
+                      </span>
+                    )}
                     {!m.active && <span className="text-[10px] font-bold text-tv-green-deep/40 italic">inattiva</span>}
                   </div>
                   <p className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{m.description}</p>
@@ -3611,6 +3621,9 @@ const MissionsManager = ({ missions, token, onReload }) => {
                   </div>
                   <div className="col-span-2">
                     <input value={editForm.reward || ""} onChange={e => setEditForm(f => ({ ...f, reward: e.target.value }))} className={fieldCls} placeholder="Premio / Gadget" />
+                  </div>
+                  <div className="col-span-2">
+                    <input value={editForm.category || ""} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} className={fieldCls} placeholder="Categoria evento (vuoto = tutti)" />
                   </div>
                   <input type="number" min={1} value={editForm.required_events || 1} onChange={e => setEditForm(f => ({ ...f, required_events: e.target.value }))} className={fieldCls} />
                   <input type="number" min={0} value={editForm.order || 0} onChange={e => setEditForm(f => ({ ...f, order: e.target.value }))} className={fieldCls} placeholder="Ordine" />

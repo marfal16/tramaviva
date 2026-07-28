@@ -336,6 +336,7 @@ class Mission(BaseModel):
     reward: str
     required_events: int
     emoji: str = "🏆"
+    category: Optional[str] = None  # se valorizzato, conta solo eventi di questa categoria
     order: int = 0
     active: bool = True
 
@@ -345,6 +346,7 @@ class MissionUpdate(BaseModel):
     reward: Optional[str] = None
     required_events: Optional[int] = None
     emoji: Optional[str] = None
+    category: Optional[str] = None
     order: Optional[int] = None
     active: Optional[bool] = None
 
@@ -984,17 +986,42 @@ async def socio_my_votes(user=Depends(require_socio)):
 async def socio_my_missions(user=Depends(require_socio)):
     member = await db.members.find_one({"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)})
     is_fondatore = (member.get("is_fondatore", False) or not member.get("tessera_number")) if member else False
+
     if is_fondatore:
-        event_count = await db.events.count_documents({})
+        all_events = await db.events.find({}, {"_id": 0, "id": 1, "category": 1}).to_list(2000)
+        total_count = len(all_events)
+        category_counts: dict = {}
+        for ev in all_events:
+            cat = (ev.get("category") or "").strip()
+            if cat:
+                category_counts[cat] = category_counts.get(cat, 0) + 1
     else:
-        event_count = await db.event_signups.count_documents({
-            "email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE),
-            "confirmed": True,
-        })
+        email_re = re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)
+        signups = await db.event_signups.find(
+            {"email": email_re, "confirmed": True},
+            {"_id": 0, "event_id": 1}
+        ).to_list(2000)
+        event_ids = [s["event_id"] for s in signups]
+        total_count = len(event_ids)
+        category_counts: dict = {}
+        if event_ids:
+            events = await db.events.find(
+                {"id": {"$in": event_ids}},
+                {"_id": 0, "id": 1, "category": 1}
+            ).to_list(2000)
+            for ev in events:
+                cat = (ev.get("category") or "").strip()
+                if cat:
+                    category_counts[cat] = category_counts.get(cat, 0) + 1
+
     missions = await db.missions.find({"active": True}, {"_id": 0}).sort("order", 1).to_list(100)
     for m in missions:
-        m["unlocked"] = event_count >= m["required_events"]
-    return {"event_count": event_count, "is_fondatore": is_fondatore, "missions": missions}
+        cat = (m.get("category") or "").strip()
+        current = category_counts.get(cat, 0) if cat else total_count
+        m["current_count"] = current
+        m["unlocked"] = current >= m["required_events"]
+
+    return {"event_count": total_count, "category_counts": category_counts, "is_fondatore": is_fondatore, "missions": missions}
 
 # ========== BACHECA SOCI (SOCIAL FEED) ==========
 

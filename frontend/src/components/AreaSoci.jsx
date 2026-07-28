@@ -633,7 +633,7 @@ export const AreaSoci = () => {
               </div>
             ) : (
               <>
-                {/* Contatore eventi + progress */}
+                {/* Header contatore */}
                 <div className="bg-tv-green-deep rounded-[2rem] p-6 text-tv-cream relative overflow-hidden">
                   <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full bg-tv-green/20 blur-2xl pointer-events-none" />
                   <div className="relative">
@@ -642,20 +642,21 @@ export const AreaSoci = () => {
                     </p>
                     <div className="flex items-end gap-2 mb-4">
                       <span className="font-display font-black text-5xl">{missionsData.event_count}</span>
-                      <span className="text-tv-cream/50 text-sm mb-1.5">event{missionsData.event_count === 1 ? "o" : "i"}</span>
+                      <span className="text-tv-cream/50 text-sm mb-1.5">event{missionsData.event_count === 1 ? "o" : "i"} totali</span>
                     </div>
-                    {/* Progress verso prossima missione */}
                     {(() => {
                       const next = (missionsData.missions || []).find(m => !m.unlocked);
                       if (!next) return (
-                        <p className="text-sm text-tv-cream/60 flex items-center gap-2"><Trophy size={14} className="text-amber-400" /> Hai sbloccato tutte le missioni!</p>
+                        <p className="text-sm text-tv-cream/70 flex items-center gap-2">
+                          <Trophy size={14} className="text-amber-400" /> Hai sbloccato tutte le missioni!
+                        </p>
                       );
-                      const pct = Math.min(100, (missionsData.event_count / next.required_events) * 100);
+                      const pct = Math.min(100, (next.current_count / next.required_events) * 100);
                       return (
                         <div>
                           <div className="flex justify-between text-xs text-tv-cream/50 mb-1.5">
-                            <span>Prossima: <span className="text-tv-cream font-semibold">{next.title}</span></span>
-                            <span>{missionsData.event_count}/{next.required_events}</span>
+                            <span>Prossima: <span className="text-tv-cream font-semibold">{next.title}</span>{next.category && <span className="text-tv-cream/40"> · {next.category}</span>}</span>
+                            <span>{next.current_count}/{next.required_events}</span>
                           </div>
                           <div className="h-2 bg-tv-cream/15 rounded-full overflow-hidden">
                             <div className="h-full bg-amber-400 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
@@ -666,7 +667,7 @@ export const AreaSoci = () => {
                   </div>
                 </div>
 
-                {/* Missioni */}
+                {/* Griglia missioni con lucchetti */}
                 {missionsData.missions.length === 0 ? (
                   <div className="bg-white rounded-3xl border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/40">
                     <Trophy size={32} className="mx-auto mb-2 opacity-30" />
@@ -674,36 +675,96 @@ export const AreaSoci = () => {
                   </div>
                 ) : (
                   <div className="grid sm:grid-cols-2 gap-4">
-                    {missionsData.missions.map(m => (
-                      <div key={m.id}
-                        className={`rounded-3xl border p-5 flex gap-4 transition-all ${
+                    {missionsData.missions.map(m => {
+                      const pct = Math.min(100, (m.current_count / m.required_events) * 100);
+                      const remaining = m.required_events - m.current_count;
+                      return (
+                        <div key={m.id} className={`relative rounded-3xl border overflow-hidden transition-all duration-300 ${
                           m.unlocked
-                            ? "bg-white border-amber-200 shadow-[0_4px_20px_-8px_rgba(251,191,36,0.4)]"
-                            : "bg-white border-tv-green-deep/8 opacity-60"
+                            ? "bg-white border-amber-200 shadow-[0_4px_24px_-8px_rgba(251,191,36,0.35)]"
+                            : "bg-white border-tv-green-deep/8"
                         }`}>
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${m.unlocked ? "bg-amber-50" : "bg-tv-green-deep/5 grayscale"}`}>
-                          {m.emoji}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`font-black text-sm ${m.unlocked ? "text-tv-green-deep" : "text-tv-green-deep/50"}`}>{m.title}</span>
-                            {m.unlocked && (
-                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Sbloccato</span>
+                          {/* Barra progresso in cima */}
+                          <div className="h-1 w-full bg-tv-green-deep/8">
+                            <div className={`h-full transition-all duration-700 ${m.unlocked ? "bg-amber-400" : "bg-tv-green-deep/20"}`}
+                              style={{ width: `${pct}%` }} />
+                          </div>
+
+                          <div className="p-5">
+                            <div className="flex items-start gap-4">
+                              {/* Emoji + lucchetto */}
+                              <div className="relative shrink-0">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all duration-300 ${
+                                  m.unlocked ? "bg-amber-50" : "bg-tv-green-deep/5 grayscale opacity-50"
+                                }`}>
+                                  {m.emoji}
+                                </div>
+                                {/* Lucchetto sovrapposto */}
+                                <div className={`absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-sm transition-all duration-300 ${
+                                  m.unlocked
+                                    ? "bg-amber-400 text-amber-950"
+                                    : "bg-tv-green-deep/15 text-tv-green-deep/40"
+                                }`}>
+                                  {m.unlocked
+                                    ? <Award size={12} />
+                                    : <Lock size={11} />
+                                  }
+                                </div>
+                              </div>
+
+                              {/* Testo */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                  <span className={`font-black text-sm leading-tight ${m.unlocked ? "text-tv-green-deep" : "text-tv-green-deep/40"}`}>
+                                    {m.title}
+                                  </span>
+                                  {m.unlocked && (
+                                    <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full shrink-0">
+                                      Sbloccato!
+                                    </span>
+                                  )}
+                                </div>
+
+                                {m.category && (
+                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-block mb-1 ${
+                                    m.unlocked ? "bg-tv-sky/20 text-tv-green-deep/60" : "bg-tv-green-deep/8 text-tv-green-deep/30"
+                                  }`}>
+                                    {m.category}
+                                  </span>
+                                )}
+
+                                <p className={`text-xs leading-snug ${m.unlocked ? "text-tv-green-deep/55" : "text-tv-green-deep/30"}`}>
+                                  {m.description}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Premio */}
+                            <div className={`mt-3 pt-3 border-t flex items-center gap-2 text-xs font-semibold ${
+                              m.unlocked ? "border-amber-100 text-tv-bordeaux" : "border-tv-green-deep/8 text-tv-green-deep/25"
+                            }`}>
+                              <Gift size={13} />
+                              <span>{m.reward}</span>
+                            </div>
+
+                            {/* Contatore / messaggio */}
+                            {!m.unlocked ? (
+                              <div className="mt-2 flex items-center justify-between text-[10px] text-tv-green-deep/30">
+                                <span className="flex items-center gap-1">
+                                  <Lock size={9} />
+                                  Ancora {remaining} event{remaining === 1 ? "o" : "i"}{m.category ? ` di "${m.category}"` : ""}
+                                </span>
+                                <span>{m.current_count}/{m.required_events}</span>
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-[10px] text-amber-600 font-semibold flex items-center gap-1">
+                                <Award size={9} /> Ritira il tuo premio in sede!
+                              </p>
                             )}
                           </div>
-                          <p className="text-xs text-tv-green-deep/50 mt-0.5">{m.description}</p>
-                          <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${m.unlocked ? "text-tv-bordeaux" : "text-tv-green-deep/30"}`}>
-                            <Gift size={12} />
-                            <span>{m.reward}</span>
-                          </div>
-                          {!m.unlocked && (
-                            <p className="text-[10px] text-tv-green-deep/35 mt-1.5">
-                              Ancora {m.required_events - missionsData.event_count} event{(m.required_events - missionsData.event_count) === 1 ? "o" : "i"}
-                            </p>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </>
