@@ -2987,7 +2987,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
     }
     setSaving(true);
     try {
-      const payload = { ...form, spots: Number(form.spots) || 20 };
+      const payload = { ...form, spots: Number(form.spots) >= 0 ? Number(form.spots) : 20 };
       const headers = { Authorization: `Bearer ${token}` };
       let eventId;
       if (isNew) {
