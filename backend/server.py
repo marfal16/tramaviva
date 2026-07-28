@@ -1007,7 +1007,7 @@ async def delete_post(post_id: str, user=Depends(require_socio)):
     return {"ok": True}
 
 @api_router.get("/posts/{post_id}/image")
-async def get_post_image(post_id: str, user=Depends(require_socio)):
+async def get_post_image(post_id: str):
     post = await db.posts.find_one({"id": post_id}, {"image_data": 1})
     if not post or not post.get("image_data"):
         raise HTTPException(status_code=404, detail="Immagine non trovata")
