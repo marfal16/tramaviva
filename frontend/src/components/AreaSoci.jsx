@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import {
   LogOut, Camera, Edit2, Check, X, Calendar, ChevronRight,
-  Loader2, Lock, Star, BookOpen, MessageSquare, ThumbsUp, Award
+  Loader2, Lock, Star, BookOpen, MessageSquare, ThumbsUp, Award,
+  Heart, Send, Trash2, ImagePlus, Users
 } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
@@ -183,6 +184,219 @@ const Stars = ({ rating }) => (
   </span>
 );
 
+// ─── User initials avatar ─────────────────────────────────────────────────────
+
+const UserBubble = ({ userId, userName, size = 32 }) => {
+  const initial = (userName || "?").charAt(0).toUpperCase();
+  const colors = ["bg-tv-green-deep", "bg-tv-bordeaux", "bg-tv-orange", "bg-tv-sky"];
+  const colorIdx = userId ? userId.charCodeAt(0) % colors.length : 0;
+  return (
+    <div className={`${colors[colorIdx]} rounded-full flex items-center justify-center text-white font-black shrink-0`}
+      style={{ width: size, height: size, fontSize: size * 0.38 }}>
+      {initial}
+    </div>
+  );
+};
+
+// ─── Post card ───────────────────────────────────────────────────────────────
+
+const fmtTimeAgo = iso => {
+  try {
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return "ora";
+    if (diff < 3600) return `${Math.floor(diff / 60)} min fa`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} ore fa`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)} giorni fa`;
+    return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+  } catch { return ""; }
+};
+
+const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [comments, setComments] = useState(post.comments || []);
+  const [sending, setSending] = useState(false);
+  const liked = post.likes?.includes(currentUserId);
+  const likeCount = post.likes?.length || 0;
+
+  const handleLike = async () => {
+    const r = await fetch(`${API}/api/posts/${post.id}/like`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}` }
+    });
+    if (r.ok) { const d = await r.json(); onLikeToggle(post.id, d.liked, currentUserId); }
+  };
+
+  const handleComment = async e => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    setSending(true);
+    const r = await fetch(`${API}/api/posts/${post.id}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ content: commentText.trim() }),
+    });
+    if (r.ok) { const c = await r.json(); setComments(prev => [...prev, c]); setCommentText(""); }
+    else toast.error("Errore nell'invio del commento");
+    setSending(false);
+  };
+
+  const handleDeleteComment = async commentId => {
+    const r = await fetch(`${API}/api/posts/${post.id}/comments/${commentId}`, {
+      method: "DELETE", headers: { Authorization: `Bearer ${token}` }
+    });
+    if (r.ok) setComments(prev => prev.filter(c => c.id !== commentId));
+  };
+
+  return (
+    <div className="bg-white rounded-3xl border border-tv-green-deep/8 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-3">
+          <UserBubble userId={post.user_id} userName={post.user_name} size={36} />
+          <div>
+            <p className="font-bold text-sm text-tv-green-deep">{post.user_name}</p>
+            <p className="text-[10px] text-tv-green-deep/35">{fmtTimeAgo(post.created_at)}</p>
+          </div>
+        </div>
+        {post.user_id === currentUserId && (
+          <button onClick={() => onDelete(post.id)}
+            className="p-1.5 rounded-full text-tv-green-deep/25 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors">
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="px-5 pb-3">
+        <p className="text-sm text-tv-green-deep/80 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+      </div>
+
+      {/* Image */}
+      {post.has_image && (
+        <img src={`${API}/api/posts/${post.id}/image`}
+          alt="post"
+          className="w-full max-h-80 object-cover"
+          loading="lazy"
+        />
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-4 px-5 py-3 border-t border-tv-green-deep/8">
+        <button onClick={handleLike}
+          className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${liked ? "text-tv-bordeaux" : "text-tv-green-deep/40 hover:text-tv-bordeaux"}`}>
+          <Heart size={15} className={liked ? "fill-tv-bordeaux" : ""} />
+          {likeCount > 0 && <span>{likeCount}</span>}
+        </button>
+        <button onClick={() => setShowComments(s => !s)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-tv-green-deep/40 hover:text-tv-green-deep transition-colors">
+          <MessageSquare size={15} />
+          {comments.length > 0 && <span>{comments.length}</span>}
+        </button>
+      </div>
+
+      {/* Comments */}
+      {showComments && (
+        <div className="border-t border-tv-green-deep/8 bg-tv-cream/30 px-5 py-3 flex flex-col gap-3">
+          {comments.map(c => (
+            <div key={c.id} className="flex items-start gap-2">
+              <UserBubble userId={c.user_id} userName={c.user_name} size={26} />
+              <div className="flex-1 bg-white rounded-2xl px-3 py-2 min-w-0">
+                <p className="text-xs font-bold text-tv-green-deep">{c.user_name}</p>
+                <p className="text-xs text-tv-green-deep/70 mt-0.5">{c.content}</p>
+              </div>
+              {c.user_id === currentUserId && (
+                <button onClick={() => handleDeleteComment(c.id)}
+                  className="p-1 text-tv-green-deep/20 hover:text-tv-bordeaux transition-colors mt-1">
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+          ))}
+          <form onSubmit={handleComment} className="flex items-center gap-2 mt-1">
+            <input value={commentText} onChange={e => setCommentText(e.target.value)}
+              placeholder="Scrivi un commento…"
+              className="flex-1 px-3 py-2 rounded-full text-xs border border-tv-green-deep/15 bg-white focus:border-tv-green focus:outline-none text-tv-green-deep" />
+            <button type="submit" disabled={sending || !commentText.trim()}
+              className="p-2 rounded-full bg-tv-green-deep text-tv-cream disabled:opacity-40 hover:bg-tv-green transition-colors">
+              {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Post composer ────────────────────────────────────────────────────────────
+
+const PostComposer = ({ user, token, onPost }) => {
+  const [text, setText] = useState("");
+  const [imageData, setImageData] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [posting, setPosting] = useState(false);
+  const fileRef = useRef();
+
+  const handleImage = e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Seleziona un'immagine"); return; }
+    const reader = new FileReader();
+    reader.onload = ev => { setImageData(ev.target.result); setImagePreview(ev.target.result); };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    setPosting(true);
+    const r = await fetch(`${API}/api/posts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ content: text.trim(), image_data: imageData }),
+    });
+    if (r.ok) {
+      const post = await r.json();
+      onPost(post);
+      setText("");
+      setImageData(null);
+      setImagePreview(null);
+      toast.success("Post pubblicato!");
+    } else toast.error("Errore nella pubblicazione");
+    setPosting(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-tv-green-deep/8 p-5 flex flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <UserBubble userId={user.id} userName={user.name} size={36} />
+        <textarea value={text} onChange={e => setText(e.target.value)} rows={3}
+          placeholder="Condividi qualcosa con gli altri soci…"
+          className="flex-1 px-4 py-2.5 rounded-2xl border border-tv-green-deep/15 bg-tv-cream/40 focus:border-tv-green focus:outline-none text-sm text-tv-green-deep resize-none leading-relaxed" />
+      </div>
+      {imagePreview && (
+        <div className="relative ml-12">
+          <img src={imagePreview} alt="preview" className="max-h-40 rounded-2xl object-cover" />
+          <button type="button" onClick={() => { setImageData(null); setImagePreview(null); }}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
+            <X size={12} />
+          </button>
+        </div>
+      )}
+      <div className="flex items-center justify-between ml-12">
+        <button type="button" onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-1.5 text-xs font-semibold text-tv-green-deep/40 hover:text-tv-green-deep transition-colors">
+          <ImagePlus size={15} /> Foto
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
+        <button type="submit" disabled={posting || !text.trim()}
+          className="px-5 py-2 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors disabled:opacity-40 flex items-center gap-2">
+          {posting ? <><Loader2 size={13} className="animate-spin" /> Invio…</> : "Pubblica"}
+        </button>
+      </div>
+    </form>
+  );
+};
+
 // ─── Area Soci ────────────────────────────────────────────────────────────────
 
 export const AreaSoci = () => {
@@ -196,6 +410,12 @@ export const AreaSoci = () => {
   const [votes, setVotes] = useState([]);
   const [books, setBooks] = useState([]);
   const [loadingTab, setLoadingTab] = useState(false);
+
+  // Feed state
+  const [posts, setPosts] = useState([]);
+  const [postsTotal, setPostsTotal] = useState(0);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [postsLoaded, setPostsLoaded] = useState(false);
 
   useEffect(() => {
     if (!token) { navigate("/login"); return; }
@@ -215,6 +435,44 @@ export const AreaSoci = () => {
       ]).then(([rev, vot]) => { setReviews(rev); setVotes(vot); setLoadingTab(false); });
     }
   }, [tab, token]);
+
+  const loadPosts = useCallback(async (skip = 0) => {
+    setLoadingPosts(true);
+    const r = await fetch(`${API}/api/posts?skip=${skip}&limit=20`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (r.ok) {
+      const d = await r.json();
+      setPosts(prev => skip === 0 ? d.posts : [...prev, ...d.posts]);
+      setPostsTotal(d.total);
+    }
+    setLoadingPosts(false);
+    setPostsLoaded(true);
+  }, [token]);
+
+  useEffect(() => {
+    if (tab === "bacheca" && !postsLoaded) loadPosts(0);
+  }, [tab, postsLoaded, loadPosts]);
+
+  const handleNewPost = post => setPosts(prev => [post, ...prev]);
+
+  const handleDeletePost = async postId => {
+    const r = await fetch(`${API}/api/posts/${postId}`, {
+      method: "DELETE", headers: { Authorization: `Bearer ${token}` }
+    });
+    if (r.ok) { setPosts(prev => prev.filter(p => p.id !== postId)); toast.success("Post eliminato"); }
+    else toast.error("Errore nell'eliminazione");
+  };
+
+  const handleLikeToggle = (postId, liked, userId) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      const likes = liked
+        ? [...(p.likes || []), userId]
+        : (p.likes || []).filter(id => id !== userId);
+      return { ...p, likes };
+    }));
+  };
 
   const refreshUser = () => {
     fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
@@ -237,6 +495,7 @@ export const AreaSoci = () => {
 
   const tabs = [
     { key: "eventi", label: "I miei eventi", icon: Calendar },
+    { key: "bacheca", label: "Bacheca", icon: Users },
     { key: "club", label: "Club del Libro", icon: BookOpen },
     { key: "profilo", label: "Profilo", icon: Edit2 },
   ];
@@ -334,6 +593,38 @@ export const AreaSoci = () => {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Tab: bacheca ── */}
+        {tab === "bacheca" && (
+          <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
+            <PostComposer user={user} token={token} onPost={handleNewPost} />
+
+            {loadingPosts && posts.length === 0 ? (
+              <div className="flex items-center justify-center py-10 text-tv-green-deep/30">
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-10 text-tv-green-deep/40">
+                <Users size={32} className="mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Nessun post ancora. Sii il primo a condividere qualcosa!</p>
+              </div>
+            ) : (
+              <>
+                {posts.map(post => (
+                  <PostCard key={post.id} post={post} currentUserId={user.id} token={token}
+                    onDelete={handleDeletePost} onLikeToggle={handleLikeToggle} />
+                ))}
+                {posts.length < postsTotal && (
+                  <button onClick={() => loadPosts(posts.length)} disabled={loadingPosts}
+                    className="mx-auto px-6 py-2.5 rounded-full border border-tv-green-deep/20 text-sm font-semibold text-tv-green-deep/60 hover:text-tv-green-deep hover:border-tv-green-deep/40 transition-all disabled:opacity-40 flex items-center gap-2">
+                    {loadingPosts ? <Loader2 size={14} className="animate-spin" /> : null}
+                    Carica altri post
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}

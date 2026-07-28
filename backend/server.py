@@ -959,6 +959,112 @@ async def socio_my_votes(user=Depends(require_socio)):
     ).sort("proposed_month", -1).to_list(100)
     return proposals
 
+# ========== BACHECA SOCI (SOCIAL FEED) ==========
+
+class PostCreate(BaseModel):
+    content: str
+    image_data: Optional[str] = None  # base64 data URL
+
+class CommentCreate(BaseModel):
+    content: str
+
+@api_router.get("/posts")
+async def list_posts(user=Depends(require_socio), skip: int = 0, limit: int = 20):
+    posts = await db.posts.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.posts.count_documents({})
+    return {"posts": posts, "total": total}
+
+@api_router.post("/posts", status_code=201)
+async def create_post(body: PostCreate, user=Depends(require_socio)):
+    if not body.content.strip():
+        raise HTTPException(status_code=400, detail="Il post non può essere vuoto")
+    post_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    post = {
+        "id": post_id,
+        "user_id": user["id"],
+        "user_name": user.get("name", "Socio"),
+        "content": body.content.strip(),
+        "has_image": bool(body.image_data),
+        "created_at": now,
+        "likes": [],
+        "comments": [],
+    }
+    if body.image_data:
+        post["image_data"] = body.image_data
+    await db.posts.insert_one(post)
+    post.pop("image_data", None)
+    return post
+
+@api_router.delete("/posts/{post_id}")
+async def delete_post(post_id: str, user=Depends(require_socio)):
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post non trovato")
+    if post["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    await db.posts.delete_one({"id": post_id})
+    return {"ok": True}
+
+@api_router.get("/posts/{post_id}/image")
+async def get_post_image(post_id: str, user=Depends(require_socio)):
+    post = await db.posts.find_one({"id": post_id}, {"image_data": 1})
+    if not post or not post.get("image_data"):
+        raise HTTPException(status_code=404, detail="Immagine non trovata")
+    data_url = post["image_data"]
+    if "," in data_url:
+        header, b64 = data_url.split(",", 1)
+        mime = header.split(":")[1].split(";")[0] if ":" in header else "image/jpeg"
+    else:
+        b64, mime = data_url, "image/jpeg"
+    import base64
+    img_bytes = base64.b64decode(b64)
+    from fastapi.responses import Response
+    return Response(content=img_bytes, media_type=mime)
+
+@api_router.post("/posts/{post_id}/like")
+async def toggle_like(post_id: str, user=Depends(require_socio)):
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post non trovato")
+    uid = user["id"]
+    if uid in post.get("likes", []):
+        await db.posts.update_one({"id": post_id}, {"$pull": {"likes": uid}})
+        return {"liked": False}
+    else:
+        await db.posts.update_one({"id": post_id}, {"$addToSet": {"likes": uid}})
+        return {"liked": True}
+
+@api_router.post("/posts/{post_id}/comments", status_code=201)
+async def add_comment(post_id: str, body: CommentCreate, user=Depends(require_socio)):
+    if not body.content.strip():
+        raise HTTPException(status_code=400, detail="Il commento non può essere vuoto")
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post non trovato")
+    comment = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "user_name": user.get("name", "Socio"),
+        "content": body.content.strip(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.posts.update_one({"id": post_id}, {"$push": {"comments": comment}})
+    return comment
+
+@api_router.delete("/posts/{post_id}/comments/{comment_id}")
+async def delete_comment(post_id: str, comment_id: str, user=Depends(require_socio)):
+    post = await db.posts.find_one({"id": post_id})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post non trovato")
+    comment = next((c for c in post.get("comments", []) if c["id"] == comment_id), None)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Commento non trovato")
+    if comment["user_id"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    await db.posts.update_one({"id": post_id}, {"$pull": {"comments": {"id": comment_id}}})
+    return {"ok": True}
+
 # ========== ADMIN: MEMBERSHIPS & REGISTRATIONS ==========
 @api_router.get("/admin/memberships", dependencies=[Depends(require_admin)])
 async def admin_memberships():
