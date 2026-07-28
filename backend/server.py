@@ -329,6 +329,25 @@ class MemberUpdate(BaseModel):
     notes: Optional[str] = None
     is_fondatore: Optional[bool] = None
 
+class Mission(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    reward: str
+    required_events: int
+    emoji: str = "🏆"
+    order: int = 0
+    active: bool = True
+
+class MissionUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    reward: Optional[str] = None
+    required_events: Optional[int] = None
+    emoji: Optional[str] = None
+    order: Optional[int] = None
+    active: Optional[bool] = None
+
 class RegistrationCreate(BaseModel):
     first_name: str
     last_name: str
@@ -959,6 +978,24 @@ async def socio_my_votes(user=Depends(require_socio)):
     ).sort("proposed_month", -1).to_list(100)
     return proposals
 
+# ========== MISSIONI SOCI ==========
+
+@api_router.get("/auth/me/missions")
+async def socio_my_missions(user=Depends(require_socio)):
+    member = await db.members.find_one({"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)})
+    is_fondatore = (member.get("is_fondatore", False) or not member.get("tessera_number")) if member else False
+    if is_fondatore:
+        event_count = await db.events.count_documents({})
+    else:
+        event_count = await db.event_signups.count_documents({
+            "email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE),
+            "confirmed": True,
+        })
+    missions = await db.missions.find({"active": True}, {"_id": 0}).sort("order", 1).to_list(100)
+    for m in missions:
+        m["unlocked"] = event_count >= m["required_events"]
+    return {"event_count": event_count, "is_fondatore": is_fondatore, "missions": missions}
+
 # ========== BACHECA SOCI (SOCIAL FEED) ==========
 
 class PostCreate(BaseModel):
@@ -1063,6 +1100,29 @@ async def delete_comment(post_id: str, comment_id: str, user=Depends(require_soc
     if comment["user_id"] != user["id"]:
         raise HTTPException(status_code=403, detail="Non autorizzato")
     await db.posts.update_one({"id": post_id}, {"$pull": {"comments": {"id": comment_id}}})
+    return {"ok": True}
+
+# ========== ADMIN: MISSIONS ==========
+
+@api_router.get("/admin/missions", dependencies=[Depends(require_admin)])
+async def admin_get_missions():
+    return await db.missions.find({}, {"_id": 0}).sort("order", 1).to_list(100)
+
+@api_router.post("/admin/missions", dependencies=[Depends(require_admin)], status_code=201)
+async def admin_create_mission(body: Mission):
+    await db.missions.insert_one(body.model_dump())
+    return body
+
+@api_router.put("/admin/missions/{mission_id}", dependencies=[Depends(require_admin)])
+async def admin_update_mission(mission_id: str, body: MissionUpdate):
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    if update:
+        await db.missions.update_one({"id": mission_id}, {"$set": update})
+    return await db.missions.find_one({"id": mission_id}, {"_id": 0})
+
+@api_router.delete("/admin/missions/{mission_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_mission(mission_id: str):
+    await db.missions.delete_one({"id": mission_id})
     return {"ok": True}
 
 # ========== ADMIN: MEMBERSHIPS & REGISTRATIONS ==========

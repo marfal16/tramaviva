@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -102,6 +102,7 @@ const NAV = [
   { key: "home",          label: "Dashboard",           icon: LayoutDashboard },
   { key: "events",        label: "Eventi",               icon: CalendarPlus },
   { key: "books",         label: "Club del Libro",       icon: BookOpen },
+  { key: "missions",      label: "Missioni",             icon: Trophy },
   { key: "members",       label: "Soci tesserati",       icon: IdCard },
   { key: "registrations", label: "Richieste iscrizione", icon: Users },
   { key: "event-signups", label: "Richieste eventi",     icon: Calendar },
@@ -1635,7 +1636,7 @@ const Dashboard = ({ token, onLogout }) => {
 
     setLoading(true);
     try {
-      const [r, es, c, ev, mem, bk, rv, pr] = await Promise.all([
+      const [r, es, c, ev, mem, bk, rv, pr, mis] = await Promise.all([
         axios.get(`${API}/admin/registrations`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
@@ -1644,6 +1645,7 @@ const Dashboard = ({ token, onLogout }) => {
         axios.get(`${API}/books`, authHeader),
         axios.get(`${API}/admin/reviews`, authHeader),
         axios.get(`${API}/admin/proposals`, authHeader),
+        axios.get(`${API}/admin/missions`, authHeader),
       ]);
       setData({
         registrations: r.data || [],
@@ -1654,6 +1656,7 @@ const Dashboard = ({ token, onLogout }) => {
         books: bk.data || [],
         reviews: rv.data || [],
         proposals: pr.data || [],
+        missions: mis.data || [],
       });
     } catch (err) {
       if (err.response?.status === 401) {
@@ -2001,6 +2004,12 @@ const Dashboard = ({ token, onLogout }) => {
               events={data.events}
               reviews={data.reviews}
               proposals={data.proposals}
+              token={token}
+              onReload={loadAll}
+            />
+          ) : tab === "missions" ? (
+            <MissionsManager
+              missions={data.missions || []}
               token={token}
               onReload={loadAll}
             />
@@ -3439,6 +3448,191 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
     <input type={type} value={value ?? ""} onChange={onChange} required={required} className="w-full h-[50px] px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none appearance-none" />
   </label>
 );
+
+// ── MissionsManager ──────────────────────────────────────────────────────────
+
+const MISSION_EMPTY = { title: "", description: "", reward: "", required_events: 1, emoji: "🏆", order: 0, active: true };
+
+const MissionsManager = ({ missions, token, onReload }) => {
+  const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(MISSION_EMPTY);
+  const [editing, setEditing] = useState(null); // mission id being edited inline
+  const [editForm, setEditForm] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleCreate = async e => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await axios.post(`${API}/admin/missions`, { ...form, required_events: Number(form.required_events), order: Number(form.order) }, authHeader);
+      toast.success("Missione creata!");
+      setForm(MISSION_EMPTY);
+      setShowForm(false);
+      onReload();
+    } catch { toast.error("Errore nella creazione"); }
+    finally { setSaving(false); }
+  };
+
+  const handleSaveEdit = async id => {
+    setSaving(true);
+    try {
+      await axios.put(`${API}/admin/missions/${id}`, {
+        ...editForm,
+        required_events: Number(editForm.required_events),
+        order: Number(editForm.order),
+      }, authHeader);
+      toast.success("Salvato!");
+      setEditing(null);
+      onReload();
+    } catch { toast.error("Errore nel salvataggio"); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async id => {
+    if (!window.confirm("Eliminare questa missione?")) return;
+    await axios.delete(`${API}/admin/missions/${id}`, authHeader);
+    toast.success("Missione eliminata");
+    onReload();
+  };
+
+  const toggleActive = async (m) => {
+    await axios.put(`${API}/admin/missions/${m.id}`, { active: !m.active }, authHeader);
+    onReload();
+  };
+
+  const fieldCls = "w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm text-tv-green-deep bg-white outline-none focus:border-tv-green";
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display font-black text-2xl text-tv-green-deep">Missioni soci</h2>
+          <p className="text-sm text-tv-green-deep/50 mt-0.5">I soci sbloccano i premi raggiungendo i traguardi di partecipazione agli eventi.</p>
+        </div>
+        <button onClick={() => setShowForm(s => !s)}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors">
+          <Plus size={15} /> Nuova missione
+        </button>
+      </div>
+
+      {/* Form nuova missione */}
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-white rounded-3xl border border-tv-green-deep/10 p-6 grid grid-cols-2 gap-4">
+          <div className="col-span-2 grid grid-cols-[60px_1fr] gap-3">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Emoji</label>
+              <input value={form.emoji} onChange={set("emoji")} className={fieldCls} maxLength={4} />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Titolo *</label>
+              <input value={form.title} onChange={set("title")} required className={fieldCls} placeholder="Es. Primo filo" />
+            </div>
+          </div>
+          <div className="col-span-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Descrizione</label>
+            <input value={form.description} onChange={set("description")} className={fieldCls} placeholder="Es. Hai partecipato al tuo primo evento!" />
+          </div>
+          <div className="col-span-2">
+            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Premio / Gadget *</label>
+            <input value={form.reward} onChange={set("reward")} required className={fieldCls} placeholder="Es. Segnalibro Trama Viva" />
+          </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Eventi richiesti *</label>
+            <input type="number" min={1} value={form.required_events} onChange={set("required_events")} required className={fieldCls} />
+          </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Ordine</label>
+            <input type="number" min={0} value={form.order} onChange={set("order")} className={fieldCls} />
+          </div>
+          <div className="col-span-2 flex justify-end gap-2">
+            <button type="button" onClick={() => setShowForm(false)}
+              className="px-4 py-2 rounded-full border border-tv-green-deep/20 text-sm font-semibold text-tv-green-deep/60 hover:border-tv-green-deep/40 transition-colors">
+              Annulla
+            </button>
+            <button type="submit" disabled={saving}
+              className="px-5 py-2 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-50 flex items-center gap-2">
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Crea missione
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Lista missioni */}
+      {missions.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-tv-green-deep/10 p-10 text-center text-tv-green-deep/40">
+          <Trophy size={32} className="mx-auto mb-2 opacity-30" />
+          <p>Nessuna missione ancora. Creane una!</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {missions.map(m => (
+            <div key={m.id} className={`bg-white rounded-3xl border overflow-hidden transition-opacity ${m.active ? "border-tv-green-deep/10" : "border-tv-green-deep/5 opacity-60"}`}>
+              <div className="flex items-center gap-4 p-4">
+                <span className="text-3xl shrink-0">{m.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-tv-green-deep">{m.title}</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-tv-orange/15 text-tv-orange px-2 py-0.5 rounded-full">
+                      {m.required_events} {m.required_events === 1 ? "evento" : "eventi"}
+                    </span>
+                    {!m.active && <span className="text-[10px] font-bold text-tv-green-deep/40 italic">inattiva</span>}
+                  </div>
+                  <p className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{m.description}</p>
+                  <p className="text-xs font-semibold text-tv-green-deep/70 mt-0.5">🎁 {m.reward}</p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => toggleActive(m)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${m.active ? "bg-tv-mint/40 text-tv-green-deep hover:bg-tv-mint" : "bg-tv-green-deep/10 text-tv-green-deep/50 hover:bg-tv-green-deep/20"}`}>
+                    {m.active ? "Attiva" : "Disattiva"}
+                  </button>
+                  <button onClick={() => { setEditing(m.id); setEditForm({ ...m }); }}
+                    className="p-2 rounded-xl text-tv-green-deep/40 hover:text-tv-green-deep hover:bg-tv-mint/30 transition-colors">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => handleDelete(m.id)}
+                    className="p-2 rounded-xl text-tv-green-deep/30 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Inline edit */}
+              {editing === m.id && (
+                <div className="border-t border-tv-green-deep/10 bg-tv-cream/30 p-4 grid grid-cols-2 gap-3">
+                  <div className="col-span-2 grid grid-cols-[60px_1fr] gap-3">
+                    <input value={editForm.emoji || ""} onChange={e => setEditForm(f => ({ ...f, emoji: e.target.value }))} className={fieldCls} maxLength={4} />
+                    <input value={editForm.title || ""} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className={fieldCls} placeholder="Titolo" />
+                  </div>
+                  <div className="col-span-2">
+                    <input value={editForm.description || ""} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className={fieldCls} placeholder="Descrizione" />
+                  </div>
+                  <div className="col-span-2">
+                    <input value={editForm.reward || ""} onChange={e => setEditForm(f => ({ ...f, reward: e.target.value }))} className={fieldCls} placeholder="Premio / Gadget" />
+                  </div>
+                  <input type="number" min={1} value={editForm.required_events || 1} onChange={e => setEditForm(f => ({ ...f, required_events: e.target.value }))} className={fieldCls} />
+                  <input type="number" min={0} value={editForm.order || 0} onChange={e => setEditForm(f => ({ ...f, order: e.target.value }))} className={fieldCls} placeholder="Ordine" />
+                  <div className="col-span-2 flex justify-end gap-2">
+                    <button onClick={() => setEditing(null)}
+                      className="px-4 py-1.5 rounded-full border border-tv-green-deep/20 text-sm font-semibold text-tv-green-deep/60 hover:border-tv-green-deep/40 transition-colors">
+                      Annulla
+                    </button>
+                    <button onClick={() => handleSaveEdit(m.id)} disabled={saving}
+                      className="px-4 py-1.5 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-50 flex items-center gap-2">
+                      {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Salva
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
   const fmtDay = (d) => {

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   LogOut, Camera, Edit2, Check, X, Calendar, ChevronRight,
   Loader2, Lock, Star, BookOpen, MessageSquare, ThumbsUp, Award,
-  Heart, Send, Trash2, ImagePlus, Users
+  Heart, Send, Trash2, ImagePlus, Users, Trophy, Gift
 } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
@@ -411,7 +411,10 @@ export const AreaSoci = () => {
   const [books, setBooks] = useState([]);
   const [loadingTab, setLoadingTab] = useState(false);
 
-  // Feed state
+  // Missioni state
+  const [missionsData, setMissionsData] = useState(null);
+
+  // Feed state (bacheca nascosta ma codice mantenuto)
   const [posts, setPosts] = useState([]);
   const [postsTotal, setPostsTotal] = useState(0);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -449,6 +452,13 @@ export const AreaSoci = () => {
     setLoadingPosts(false);
     setPostsLoaded(true);
   }, [token]);
+
+  useEffect(() => {
+    if (tab === "missioni" && !missionsData) {
+      fetch(`${API}/api/auth/me/missions`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null).then(setMissionsData);
+    }
+  }, [tab, missionsData, token]);
 
   useEffect(() => {
     if (tab === "bacheca" && !postsLoaded) loadPosts(0);
@@ -495,7 +505,7 @@ export const AreaSoci = () => {
 
   const tabs = [
     { key: "eventi", label: "I miei eventi", icon: Calendar },
-    { key: "bacheca", label: "Bacheca", icon: Users },
+    { key: "missioni", label: "Missioni", icon: Trophy },
     { key: "club", label: "Club del Libro", icon: BookOpen },
     { key: "profilo", label: "Profilo", icon: Edit2 },
   ];
@@ -534,23 +544,23 @@ export const AreaSoci = () => {
 
         {/* Tab nav */}
         <div className="flex gap-1.5 mb-6">
-          {/* Bacheca — tab in evidenza */}
-          <button onClick={() => setTab("bacheca")}
+          {/* Missioni — tab in evidenza */}
+          <button onClick={() => setTab("missioni")}
             className={`relative flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-black transition-all flex-1 sm:flex-none ${
-              tab === "bacheca"
+              tab === "missioni"
                 ? "bg-tv-bordeaux text-white shadow-[0_4px_20px_-4px_rgba(120,20,40,0.4)]"
                 : "bg-white border border-tv-bordeaux/25 text-tv-bordeaux hover:bg-tv-bordeaux/8"
             }`}>
-            <Users size={15} />
-            <span>Bacheca</span>
-            {tab !== "bacheca" && (
+            <Trophy size={15} />
+            <span>Missioni</span>
+            {tab !== "missioni" && (
               <span className="w-2 h-2 rounded-full bg-tv-bordeaux animate-pulse absolute -top-0.5 -right-0.5" />
             )}
           </button>
 
           {/* Altri tab */}
           <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-tv-green-deep/8 flex-1">
-            {tabs.filter(t => t.key !== "bacheca").map(({ key, label, icon: Icon }) => (
+            {tabs.filter(t => t.key !== "missioni").map(({ key, label, icon: Icon }) => (
               <button key={key} onClick={() => setTab(key)}
                 className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${tab === key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/55 hover:text-tv-green-deep hover:bg-tv-mint/30"}`}>
                 <Icon size={14} /> <span className="hidden sm:inline">{label}</span>
@@ -614,7 +624,94 @@ export const AreaSoci = () => {
           </div>
         )}
 
-        {/* ── Tab: bacheca ── */}
+        {/* ── Tab: missioni ── */}
+        {tab === "missioni" && (
+          <div className="flex flex-col gap-5">
+            {!missionsData ? (
+              <div className="flex items-center justify-center py-16 text-tv-green-deep/30">
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+            ) : (
+              <>
+                {/* Contatore eventi + progress */}
+                <div className="bg-tv-green-deep rounded-[2rem] p-6 text-tv-cream relative overflow-hidden">
+                  <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full bg-tv-green/20 blur-2xl pointer-events-none" />
+                  <div className="relative">
+                    <p className="text-xs font-black uppercase tracking-[.2em] text-tv-cream/50 mb-1">
+                      {missionsData.is_fondatore ? "Socio fondatore — tutti gli eventi" : "Partecipazioni confermate"}
+                    </p>
+                    <div className="flex items-end gap-2 mb-4">
+                      <span className="font-display font-black text-5xl">{missionsData.event_count}</span>
+                      <span className="text-tv-cream/50 text-sm mb-1.5">event{missionsData.event_count === 1 ? "o" : "i"}</span>
+                    </div>
+                    {/* Progress verso prossima missione */}
+                    {(() => {
+                      const next = (missionsData.missions || []).find(m => !m.unlocked);
+                      if (!next) return (
+                        <p className="text-sm text-tv-cream/60 flex items-center gap-2"><Trophy size={14} className="text-amber-400" /> Hai sbloccato tutte le missioni!</p>
+                      );
+                      const pct = Math.min(100, (missionsData.event_count / next.required_events) * 100);
+                      return (
+                        <div>
+                          <div className="flex justify-between text-xs text-tv-cream/50 mb-1.5">
+                            <span>Prossima: <span className="text-tv-cream font-semibold">{next.title}</span></span>
+                            <span>{missionsData.event_count}/{next.required_events}</span>
+                          </div>
+                          <div className="h-2 bg-tv-cream/15 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-400 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Missioni */}
+                {missionsData.missions.length === 0 ? (
+                  <div className="bg-white rounded-3xl border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/40">
+                    <Trophy size={32} className="mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Le missioni saranno presto disponibili.</p>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {missionsData.missions.map(m => (
+                      <div key={m.id}
+                        className={`rounded-3xl border p-5 flex gap-4 transition-all ${
+                          m.unlocked
+                            ? "bg-white border-amber-200 shadow-[0_4px_20px_-8px_rgba(251,191,36,0.4)]"
+                            : "bg-white border-tv-green-deep/8 opacity-60"
+                        }`}>
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${m.unlocked ? "bg-amber-50" : "bg-tv-green-deep/5 grayscale"}`}>
+                          {m.emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`font-black text-sm ${m.unlocked ? "text-tv-green-deep" : "text-tv-green-deep/50"}`}>{m.title}</span>
+                            {m.unlocked && (
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Sbloccato</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-tv-green-deep/50 mt-0.5">{m.description}</p>
+                          <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${m.unlocked ? "text-tv-bordeaux" : "text-tv-green-deep/30"}`}>
+                            <Gift size={12} />
+                            <span>{m.reward}</span>
+                          </div>
+                          {!m.unlocked && (
+                            <p className="text-[10px] text-tv-green-deep/35 mt-1.5">
+                              Ancora {m.required_events - missionsData.event_count} event{(m.required_events - missionsData.event_count) === 1 ? "o" : "i"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Tab: bacheca (nascosta, codice mantenuto) ── */}
         {tab === "bacheca" && (
           <div className="flex flex-col gap-4 max-w-2xl mx-auto w-full">
             <PostComposer user={user} token={token} onPost={handleNewPost} />
