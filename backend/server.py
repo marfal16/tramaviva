@@ -14,12 +14,9 @@ from datetime import datetime, timezone, timedelta
 import httpx
 import sys
 
-try:
-    from passlib.context import CryptContext
-    from jose import JWTError, jwt
-    HAS_AUTH = True
-except ImportError:
-    HAS_AUTH = False
+import hashlib
+import secrets
+import jwt as pyjwt
 
 # IMPORTANTE: Importiamo il servizio PDF che hai appena configurato
 from pdf_service import PDFService
@@ -726,9 +723,6 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://www.tramavivaaps.com")
 
-if HAS_AUTH:
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 class SocioCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
@@ -757,26 +751,35 @@ class AvatarUpload(BaseModel):
     image_data: str  # base64 dataURL
 
 def _hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    salt = secrets.token_hex(32)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 260000)
+    return f"pbkdf2:sha256:260000:{salt}:{dk.hex()}"
 
-def _verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+def _verify_password(plain: str, stored: str) -> bool:
+    try:
+        _, algo, iters, salt, key = stored.split(":")
+        dk = hashlib.pbkdf2_hmac(algo, plain.encode(), salt.encode(), int(iters))
+        return secrets.compare_digest(dk.hex(), key)
+    except Exception:
+        return False
 
 def _create_access_token(user_id: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=JWT_EXPIRE_DAYS)
-    return jwt.encode({"sub": user_id, "exp": expire}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return pyjwt.encode({"sub": user_id, "exp": expire}, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 async def require_socio(authorization: Optional[str] = Header(default=None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Accesso riservato ai soci")
     token = authorization.split(" ", 1)[1].strip()
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Token non valido")
-    except JWTError:
+    except pyjwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Sessione scaduta, effettua di nuovo il login")
+    except pyjwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Token non valido")
     user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0, "avatar_data": 0})
     if not user:
         raise HTTPException(status_code=401, detail="Utente non trovato")
