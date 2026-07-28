@@ -317,6 +317,7 @@ class Member(BaseModel):
     phone: Optional[str] = None
     tessera_number: Optional[str] = None
     notes: Optional[str] = None
+    is_fondatore: bool = False
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class MemberUpdate(BaseModel):
@@ -326,6 +327,7 @@ class MemberUpdate(BaseModel):
     phone: Optional[str] = None
     tessera_number: Optional[str] = None
     notes: Optional[str] = None
+    is_fondatore: Optional[bool] = None
 
 class RegistrationCreate(BaseModel):
     first_name: str
@@ -913,11 +915,49 @@ async def socio_reset_password(payload: PasswordReset):
 
 @api_router.get("/auth/me/events")
 async def socio_my_events(user=Depends(require_socio)):
+    member = await db.members.find_one({"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)})
+    is_fondatore = (member.get("is_fondatore", False) or not member.get("tessera_number")) if member else False
+    if is_fondatore:
+        events = await db.events.find({}, {"_id": 0, "id": 1, "title": 1, "date": 1, "location": 1, "category": 1, "emoji": 1, "slug": 1}).sort("date", -1).to_list(500)
+        return {"is_fondatore": True, "events": events, "signups": []}
     signups = await db.event_signups.find(
         {"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)},
         {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1}
+    ).sort("created_at", -1).to_list(200)
+    return {"is_fondatore": False, "events": [], "signups": signups}
+
+@api_router.get("/auth/me/member-info")
+async def socio_member_info(user=Depends(require_socio)):
+    member = await db.members.find_one(
+        {"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)},
+        {"_id": 0, "first_name": 1, "last_name": 1, "tessera_number": 1, "joined_at": 1, "is_fondatore": 1, "phone": 1}
+    )
+    return member or {}
+
+@api_router.get("/auth/me/reviews")
+async def socio_my_reviews(user=Depends(require_socio)):
+    name = user.get("name", "").strip()
+    reviews = await db.reviews.find(
+        {"reviewer_name": re.compile(f"^{re.escape(name)}$", re.IGNORECASE)},
+        {"_id": 0}
     ).sort("created_at", -1).to_list(100)
-    return signups
+    return reviews
+
+@api_router.get("/auth/me/votes")
+async def socio_my_votes(user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        return []
+    nome = name_parts[0]
+    cognome = " ".join(name_parts[1:])
+    proposals = await db.proposals.find(
+        {"voters": {"$elemMatch": {
+            "nome": re.compile(f"^{re.escape(nome)}$", re.IGNORECASE),
+            "cognome": re.compile(f"^{re.escape(cognome)}$", re.IGNORECASE)
+        }}},
+        {"_id": 0, "id": 1, "title": 1, "author": 1, "votes": 1, "proposed_month": 1, "cover_url": 1}
+    ).sort("proposed_month", -1).to_list(100)
+    return proposals
 
 # ========== ADMIN: MEMBERSHIPS & REGISTRATIONS ==========
 @api_router.get("/admin/memberships", dependencies=[Depends(require_admin)])
