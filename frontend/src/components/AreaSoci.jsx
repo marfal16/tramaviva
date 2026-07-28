@@ -624,53 +624,88 @@ export const AreaSoci = () => {
           </div>
         )}
 
-        {/* ── Tab: missioni ── */}
+        {/* ── Tab: missioni (gamer UI) ── */}
         {tab === "missioni" && (
-          <div className="flex flex-col gap-5">
+          <div className="rounded-[2rem] overflow-hidden" style={{ background: "linear-gradient(160deg, #0a1f0e 0%, #0f2d15 60%, #0a1a0c 100%)" }}>
             {!missionsData ? (
-              <div className="flex items-center justify-center py-16 text-tv-green-deep/30">
-                <Loader2 size={24} className="animate-spin" />
+              <div className="flex items-center justify-center py-20 text-white/20">
+                <Loader2 size={28} className="animate-spin" />
               </div>
             ) : (
-              <>
-                {/* Header contatore */}
-                <div className="bg-tv-green-deep rounded-[2rem] p-6 text-tv-cream relative overflow-hidden">
-                  <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full bg-tv-green/20 blur-2xl pointer-events-none" />
-                  <div className="relative">
-                    <p className="text-xs font-black uppercase tracking-[.2em] text-tv-cream/50 mb-1">
-                      {missionsData.is_fondatore ? "Socio fondatore — tutti gli eventi" : "Partecipazioni confermate"}
-                    </p>
-                    <div className="flex items-end gap-2 mb-4">
-                      <span className="font-display font-black text-5xl">{missionsData.event_count}</span>
-                      <span className="text-tv-cream/50 text-sm mb-1.5">event{missionsData.event_count === 1 ? "o" : "i"} totali</span>
+              <div className="p-6 md:p-8 flex flex-col gap-8">
+
+                {/* ── Player card ── */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                  {/* Avatar gamer */}
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.2)]">
+                      {user.has_avatar
+                        ? <img src={`${API}/api/users/${user.id}/avatar`} alt={user.name} className="w-full h-full object-cover" />
+                        : <div className="w-full h-full bg-amber-400/10 flex items-center justify-center font-black text-3xl text-amber-400">{user.name?.charAt(0)?.toUpperCase()}</div>
+                      }
                     </div>
+                    {/* Level badge */}
+                    <div className="absolute -bottom-2 -right-2 bg-amber-400 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.6)]">
+                      LV {Math.floor(missionsData.event_count / 3) + 1}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="font-display font-black text-xl text-white leading-tight">{user.name}</span>
+                      {missionsData.is_fondatore && (
+                        <span className="text-[9px] font-black uppercase tracking-widest bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">Fondatore</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-white/40 uppercase tracking-widest mb-3">
+                      {missionsData.event_count} event{missionsData.event_count === 1 ? "o" : "i"} · {(missionsData.missions || []).filter(m => m.unlocked).length}/{missionsData.missions.length} missioni
+                    </p>
+
+                    {/* XP bar globale */}
                     {(() => {
                       const next = (missionsData.missions || []).find(m => !m.unlocked);
                       if (!next) return (
-                        <p className="text-sm text-tv-cream/70 flex items-center gap-2">
-                          <Trophy size={14} className="text-amber-400" /> Hai sbloccato tutte le missioni!
-                        </p>
+                        <div className="flex items-center gap-2 text-amber-400 text-sm font-black">
+                          <Trophy size={14} /> Tutte le missioni sbloccate!
+                        </div>
                       );
                       const pct = Math.min(100, (next.current_count / next.required_events) * 100);
                       return (
                         <div>
-                          <div className="flex justify-between text-xs text-tv-cream/50 mb-1.5">
-                            <span>Prossima: <span className="text-tv-cream font-semibold">{next.title}</span>{next.category && <span className="text-tv-cream/40"> · {next.category}</span>}</span>
-                            <span>{next.current_count}/{next.required_events}</span>
+                          <div className="flex justify-between text-[10px] mb-1.5">
+                            <span className="text-white/40 uppercase tracking-wider">Prossima: <span className="text-amber-400 font-bold">{next.title}</span></span>
+                            <span className="text-white/30">{next.current_count}/{next.required_events}</span>
                           </div>
-                          <div className="h-2 bg-tv-cream/15 rounded-full overflow-hidden">
-                            <div className="h-full bg-amber-400 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <div className="h-full rounded-full transition-all duration-700"
+                              style={{ width: `${pct}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 10px rgba(251,191,36,0.7)" }} />
                           </div>
                         </div>
                       );
                     })()}
                   </div>
+
+                  {/* Stats box */}
+                  <div className="flex sm:flex-col gap-3 sm:gap-2 shrink-0">
+                    {[
+                      [(missionsData.missions || []).filter(m => m.unlocked).length, "sbloccate"],
+                      [(missionsData.missions || []).filter(m => !m.unlocked).length, "bloccate"],
+                    ].map(([n, label]) => (
+                      <div key={label} className="text-center px-4 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        <p className="font-black text-xl text-white">{n}</p>
+                        <p className="text-[9px] text-white/30 uppercase tracking-wider">{label}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Griglia missioni con lucchetti */}
+                {/* Divider */}
+                <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(251,191,36,0.2), transparent)" }} />
+
+                {/* ── Achievement grid ── */}
                 {missionsData.missions.length === 0 ? (
-                  <div className="bg-white rounded-3xl border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/40">
-                    <Trophy size={32} className="mx-auto mb-2 opacity-30" />
+                  <div className="text-center py-10 text-white/20">
+                    <Trophy size={32} className="mx-auto mb-2" />
                     <p className="text-sm">Le missioni saranno presto disponibili.</p>
                   </div>
                 ) : (
@@ -679,90 +714,108 @@ export const AreaSoci = () => {
                       const pct = Math.min(100, (m.current_count / m.required_events) * 100);
                       const remaining = m.required_events - m.current_count;
                       return (
-                        <div key={m.id} className={`relative rounded-3xl border overflow-hidden transition-all duration-300 ${
-                          m.unlocked
-                            ? "bg-white border-amber-200 shadow-[0_4px_24px_-8px_rgba(251,191,36,0.35)]"
-                            : "bg-white border-tv-green-deep/8"
-                        }`}>
-                          {/* Barra progresso in cima */}
-                          <div className="h-1 w-full bg-tv-green-deep/8">
-                            <div className={`h-full transition-all duration-700 ${m.unlocked ? "bg-amber-400" : "bg-tv-green-deep/20"}`}
-                              style={{ width: `${pct}%` }} />
+                        <div key={m.id} className="relative rounded-2xl overflow-hidden transition-all duration-300"
+                          style={m.unlocked ? {
+                            background: "linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,191,36,0.03) 100%)",
+                            border: "1px solid rgba(251,191,36,0.35)",
+                            boxShadow: "0 0 30px rgba(251,191,36,0.08), inset 0 1px 0 rgba(251,191,36,0.15)"
+                          } : {
+                            background: "rgba(255,255,255,0.03)",
+                            border: "1px solid rgba(255,255,255,0.07)"
+                          }}>
+
+                          {/* Barra progresso top */}
+                          <div className="h-0.5 w-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+                            <div className="h-full transition-all duration-700 rounded-full"
+                              style={{ width: `${pct}%`, background: m.unlocked ? "linear-gradient(90deg,#f59e0b,#fbbf24)" : "rgba(255,255,255,0.15)", boxShadow: m.unlocked ? "0 0 6px rgba(251,191,36,0.8)" : "none" }} />
                           </div>
 
-                          <div className="p-5">
-                            <div className="flex items-start gap-4">
-                              {/* Emoji + lucchetto */}
-                              <div className="relative shrink-0">
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all duration-300 ${
-                                  m.unlocked ? "bg-amber-50" : "bg-tv-green-deep/5 grayscale opacity-50"
-                                }`}>
-                                  {m.emoji}
-                                </div>
-                                {/* Lucchetto sovrapposto */}
-                                <div className={`absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-sm transition-all duration-300 ${
-                                  m.unlocked
-                                    ? "bg-amber-400 text-amber-950"
-                                    : "bg-tv-green-deep/15 text-tv-green-deep/40"
-                                }`}>
-                                  {m.unlocked
-                                    ? <Award size={12} />
-                                    : <Lock size={11} />
-                                  }
-                                </div>
+                          <div className="p-4 flex gap-4">
+                            {/* Icon container */}
+                            <div className="relative shrink-0">
+                              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-all duration-300"
+                                style={m.unlocked ? {
+                                  background: "rgba(251,191,36,0.12)",
+                                  border: "1px solid rgba(251,191,36,0.3)",
+                                  boxShadow: "0 0 16px rgba(251,191,36,0.2)"
+                                } : {
+                                  background: "rgba(255,255,255,0.05)",
+                                  border: "1px solid rgba(255,255,255,0.06)",
+                                  filter: "grayscale(1)",
+                                  opacity: 0.4
+                                }}>
+                                {m.emoji}
                               </div>
+                              {/* Lucchetto */}
+                              <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center"
+                                style={m.unlocked ? {
+                                  background: "#f59e0b",
+                                  boxShadow: "0 0 10px rgba(251,191,36,0.6)"
+                                } : {
+                                  background: "rgba(255,255,255,0.1)",
+                                  border: "1px solid rgba(255,255,255,0.08)"
+                                }}>
+                                {m.unlocked
+                                  ? <Award size={12} color="#451a03" />
+                                  : <Lock size={10} color="rgba(255,255,255,0.3)" />
+                                }
+                              </div>
+                            </div>
 
-                              {/* Testo */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                  <span className={`font-black text-sm leading-tight ${m.unlocked ? "text-tv-green-deep" : "text-tv-green-deep/40"}`}>
-                                    {m.title}
-                                  </span>
-                                  {m.unlocked && (
-                                    <span className="text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full shrink-0">
-                                      Sbloccato!
-                                    </span>
-                                  )}
-                                </div>
-
-                                {(m.event_title || m.category) && (
-                                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-block mb-1 ${
-                                    m.unlocked ? "bg-tv-sky/20 text-tv-green-deep/60" : "bg-tv-green-deep/8 text-tv-green-deep/30"
-                                  }`}>
-                                    {m.event_title || m.category}
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className={`font-black text-sm leading-tight ${m.unlocked ? "text-white" : "text-white/35"}`}>
+                                  {m.title}
+                                </span>
+                                {m.unlocked && (
+                                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0"
+                                    style={{ background: "rgba(251,191,36,0.2)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)" }}>
+                                    ✓ Sbloccato
                                   </span>
                                 )}
+                              </div>
 
-                                <p className={`text-xs leading-snug ${m.unlocked ? "text-tv-green-deep/55" : "text-tv-green-deep/30"}`}>
-                                  {m.description}
-                                </p>
+                              {(m.event_title || m.category) && (
+                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mb-1.5"
+                                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)" }}>
+                                  {m.event_title || m.category}
+                                </span>
+                              )}
+
+                              <p className={`text-xs leading-snug ${m.unlocked ? "text-white/50" : "text-white/20"}`}>
+                                {m.description}
+                              </p>
+
+                              {/* Premio */}
+                              <div className={`mt-2.5 flex items-center gap-1.5 text-xs font-bold ${m.unlocked ? "text-amber-400" : "text-white/20"}`}>
+                                <Gift size={11} />
+                                <span>{m.reward}</span>
                               </div>
                             </div>
+                          </div>
 
-                            {/* Premio */}
-                            <div className={`mt-3 pt-3 border-t flex items-center gap-2 text-xs font-semibold ${
-                              m.unlocked ? "border-amber-100 text-tv-bordeaux" : "border-tv-green-deep/8 text-tv-green-deep/25"
-                            }`}>
-                              <Gift size={13} />
-                              <span>{m.reward}</span>
-                            </div>
-
-                            {/* Contatore / messaggio */}
-                            {!m.unlocked ? (
-                              <div className="mt-2 flex items-center justify-between text-[10px] text-tv-green-deep/30">
-                                <span className="flex items-center gap-1">
-                                  <Lock size={9} />
-                                  {m.event_id
-                                    ? `Partecipa a "${m.event_title || "questo evento"}"`
-                                    : `Ancora ${remaining} event${remaining === 1 ? "o" : "i"}${m.category ? ` di "${m.category}"` : ""}`
-                                  }
-                                </span>
-                                {!m.event_id && <span>{m.current_count}/{m.required_events}</span>}
+                          {/* Footer */}
+                          <div className="px-4 pb-3">
+                            {m.unlocked ? (
+                              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
+                                style={{ color: "rgba(251,191,36,0.7)" }}>
+                                <Award size={9} />
+                                Ritira il tuo premio in sede
                               </div>
                             ) : (
-                              <p className="mt-2 text-[10px] text-amber-600 font-semibold flex items-center gap-1">
-                                <Award size={9} /> Ritira il tuo premio in sede!
-                              </p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-white/20 flex items-center gap-1">
+                                  <Lock size={8} />
+                                  {m.event_id
+                                    ? `Partecipa a "${m.event_title || "questo evento"}"`
+                                    : `Ancora ${remaining} event${remaining === 1 ? "o" : "i"}${m.category ? ` "${m.category}"` : ""}`
+                                  }
+                                </span>
+                                {!m.event_id && (
+                                  <span className="text-[10px] text-white/15">{m.current_count}/{m.required_events}</span>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -770,7 +823,7 @@ export const AreaSoci = () => {
                     })}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
