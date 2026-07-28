@@ -271,9 +271,9 @@ const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
         <p className="text-sm text-tv-green-deep/80 leading-relaxed whitespace-pre-wrap">{post.content}</p>
       </div>
 
-      {/* Image */}
-      {post.has_image && (
-        <img src={`${API}/api/posts/${post.id}/image`}
+      {/* Image — usa il base64 inline se disponibile, evita una request separata */}
+      {post.has_image && (post.image_data || post.id) && (
+        <img src={post.image_data || `${API}/api/posts/${post.id}/image`}
           alt="post"
           className="w-full max-h-80 object-cover"
           loading="lazy"
