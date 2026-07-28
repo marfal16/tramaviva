@@ -2925,9 +2925,9 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                 <div className="overflow-x-auto no-scrollbar">
                   <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1 w-max">
                     {[
-                      { key: "all", label: `Tutti (${isPastEvent ? allItems.filter(r=>r.confirmed).length : allItems.length})` },
-                      ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingCount})` }] : []),
-                      { key: "confirmed", label: `Confermati (${allItems.filter(r=>r.confirmed).length})` },
+                      { key: "all", label: `Tutti (${isPastEvent ? confirmedPpl : totalPeople})` },
+                      ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingPpl})` }] : []),
+                      { key: "confirmed", label: `Confermati (${confirmedPpl})` },
                     ].map(f => (
                       <button key={f.key} onClick={() => setActiveFilter(f.key)}
                         className={`px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
