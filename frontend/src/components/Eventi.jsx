@@ -409,7 +409,6 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
             </span>
           )}
         </div>
-        <span className="text-3xl">{ev.emoji}</span>
       </div>
       <h3 className="font-display font-black text-xl md:text-2xl text-tv-green-deep leading-tight">
         {ev.title}
