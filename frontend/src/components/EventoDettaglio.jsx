@@ -330,7 +330,7 @@ export const EventoDettaglio = () => {
                   <div className="flex items-center gap-2">
                     <Users size={15} />
                     {event.spots <= 0 ? (
-                      <span className="font-bold">🔴 Posti esauriti</span>
+                      <span className="font-bold text-tv-bordeaux">🔴 SOLD OUT</span>
                     ) : event.spots === 1 ? (
                       <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
                     ) : event.spots <= 5 ? (
@@ -397,11 +397,11 @@ export const EventoDettaglio = () => {
                   </Link>
                 </div>
               ) : event.spots <= 0 ? (
-                <div className="bg-tv-green-deep/5 border border-tv-green-deep/15 rounded-[2rem] p-7 text-center" data-testid="event-detail-soldout">
+                <div className="bg-tv-bordeaux/5 border border-tv-bordeaux/20 rounded-[2rem] p-7 text-center" data-testid="event-detail-soldout">
                   <div className="text-4xl mb-3">🎟️</div>
-                  <div className="font-display font-black text-2xl text-tv-green-deep">Posti esauriti</div>
+                  <div className="font-display font-black text-2xl text-tv-bordeaux tracking-wider">🔴 SOLD OUT</div>
                   <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
-                    Purtroppo tutti i posti per questo evento sono stati prenotati. Tieni d'occhio i prossimi appuntamenti!
+                    Tutti i posti per questo evento sono stati prenotati. Tieni d'occhio i prossimi appuntamenti!
                   </p>
                   <Link
                     to="/#eventi"
