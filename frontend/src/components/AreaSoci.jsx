@@ -174,6 +174,271 @@ const ChangePasswordForm = ({ token }) => {
   );
 };
 
+// ─── Missioni: count-up hook ──────────────────────────────────────────────────
+
+const useCountUp = (target, duration = 1200) => {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!target) return;
+    let current = 0;
+    const inc = target / (duration / 16);
+    const t = setInterval(() => {
+      current += inc;
+      if (current >= target) { setCount(target); clearInterval(t); }
+      else setCount(Math.floor(current));
+    }, 16);
+    return () => clearInterval(t);
+  }, [target, duration]);
+  return count;
+};
+
+// ─── Missioni: HoloCard con tilt 3D + glow olografico ────────────────────────
+
+const HoloCard = ({ children, unlocked, cardStyle, className, delay = 0 }) => {
+  const ref = useRef();
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [glow, setGlow] = useState({ x: 50, y: 50 });
+  const [hover, setHover] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+
+  const onMove = e => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    setTilt({ x: (y - 0.5) * 18, y: (0.5 - x) * 18 });
+    setGlow({ x: x * 100, y: y * 100 });
+  };
+
+  return (
+    <div ref={ref} onMouseMove={onMove}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => { setTilt({ x: 0, y: 0 }); setHover(false); }}
+      className={className}
+      style={{
+        transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(${visible ? 0 : 28}px)`,
+        opacity: visible ? 1 : 0,
+        transition: hover ? 'transform 0.1s ease, opacity 0.5s ease' : 'transform 0.55s ease, opacity 0.55s ease',
+        position: 'relative',
+        ...cardStyle,
+      }}>
+      {/* Olographic cursor glow */}
+      {unlocked && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none', zIndex: 1,
+          background: `radial-gradient(ellipse 55% 45% at ${glow.x}% ${glow.y}%, rgba(251,191,36,0.2) 0%, transparent 65%)`,
+          opacity: hover ? 1 : 0, transition: 'opacity 0.3s',
+        }} />
+      )}
+      {children}
+    </div>
+  );
+};
+
+// ─── Missioni: componente principale gamer ────────────────────────────────────
+
+const MissioniGamer = ({ missionsData, user, API }) => {
+  const [xpW, setXpW] = useState(0);
+  const eventCount = useCountUp(missionsData?.event_count || 0, 1100);
+  const unlockedCount = (missionsData?.missions || []).filter(m => m.unlocked).length;
+  const next = (missionsData?.missions || []).find(m => !m.unlocked);
+  const xpPct = next ? Math.min(100, (next.current_count / next.required_events) * 100) : 100;
+  const level = Math.floor((missionsData?.event_count || 0) / 3) + 1;
+
+  useEffect(() => { const t = setTimeout(() => setXpW(xpPct), 400); return () => clearTimeout(t); }, [xpPct]);
+
+  return (
+    <>
+      <style>{`
+        @keyframes tvOrb1{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(45px,-30px) scale(1.07)}66%{transform:translate(-25px,18px) scale(0.94)}}
+        @keyframes tvOrb2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-55px,40px) scale(1.1)}}
+        @keyframes tvOrb3{0%,100%{transform:translate(0,0)}40%{transform:translate(30px,50px)}80%{transform:translate(-18px,-22px)}}
+        @keyframes tvPulse{0%,100%{opacity:.5}50%{opacity:1}}
+        @keyframes tvShimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+        @keyframes tvRing{0%{box-shadow:0 0 0 0 rgba(251,191,36,.45)}100%{box-shadow:0 0 0 14px rgba(251,191,36,0)}}
+        @keyframes tvGrid{0%{opacity:.6}50%{opacity:1}100%{opacity:.6}}
+        .tv-holo-card-unlocked{animation:tvRing 2.5s ease-out infinite}
+        .tv-shimmer{background:linear-gradient(90deg,#f59e0b 0%,#fde68a 40%,#f59e0b 60%,#fbbf24 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:tvShimmer 3s linear infinite}
+        .tv-xp-bar{transition:width 1.3s cubic-bezier(.22,1,.36,1)}
+      `}</style>
+
+      <div className="relative rounded-[2rem] overflow-hidden" style={{ background: 'linear-gradient(155deg,#060d07 0%,#0b1e0e 45%,#060d07 100%)' }}>
+
+        {/* Floating orbs */}
+        <div style={{ position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none' }}>
+          <div style={{ position:'absolute', top:'-8%', left:'18%', width:320, height:320, borderRadius:'50%', background:'radial-gradient(circle,rgba(34,197,94,.1) 0%,transparent 70%)', animation:'tvOrb1 14s ease-in-out infinite' }} />
+          <div style={{ position:'absolute', bottom:'8%', right:'10%', width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(251,191,36,.09) 0%,transparent 70%)', animation:'tvOrb2 17s ease-in-out infinite' }} />
+          <div style={{ position:'absolute', top:'45%', left:'3%', width:200, height:200, borderRadius:'50%', background:'radial-gradient(circle,rgba(16,185,129,.07) 0%,transparent 70%)', animation:'tvOrb3 20s ease-in-out infinite' }} />
+          {/* Grid */}
+          <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px)', backgroundSize:'64px 64px', animation:'tvGrid 4s ease-in-out infinite' }} />
+        </div>
+
+        <div className="relative p-6 md:p-10 flex flex-col gap-10">
+
+          {/* ── Player header ── */}
+          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+            {/* Avatar */}
+            <div style={{ position:'relative', flexShrink:0 }}>
+              <div style={{ width:90, height:90, borderRadius:20, overflow:'hidden', border:'2px solid rgba(251,191,36,.45)', boxShadow:'0 0 32px rgba(251,191,36,.2), inset 0 0 20px rgba(251,191,36,.04)' }}>
+                {user.has_avatar
+                  ? <img src={`${API}/api/users/${user.id}/avatar`} alt={user.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  : <div style={{ width:'100%', height:'100%', background:'rgba(251,191,36,.08)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:38, fontWeight:900, color:'#f59e0b' }}>{user.name?.charAt(0)?.toUpperCase()}</div>
+                }
+              </div>
+              <div style={{ position:'absolute', bottom:-10, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(135deg,#f59e0b,#fbbf24)', color:'#451a03', fontSize:9, fontWeight:900, padding:'3px 10px', borderRadius:99, whiteSpace:'nowrap', boxShadow:'0 0 14px rgba(251,191,36,.65)', letterSpacing:'0.12em' }}>
+                LV {level}
+              </div>
+            </div>
+
+            {/* Name + XP bar */}
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', marginBottom:2 }}>
+                <span className="tv-shimmer" style={{ fontWeight:900, fontSize:26, lineHeight:1 }}>{user.name}</span>
+                {missionsData?.is_fondatore && (
+                  <span style={{ fontSize:8, fontWeight:900, letterSpacing:'0.2em', background:'rgba(251,191,36,.14)', color:'#fbbf24', border:'1px solid rgba(251,191,36,.4)', padding:'3px 8px', borderRadius:99, textTransform:'uppercase' }}>Fondatore</span>
+                )}
+              </div>
+              <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:14 }}>
+                <span style={{ fontWeight:900, fontSize:60, lineHeight:1, color:'white' }}>{eventCount}</span>
+                <span style={{ fontSize:12, color:'rgba(255,255,255,.3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em' }}>XP</span>
+              </div>
+              {/* XP bar */}
+              {next ? (
+                <>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                    <span style={{ fontSize:10, color:'rgba(255,255,255,.3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em' }}>
+                      Next: <span style={{ color:'#fbbf24' }}>{next.title}</span>
+                    </span>
+                    <span style={{ fontSize:10, color:'rgba(255,255,255,.2)', fontWeight:700 }}>{next.current_count}/{next.required_events}</span>
+                  </div>
+                  <div style={{ height:8, borderRadius:99, overflow:'hidden', background:'rgba(255,255,255,.07)', position:'relative' }}>
+                    <div className="tv-xp-bar" style={{ height:'100%', width:`${xpW}%`, background:'linear-gradient(90deg,#15803d,#22c55e,#f59e0b)', boxShadow:'0 0 16px rgba(251,191,36,.7), 0 0 6px rgba(34,197,94,.5)', borderRadius:99 }} />
+                    {xpW > 2 && xpW < 99 && (
+                      <div style={{ position:'absolute', top:'50%', left:`${xpW}%`, transform:'translate(-50%,-50%)', width:14, height:14, borderRadius:'50%', background:'#fbbf24', boxShadow:'0 0 18px #f59e0b', animation:'tvPulse 1.4s ease-in-out infinite' }} />
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div style={{ display:'flex', alignItems:'center', gap:8, color:'#fbbf24', fontWeight:900, fontSize:13, textTransform:'uppercase', letterSpacing:'0.1em' }}>
+                  <Trophy size={15} /> Tutte le missioni completate!
+                </div>
+              )}
+            </div>
+
+            {/* Stat boxes */}
+            <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+              {[{v:unlockedCount,l:'sbloccate',c:'#f59e0b'},{v:(missionsData?.missions||[]).length-unlockedCount,l:'bloccate',c:'rgba(255,255,255,.2)'}].map(({v,l,c})=>(
+                <div key={l} style={{ textAlign:'center', padding:'12px 16px', borderRadius:16, background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.08)' }}>
+                  <div style={{ fontWeight:900, fontSize:28, color:c, lineHeight:1 }}>{v}</div>
+                  <div style={{ fontSize:9, color:'rgba(255,255,255,.25)', textTransform:'uppercase', letterSpacing:'0.1em', marginTop:4 }}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height:1, background:'linear-gradient(90deg,transparent,rgba(251,191,36,.25) 30%,rgba(34,197,94,.2) 70%,transparent)' }} />
+
+          {/* ── Achievement grid ── */}
+          {(missionsData?.missions||[]).length === 0 ? (
+            <div style={{ textAlign:'center', padding:'40px 0', color:'rgba(255,255,255,.15)' }}>
+              <Trophy size={40} style={{ margin:'0 auto 12px' }} />
+              <p style={{ fontSize:14 }}>Le missioni saranno presto disponibili.</p>
+            </div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))', gap:16 }}>
+              {(missionsData.missions||[]).map((m, i) => {
+                const pct = Math.min(100, (m.current_count / m.required_events) * 100);
+                const remaining = m.required_events - m.current_count;
+                return (
+                  <HoloCard key={m.id} unlocked={m.unlocked} delay={i * 90}
+                    className={m.unlocked ? 'tv-holo-card-unlocked' : ''}
+                    cardStyle={m.unlocked ? {
+                      background:'linear-gradient(135deg,rgba(251,191,36,.07),rgba(34,197,94,.04))',
+                      border:'1px solid rgba(251,191,36,.3)', borderRadius:20,
+                    } : {
+                      background:'rgba(255,255,255,.025)',
+                      border:'1px solid rgba(255,255,255,.06)', borderRadius:20,
+                    }}>
+                    {/* Top progress strip */}
+                    <div style={{ height:3, background:'rgba(255,255,255,.05)', borderRadius:'20px 20px 0 0', overflow:'hidden' }}>
+                      <div style={{ height:'100%', width:`${pct}%`, background:m.unlocked?'linear-gradient(90deg,#22c55e,#f59e0b)':'rgba(255,255,255,.1)', boxShadow:m.unlocked?'0 0 10px rgba(251,191,36,.8)':'none', transition:'width 1.3s cubic-bezier(.22,1,.36,1) .4s' }} />
+                    </div>
+
+                    <div style={{ padding:'18px 18px 14px', position:'relative', zIndex:2 }}>
+                      <div style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
+                        {/* Icon */}
+                        <div style={{ position:'relative', flexShrink:0 }}>
+                          <div style={{ width:56, height:56, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26,
+                            background:m.unlocked?'rgba(251,191,36,.1)':'rgba(255,255,255,.04)',
+                            border:m.unlocked?'1px solid rgba(251,191,36,.35)':'1px solid rgba(255,255,255,.06)',
+                            boxShadow:m.unlocked?'0 0 22px rgba(251,191,36,.22)':'none',
+                            filter:m.unlocked?'none':'grayscale(1)', opacity:m.unlocked?1:.3 }}>
+                            {m.emoji}
+                          </div>
+                          <div style={{ position:'absolute', bottom:-7, right:-7, width:23, height:23, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+                            background:m.unlocked?'linear-gradient(135deg,#f59e0b,#fbbf24)':'rgba(255,255,255,.08)',
+                            boxShadow:m.unlocked?'0 0 14px rgba(251,191,36,.75)':'none',
+                            border:m.unlocked?'none':'1px solid rgba(255,255,255,.1)' }}>
+                            {m.unlocked ? <Award size={12} color="#451a03" /> : <Lock size={10} color="rgba(255,255,255,.25)" />}
+                          </div>
+                        </div>
+
+                        {/* Text */}
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:3 }}>
+                            <span style={{ fontWeight:900, fontSize:13, color:m.unlocked?'white':'rgba(255,255,255,.3)', lineHeight:1.2 }}>{m.title}</span>
+                            {m.unlocked && (
+                              <span style={{ fontSize:8, fontWeight:900, letterSpacing:'0.18em', background:'rgba(251,191,36,.18)', color:'#fbbf24', border:'1px solid rgba(251,191,36,.4)', padding:'2px 6px', borderRadius:99, textTransform:'uppercase', flexShrink:0 }}>✓ Sbloccato</span>
+                            )}
+                          </div>
+                          {(m.event_title||m.category) && (
+                            <span style={{ fontSize:9, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:m.unlocked?'rgba(34,197,94,.8)':'rgba(255,255,255,.2)', display:'inline-block', marginBottom:5 }}>
+                              ◆ {m.event_title||m.category}
+                            </span>
+                          )}
+                          <p style={{ fontSize:11, color:m.unlocked?'rgba(255,255,255,.45)':'rgba(255,255,255,.18)', lineHeight:1.5 }}>{m.description}</p>
+                        </div>
+                      </div>
+
+                      {/* Reward + status */}
+                      <div style={{ marginTop:14, paddingTop:12, borderTop:m.unlocked?'1px solid rgba(251,191,36,.12)':'1px solid rgba(255,255,255,.05)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:6, color:m.unlocked?'#f59e0b':'rgba(255,255,255,.18)', fontSize:11, fontWeight:700 }}>
+                          <Gift size={12} />{m.reward}
+                        </div>
+                        {m.unlocked ? (
+                          <span style={{ fontSize:9, fontWeight:900, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(251,191,36,.65)' }}>Ritira in sede →</span>
+                        ) : (
+                          <span style={{ fontSize:9, color:'rgba(255,255,255,.15)', fontWeight:700 }}>
+                            {m.event_id ? '🔒 Partecipa' : `${m.current_count}/${m.required_events}`}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Locked hint */}
+                      {!m.unlocked && (
+                        <div style={{ marginTop:8, display:'flex', alignItems:'center', gap:5, fontSize:9, color:'rgba(255,255,255,.15)', fontWeight:600 }}>
+                          <Lock size={8} />
+                          {m.event_id ? `Partecipa a "${m.event_title||'questo evento'}"` : `Ancora ${remaining} event${remaining===1?'o':'i'}${m.category?` "${m.category}"`:''}` }
+                        </div>
+                      )}
+                    </div>
+                  </HoloCard>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
 // ─── Stars rating ─────────────────────────────────────────────────────────────
 
 const Stars = ({ rating }) => (
@@ -626,206 +891,7 @@ export const AreaSoci = () => {
 
         {/* ── Tab: missioni (gamer UI) ── */}
         {tab === "missioni" && (
-          <div className="rounded-[2rem] overflow-hidden" style={{ background: "linear-gradient(160deg, #0a1f0e 0%, #0f2d15 60%, #0a1a0c 100%)" }}>
-            {!missionsData ? (
-              <div className="flex items-center justify-center py-20 text-white/20">
-                <Loader2 size={28} className="animate-spin" />
-              </div>
-            ) : (
-              <div className="p-6 md:p-8 flex flex-col gap-8">
-
-                {/* ── Player card ── */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                  {/* Avatar gamer */}
-                  <div className="relative shrink-0">
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.2)]">
-                      {user.has_avatar
-                        ? <img src={`${API}/api/users/${user.id}/avatar`} alt={user.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full bg-amber-400/10 flex items-center justify-center font-black text-3xl text-amber-400">{user.name?.charAt(0)?.toUpperCase()}</div>
-                      }
-                    </div>
-                    {/* Level badge */}
-                    <div className="absolute -bottom-2 -right-2 bg-amber-400 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_rgba(251,191,36,0.6)]">
-                      LV {Math.floor(missionsData.event_count / 3) + 1}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-display font-black text-xl text-white leading-tight">{user.name}</span>
-                      {missionsData.is_fondatore && (
-                        <span className="text-[9px] font-black uppercase tracking-widest bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">Fondatore</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-white/40 uppercase tracking-widest mb-3">
-                      {missionsData.event_count} event{missionsData.event_count === 1 ? "o" : "i"} · {(missionsData.missions || []).filter(m => m.unlocked).length}/{missionsData.missions.length} missioni
-                    </p>
-
-                    {/* XP bar globale */}
-                    {(() => {
-                      const next = (missionsData.missions || []).find(m => !m.unlocked);
-                      if (!next) return (
-                        <div className="flex items-center gap-2 text-amber-400 text-sm font-black">
-                          <Trophy size={14} /> Tutte le missioni sbloccate!
-                        </div>
-                      );
-                      const pct = Math.min(100, (next.current_count / next.required_events) * 100);
-                      return (
-                        <div>
-                          <div className="flex justify-between text-[10px] mb-1.5">
-                            <span className="text-white/40 uppercase tracking-wider">Prossima: <span className="text-amber-400 font-bold">{next.title}</span></span>
-                            <span className="text-white/30">{next.current_count}/{next.required_events}</span>
-                          </div>
-                          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
-                            <div className="h-full rounded-full transition-all duration-700"
-                              style={{ width: `${pct}%`, background: "linear-gradient(90deg, #f59e0b, #fbbf24)", boxShadow: "0 0 10px rgba(251,191,36,0.7)" }} />
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Stats box */}
-                  <div className="flex sm:flex-col gap-3 sm:gap-2 shrink-0">
-                    {[
-                      [(missionsData.missions || []).filter(m => m.unlocked).length, "sbloccate"],
-                      [(missionsData.missions || []).filter(m => !m.unlocked).length, "bloccate"],
-                    ].map(([n, label]) => (
-                      <div key={label} className="text-center px-4 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                        <p className="font-black text-xl text-white">{n}</p>
-                        <p className="text-[9px] text-white/30 uppercase tracking-wider">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Divider */}
-                <div style={{ height: 1, background: "linear-gradient(90deg, transparent, rgba(251,191,36,0.2), transparent)" }} />
-
-                {/* ── Achievement grid ── */}
-                {missionsData.missions.length === 0 ? (
-                  <div className="text-center py-10 text-white/20">
-                    <Trophy size={32} className="mx-auto mb-2" />
-                    <p className="text-sm">Le missioni saranno presto disponibili.</p>
-                  </div>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {missionsData.missions.map(m => {
-                      const pct = Math.min(100, (m.current_count / m.required_events) * 100);
-                      const remaining = m.required_events - m.current_count;
-                      return (
-                        <div key={m.id} className="relative rounded-2xl overflow-hidden transition-all duration-300"
-                          style={m.unlocked ? {
-                            background: "linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,191,36,0.03) 100%)",
-                            border: "1px solid rgba(251,191,36,0.35)",
-                            boxShadow: "0 0 30px rgba(251,191,36,0.08), inset 0 1px 0 rgba(251,191,36,0.15)"
-                          } : {
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px solid rgba(255,255,255,0.07)"
-                          }}>
-
-                          {/* Barra progresso top */}
-                          <div className="h-0.5 w-full" style={{ background: "rgba(255,255,255,0.05)" }}>
-                            <div className="h-full transition-all duration-700 rounded-full"
-                              style={{ width: `${pct}%`, background: m.unlocked ? "linear-gradient(90deg,#f59e0b,#fbbf24)" : "rgba(255,255,255,0.15)", boxShadow: m.unlocked ? "0 0 6px rgba(251,191,36,0.8)" : "none" }} />
-                          </div>
-
-                          <div className="p-4 flex gap-4">
-                            {/* Icon container */}
-                            <div className="relative shrink-0">
-                              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-all duration-300"
-                                style={m.unlocked ? {
-                                  background: "rgba(251,191,36,0.12)",
-                                  border: "1px solid rgba(251,191,36,0.3)",
-                                  boxShadow: "0 0 16px rgba(251,191,36,0.2)"
-                                } : {
-                                  background: "rgba(255,255,255,0.05)",
-                                  border: "1px solid rgba(255,255,255,0.06)",
-                                  filter: "grayscale(1)",
-                                  opacity: 0.4
-                                }}>
-                                {m.emoji}
-                              </div>
-                              {/* Lucchetto */}
-                              <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center"
-                                style={m.unlocked ? {
-                                  background: "#f59e0b",
-                                  boxShadow: "0 0 10px rgba(251,191,36,0.6)"
-                                } : {
-                                  background: "rgba(255,255,255,0.1)",
-                                  border: "1px solid rgba(255,255,255,0.08)"
-                                }}>
-                                {m.unlocked
-                                  ? <Award size={12} color="#451a03" />
-                                  : <Lock size={10} color="rgba(255,255,255,0.3)" />
-                                }
-                              </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className={`font-black text-sm leading-tight ${m.unlocked ? "text-white" : "text-white/35"}`}>
-                                  {m.title}
-                                </span>
-                                {m.unlocked && (
-                                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full shrink-0"
-                                    style={{ background: "rgba(251,191,36,0.2)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.4)" }}>
-                                    ✓ Sbloccato
-                                  </span>
-                                )}
-                              </div>
-
-                              {(m.event_title || m.category) && (
-                                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block mb-1.5"
-                                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)" }}>
-                                  {m.event_title || m.category}
-                                </span>
-                              )}
-
-                              <p className={`text-xs leading-snug ${m.unlocked ? "text-white/50" : "text-white/20"}`}>
-                                {m.description}
-                              </p>
-
-                              {/* Premio */}
-                              <div className={`mt-2.5 flex items-center gap-1.5 text-xs font-bold ${m.unlocked ? "text-amber-400" : "text-white/20"}`}>
-                                <Gift size={11} />
-                                <span>{m.reward}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Footer */}
-                          <div className="px-4 pb-3">
-                            {m.unlocked ? (
-                              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest"
-                                style={{ color: "rgba(251,191,36,0.7)" }}>
-                                <Award size={9} />
-                                Ritira il tuo premio in sede
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-white/20 flex items-center gap-1">
-                                  <Lock size={8} />
-                                  {m.event_id
-                                    ? `Partecipa a "${m.event_title || "questo evento"}"`
-                                    : `Ancora ${remaining} event${remaining === 1 ? "o" : "i"}${m.category ? ` "${m.category}"` : ""}`
-                                  }
-                                </span>
-                                {!m.event_id && (
-                                  <span className="text-[10px] text-white/15">{m.current_count}/{m.required_events}</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <MissioniGamer missionsData={missionsData} user={user} API={API} />
         )}
 
         {/* ── Tab: bacheca (nascosta, codice mantenuto) ── */}
