@@ -378,7 +378,7 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
         compact ? "p-5" : "p-6"
       } flex flex-col transition-all duration-500 ${
         past
-          ? "opacity-60 border-tv-green-deep/10"
+          ? "border-tv-green-deep/10 hover:-translate-y-1 hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.15)]"
           : soldOut
             ? "border-tv-bordeaux/25 hover:-translate-y-1 hover:shadow-[0_12px_40px_-15px_rgba(93,23,35,0.18)]"
             : "border-tv-green-deep/10 hover:-translate-y-2 hover:shadow-[0_20px_50px_-20px_rgba(5,47,23,0.25)]"
@@ -393,7 +393,7 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-              past ? "bg-tv-green-deep/10 text-tv-green-deep/50" : (categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep")
+              categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep"
             }`}
           >
             {ev.category}
@@ -482,7 +482,7 @@ const PastEventCard = ({ ev }) => (
         <img
           src={`${API}/events/${ev.id}/image`}
           alt={ev.title}
-          className="w-full h-full object-cover grayscale opacity-60 group-hover:opacity-90 group-hover:grayscale-0 transition-all duration-500"
+          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
         />
       </div>
     ) : (
@@ -491,10 +491,10 @@ const PastEventCard = ({ ev }) => (
       </div>
     )}
     <div className="p-3.5 flex flex-col flex-1">
-      <span className="self-start px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-tv-green-deep/[0.07] text-tv-green-deep/40 mb-2">
+      <span className={`self-start px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider mb-2 ${categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep"}`}>
         {ev.category}
       </span>
-      <h3 className="font-display font-black text-sm leading-tight text-tv-green-deep/50 group-hover:text-tv-green-deep/75 transition-colors">
+      <h3 className="font-display font-black text-sm leading-tight text-tv-green-deep/75 group-hover:text-tv-green-deep transition-colors">
         {ev.title}
       </h3>
       <div className="mt-1.5 flex items-center gap-1 text-[10px] text-tv-green-deep/30">

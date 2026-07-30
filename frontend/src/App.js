@@ -20,7 +20,7 @@ import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "
 import { AreaSoci } from "./components/AreaSoci";
 
 const ClubsSection = () => (
-  <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
+  <section className="pt-0 pb-14 md:pb-20 px-6 md:px-10">
     <div className="mx-auto max-w-7xl">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
