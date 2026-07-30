@@ -1,9 +1,10 @@
 import io
+import re
 import base64
 from pathlib import Path
 from datetime import datetime
 from pypdf import PdfWriter, PdfReader
-from pypdf.generic import NameObject
+from pypdf.generic import NameObject, create_string_object
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -12,6 +13,31 @@ BASE_DIR = Path(__file__).resolve().parent
 # qualita           : 0=genitore,    1=tutore,      2=esercente
 # pagamento         : 0=Contanti,    1=Bonifico,    2=Elettronico
 # esito             : 0=Accolta,     1=Respinta
+
+
+def _bump_field_font_sizes(writer: PdfWriter, increment: int = 4) -> None:
+    """Aumenta di `increment` pt il font size nei /DA di tutti i campi form."""
+    def _process(field):
+        if "/DA" in field:
+            da = str(field["/DA"])
+            new_da = re.sub(
+                r'(\d+(?:\.\d+)?)\s+Tf',
+                lambda m: f"{int(float(m.group(1)) + increment)} Tf",
+                da,
+            )
+            if new_da != da:
+                field.update({NameObject("/DA"): create_string_object(new_da)})
+        for kid_ref in field.get("/Kids", []):
+            _process(kid_ref.get_object())
+
+    try:
+        acroform = writer._root_object.get("/AcroForm")
+        if acroform is None:
+            return
+        for field_ref in acroform.get("/Fields", []):
+            _process(field_ref.get_object())
+    except Exception as e:
+        print(f"[pdf_service] bump_font_size error: {e}")
 
 
 def _set_radio(writer: PdfWriter, field_name: str, kid_index: int) -> None:
@@ -83,6 +109,8 @@ class PDFService:
                     "min_doc_tipo":     registration_data.get("genitore_documento_tipo", ""),
                     "min_doc_numero":   registration_data.get("genitore_documento_numero", ""),
                 })
+
+            _bump_field_font_sizes(writer, increment=4)
 
             for page in writer.pages:
                 writer.update_page_form_field_values(page, text_fields)
