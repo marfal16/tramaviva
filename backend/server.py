@@ -1240,17 +1240,22 @@ async def admin_download_pdf(registration_id: str):
     try:
         registration = await db.registrations.find_one(
             {"id": registration_id},
-            {"_id": 0, "pdf_base64": 1, "first_name": 1, "last_name": 1}
+            {"_id": 0, "pdf_base64": 0}
         )
-        if not registration or not registration.get("pdf_base64"):
-            raise HTTPException(status_code=404, detail="PDF non trovato nel database")
-        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registrazione non trovata")
+
+        # Rigenera il PDF al volo così ogni download usa le impostazioni correnti
+        pdf_base64 = PDFService.generate_pdf_from_registration(registration)
+        if not pdf_base64:
+            raise HTTPException(status_code=500, detail="Errore nella generazione del PDF")
+
         await db.registrations.update_one(
             {"id": registration_id},
             {"$set": {"document_downloaded": True, "document_downloaded_at": datetime.now(timezone.utc).isoformat()}}
         )
         return {
-            "pdf_base64": registration["pdf_base64"],
+            "pdf_base64": pdf_base64,
             "filename": f"iscrizione_{registration['first_name']}_{registration['last_name']}_{registration_id[:8]}.pdf"
         }
     except Exception as e:
