@@ -3477,13 +3477,13 @@ const DonationsManager = ({ donations, token, onReload }) => {
   const filtered = filter === "all" ? donations : donations.filter(d => d.status === filter);
 
   const setStatus = async (id, status) => {
-    await axios.put(`${process.env.REACT_APP_BACKEND_URL}/admin/donations/${id}`, { status }, authHeader);
+    await axios.put(`${API}/admin/donations/${id}`, { status }, authHeader);
     toast.success("Aggiornato");
     onReload();
   };
 
   const saveNote = async (id) => {
-    await axios.put(`${process.env.REACT_APP_BACKEND_URL}/admin/donations/${id}`, { note: editNote[id] ?? "" }, authHeader);
+    await axios.put(`${API}/admin/donations/${id}`, { note: editNote[id] ?? "" }, authHeader);
     toast.success("Nota salvata");
     setEditNote(prev => { const n = { ...prev }; delete n[id + "_open"]; return n; });
     onReload();
@@ -3491,7 +3491,7 @@ const DonationsManager = ({ donations, token, onReload }) => {
 
   const del = async (id) => {
     if (!window.confirm("Eliminare questa donazione?")) return;
-    await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/admin/donations/${id}`, authHeader);
+    await axios.delete(`${API}/admin/donations/${id}`, authHeader);
     toast.success("Eliminata");
     onReload();
   };
