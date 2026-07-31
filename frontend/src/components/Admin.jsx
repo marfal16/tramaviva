@@ -464,6 +464,7 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm text-tv-green-deep">{name}</div>
                       {row.email && <div className="text-[11px] text-tv-green-deep/50 truncate">{row.email}</div>}
+                      {(row.cellulare || row.phone) && <div className="text-[11px] text-tv-green-deep/40">📞 {row.cellulare || row.phone}</div>}
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       {row.tessera_number && <span className="text-[10px] font-bold bg-tv-orange/25 text-tv-green-deep px-2 py-0.5 rounded-full">🎫 #{row.tessera_number}</span>}
@@ -474,29 +475,40 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
                         : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ In attesa</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {!isArchived && <button onClick={() => onPdf(row.id)} disabled={pdfLoadingId === row.id} title="PDF"
-                      className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
-                      {pdfLoadingId === row.id ? <Loader2 size={13} className="animate-spin"/> : <Download size={13}/>}
-                    </button>}
-                    {row.email && <button onClick={() => onResend(row)} title="Reinvia email"
-                      className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
-                      <Mail size={13}/>
-                    </button>}
-                    {!isArchived && row.metodo_pagamento && <button onClick={() => onTogglePayment(row)}
-                      title={row.payment_completed ? "Annulla pagamento" : "Segna pagato"}
-                      className={`p-1.5 rounded-lg transition-colors text-xs ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-bordeaux"}`}>💸</button>}
-                    {!isArchived && !isApproved && <button onClick={() => onApprove(row)} title="Approva socio"
-                      className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors">
-                      <Sparkles size={13}/>
-                    </button>}
-                    {!isArchived && <button onClick={() => onCleanup(row)} title="Cancella dati"
-                      className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux/20 transition-colors">
-                      <ShieldOff size={13}/>
-                    </button>}
-                    <button onClick={() => onDelete(row.id)} title="Elimina"
-                      className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
-                      <Trash2 size={13}/>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                    {!isArchived && (
+                      <button onClick={() => onPdf(row.id)} disabled={pdfLoadingId === row.id}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-sky/30 text-tv-green-deep text-[11px] font-bold rounded-full hover:bg-tv-sky transition-colors disabled:opacity-50">
+                        {pdfLoadingId === row.id ? <Loader2 size={11} className="animate-spin"/> : <Download size={11}/>} PDF
+                      </button>
+                    )}
+                    {row.email && (
+                      <button onClick={() => onResend(row)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-sky/30 text-tv-green-deep/70 text-[11px] font-bold rounded-full hover:bg-tv-sky hover:text-tv-green-deep transition-colors">
+                        <Mail size={11}/> Email
+                      </button>
+                    )}
+                    {!isArchived && row.metodo_pagamento && (
+                      <button onClick={() => onTogglePayment(row)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-full transition-colors ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux" : "bg-tv-orange/20 text-tv-green-deep hover:bg-tv-orange/30"}`}>
+                        {row.payment_completed ? "✓ Pagato" : "⏳ Pagamento"}
+                      </button>
+                    )}
+                    {!isArchived && !isApproved && (
+                      <button onClick={() => onApprove(row)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-green text-tv-cream text-[11px] font-bold rounded-full hover:bg-tv-green-deep transition-colors">
+                        <Sparkles size={11}/> Approva
+                      </button>
+                    )}
+                    {!isArchived && (
+                      <button onClick={() => onCleanup(row)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-bordeaux/10 text-tv-bordeaux text-[11px] font-bold rounded-full hover:bg-tv-bordeaux/20 transition-colors">
+                        <ShieldOff size={11}/> Dati
+                      </button>
+                    )}
+                    <button onClick={() => onDelete(row.id)}
+                      className="p-1.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+                      <Trash2 size={12}/>
                     </button>
                   </div>
                 </div>
@@ -2825,8 +2837,8 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
 
       {/* ── Selezione evento: dropdown (mobile) / sidebar verticale (desktop) ── */}
 
-      {/* Sidebar verticale: lista eventi */}
-      <div className="flex flex-shrink-0 w-full md:w-60 xl:w-64 border-b md:border-b-0 md:border-r border-tv-green-deep/10 bg-tv-cream/40 flex-col max-h-48 md:max-h-none overflow-y-auto">
+      {/* Sidebar verticale: lista eventi (solo desktop) */}
+      <div className="hidden md:flex flex-shrink-0 w-60 xl:w-64 border-r border-tv-green-deep/10 bg-tv-cream/40 flex-col overflow-y-auto">
         <div className="px-4 py-3 border-b border-tv-green-deep/10 flex-shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40">
             {groups.length} {groups.length === 1 ? "evento" : "eventi"}
@@ -2867,6 +2879,29 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
             );
           })}
         </div>
+      </div>
+
+      {/* Mobile: dropdown evento */}
+      <div className="block md:hidden px-4 py-3 border-b border-tv-green-deep/10 bg-tv-cream/40 flex-shrink-0">
+        <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 block mb-1.5">
+          {groups.length} {groups.length === 1 ? "evento" : "eventi"}
+        </label>
+        <select
+          value={selectedEventId || ""}
+          onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
+          className="w-full px-3 py-2.5 rounded-xl bg-white border border-tv-green-deep/15 text-sm text-tv-green-deep outline-none focus:border-tv-green"
+        >
+          {groups.map(({ ev, items }) => {
+            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+            const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+            const past = isPast(ev.date);
+            return (
+              <option key={ev.id} value={ev.id}>
+                {past ? "✓ " : ""}{ev.title} — {confirmedPpl}/{totalPeople} conf.
+              </option>
+            );
+          })}
+        </select>
       </div>
 
       {/* ── Colonna destra: dettaglio ── */}
@@ -3084,34 +3119,34 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5 pl-10">
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
                               {!row.confirmed && !isPastEvent && (
-                                <button onClick={() => onConfirm(row)} title="Conferma"
-                                  className="p-1.5 rounded-lg bg-tv-orange/20 text-tv-orange hover:bg-tv-orange hover:text-tv-cream transition-colors">
-                                  <UserCheck size={13}/>
+                                <button onClick={() => onConfirm(row)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-orange/20 text-tv-orange text-[11px] font-bold rounded-full hover:bg-tv-orange hover:text-tv-cream transition-colors">
+                                  <UserCheck size={11}/> Conferma
                                 </button>
                               )}
                               {row.metodo_pagamento && !row.payment_completed && (
-                                <button onClick={() => onTogglePayment(row)} title="Segna pagato"
-                                  className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors text-xs">
-                                  💸
+                                <button onClick={() => onTogglePayment(row)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-green/20 text-tv-green-deep text-[11px] font-bold rounded-full hover:bg-tv-green hover:text-tv-cream transition-colors">
+                                  💸 Pagamento
                                 </button>
                               )}
                               {row.metodo_pagamento && row.payment_completed && (
-                                <button onClick={() => onTogglePayment(row)} title="Annulla pagamento"
-                                  className="p-1.5 rounded-lg bg-tv-green-deep/10 text-tv-green-deep/50 hover:bg-tv-bordeaux/20 hover:text-tv-bordeaux transition-colors text-xs">
-                                  ↩
+                                <button onClick={() => onTogglePayment(row)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-green-deep/10 text-tv-green-deep/50 text-[11px] font-bold rounded-full hover:bg-tv-bordeaux/20 hover:text-tv-bordeaux transition-colors">
+                                  ↩ Annulla
                                 </button>
                               )}
                               {row.email && (
-                                <button onClick={() => setNotifyTarget({ signup: row, event: selectedGroup.ev })} title="Invia notifica email"
-                                  className="p-1.5 rounded-lg bg-tv-sky/20 text-tv-sky hover:bg-tv-sky hover:text-tv-cream transition-colors">
-                                  <Mail size={13}/>
+                                <button onClick={() => setNotifyTarget({ signup: row, event: selectedGroup.ev })}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-sky/20 text-tv-green-deep text-[11px] font-bold rounded-full hover:bg-tv-sky hover:text-tv-cream transition-colors">
+                                  <Mail size={11}/> Email
                                 </button>
                               )}
-                              <button onClick={() => onDelete(row.id)} title="Elimina"
-                                className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
-                                <Trash2 size={13}/>
+                              <button onClick={() => onDelete(row.id)}
+                                className="p-1.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+                                <Trash2 size={12}/>
                               </button>
                             </div>
                           </div>
@@ -3678,21 +3713,21 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="font-display font-black text-2xl text-tv-green-deep">Missioni soci</h2>
           <p className="text-sm text-tv-green-deep/50 mt-0.5">I soci sbloccano i premi raggiungendo i traguardi di partecipazione agli eventi.</p>
         </div>
         <button onClick={() => setShowForm(s => !s)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors">
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors whitespace-nowrap">
           <Plus size={15} /> Nuova missione
         </button>
       </div>
 
       {/* Form nuova missione */}
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white rounded-3xl border border-tv-green-deep/10 p-6 grid grid-cols-2 gap-4">
-          <div className="col-span-2 grid grid-cols-[60px_1fr] gap-3">
+        <form onSubmit={handleCreate} className="bg-white rounded-3xl border border-tv-green-deep/10 p-5 md:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="col-span-1 sm:col-span-2 grid grid-cols-[60px_1fr] gap-3">
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Emoji</label>
               <input value={form.emoji} onChange={set("emoji")} className={fieldCls} maxLength={4} />
@@ -3702,16 +3737,16 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
               <input value={form.title} onChange={set("title")} required className={fieldCls} placeholder="Es. Primo filo" />
             </div>
           </div>
-          <div className="col-span-2">
+          <div className="col-span-1 sm:col-span-2">
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Descrizione</label>
             <input value={form.description} onChange={set("description")} className={fieldCls} placeholder="Es. Hai partecipato al tuo primo evento!" />
           </div>
-          <div className="col-span-2">
+          <div className="col-span-1 sm:col-span-2">
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Premio / Gadget *</label>
             <input value={form.reward} onChange={set("reward")} required className={fieldCls} placeholder="Es. Segnalibro Trama Viva" />
           </div>
           {/* Tipo condizione */}
-          <div className="col-span-2">
+          <div className="col-span-1 sm:col-span-2">
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-2">Condizione sblocco *</label>
             <div className="flex gap-2 mb-3">
               {[["all","Tutti gli eventi"],["event","Evento specifico"],["category","Tipologia"]].map(([v,l]) => {
@@ -3766,7 +3801,7 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
             <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">Ordine</label>
             <input type="number" min={0} value={form.order} onChange={set("order")} className={fieldCls} />
           </div>
-          <div className="col-span-2 flex justify-end gap-2">
+          <div className="col-span-1 sm:col-span-2 flex justify-end gap-2">
             <button type="button" onClick={() => setShowForm(false)}
               className="px-4 py-2 rounded-full border border-tv-green-deep/20 text-sm font-semibold text-tv-green-deep/60 hover:border-tv-green-deep/40 transition-colors">
               Annulla
@@ -3807,36 +3842,36 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
                   <p className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{m.description}</p>
                   <p className="text-xs font-semibold text-tv-green-deep/70 mt-0.5">🎁 {m.reward}</p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex flex-wrap items-center gap-1 shrink-0">
                   <button onClick={() => toggleActive(m)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${m.active ? "bg-tv-mint/40 text-tv-green-deep hover:bg-tv-mint" : "bg-tv-green-deep/10 text-tv-green-deep/50 hover:bg-tv-green-deep/20"}`}>
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${m.active ? "bg-tv-mint/40 text-tv-green-deep hover:bg-tv-mint" : "bg-tv-green-deep/10 text-tv-green-deep/50 hover:bg-tv-green-deep/20"}`}>
                     {m.active ? "Attiva" : "Disattiva"}
                   </button>
                   <button onClick={() => { setEditing(m.id); setEditForm({ ...m }); }}
-                    className="p-2 rounded-xl text-tv-green-deep/40 hover:text-tv-green-deep hover:bg-tv-mint/30 transition-colors">
-                    <Pencil size={14} />
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold text-tv-green-deep/50 hover:text-tv-green-deep hover:bg-tv-mint/30 transition-colors">
+                    <Pencil size={13} /> <span className="hidden sm:inline">Modifica</span>
                   </button>
                   <button onClick={() => handleDelete(m.id)}
-                    className="p-2 rounded-xl text-tv-green-deep/30 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors">
-                    <Trash2 size={14} />
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold text-tv-green-deep/30 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors">
+                    <Trash2 size={13} /> <span className="hidden sm:inline">Elimina</span>
                   </button>
                 </div>
               </div>
 
               {/* Inline edit */}
               {editing === m.id && (
-                <div className="border-t border-tv-green-deep/10 bg-tv-cream/30 p-4 grid grid-cols-2 gap-3">
-                  <div className="col-span-2 grid grid-cols-[60px_1fr] gap-3">
+                <div className="border-t border-tv-green-deep/10 bg-tv-cream/30 p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="col-span-1 sm:col-span-2 grid grid-cols-[60px_1fr] gap-3">
                     <input value={editForm.emoji || ""} onChange={e => setEditForm(f => ({ ...f, emoji: e.target.value }))} className={fieldCls} maxLength={4} />
                     <input value={editForm.title || ""} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className={fieldCls} placeholder="Titolo" />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1 sm:col-span-2">
                     <input value={editForm.description || ""} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className={fieldCls} placeholder="Descrizione" />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1 sm:col-span-2">
                     <input value={editForm.reward || ""} onChange={e => setEditForm(f => ({ ...f, reward: e.target.value }))} className={fieldCls} placeholder="Premio / Gadget" />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1 sm:col-span-2">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 block mb-1">Evento specifico</label>
                     <select value={editForm.event_id || ""} onChange={e => {
                       const ev = sortedEvents.find(x => x.id === e.target.value);
@@ -3868,7 +3903,7 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
                   </div>
                   <input type="number" min={1} value={editForm.required_events || 1} onChange={e => setEditForm(f => ({ ...f, required_events: e.target.value }))} className={fieldCls} />
                   <input type="number" min={0} value={editForm.order || 0} onChange={e => setEditForm(f => ({ ...f, order: e.target.value }))} className={fieldCls} placeholder="Ordine" />
-                  <div className="col-span-2 flex justify-end gap-2">
+                  <div className="col-span-1 sm:col-span-2 flex justify-end gap-2">
                     <button onClick={() => setEditing(null)}
                       className="px-4 py-1.5 rounded-full border border-tv-green-deep/20 text-sm font-semibold text-tv-green-deep/60 hover:border-tv-green-deep/40 transition-colors">
                       Annulla
@@ -3932,23 +3967,27 @@ const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
 
   return (
     <div data-testid="admin-members-manager">
-      <div className="flex items-center justify-end flex-wrap gap-3 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-xs">
-            <Users size={13} /> {numbered.length} soci
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">
-            ⭐ {founders.length} fondatori
-          </span>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Soci tesserati", value: numbered.length, cls: "text-tv-green-deep", icon: "🎫" },
+          { label: "Fondatori", value: founders.length, cls: "text-amber-700", icon: "⭐" },
+          { label: "Prossima tessera", value: `#${prossimaLibera}`, cls: "text-tv-sky", icon: "🔢" },
+          { label: "Buchi da assegnare", value: lacune.length, cls: lacune.length > 0 ? "text-tv-bordeaux" : "text-tv-green-deep/30", icon: "🔍" },
+        ].map(({ label, value, cls, icon }) => (
+          <div key={label} className="bg-white rounded-2xl p-4 border border-tv-green-deep/8 text-center">
+            <div className="text-xl mb-0.5">{icon}</div>
+            <div className={`font-black text-xl ${cls}`}>{value}</div>
+            <div className="text-[10px] text-tv-green-deep/40 uppercase tracking-wider mt-0.5 leading-tight">{label}</div>
+          </div>
+        ))}
       </div>
-      <div className="flex flex-wrap items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="relative flex-1 min-w-[180px]">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
           <input type="text" placeholder="Cerca per nome, email o tessera…" value={memberSearch} onChange={e => setMemberSearch(e.target.value)}
             className="w-full pl-8 pr-4 py-2 rounded-xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-sm text-tv-green-deep"/>
         </div>
-        <div className="flex items-center gap-1 bg-white rounded-xl p-1 border border-tv-green-deep/10">
+        <div className="flex items-center gap-1 bg-white rounded-xl p-1 border border-tv-green-deep/10 flex-1 sm:flex-none">
           <span className="text-[10px] text-tv-green-deep/40 px-2 font-bold uppercase tracking-wider">Ordina</span>
           {[{ key: "tessera", label: "Tessera" }, { key: "name", label: "Nome" }, { key: "date", label: "Data" }].map(s => (
             <button key={s.key} onClick={() => setSortField(s.key)}
@@ -3995,31 +4034,41 @@ const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
           {sorted.map((m) => {
             const isFounder = !m.tessera_number;
             return (
-              <article key={m.id} className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-display font-black text-lg ${isFounder ? "bg-amber-400 text-amber-950" : "bg-tv-green text-tv-cream"}`}>
+              <article key={m.id} className="bg-white rounded-3xl p-4 md:p-6 border border-tv-green-deep/10">
+                <div className="flex items-start gap-3">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-display font-black text-lg shrink-0 ${isFounder ? "bg-amber-400 text-amber-950" : "bg-tv-green text-tv-cream"}`}>
                     {(m.first_name?.[0] || "?").toUpperCase()}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-display font-black text-lg text-tv-green-deep">{m.first_name} {m.last_name}</span>
-                      {isFounder ? (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2.5 py-1 rounded-full">⭐ Socio Fondatore</span>
-                      ) : (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">Tessera #{m.tessera_number}</span>
-                      )}
-                      <span className="text-xs text-tv-green-deep/50">dal {fmtDay(m.joined_at)}</span>
-                    </div>
-                    <div className="mt-1 text-sm text-tv-green-deep/80 flex flex-wrap gap-x-4 gap-y-1">
-                      {m.email && <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux"><Mail size={13} /> {m.email}</a>}
-                      {m.phone && <span>📞 {m.phone}</span>}
-                      {m.notes && <span className="text-tv-green-deep/50 italic truncate max-w-xs">{m.notes}</span>}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-display font-black text-base text-tv-green-deep">{m.first_name} {m.last_name}</span>
+                          {isFounder ? (
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">⭐ Fondatore</span>
+                          ) : (
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2 py-0.5 rounded-full">Tessera #{m.tessera_number}</span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-tv-green-deep/60 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span className="text-tv-green-deep/40 text-[11px]">dal {fmtDay(m.joined_at)}</span>
+                          {m.email && <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-tv-bordeaux"><Mail size={11}/> {m.email}</a>}
+                          {m.phone && <span>📞 {m.phone}</span>}
+                        </div>
+                        {m.notes && <p className="mt-1 text-[11px] text-tv-green-deep/40 italic truncate">{m.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button onClick={() => onEdit(m)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-sky/30 text-tv-green-deep text-xs font-bold rounded-full hover:bg-tv-sky transition-colors">
+                          <Pencil size={12}/> Modifica
+                        </button>
+                        <button onClick={() => onDelete(m.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-bordeaux/10 text-tv-bordeaux text-xs font-bold rounded-full hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+                          <Trash2 size={12}/>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 self-end md:self-center">
-                  <button onClick={() => onEdit(m)} className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky"><Pencil size={16} /></button>
-                  <button onClick={() => onDelete(m.id)} className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream"><Trash2 size={16} /></button>
                 </div>
               </article>
             );
