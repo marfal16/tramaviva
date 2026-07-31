@@ -24,12 +24,12 @@ const SuccessBonifico = ({ name, amount }) => {
   const copy = (text) => { navigator.clipboard.writeText(text); toast.success("Copiato!"); };
   return (
     <div className="bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(5,47,23,0.12)] p-8 md:p-12 max-w-xl mx-auto text-center">
-      <div className="w-16 h-16 rounded-full bg-tv-mint/20 flex items-center justify-center mx-auto mb-6">
-        <CheckCircle size={32} className="text-tv-green" />
+      <div className="w-16 h-16 rounded-full bg-tv-sky/30 flex items-center justify-center mx-auto mb-6">
+        <CheckCircle size={32} className="text-tv-green-deep" />
       </div>
-      <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Grazie, {name.split(" ")[0]}!</h2>
+      <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Un ultimo passo!</h2>
       <p className="text-tv-green-deep/60 mb-8 leading-relaxed">
-        La tua donazione ci riscalda davvero. Effettua il bonifico con i dati qui sotto — appena lo riceveremo, ti aggiorneremo.
+        Per completare la donazione, effettua un bonifico con i dati qui sotto. Non appena lo riceveremo, ti contatteremo per ringraziarti.
       </p>
       <div className="bg-tv-cream rounded-2xl p-6 text-left space-y-4 mb-8">
         {[
@@ -214,7 +214,7 @@ export const Donazioni = () => {
       <Navbar />
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden px-6 md:px-10 pt-24 pb-16 md:pt-32 md:pb-24">
+      <section className="relative overflow-hidden px-6 md:px-10 pt-24 pb-4 md:pt-32 md:pb-6">
         {/* Filo decorativo */}
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
           <svg viewBox="0 0 1000 500" className="w-full h-full" preserveAspectRatio="none">
