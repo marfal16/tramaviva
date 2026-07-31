@@ -104,6 +104,56 @@ class EmailService:
         except Exception as e:
             logger.error(f"Errore invio email cancellazione evento: {e}")
 
+    async def send_donation_thank_you(self, email: str, first_name: str, amount: float | None):
+        if not HAS_SMTP or not self.smtp_user:
+            logger.warning(f"SMTP non configurato. Email ringraziamento donazione saltata per {email}")
+            return
+        try:
+            subject = "Grazie per il tuo sostegno — Trama Viva APS"
+            html_body = self._get_donation_thank_you_template(first_name, amount)
+            await self._send_smtp(email, subject, html_body)
+            logger.info(f"Email ringraziamento donazione inviata a {email}")
+        except Exception as e:
+            logger.error(f"Errore invio email ringraziamento donazione: {e}")
+
+    def _get_donation_thank_you_template(self, first_name: str, amount: float | None) -> str:
+        amount_line = f"<p style='margin:0 0 6px;font-size:15px;color:#2D3A18;'>Importo ricevuto: <strong>{amount} €</strong></p>" if amount else ""
+        return f"""<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#F9ECD4;font-family:'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F9ECD4;padding:32px 16px;">
+  <tr><td align="center">
+    <table width="100%" style="max-width:560px;background:white;border-radius:24px;overflow:hidden;box-shadow:0 4px 24px rgba(5,47,23,0.10);">
+      <tr><td style="background:linear-gradient(135deg,#2D3A18 0%,#5CB176 100%);padding:40px 40px 32px;text-align:center;">
+        <div style="font-size:44px;margin-bottom:10px;">💚</div>
+        <h1 style="margin:0;color:white;font-size:26px;font-weight:900;letter-spacing:-.01em;">Grazie, {first_name}!</h1>
+        <p style="margin:8px 0 0;color:rgba(255,255,255,.75);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Trama Viva APS</p>
+      </td></tr>
+      <tr><td style="padding:36px 40px;">
+        <p style="margin:0 0 16px;font-size:16px;color:#2D3A18;line-height:1.7;">La tua donazione è stata confermata. Ogni contributo, grande o piccolo, ci aiuta a continuare a creare spazi di incontro, cultura e comunità.</p>
+        {amount_line}
+        <div style="background:#F9ECD4;border-radius:16px;padding:20px 24px;margin:24px 0;">
+          <p style="margin:0 0 8px;font-size:13px;font-weight:800;color:#2D3A18;text-transform:uppercase;letter-spacing:.08em;">Con il tuo aiuto possiamo</p>
+          <ul style="margin:0;padding-left:20px;font-size:14px;color:#4a5568;line-height:2;">
+            <li>Organizzare passeggiate, laboratori ed eventi comunitari</li>
+            <li>Portare avanti il Club del Libro e il Cinema d'Autore</li>
+            <li>Continuare a costruire una rete di persone che si ritrovano</li>
+          </ul>
+        </div>
+        <p style="margin:0 0 28px;font-size:15px;color:#2D3A18;line-height:1.7;">Hai un posto speciale nella nostra storia. <em>Grazie per aver scelto di farne parte.</em></p>
+        <div style="text-align:center;margin:0 0 20px;">
+          <a href="{SITE_LINK}" style="display:inline-block;background:#2D3A18;color:white;padding:13px 30px;border-radius:99px;text-decoration:none;font-weight:800;font-size:14px;">Scopri i prossimi eventi →</a>
+        </div>
+        <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">Per qualsiasi domanda scrivici a <a href="mailto:tramavivaaps@gmail.com" style="color:#5CB176;">tramavivaaps@gmail.com</a></p>
+      </td></tr>
+      <tr><td style="background:#2D3A18;padding:20px 40px;text-align:center;">
+        <p style="margin:0;font-size:12px;color:#9ca3af;">© Trama Viva APS · <a href="{SITE_LINK}" style="color:#5CB176;text-decoration:none;">tramavivaaps.com</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>"""
+
     async def send_password_reset(self, email: str, name: str, reset_url: str):
         if not HAS_SMTP or not self.smtp_user:
             logger.warning(f"SMTP non configurato. Email reset saltata per {email}")

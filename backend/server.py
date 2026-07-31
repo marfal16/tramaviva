@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Header, Response
+from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException, Depends, Header, Response
 import base64
 import re
 from dotenv import load_dotenv
@@ -897,9 +897,24 @@ async def list_donations():
 
 
 @api_router.put("/admin/donations/{donation_id}", dependencies=[Depends(require_admin)])
-async def update_donation(donation_id: str, data: dict):
+async def update_donation(donation_id: str, data: dict, background_tasks: BackgroundTasks):
     allowed = {k: v for k, v in data.items() if k in ("status", "note")}
+    if not allowed:
+        return {"ok": True}
+    current = await db.donations.find_one({"id": donation_id}, {"_id": 0})
     await db.donations.update_one({"id": donation_id}, {"$set": allowed})
+    if (
+        current
+        and allowed.get("status") == "completed"
+        and current.get("status") != "completed"
+    ):
+        email_svc = EmailService()
+        background_tasks.add_task(
+            email_svc.send_donation_thank_you,
+            current.get("email", ""),
+            current.get("first_name", ""),
+            current.get("amount"),
+        )
     return {"ok": True}
 
 
