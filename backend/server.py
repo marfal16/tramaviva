@@ -765,71 +765,6 @@ async def create_sumup_checkout(payload: PaymentRequest):
             "checkout_url": "https://www.tramavivaaps.com"
         }
 
-# ========== ROUTES: DONATIONS ==========
-
-@api_router.post("/donations")
-async def create_donation(payload: DonationCreate):
-    try:
-        donation = Donation(**payload.model_dump())
-        checkout_url = None
-
-        if donation.metodo_pagamento == "sumup":
-            api_key = os.environ.get("SUMUP_API_KEY")
-            merchant_code = os.environ.get("SUMUP_MERCHANT_CODE")
-            amount = donation.amount or 10.0
-            if api_key and merchant_code:
-                try:
-                    async with httpx.AsyncClient(timeout=10.0) as client_http:
-                        redirect_url = f"{FRONTEND_URL}/donazioni?grazie={donation.id}"
-                        checkout_data = {
-                            "merchant_code": merchant_code,
-                            "amount": round(amount, 2),
-                            "currency": "EUR",
-                            "checkout_reference": f"don-{donation.id[:8]}",
-                            "description": f"Donazione Trama Viva – {donation.first_name} {donation.last_name}",
-                            "redirect_url": redirect_url,
-                            "hosted_checkout": {"enabled": True},
-                        }
-                        r = await client_http.post(
-                            "https://api.sumup.com/v0.1/checkouts",
-                            json=checkout_data,
-                            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                        )
-                        if r.status_code in (200, 201):
-                            rj = r.json()
-                            checkout_url = rj.get("hosted_checkout_url")
-                            donation.sumup_checkout_id = rj.get("id")
-                except Exception as e:
-                    logger.warning(f"SumUp donation checkout error: {e}")
-            if not checkout_url:
-                checkout_url = f"{FRONTEND_URL}/donazioni?grazie={donation.id}"
-
-        await db.donations.insert_one(donation.model_dump())
-        return {"id": donation.id, "checkout_url": checkout_url}
-    except Exception as e:
-        logger.error(f"Errore creazione donazione: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@api_router.get("/admin/donations", dependencies=[Depends(require_admin)])
-async def list_donations():
-    docs = await db.donations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    return docs
-
-
-@api_router.put("/admin/donations/{donation_id}", dependencies=[Depends(require_admin)])
-async def update_donation(donation_id: str, data: dict):
-    allowed = {k: v for k, v in data.items() if k in ("status", "note")}
-    await db.donations.update_one({"id": donation_id}, {"$set": allowed})
-    return {"ok": True}
-
-
-@api_router.delete("/admin/donations/{donation_id}", dependencies=[Depends(require_admin)])
-async def delete_donation(donation_id: str):
-    await db.donations.delete_one({"id": donation_id})
-    return {"ok": True}
-
-
 # ========== ADMIN AUTH ==========
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "admin123")
 
@@ -908,6 +843,71 @@ def require_admin(authorization: Optional[str] = Header(default=None)):
     if token != ADMIN_TOKEN:
         raise HTTPException(status_code=401, detail="Token non valido")
     return True
+
+# ========== ROUTES: DONATIONS ==========
+
+@api_router.post("/donations")
+async def create_donation(payload: DonationCreate):
+    try:
+        donation = Donation(**payload.model_dump())
+        checkout_url = None
+
+        if donation.metodo_pagamento == "sumup":
+            api_key = os.environ.get("SUMUP_API_KEY")
+            merchant_code = os.environ.get("SUMUP_MERCHANT_CODE")
+            amount = donation.amount or 10.0
+            if api_key and merchant_code:
+                try:
+                    async with httpx.AsyncClient(timeout=10.0) as client_http:
+                        redirect_url = f"{FRONTEND_URL}/donazioni?grazie={donation.id}"
+                        checkout_data = {
+                            "merchant_code": merchant_code,
+                            "amount": round(amount, 2),
+                            "currency": "EUR",
+                            "checkout_reference": f"don-{donation.id[:8]}",
+                            "description": f"Donazione Trama Viva - {donation.first_name} {donation.last_name}",
+                            "redirect_url": redirect_url,
+                            "hosted_checkout": {"enabled": True},
+                        }
+                        r = await client_http.post(
+                            "https://api.sumup.com/v0.1/checkouts",
+                            json=checkout_data,
+                            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                        )
+                        if r.status_code in (200, 201):
+                            rj = r.json()
+                            checkout_url = rj.get("hosted_checkout_url")
+                            donation.sumup_checkout_id = rj.get("id")
+                except Exception as e:
+                    logger.warning(f"SumUp donation checkout error: {e}")
+            if not checkout_url:
+                checkout_url = f"{FRONTEND_URL}/donazioni?grazie={donation.id}"
+
+        await db.donations.insert_one(donation.model_dump())
+        return {"id": donation.id, "checkout_url": checkout_url}
+    except Exception as e:
+        logger.error(f"Errore creazione donazione: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@api_router.get("/admin/donations", dependencies=[Depends(require_admin)])
+async def list_donations():
+    docs = await db.donations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+
+@api_router.put("/admin/donations/{donation_id}", dependencies=[Depends(require_admin)])
+async def update_donation(donation_id: str, data: dict):
+    allowed = {k: v for k, v in data.items() if k in ("status", "note")}
+    await db.donations.update_one({"id": donation_id}, {"$set": allowed})
+    return {"ok": True}
+
+
+@api_router.delete("/admin/donations/{donation_id}", dependencies=[Depends(require_admin)])
+async def delete_donation(donation_id: str):
+    await db.donations.delete_one({"id": donation_id})
+    return {"ok": True}
+
 
 @api_router.post("/admin/login")
 async def admin_login(payload: dict):
