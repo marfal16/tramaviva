@@ -58,6 +58,11 @@ export const Footer = () => (
               </Link>
             </li>
             <li>
+              <Link to="/donazioni" className="hover:text-tv-mint transition-colors">
+                Dona
+              </Link>
+            </li>
+            <li>
               <a href="/#iscrizione" className="hover:text-tv-mint transition-colors">
                 Diventa socio
               </a>

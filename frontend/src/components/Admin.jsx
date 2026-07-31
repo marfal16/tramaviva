@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -107,6 +107,7 @@ const NAV = [
   { key: "registrations", label: "Richieste iscrizione", icon: Users },
   { key: "event-signups", label: "Richieste eventi",     icon: Calendar },
   { key: "contacts",      label: "Messaggi",             icon: MessageSquare },
+  { key: "donations",    label: "Donazioni",            icon: Heart },
 ];
 
 const CATEGORIES = ["Laboratori Artistici", "Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
@@ -1636,7 +1637,7 @@ const Dashboard = ({ token, onLogout }) => {
 
     setLoading(true);
     try {
-      const [r, es, c, ev, mem, bk, rv, pr, mis] = await Promise.all([
+      const [r, es, c, ev, mem, bk, rv, pr, mis, don] = await Promise.all([
         axios.get(`${API}/admin/registrations`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
@@ -1646,6 +1647,7 @@ const Dashboard = ({ token, onLogout }) => {
         axios.get(`${API}/admin/reviews`, authHeader),
         axios.get(`${API}/admin/proposals`, authHeader),
         axios.get(`${API}/admin/missions`, authHeader),
+        axios.get(`${API}/admin/donations`, authHeader),
       ]);
       setData({
         registrations: r.data || [],
@@ -1657,6 +1659,7 @@ const Dashboard = ({ token, onLogout }) => {
         reviews: rv.data || [],
         proposals: pr.data || [],
         missions: mis.data || [],
+        donations: don.data || [],
       });
     } catch (err) {
       if (err.response?.status === 401) {
@@ -2011,6 +2014,12 @@ const Dashboard = ({ token, onLogout }) => {
             <MissionsManager
               missions={data.missions || []}
               events={data.events || []}
+              token={token}
+              onReload={loadAll}
+            />
+          ) : tab === "donations" ? (
+            <DonationsManager
+              donations={data.donations || []}
               token={token}
               onReload={loadAll}
             />
@@ -3451,6 +3460,164 @@ const Field = ({ label, type = "text", value, onChange, required }) => (
 );
 
 // ── MissionsManager ──────────────────────────────────────────────────────────
+
+// ─── DonationsManager ─────────────────────────────────────────────────────────
+
+const DONATION_STATUS_LABELS = {
+  pending:   { label: "In attesa",  cls: "bg-tv-orange/15 text-tv-orange" },
+  completed: { label: "Completata", cls: "bg-tv-mint/30 text-tv-green" },
+  annullata: { label: "Annullata",  cls: "bg-tv-bordeaux/10 text-tv-bordeaux" },
+};
+
+const DonationsManager = ({ donations, token, onReload }) => {
+  const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+  const [filter, setFilter] = useState("all");
+  const [editNote, setEditNote] = useState({});
+
+  const filtered = filter === "all" ? donations : donations.filter(d => d.status === filter);
+
+  const setStatus = async (id, status) => {
+    await axios.put(`${process.env.REACT_APP_BACKEND_URL}/admin/donations/${id}`, { status }, authHeader);
+    toast.success("Aggiornato");
+    onReload();
+  };
+
+  const saveNote = async (id) => {
+    await axios.put(`${process.env.REACT_APP_BACKEND_URL}/admin/donations/${id}`, { note: editNote[id] ?? "" }, authHeader);
+    toast.success("Nota salvata");
+    setEditNote(prev => { const n = { ...prev }; delete n[id + "_open"]; return n; });
+    onReload();
+  };
+
+  const del = async (id) => {
+    if (!window.confirm("Eliminare questa donazione?")) return;
+    await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/admin/donations/${id}`, authHeader);
+    toast.success("Eliminata");
+    onReload();
+  };
+
+  const copy = (text) => { navigator.clipboard.writeText(text); toast.success("Copiato!"); };
+
+  const total = donations.filter(d => d.status === "completed").reduce((s, d) => s + (d.amount || 0), 0);
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Totali", value: donations.length, cls: "text-tv-green-deep" },
+          { label: "In attesa", value: donations.filter(d => d.status === "pending").length, cls: "text-tv-orange" },
+          { label: "Completate", value: donations.filter(d => d.status === "completed").length, cls: "text-tv-green" },
+          { label: "Raccolte", value: `${total.toFixed(0)} €`, cls: "text-tv-bordeaux" },
+        ].map(({ label, value, cls }) => (
+          <div key={label} className="bg-white rounded-2xl p-4 border border-tv-green-deep/8 text-center">
+            <div className={`font-black text-2xl ${cls}`}>{value}</div>
+            <div className="text-xs text-tv-green-deep/40 uppercase tracking-wider mt-0.5">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filtri */}
+      <div className="flex gap-2 flex-wrap">
+        {[["all", "Tutte"], ["pending", "In attesa"], ["completed", "Completate"], ["annullata", "Annullate"]].map(([k, l]) => (
+          <button key={k} onClick={() => setFilter(k)}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${filter === k ? "bg-tv-green-deep text-tv-cream" : "bg-white border border-tv-green-deep/15 text-tv-green-deep/60 hover:text-tv-green-deep"}`}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {/* Lista */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-tv-green-deep/30">
+          <Heart size={32} className="mx-auto mb-2 opacity-30" />
+          <p className="text-sm">Nessuna donazione trovata.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map(d => {
+            const st = DONATION_STATUS_LABELS[d.status] || DONATION_STATUS_LABELS.pending;
+            const noteOpen = editNote[d.id + "_open"];
+            return (
+              <div key={d.id} className="bg-white rounded-2xl border border-tv-green-deep/8 p-4 md:p-5">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  {/* Info donatore */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-black text-tv-green-deep">{d.first_name} {d.last_name}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                      {d.metodo_pagamento === "bonifico"
+                        ? <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-sky/40 text-tv-green-deep">Bonifico</span>
+                        : <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-mint/30 text-tv-green">SumUp</span>
+                      }
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-tv-green-deep/60 mb-2">
+                      <a href={`mailto:${d.email}`} className="hover:text-tv-green-deep">{d.email}</a>
+                      {d.phone && <span>{d.phone}</span>}
+                      <span>{new Date(d.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    </div>
+                    {d.amount && (
+                      <div className="text-lg font-black text-tv-bordeaux">{d.amount} €</div>
+                    )}
+                    {d.message && (
+                      <p className="mt-2 text-sm text-tv-green-deep/50 italic bg-tv-cream rounded-xl px-3 py-2">"{d.message}"</p>
+                    )}
+                    {d.note && !noteOpen && (
+                      <p className="mt-2 text-xs text-tv-green-deep/40 bg-tv-green-deep/5 rounded-xl px-3 py-2">📝 {d.note}</p>
+                    )}
+                    {noteOpen && (
+                      <div className="mt-2 flex gap-2">
+                        <input value={editNote[d.id] ?? d.note ?? ""} onChange={e => setEditNote(p => ({ ...p, [d.id]: e.target.value }))}
+                          placeholder="Aggiungi una nota…"
+                          className="flex-1 px-3 py-1.5 rounded-xl border border-tv-green-deep/15 text-sm text-tv-green-deep focus:outline-none focus:border-tv-green" />
+                        <button onClick={() => saveNote(d.id)} className="px-3 py-1.5 bg-tv-green-deep text-tv-cream text-xs font-bold rounded-xl">Salva</button>
+                      </div>
+                    )}
+                    {/* IBAN reminder per bonifico */}
+                    {d.status === "pending" && d.metodo_pagamento === "bonifico" && (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-tv-green-deep/40">
+                        <span>IBAN: <span className="font-mono font-bold">IT48E3688801600100000059432</span></span>
+                        <button onClick={() => copy("IT48E3688801600100000059432")} className="p-0.5 hover:text-tv-green-deep">
+                          <Copy size={11} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Azioni */}
+                  <div className="flex sm:flex-col gap-2 shrink-0">
+                    {d.status !== "completed" && (
+                      <button onClick={() => setStatus(d.id, "completed")}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-mint/30 text-tv-green text-xs font-bold rounded-full hover:bg-tv-mint/50 transition-colors">
+                        <Check size={12} /> Confermata
+                      </button>
+                    )}
+                    {d.status === "completed" && (
+                      <button onClick={() => setStatus(d.id, "pending")}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-green-deep/5 text-tv-green-deep/50 text-xs font-bold rounded-full hover:bg-tv-green-deep/10 transition-colors">
+                        In attesa
+                      </button>
+                    )}
+                    <button onClick={() => setEditNote(p => ({ ...p, [d.id + "_open"]: !p[d.id + "_open"], [d.id]: p[d.id] ?? d.note ?? "" }))}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-sky/30 text-tv-green-deep text-xs font-bold rounded-full hover:bg-tv-sky/50 transition-colors">
+                      📝 Nota
+                    </button>
+                    <button onClick={() => del(d.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-bordeaux/8 text-tv-bordeaux text-xs font-bold rounded-full hover:bg-tv-bordeaux/15 transition-colors">
+                      <Trash2 size={12} /> Elimina
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── MissionsManager ──────────────────────────────────────────────────────────
 
 const MISSION_EMPTY = { title: "", description: "", reward: "", required_events: 1, emoji: "🏆", event_id: "", event_title: "", category: "", order: 0, active: true };
 

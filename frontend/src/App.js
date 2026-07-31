@@ -18,6 +18,7 @@ import { LibroDettaglio } from "./components/LibroDettaglio";
 import { AuthProvider } from "./context/AuthContext";
 import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./components/Auth";
 import { AreaSoci } from "./components/AreaSoci";
+import { Donazioni, DonazioniTeaser } from "./components/Donazioni";
 
 const ClubsSection = () => (
   <section className="pt-0 pb-14 md:pb-20 px-6 md:px-10">
@@ -64,6 +65,7 @@ const Home = () => {
       <Attivita />
       <Eventi />
       <ClubsSection />
+      <DonazioniTeaser />
       <Iscrizione />
       <Contatti />
       <Footer />
@@ -139,6 +141,7 @@ function App() {
           <Route path="/club-del-libro" element={<ClubDelLibroPageWrapper />} />
           <Route path="/club-del-libro/:bookId" element={<LibroDettaglioPageWrapper />} />
           <Route path="/area-soci" element={<AreaSoci />} />
+          <Route path="/donazioni" element={<Donazioni />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/registrati" element={<RegisterPage />} />
           <Route path="/password-dimenticata" element={<ForgotPasswordPage />} />

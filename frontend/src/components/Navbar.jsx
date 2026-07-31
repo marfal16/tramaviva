@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Logo } from "./Logo";
-import { Menu, X, User, LogOut, ChevronDown } from "lucide-react";
+import { Menu, X, User, LogOut, ChevronDown, Heart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 
@@ -116,6 +116,13 @@ export const Navbar = () => {
             >
               Club del Libro
             </Link>
+            <Link
+              to="/donazioni"
+              onClick={() => setOpen(false)}
+              className="px-4 py-2 rounded-full text-sm font-semibold text-tv-bordeaux/80 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors flex items-center gap-1.5"
+            >
+              <Heart size={12} fill="currentColor" /> Dona
+            </Link>
             {user ? (
               <div className="relative ml-2" ref={userMenuRef}>
                 <button
@@ -193,6 +200,13 @@ export const Navbar = () => {
               className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40"
             >
               Club del Libro
+            </Link>
+            <Link
+              to="/donazioni"
+              onClick={() => setOpen(false)}
+              className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-bordeaux hover:bg-tv-bordeaux/8 flex items-center gap-2"
+            >
+              <Heart size={14} fill="currentColor" /> Dona
             </Link>
             {user ? (
               <>
