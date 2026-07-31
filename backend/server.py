@@ -391,6 +391,16 @@ class RegistrationCreate(BaseModel):
     dichiarazione_accettata: bool
     metodo_pagamento: Optional[str] = None
 
+class DonationCreate(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    amount: Optional[float] = None
+    message: Optional[str] = None
+    metodo_pagamento: str = "bonifico"
+
 class Donation(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     first_name: str
@@ -399,8 +409,8 @@ class Donation(BaseModel):
     phone: Optional[str] = None
     amount: Optional[float] = None
     message: Optional[str] = None
-    metodo_pagamento: str = "bonifico"  # "bonifico" | "sumup"
-    status: str = "pending"  # pending | completed | annullata
+    metodo_pagamento: str = "bonifico"
+    status: str = "pending"
     note: Optional[str] = None
     sumup_checkout_id: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -758,9 +768,9 @@ async def create_sumup_checkout(payload: PaymentRequest):
 # ========== ROUTES: DONATIONS ==========
 
 @api_router.post("/donations")
-async def create_donation(data: dict):
+async def create_donation(payload: DonationCreate):
     try:
-        donation = Donation(**{k: v for k, v in data.items() if k in Donation.model_fields})
+        donation = Donation(**payload.model_dump())
         checkout_url = None
 
         if donation.metodo_pagamento == "sumup":

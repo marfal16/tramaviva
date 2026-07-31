@@ -94,7 +94,8 @@ const DonationForm = ({ onSuccess }) => {
       } else {
         onSuccess({ name: `${form.first_name} ${form.last_name}`, amount: finalAmount, id: data.id });
       }
-    } catch {
+    } catch (err) {
+      console.error("Donation error:", err);
       toast.error("Qualcosa è andato storto. Riprova o scrivici a tramavivaaps@gmail.com");
     } finally {
       setLoading(false);
