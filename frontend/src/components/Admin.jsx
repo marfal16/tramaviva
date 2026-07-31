@@ -2833,10 +2833,33 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   }
 
   return (
-    <div className="flex flex-col md:flex-row rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden md:h-[calc(100vh-200px)] md:min-h-[600px]">
+    <div className="rounded-[2rem] border border-tv-green-deep/10 bg-white overflow-hidden">
 
-      {/* ── Selezione evento: dropdown (mobile) / sidebar verticale (desktop) ── */}
+      {/* Mobile: dropdown evento */}
+      <div className="block md:hidden px-4 py-3 border-b border-tv-green-deep/10 bg-tv-cream/40">
+        <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 block mb-1.5">
+          {groups.length} {groups.length === 1 ? "evento" : "eventi"}
+        </label>
+        <select
+          value={selectedEventId || ""}
+          onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
+          className="w-full px-3 py-2.5 rounded-xl bg-white border border-tv-green-deep/15 text-sm text-tv-green-deep outline-none focus:border-tv-green"
+        >
+          {groups.map(({ ev, items }) => {
+            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+            const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+            const past = isPast(ev.date);
+            return (
+              <option key={ev.id} value={ev.id}>
+                {past ? "✓ " : ""}{ev.title} — {confirmedPpl}/{totalPeople} conf.
+              </option>
+            );
+          })}
+        </select>
+      </div>
 
+      {/* ── Colonna destra: dettaglio ── */}
+      <div className="md:flex md:h-[calc(100vh-200px)] md:min-h-[600px] md:overflow-hidden">
       {/* Sidebar verticale: lista eventi (solo desktop) */}
       <div className="hidden md:flex flex-shrink-0 w-60 xl:w-64 border-r border-tv-green-deep/10 bg-tv-cream/40 flex-col overflow-y-auto">
         <div className="px-4 py-3 border-b border-tv-green-deep/10 flex-shrink-0">
@@ -2880,32 +2903,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
           })}
         </div>
       </div>
-
-      {/* Mobile: dropdown evento */}
-      <div className="block md:hidden px-4 py-3 border-b border-tv-green-deep/10 bg-tv-cream/40 flex-shrink-0">
-        <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 block mb-1.5">
-          {groups.length} {groups.length === 1 ? "evento" : "eventi"}
-        </label>
-        <select
-          value={selectedEventId || ""}
-          onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
-          className="w-full px-3 py-2.5 rounded-xl bg-white border border-tv-green-deep/15 text-sm text-tv-green-deep outline-none focus:border-tv-green"
-        >
-          {groups.map(({ ev, items }) => {
-            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-            const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
-            const past = isPast(ev.date);
-            return (
-              <option key={ev.id} value={ev.id}>
-                {past ? "✓ " : ""}{ev.title} — {confirmedPpl}/{totalPeople} conf.
-              </option>
-            );
-          })}
-        </select>
-      </div>
-
-      {/* ── Colonna destra: dettaglio ── */}
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+      <div className="md:flex-1 md:min-w-0 md:flex md:flex-col md:overflow-hidden">
         {selectedGroup ? (() => {
           const allItems = selectedGroup.items;
           const totalPeople = allItems.reduce((s, r) => s + (r.num_persone || 1), 0);
@@ -2938,8 +2936,22 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     </button>
                   )}
                 </div>
-                {/* Stats chips */}
-                <div className="flex items-center gap-2 flex-wrap">
+                {/* Mobile: stats grid 2x2 */}
+                <div className="grid grid-cols-2 gap-2 mt-2 md:hidden">
+                  {[
+                    { label: "Persone", value: totalPeople, cls: "text-tv-green-deep", bg: "bg-tv-sky/20" },
+                    { label: "Confermati", value: confirmedPpl, cls: "text-tv-green-deep", bg: "bg-tv-green/15" },
+                    ...(!isPastEvent && pendingPpl > 0 ? [{ label: "In attesa", value: pendingPpl, cls: "text-tv-bordeaux", bg: "bg-tv-orange/15" }] : []),
+                    ...(paidCount > 0 ? [{ label: "Pagati", value: paidCount, cls: "text-tv-green-deep", bg: "bg-tv-mint/20" }] : []),
+                  ].map(({ label, value, cls, bg }) => (
+                    <div key={label} className={`${bg} rounded-xl px-3 py-2 text-center`}>
+                      <div className={`font-black text-xl ${cls}`}>{value}</div>
+                      <div className="text-[10px] text-tv-green-deep/40 uppercase tracking-wider">{label}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop: chips */}
+                <div className="hidden md:flex items-center gap-2 flex-wrap mt-2">
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-sky/30 text-tv-green-deep px-2.5 py-1 rounded-full">
                     👥 {totalPeople} {totalPeople === 1 ? "persona" : "persone"}
                   </span>
@@ -2965,8 +2977,23 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
               </div>
 
               {/* Toolbar: filtri + search + bulk */}
-              <div className="px-3 md:px-6 py-3 border-b border-tv-green-deep/10 flex-shrink-0 flex flex-wrap items-center gap-2 md:gap-3">
-                <div className="overflow-x-auto no-scrollbar">
+              <div className="px-3 md:px-6 py-3 border-b border-tv-green-deep/10 md:flex-shrink-0 flex flex-col md:flex-row md:flex-wrap md:items-center gap-2 md:gap-3">
+                {/* Mobile: filter select */}
+                <div className="flex gap-2 md:hidden">
+                  <select value={activeFilter} onChange={e => setActiveFilter(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-xl bg-tv-cream border border-tv-green-deep/15 text-sm text-tv-green-deep outline-none">
+                    <option value="all">Tutti ({isPastEvent ? confirmedPpl : totalPeople})</option>
+                    {!isPastEvent && <option value="pending">In attesa ({pendingPpl})</option>}
+                    <option value="confirmed">Confermati ({confirmedPpl})</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
+                    <input type="text" placeholder="Cerca…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full pl-8 pr-3 py-2 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-sm text-tv-green-deep"/>
+                  </div>
+                </div>
+                {/* Desktop: filter pills */}
+                <div className="hidden md:block overflow-x-auto no-scrollbar">
                   <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1 w-max">
                     {[
                       { key: "all", label: `Tutti (${isPastEvent ? confirmedPpl : totalPeople})` },
@@ -2974,13 +3001,13 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                       { key: "confirmed", label: `Confermati (${confirmedPpl})` },
                     ].map(f => (
                       <button key={f.key} onClick={() => setActiveFilter(f.key)}
-                        className={`px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                           activeFilter === f.key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/50 hover:text-tv-green-deep"
                         }`}>{f.label}</button>
                     ))}
                   </div>
                 </div>
-                <div className="relative flex-1 min-w-0">
+                <div className="relative flex-1 min-w-0 hidden md:block">
                   <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
                   <input type="text" placeholder="Cerca nome o email…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
@@ -3062,26 +3089,32 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                       {filteredItems.map(row => {
                         const isFounder = row.is_member && founderEmails.has((row.email || "").toLowerCase());
                         return (
-                          <div key={row.id} className={`rounded-2xl border p-3 min-w-0 ${
+                          <div key={row.id} className={`rounded-2xl border p-4 ${
                             selectedIds.has(row.id) ? "border-tv-green/50 bg-tv-green/5"
                             : row.confirmed ? "bg-white border-tv-green-deep/10"
-                            : "bg-amber-50 border-tv-orange/20"
+                            : "bg-amber-50/60 border-tv-orange/20"
                           }`}>
-                            <div className="flex items-start gap-2 mb-2">
-                              {!isPastEvent && (
-                                <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)}
-                                  className="mt-1 w-4 h-4 accent-tv-green cursor-pointer shrink-0"/>
-                              )}
-                              <div className="w-8 h-8 rounded-lg bg-tv-green-deep text-tv-cream flex items-center justify-center font-black text-sm shrink-0">
-                                {(row.name?.[0] || "?").toUpperCase()}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-semibold text-sm text-tv-green-deep">{row.name}</span>
-                                  {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fondatore</span>}
-                                  {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
+                            {/* Top: nome + stato */}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {!isPastEvent && (
+                                  <input type="checkbox" checked={selectedIds.has(row.id)} onChange={() => toggleSelect(row.id)}
+                                    className="w-4 h-4 accent-tv-green cursor-pointer shrink-0"/>
+                                )}
+                                <div className="w-9 h-9 rounded-xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-black text-sm shrink-0">
+                                  {(row.name?.[0] || "?").toUpperCase()}
                                 </div>
-                                {row.message && <p className="text-[11px] text-tv-green-deep/40 italic truncate">"{row.message}"</p>}
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-sm text-tv-green-deep">{row.name}</span>
+                                    {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fondatore</span>}
+                                    {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[11px] text-tv-green-deep/50 mt-0.5">
+                                    <span>👥 {row.num_persone || 1}</span>
+                                    {row.opzione_scelta && <span className="truncate">{row.opzione_scelta}</span>}
+                                  </div>
+                                </div>
                               </div>
                               <div className="shrink-0">
                                 {row.confirmed
@@ -3089,28 +3122,25 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                                   : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full whitespace-nowrap">⏳ Attesa</span>}
                               </div>
                             </div>
-                            <div className="space-y-1 mb-2 pl-10 text-xs text-tv-green-deep/60">
-                              {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux min-w-0"><Mail size={10} className="shrink-0"/><span className="truncate">{row.email}</span></a>}
+                            {/* Info secondarie */}
+                            <div className="text-xs text-tv-green-deep/55 space-y-1 mb-3">
+                              {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1.5 hover:text-tv-bordeaux min-w-0"><Mail size={11} className="shrink-0"/><span className="truncate">{row.email}</span></a>}
                               {row.phone && <div>📞 {row.phone}</div>}
-                              <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                <span>👥 {row.num_persone || 1} {(row.num_persone || 1) > 1 ? "persone" : "persona"}</span>
-                                {row.opzione_scelta && <span className="text-tv-green-deep/50">{row.opzione_scelta}</span>}
-                              </div>
+                              {row.message && <p className="italic text-tv-green-deep/40">"{row.message}"</p>}
                               {(row.ospiti || []).length > 0 && (
-                                <div className="mt-1 space-y-0.5">
+                                <div className="space-y-0.5">
                                   {row.ospiti.map((g, i) => (
                                     <div key={i} className="flex items-center gap-1.5">
-                                      <div className="w-4 h-4 rounded-md bg-tv-green-deep/10 text-tv-green-deep flex items-center justify-center font-bold text-[9px] shrink-0">
+                                      <div className="w-4 h-4 rounded bg-tv-green-deep/10 text-tv-green-deep flex items-center justify-center text-[9px] font-bold shrink-0">
                                         {(g.nome?.[0] || "?").toUpperCase()}
                                       </div>
-                                      <span className="text-[11px] text-tv-green-deep/60">{g.nome} {g.cognome}</span>
-                                      {g.email && <span className="text-[11px] text-tv-green-deep/35 truncate">· {g.email}</span>}
+                                      <span>{g.nome} {g.cognome}</span>
                                     </div>
                                   ))}
                                 </div>
                               )}
                               {(row.metodo_pagamento || row.donazione_volontaria > 0) && (
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-1 mt-1">
                                   {row.donazione_volontaria > 0 && <span className="text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">💚 {row.donazione_volontaria}€</span>}
                                   {row.metodo_pagamento && (row.payment_completed
                                     ? <span className="text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">✓ {row.metodo_pagamento}</span>
@@ -3119,7 +3149,8 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                            {/* Azioni */}
+                            <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-tv-green-deep/8">
                               {!row.confirmed && !isPastEvent && (
                                 <button onClick={() => onConfirm(row)}
                                   className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-orange/20 text-tv-orange text-[11px] font-bold rounded-full hover:bg-tv-orange hover:text-tv-cream transition-colors">
@@ -3163,6 +3194,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
             Seleziona un evento dalla lista
           </div>
         )}
+      </div>
       </div>
       {notifyTarget && (
         <NotifyModal
@@ -3824,36 +3856,40 @@ const MissionsManager = ({ missions, events, token, onReload }) => {
         <div className="flex flex-col gap-3">
           {missions.map(m => (
             <div key={m.id} className={`bg-white rounded-3xl border overflow-hidden transition-opacity ${m.active ? "border-tv-green-deep/10" : "border-tv-green-deep/5 opacity-60"}`}>
-              <div className="flex items-center gap-4 p-4">
-                <span className="text-3xl shrink-0">{m.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-tv-green-deep">{m.title}</span>
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-tv-orange/15 text-tv-orange px-2 py-0.5 rounded-full">
-                      {m.required_events} {m.required_events === 1 ? "evento" : "eventi"}
-                    </span>
-                    {m.category && (
-                      <span className="text-[10px] font-bold bg-tv-sky/20 text-tv-green-deep/60 px-2 py-0.5 rounded-full">
-                        {m.category}
+              <div className="p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-3xl leading-none shrink-0">{m.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                      <span className="font-bold text-tv-green-deep">{m.title}</span>
+                      {!m.active && <span className="text-[10px] font-bold text-tv-green-deep/40 italic bg-tv-green-deep/5 px-2 py-0.5 rounded-full">inattiva</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mb-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider bg-tv-orange/15 text-tv-orange px-2 py-0.5 rounded-full">
+                        {m.required_events} {m.required_events === 1 ? "evento" : "eventi"}
                       </span>
-                    )}
-                    {!m.active && <span className="text-[10px] font-bold text-tv-green-deep/40 italic">inattiva</span>}
+                      {m.category && (
+                        <span className="text-[10px] font-bold bg-tv-sky/20 text-tv-green-deep/60 px-2 py-0.5 rounded-full">
+                          {m.category}
+                        </span>
+                      )}
+                    </div>
+                    {m.description && <p className="text-xs text-tv-green-deep/50 line-clamp-2">{m.description}</p>}
+                    <p className="text-xs font-semibold text-tv-green-deep/70 mt-1">🎁 {m.reward}</p>
                   </div>
-                  <p className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{m.description}</p>
-                  <p className="text-xs font-semibold text-tv-green-deep/70 mt-0.5">🎁 {m.reward}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-1 shrink-0">
+                <div className="flex items-center gap-2 pt-3 border-t border-tv-green-deep/8">
                   <button onClick={() => toggleActive(m)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${m.active ? "bg-tv-mint/40 text-tv-green-deep hover:bg-tv-mint" : "bg-tv-green-deep/10 text-tv-green-deep/50 hover:bg-tv-green-deep/20"}`}>
-                    {m.active ? "Attiva" : "Disattiva"}
+                    className={`flex-1 py-2 rounded-full text-xs font-bold transition-colors ${m.active ? "bg-tv-mint/30 text-tv-green-deep hover:bg-tv-mint/50" : "bg-tv-green-deep/8 text-tv-green-deep/50 hover:bg-tv-green-deep/15"}`}>
+                    {m.active ? "✓ Attiva" : "Attiva"}
                   </button>
                   <button onClick={() => { setEditing(m.id); setEditForm({ ...m }); }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold text-tv-green-deep/50 hover:text-tv-green-deep hover:bg-tv-mint/30 transition-colors">
-                    <Pencil size={13} /> <span className="hidden sm:inline">Modifica</span>
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full bg-tv-sky/20 text-tv-green-deep text-xs font-bold hover:bg-tv-sky/40 transition-colors">
+                    <Pencil size={12}/> Modifica
                   </button>
                   <button onClick={() => handleDelete(m.id)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-bold text-tv-green-deep/30 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors">
-                    <Trash2 size={13} /> <span className="hidden sm:inline">Elimina</span>
+                    className="px-4 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux text-xs font-bold hover:bg-tv-bordeaux/20 transition-colors flex items-center gap-1">
+                    <Trash2 size={12}/>
                   </button>
                 </div>
               </div>
