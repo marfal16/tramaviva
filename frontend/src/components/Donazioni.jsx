@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import { Heart, ArrowDown, Leaf, BookOpen, Users, CheckCircle, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Heart, Leaf, BookOpen, Users, CheckCircle, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -14,7 +14,7 @@ const INTESTATARIO = "Trama Viva";
 
 const impact = [
   { icon: Leaf,     title: "Creiamo spazi di incontro", desc: "Passeggiate, laboratori, eventi: ogni esperienza richiede cura, tempo e risorse." },
-  { icon: BookOpen, title: "Coltiviamo la cultura",      desc: "Il Club del Libro, gli screening, gli incontri: luoghi dove le idee prendono forma." },
+  { icon: BookOpen, title: "Coltiviamo la cultura",      desc: "Il Club del Libro, le discussioni del Cinema d'Autore, l'attenzione alla prevenzione con gli Screening per la Salute: luoghi dove le idee prendono forma." },
   { icon: Users,    title: "Costruiamo comunità",        desc: "Non eventi isolati, ma una rete di persone che si ritrovano, si conoscono, crescono insieme." },
 ];
 
@@ -235,14 +235,9 @@ export const Donazioni = () => {
             Fai fiorire<br />
             <span className="italic font-light">qualcosa di bello.</span>
           </h1>
-          <p className="text-tv-green-deep/60 text-lg leading-relaxed max-w-xl mx-auto mb-10">
+          <p className="text-tv-green-deep/60 text-lg leading-relaxed max-w-xl mx-auto">
             Trama Viva vive grazie alle persone che ci credono. Se vuoi che queste esperienze continuino, puoi sostenerci con una donazione spontanea — grande o piccola, ogni gesto conta.
           </p>
-          <button onClick={scrollToForm}
-            className="inline-flex items-center gap-2 bg-tv-green-deep text-tv-cream font-bold px-8 py-4 rounded-full hover:bg-tv-green transition-all shadow-[0_6px_20px_-6px_rgba(5,47,23,0.35)] hover:-translate-y-0.5">
-            Dona ora
-            <ArrowDown size={16} />
-          </button>
         </div>
       </section>
 
