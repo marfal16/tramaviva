@@ -1328,7 +1328,7 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   const voters = p.voters || [];
 
   const startEdit = () => {
-    setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "", discussion_topics: p.discussion_topics || "", proposed_month: p.proposed_month || "" });
+    setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "", trailer_url: p.trailer_url || "", discussion_topics: p.discussion_topics || "", external_reviews: p.external_reviews || [], proposed_month: p.proposed_month || "" });
     setEditing(true);
   };
 
@@ -1341,7 +1341,9 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
         genre: editForm.genre.trim() || null,
         cover_url: editForm.cover_url.trim() || null,
         description: editForm.description.trim() || null,
+        trailer_url: editForm.trailer_url.trim() || null,
         discussion_topics: editForm.discussion_topics.trim() || null,
+        external_reviews: (editForm.external_reviews || []).filter(r => r.source?.trim()),
         proposed_month: editForm.proposed_month || p.proposed_month,
       }, authHeader);
       toast.success("Proposta aggiornata.");
@@ -1446,9 +1448,31 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
               className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none resize-none" />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Temi di discussione</label>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Trailer (URL YouTube)</label>
+            <input value={editForm.trailer_url || ""} onChange={e => setEditForm(f => ({ ...f, trailer_url: e.target.value }))}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" placeholder="https://youtube.com/watch?v=..." />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Temi di discussione (separa con ;)</label>
             <textarea value={editForm.discussion_topics || ""} onChange={e => setEditForm(f => ({ ...f, discussion_topics: e.target.value }))} rows={2}
-              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none resize-none" placeholder="Es. Il ruolo dell'identità, ..." />
+              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none resize-none" placeholder="Es. Identità; Redenzione; La figura paterna" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Critica esterna</label>
+            {(editForm.external_reviews || []).map((r, i) => (
+              <div key={i} className="flex gap-1 mb-1">
+                <input value={r.source || ""} onChange={e => { const arr = [...(editForm.external_reviews || [])]; arr[i] = { ...arr[i], source: e.target.value }; setEditForm(f => ({ ...f, external_reviews: arr })); }}
+                  className="w-1/3 text-xs border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" placeholder="Fonte" />
+                <input value={r.score || ""} onChange={e => { const arr = [...(editForm.external_reviews || [])]; arr[i] = { ...arr[i], score: e.target.value }; setEditForm(f => ({ ...f, external_reviews: arr })); }}
+                  className="w-1/5 text-xs border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" placeholder="8/10" />
+                <input value={r.url || ""} onChange={e => { const arr = [...(editForm.external_reviews || [])]; arr[i] = { ...arr[i], url: e.target.value }; setEditForm(f => ({ ...f, external_reviews: arr })); }}
+                  className="flex-1 text-xs border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" placeholder="https://..." />
+                <button type="button" onClick={() => setEditForm(f => ({ ...f, external_reviews: (f.external_reviews || []).filter((_, j) => j !== i) }))}
+                  className="px-2 text-tv-bordeaux/60 hover:text-tv-bordeaux text-xs">✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => setEditForm(f => ({ ...f, external_reviews: [...(f.external_reviews || []), { source: "", score: "", url: "" }] }))}
+              className="text-[10px] text-tv-sky font-bold mt-0.5">+ Aggiungi recensione</button>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Mese di riferimento</label>
@@ -1767,7 +1791,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   const [expandedReviews, setExpandedReviews] = useState(null);
   const [addingProposal, setAddingProposal] = useState(false);
   const defaultFilmProposalMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
-  const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "", discussion_topics: "", proposed_month: defaultFilmProposalMonth });
+  const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "", trailer_url: "", discussion_topics: "", external_reviews: [], proposed_month: defaultFilmProposalMonth });
   const [savingProposal, setSavingProposal] = useState(false);
 
   const handleDelete = async (id) => {
@@ -1819,11 +1843,13 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
         genre: proposalForm.genre || null,
         cover_url: proposalForm.cover_url.trim() || null,
         description: proposalForm.description.trim() || null,
+        trailer_url: proposalForm.trailer_url.trim() || null,
         discussion_topics: proposalForm.discussion_topics.trim() || null,
+        external_reviews: (proposalForm.external_reviews || []).filter(r => r.source?.trim()),
         proposed_month: proposalForm.proposed_month || defaultFilmProposalMonth,
       });
       toast.success("Proposta aggiunta.");
-      setProposalForm({ title: "", director: "", genre: "", cover_url: "", description: "", discussion_topics: "", proposed_month: defaultFilmProposalMonth });
+      setProposalForm({ title: "", director: "", genre: "", cover_url: "", description: "", trailer_url: "", discussion_topics: "", external_reviews: [], proposed_month: defaultFilmProposalMonth });
       setAddingProposal(false);
       onReload();
     } catch { toast.error("Errore nel salvataggio."); }
@@ -1986,8 +2012,29 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
                 <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm resize-none" rows={3} value={proposalForm.description} onChange={e => setProposalForm(f => ({ ...f, description: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Temi di discussione</label>
-                <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm resize-none" rows={2} value={proposalForm.discussion_topics} onChange={e => setProposalForm(f => ({ ...f, discussion_topics: e.target.value }))} placeholder="Es. Il ruolo dell'identità, La redenzione, ..." />
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Trailer (URL YouTube)</label>
+                <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm" value={proposalForm.trailer_url} onChange={e => setProposalForm(f => ({ ...f, trailer_url: e.target.value }))} placeholder="https://youtube.com/watch?v=..." />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Temi di discussione (separa con ;)</label>
+                <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm resize-none" rows={2} value={proposalForm.discussion_topics} onChange={e => setProposalForm(f => ({ ...f, discussion_topics: e.target.value }))} placeholder="Es. Identità; Redenzione; La figura paterna" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Critica esterna</label>
+                {(proposalForm.external_reviews || []).map((r, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <input value={r.source || ""} onChange={e => { const arr = [...(proposalForm.external_reviews || [])]; arr[i] = { ...arr[i], source: e.target.value }; setProposalForm(f => ({ ...f, external_reviews: arr })); }}
+                      className="w-1/3 px-3 py-2 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm" placeholder="Fonte" />
+                    <input value={r.score || ""} onChange={e => { const arr = [...(proposalForm.external_reviews || [])]; arr[i] = { ...arr[i], score: e.target.value }; setProposalForm(f => ({ ...f, external_reviews: arr })); }}
+                      className="w-1/5 px-3 py-2 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm" placeholder="8/10" />
+                    <input value={r.url || ""} onChange={e => { const arr = [...(proposalForm.external_reviews || [])]; arr[i] = { ...arr[i], url: e.target.value }; setProposalForm(f => ({ ...f, external_reviews: arr })); }}
+                      className="flex-1 px-3 py-2 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm" placeholder="https://..." />
+                    <button type="button" onClick={() => setProposalForm(f => ({ ...f, external_reviews: (f.external_reviews || []).filter((_, j) => j !== i) }))}
+                      className="px-3 py-2 text-tv-bordeaux/60 hover:text-tv-bordeaux text-sm">✕</button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setProposalForm(f => ({ ...f, external_reviews: [...(f.external_reviews || []), { source: "", score: "", url: "" }] }))}
+                  className="text-xs text-tv-sky font-bold">+ Aggiungi recensione esterna</button>
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Mese di riferimento *</label>

@@ -327,7 +327,8 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
   })();
   const [form, setForm] = useState({
     title: "", director: "", genre: "", cover_url: "", description: "",
-    discussion_topics: "", proposed_month: defaultMonth, nome: "", cognome: "", in_community_whatsapp: null,
+    trailer_url: "", discussion_topics: "", external_reviews: [],
+    proposed_month: defaultMonth, nome: "", cognome: "", in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -346,7 +347,9 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           genre: form.genre.trim() || null,
           cover_url: form.cover_url.trim() || null,
           description: form.description.trim() || null,
+          trailer_url: form.trailer_url.trim() || null,
           discussion_topics: form.discussion_topics.trim() || null,
+          external_reviews: (form.external_reviews || []).filter(r => r.source?.trim()),
           proposed_month: form.proposed_month || currentMonth,
           nome: form.nome.trim() || null,
           cognome: form.cognome.trim() || null,
@@ -436,10 +439,31 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
             <textarea className={`${fieldClass} resize-none`} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
           </label>
           <label>
+            <div className={labelClass}>Trailer (URL YouTube, opzionale)</div>
+            <input className={fieldClass} value={form.trailer_url} onChange={(e) => set("trailer_url", e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+          </label>
+          <label>
             <div className={labelClass}>Temi di discussione (opzionale)</div>
             <textarea className={`${fieldClass} resize-none`} rows={2} value={form.discussion_topics} onChange={(e) => set("discussion_topics", e.target.value)}
               placeholder="Es. Identità e cambiamento; Il peso dei sogni; La figura paterna — separa i temi con ;" />
           </label>
+          <div>
+            <div className={labelClass}>Critica esterna (opzionale)</div>
+            {(form.external_reviews || []).map((r, i) => (
+              <div key={i} className="flex gap-2 mb-2">
+                <input value={r.source || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], source: e.target.value }; set("external_reviews", arr); }}
+                  className={`${fieldClass} w-1/3`} placeholder="Fonte" />
+                <input value={r.score || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], score: e.target.value }; set("external_reviews", arr); }}
+                  className={`${fieldClass} w-1/5`} placeholder="8/10" />
+                <input value={r.url || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], url: e.target.value }; set("external_reviews", arr); }}
+                  className={`${fieldClass} flex-1`} placeholder="https://..." />
+                <button type="button" onClick={() => set("external_reviews", (form.external_reviews || []).filter((_, j) => j !== i))}
+                  className="px-3 text-tv-bordeaux/60 hover:text-tv-bordeaux">✕</button>
+              </div>
+            ))}
+            <button type="button" onClick={() => set("external_reviews", [...(form.external_reviews || []), { source: "", score: "", url: "" }])}
+              className="text-xs text-tv-sky font-bold">+ Aggiungi recensione esterna</button>
+          </div>
           <label>
             <div className={labelClass}>Mese di riferimento *</div>
             <select className={fieldClass} value={form.proposed_month} onChange={(e) => set("proposed_month", e.target.value)} required>
@@ -631,6 +655,11 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 
         {/* Corpo */}
         <div className="p-6 grid gap-5">
+          {/* Trailer */}
+          {proposal.trailer_url && (
+            <TrailerSection trailerUrl={proposal.trailer_url} coverUrl={proposal.cover_url} title={proposal.title} />
+          )}
+
           {proposal.description && (
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
@@ -653,6 +682,32 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Critica esterna */}
+          {proposal.external_reviews?.length > 0 && (
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Cosa dice la critica</div>
+              <div className="flex flex-wrap gap-2">
+                {proposal.external_reviews.map((r, i) => (
+                  r.url ? (
+                    <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 hover:border-tv-sky/40 hover:bg-tv-sky/5 transition-colors group">
+                      <Star size={10} className="text-tv-orange fill-tv-orange" />
+                      <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
+                      <span className="text-[10px] text-tv-green-deep/50 group-hover:text-tv-sky transition-colors">— {r.source}</span>
+                      <ExternalLink size={9} className="text-tv-green-deep/30 group-hover:text-tv-sky transition-colors" />
+                    </a>
+                  ) : (
+                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10">
+                      <Star size={10} className="text-tv-orange fill-tv-orange" />
+                      <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
+                      <span className="text-[10px] text-tv-green-deep/50">— {r.source}</span>
+                    </span>
+                  )
+                ))}
+              </div>
             </div>
           )}
         </div>

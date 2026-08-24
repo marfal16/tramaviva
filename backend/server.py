@@ -361,7 +361,9 @@ class FilmProposal(BaseModel):
     cover_url: Optional[str] = None
     genre: Optional[str] = None
     description: Optional[str] = None
+    trailer_url: Optional[str] = None
     discussion_topics: Optional[str] = None
+    external_reviews: List[dict] = Field(default_factory=list)
     proposed_month: str  # "YYYY-MM"
     votes: int = 0
     nome: Optional[str] = None
@@ -376,7 +378,9 @@ class FilmProposalCreate(BaseModel):
     cover_url: Optional[str] = None
     genre: Optional[str] = None
     description: Optional[str] = None
+    trailer_url: Optional[str] = None
     discussion_topics: Optional[str] = None
+    external_reviews: List[dict] = Field(default_factory=list)
     proposed_month: Optional[str] = None
     nome: Optional[str] = None
     cognome: Optional[str] = None
@@ -2236,7 +2240,7 @@ async def admin_get_film_proposals():
 
 @api_router.put("/admin/film-proposals/{proposal_id}", dependencies=[Depends(require_admin)])
 async def admin_update_film_proposal(proposal_id: str, payload: dict):
-    allowed = {"title", "director", "genre", "cover_url", "description", "discussion_topics", "proposed_month"}
+    allowed = {"title", "director", "genre", "cover_url", "description", "trailer_url", "discussion_topics", "external_reviews", "proposed_month"}
     update = {k: v for k, v in payload.items() if k in allowed}
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
