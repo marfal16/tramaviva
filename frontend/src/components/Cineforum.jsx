@@ -14,7 +14,6 @@ const FILM_GENRES = [
   "Cult", "Classico", "Cinema del mondo", "Altro",
 ];
 
-
 const fmtDay = (iso) => {
   if (!iso) return "";
   try { return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" }); }
@@ -51,38 +50,54 @@ const getYouTubeId = (url) => {
   return m ? m[1] : null;
 };
 
-const TrailerSection = ({ trailerUrl }) => {
+const splitTopics = (text) =>
+  text ? text.split(";").map((t) => t.trim()).filter(Boolean) : [];
+
+// ── Trailer cinematico (grande, espandibile al click) ────────────────────────
+const TrailerSection = ({ trailerUrl, coverUrl, title }) => {
   const [showEmbed, setShowEmbed] = useState(false);
   const ytId = getYouTubeId(trailerUrl);
 
-  if (!showEmbed) {
+  if (showEmbed && ytId) {
     return (
-      <button
-        onClick={() => setShowEmbed(true)}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tv-green-deep text-tv-cream text-xs font-black hover:bg-tv-green transition-colors tracking-wide"
-      >
-        <Play size={12} fill="currentColor" /> TRAILER
-      </button>
-    );
-  }
-  if (ytId) {
-    return (
-      <div className="relative rounded-xl overflow-hidden bg-black" style={{ paddingBottom: "56.25%", height: 0 }}>
+      <div className="rounded-2xl overflow-hidden bg-black aspect-video">
         <iframe
-          className="absolute inset-0 w-full h-full"
+          className="w-full h-full"
           src={`https://www.youtube.com/embed/${ytId}?autoplay=1`}
           allow="autoplay; encrypted-media; fullscreen"
           allowFullScreen
-          title="Trailer"
+          title={title ? `Trailer — ${title}` : "Trailer"}
         />
       </div>
     );
   }
+
+  if (showEmbed && !ytId) {
+    return (
+      <a href={trailerUrl} target="_blank" rel="noopener noreferrer"
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-tv-sky text-white text-sm font-black hover:bg-tv-sky/80 transition-colors">
+        <ExternalLink size={14} /> Apri trailer
+      </a>
+    );
+  }
+
   return (
-    <a href={trailerUrl} target="_blank" rel="noopener noreferrer"
-      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tv-sky text-white text-xs font-black hover:bg-tv-sky/80 transition-colors">
-      <ExternalLink size={12} /> Apri trailer
-    </a>
+    <div
+      onClick={() => setShowEmbed(true)}
+      className="relative rounded-2xl overflow-hidden cursor-pointer group aspect-video bg-tv-green-deep"
+    >
+      {coverUrl && (
+        <img src={coverUrl} alt={title || ""}
+          className="absolute inset-0 w-full h-full object-cover opacity-35 group-hover:opacity-25 transition-opacity" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+        <div className="w-16 h-16 rounded-full bg-white/15 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+          <Play size={26} className="text-white ml-1" fill="white" />
+        </div>
+        <span className="text-white font-black text-xs uppercase tracking-widest opacity-90">Guarda il trailer</span>
+      </div>
+    </div>
   );
 };
 
@@ -97,101 +112,208 @@ const SectionHeading = ({ dot, label, title, sub, labelSize = "text-xs" }) => (
   </div>
 );
 
-// ── Card film (archivio / in visione) ───────────────────────────────────────
-const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
+// ── Modal dettaglio film (scheda completa) ──────────────────────────────────
+const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
   const evMap = Object.fromEntries(events.map((e) => [e.id, e]));
   const linked = (film.linked_event_ids || []).map((id) => evMap[id]).filter(Boolean);
-  const filmReviews = reviewsByFilm[film.id] || [];
+  const topics = splitTopics(film.discussion_topics);
 
   return (
-    <article className="bg-white rounded-[2rem] border border-tv-green-deep/8 flex flex-col overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] transition-shadow">
-      <div className="flex gap-5 p-6 flex-1">
-        <div className="shrink-0 flex flex-col gap-3">
-          {film.cover_url ? (
-            <img src={film.cover_url} alt={film.title} className="w-20 h-28 object-cover rounded-2xl shadow-md" />
-          ) : (
-            <div className="w-20 h-28 rounded-2xl bg-tv-green-deep/8 flex items-center justify-center">
-              <Film size={26} className="text-tv-green-deep/20" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+
+        {/* Header cinematico */}
+        <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">
+          {film.cover_url && (
+            <div
+              className="absolute inset-0 opacity-10 scale-110"
+              style={{
+                backgroundImage: `url(${film.cover_url})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                filter: "blur(20px)",
+              }}
+            />
+          )}
+          <div className="relative z-10 p-6 pr-14">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+              <X size={18} />
+            </button>
+            <div className="flex gap-5">
+              {film.cover_url ? (
+                <img src={film.cover_url} alt={film.title} className="w-24 h-36 object-cover rounded-2xl shadow-lg shrink-0" />
+              ) : (
+                <div className="w-24 h-36 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                  <Film size={32} className="text-white/20" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 pt-1">
+                {film.status === "in_visione" && (
+                  <div className="mb-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tv-sky/30 text-tv-sky text-[9px] font-black uppercase tracking-wider">
+                    <Film size={7} /> In visione
+                  </div>
+                )}
+                <h2 className="font-display font-black text-xl text-white leading-tight">{film.title}</h2>
+                <div className="text-sm text-white/60 mt-1">{film.director}</div>
+                {film.genre && <div className="text-xs text-white/40 italic mt-0.5">{film.genre}</div>}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-xs text-white/35">
+                  {film.year && <span>{film.year}</span>}
+                  {film.duration && <span>{film.duration} min</span>}
+                  {film.screening_month && (
+                    <span className="flex items-center gap-1">
+                      <Calendar size={9} /> {fmtMonthYear(film.screening_month)}
+                    </span>
+                  )}
+                </div>
+                {filmReviews.length > 0 && (
+                  <div className="mt-2"><AvgStars reviews={filmReviews} /></div>
+                )}
+              </div>
             </div>
-          )}
-          {film.trailer_url && (
-            <TrailerSection trailerUrl={film.trailer_url} />
-          )}
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-display font-black text-lg leading-tight text-tv-green-deep">{film.title}</h3>
-          <div className="text-sm text-tv-green-deep/55 mt-0.5">
-            {film.director}{film.genre && <span className="italic"> · {film.genre}</span>}
-          </div>
-          <div className="text-xs text-tv-green-deep/40 mt-0.5 flex items-center gap-1 flex-wrap">
-            {film.year && <span>· {film.year}</span>}
-            {film.duration && <span>· {film.duration} min</span>}
-          </div>
-          {film.screening_month && (
-            <div className="mt-1 text-xs text-tv-green-deep/40 flex items-center gap-1">
-              <Calendar size={10} /> {fmtMonthYear(film.screening_month)}
-            </div>
+
+        {/* Corpo */}
+        <div className="p-6 grid gap-5">
+
+          {/* Trailer */}
+          {film.trailer_url && (
+            <TrailerSection trailerUrl={film.trailer_url} coverUrl={film.cover_url} title={film.title} />
           )}
-          {film.status === "in_visione" && (
-            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tv-sky/15 text-tv-sky text-[10px] font-black uppercase tracking-wider">
-              <Film size={9} /> In visione
-            </div>
-          )}
-          {filmReviews.length > 0 && <div className="mt-2"><AvgStars reviews={filmReviews} /></div>}
+
+          {/* Trama */}
           {film.description && (
-            <p className="mt-2 text-sm text-tv-green-deep/65 leading-relaxed line-clamp-3">{film.description}</p>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
+              <p className="text-sm text-tv-green-deep/70 leading-relaxed">{film.description}</p>
+            </div>
+          )}
+
+          {/* Temi di discussione (splittati per ";") */}
+          {topics.length > 0 && (
+            <div className="rounded-2xl bg-tv-green-deep p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <MessageCircle size={12} className="text-tv-sky shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-tv-sky">Temi di discussione</span>
+              </div>
+              <ul className="grid gap-2">
+                {topics.map((t, i) => (
+                  <li key={i} className="flex items-start gap-2 text-tv-cream/85 text-sm">
+                    <span className="text-tv-sky mt-0.5 shrink-0">▸</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Critica esterna */}
+          {film.external_reviews?.length > 0 && (
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Cosa dice la critica</div>
+              <div className="flex flex-wrap gap-2">
+                {film.external_reviews.map((r, i) => (
+                  r.url ? (
+                    <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 hover:border-tv-sky/40 hover:bg-tv-sky/5 transition-colors group">
+                      <Star size={10} className="text-tv-orange fill-tv-orange" />
+                      <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
+                      <span className="text-[10px] text-tv-green-deep/50 group-hover:text-tv-sky transition-colors">— {r.source}</span>
+                      <ExternalLink size={9} className="text-tv-green-deep/30 group-hover:text-tv-sky transition-colors" />
+                    </a>
+                  ) : (
+                    <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10">
+                      <Star size={10} className="text-tv-orange fill-tv-orange" />
+                      <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
+                      <span className="text-[10px] text-tv-green-deep/50">— {r.source}</span>
+                    </span>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* La nostra visione */}
+          {film.recensione && (
+            <div className="rounded-2xl bg-tv-mint/40 border-l-4 border-tv-sky p-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">La nostra visione</div>
+              <p className="text-sm text-tv-green-deep/80 leading-relaxed">{film.recensione}</p>
+            </div>
+          )}
+
+          {/* Serata collegata */}
+          {linked.length > 0 && (
+            <div className="pt-1">
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Serata collegata</div>
+              {linked.map((ev) => (
+                <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`} onClick={onClose}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 text-xs font-bold text-tv-green-deep hover:border-tv-bordeaux/30 hover:text-tv-bordeaux transition-colors">
+                  <Calendar size={11} /> {ev.title} <ArrowRight size={10} />
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       </div>
-      {film.discussion_topics && (
-        <div className="mx-5 mb-3 rounded-2xl bg-tv-green-deep p-4">
-          <div className="flex items-center gap-1.5 mb-2">
-            <MessageCircle size={11} className="text-tv-sky shrink-0" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-tv-sky">Temi di discussione</span>
+    </div>
+  );
+};
+
+// ── Card film semplificata (click per aprire dettaglio) ─────────────────────
+const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
+  const [showDetail, setShowDetail] = useState(false);
+  const filmReviews = reviewsByFilm[film.id] || [];
+
+  return (
+    <>
+      <article
+        onClick={() => setShowDetail(true)}
+        className="bg-white rounded-[2rem] border border-tv-green-deep/8 flex items-center gap-4 p-4 hover:shadow-[0_6px_24px_-8px_rgba(5,47,23,0.14)] transition-all cursor-pointer group"
+      >
+        {/* Poster */}
+        <div className="shrink-0 w-14 h-20">
+          {film.cover_url ? (
+            <img src={film.cover_url} alt={film.title} className="w-full h-full object-cover rounded-xl shadow" />
+          ) : (
+            <div className="w-full h-full rounded-xl bg-tv-green-deep/8 flex items-center justify-center">
+              <Film size={20} className="text-tv-green-deep/20" />
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          {film.status === "in_visione" && (
+            <div className="mb-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tv-sky/15 text-tv-sky text-[9px] font-black uppercase tracking-wider">
+              <Film size={7} /> In visione
+            </div>
+          )}
+          <h3 className="font-display font-black text-base leading-tight text-tv-green-deep group-hover:text-tv-bordeaux transition-colors line-clamp-2">
+            {film.title}
+          </h3>
+          <div className="text-sm text-tv-green-deep/55 mt-0.5 truncate">
+            {film.director}{film.genre && <span className="italic"> · {film.genre}</span>}
           </div>
-          <p className="text-xs text-tv-cream/80 leading-relaxed whitespace-pre-line">{film.discussion_topics}</p>
+          {filmReviews.length > 0 && (
+            <div className="mt-1.5"><AvgStars reviews={filmReviews} /></div>
+          )}
         </div>
+
+        <ArrowRight size={15} className="text-tv-green-deep/20 group-hover:text-tv-bordeaux transition-colors shrink-0" />
+      </article>
+
+      {showDetail && (
+        <FilmDetailModal
+          film={film}
+          filmReviews={filmReviews}
+          events={events}
+          onClose={() => setShowDetail(false)}
+        />
       )}
-      {film.external_reviews && film.external_reviews.length > 0 && (
-        <div className="mx-5 mb-3">
-          <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-2">Critica</div>
-          <div className="flex flex-wrap gap-2">
-            {film.external_reviews.map((r, i) => (
-              r.url ? (
-                <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 hover:border-tv-sky/40 hover:bg-tv-sky/5 transition-colors group">
-                  <Star size={10} className="text-tv-orange fill-tv-orange" />
-                  <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
-                  <span className="text-[10px] text-tv-green-deep/50 group-hover:text-tv-sky transition-colors">— {r.source}</span>
-                  <ExternalLink size={9} className="text-tv-green-deep/30 group-hover:text-tv-sky transition-colors" />
-                </a>
-              ) : (
-                <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10">
-                  <Star size={10} className="text-tv-orange fill-tv-orange" />
-                  <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
-                  <span className="text-[10px] text-tv-green-deep/50">— {r.source}</span>
-                </span>
-              )
-            ))}
-          </div>
-        </div>
-      )}
-      {film.recensione && (
-        <div className="mx-5 mb-3 rounded-2xl bg-tv-mint/40 border-l-4 border-tv-sky p-4">
-          <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-1">La nostra visione</div>
-          <p className="text-sm text-tv-green-deep/80 leading-relaxed line-clamp-3">{film.recensione}</p>
-        </div>
-      )}
-      {linked.length > 0 && (
-        <div className="px-5 pb-3">
-          {linked.map((ev) => (
-            <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`} className="inline-flex items-center gap-2 text-xs font-bold text-tv-green-deep hover:text-tv-bordeaux transition-colors">
-              <Calendar size={11} /> {ev.title} <ArrowRight size={10} />
-            </Link>
-          ))}
-        </div>
-      )}
-    </article>
+    </>
   );
 };
 
@@ -315,7 +437,8 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           </label>
           <label>
             <div className={labelClass}>Temi di discussione (opzionale)</div>
-            <textarea className={`${fieldClass} resize-none`} rows={2} value={form.discussion_topics} onChange={(e) => set("discussion_topics", e.target.value)} placeholder="Cosa vorresti discutere con il gruppo su questo film?" />
+            <textarea className={`${fieldClass} resize-none`} rows={2} value={form.discussion_topics} onChange={(e) => set("discussion_topics", e.target.value)}
+              placeholder="Es. Identità e cambiamento; Il peso dei sogni; La figura paterna — separa i temi con ;" />
           </label>
           <label>
             <div className={labelClass}>Mese di riferimento *</div>
@@ -448,57 +571,91 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
 // ── Modal dettaglio proposta film ────────────────────────────────────────────
 const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
+  const topics = splitTopics(proposal.discussion_topics);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
-          <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40">Proposta del mese</span>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
+
+        {/* Header con poster */}
+        <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">
+          {proposal.cover_url && (
+            <div
+              className="absolute inset-0 opacity-10 scale-110"
+              style={{
+                backgroundImage: `url(${proposal.cover_url})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                filter: "blur(20px)",
+              }}
+            />
+          )}
+          <div className="relative z-10 p-6 pr-14">
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+              <X size={18} />
+            </button>
+            <div className="mb-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Proposta del mese</span>
+            </div>
+            <div className="flex gap-5">
+              {proposal.cover_url ? (
+                <img src={proposal.cover_url} alt={proposal.title} className="w-24 h-36 object-cover rounded-2xl shadow-lg shrink-0" />
+              ) : (
+                <div className="w-24 h-36 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                  <Film size={32} className="text-white/20" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 pt-1">
+                <h3 className="font-display font-black text-xl text-white leading-tight">{proposal.title}</h3>
+                <div className="text-sm text-white/60 mt-1">
+                  {proposal.director}{proposal.genre && <span className="italic text-white/40"> · {proposal.genre}</span>}
+                </div>
+                {initials && (
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <div className="w-6 h-6 rounded-full bg-tv-bordeaux/80 text-tv-cream flex items-center justify-center text-[10px] font-black shrink-0">{initials}</div>
+                    <span className="text-xs text-white/40">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
+                  </div>
+                )}
+                <div className="mt-4">
+                  <button
+                    onClick={onVoteRequest}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors bg-tv-orange text-tv-green-deep hover:bg-tv-orange/80"
+                  >
+                    <ThumbsUp size={14} /> Vota · {proposal.votes}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="p-6 flex gap-5">
-          {proposal.cover_url ? (
-            <img src={proposal.cover_url} alt={proposal.title} className="w-28 h-40 object-cover rounded-2xl shrink-0 shadow-md" />
-          ) : (
-            <div className="w-28 h-40 rounded-2xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-              <Film size={36} className="text-tv-green-deep/20" />
+
+        {/* Corpo */}
+        <div className="p-6 grid gap-5">
+          {proposal.description && (
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
+              <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-display font-black text-xl leading-tight text-tv-green-deep">{proposal.title}</h3>
-            <div className="text-sm text-tv-green-deep/55 mt-1">
-              {proposal.director}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
-            </div>
-            {initials && (
-              <div className="mt-2 flex items-center gap-1.5">
-                <div className="w-6 h-6 rounded-full bg-tv-bordeaux text-tv-cream flex items-center justify-center text-[10px] font-black shrink-0">{initials}</div>
-                <span className="text-xs text-tv-green-deep/50">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
+
+          {/* Temi di discussione splittati per ";" */}
+          {topics.length > 0 && (
+            <div className="rounded-2xl bg-tv-green-deep p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <MessageCircle size={11} className="text-tv-sky shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-tv-sky">Temi di discussione</span>
               </div>
-            )}
-            <div className="mt-4">
-              <button
-                onClick={onVoteRequest}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors bg-tv-orange text-tv-green-deep hover:bg-tv-orange/80"
-              >
-                <ThumbsUp size={14} /> Vota · {proposal.votes}
-              </button>
+              <ul className="grid gap-2">
+                {topics.map((t, i) => (
+                  <li key={i} className="flex items-start gap-2 text-tv-cream/85 text-xs">
+                    <span className="text-tv-sky mt-0.5 shrink-0">▸</span>
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </div>
+          )}
         </div>
-        {proposal.description && (
-          <div className="px-6 pb-4">
-            <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
-            <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
-          </div>
-        )}
-        {proposal.discussion_topics && (
-          <div className="mx-6 mb-6 rounded-2xl bg-tv-green-deep p-4">
-            <div className="flex items-center gap-1.5 mb-2">
-              <MessageCircle size={11} className="text-tv-sky shrink-0" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-tv-sky">Temi di discussione</span>
-            </div>
-            <p className="text-xs text-tv-cream/80 leading-relaxed whitespace-pre-line">{proposal.discussion_topics}</p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -783,7 +940,7 @@ export const Cineforum = () => {
             <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
               <div className="mx-auto max-w-5xl">
                 <SectionHeading dot="bg-tv-sky" label="Ora in corso" title="Stiamo guardando" labelSize="text-sm" />
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid md:grid-cols-2 gap-4">
                   {inVisione.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
                 </div>
               </div>
@@ -798,7 +955,7 @@ export const Cineforum = () => {
             <section className="py-14 md:py-20 px-6 md:px-10">
               <div className="mx-auto max-w-5xl">
                 <SectionHeading dot="bg-tv-bordeaux" label="Archivio" title="Film visti" sub="I film che abbiamo guardato e discusso insieme." />
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid md:grid-cols-2 gap-4">
                   {conclusi.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
                 </div>
               </div>
@@ -810,7 +967,7 @@ export const Cineforum = () => {
             <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
               <div className="mx-auto max-w-5xl">
                 <SectionHeading dot="bg-tv-orange" label="In arrivo" title="Prossime proiezioni selezionate" />
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid md:grid-cols-2 gap-4">
                   {prossimi.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
                 </div>
               </div>
