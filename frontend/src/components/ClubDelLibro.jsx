@@ -472,7 +472,11 @@ const ProposalCard = ({ proposal, onVote, onUnvote }) => {
 const ProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    return d.toISOString().slice(0, 7);
+  });
   const [showForm, setShowForm] = useState(false);
 
   const load = useCallback(() => {
@@ -490,11 +494,11 @@ const ProposalsSection = () => {
       .then((r) => r.json())
       .then((d) => {
         const months = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month))].sort().reverse();
-        const current = new Date().toISOString().slice(0, 7);
-        if (!months.includes(current)) months.unshift(current);
+        const next = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
+        if (!months.includes(next)) months.unshift(next);
         setAllMonths(months);
       })
-      .catch(() => setAllMonths([new Date().toISOString().slice(0, 7)]));
+      .catch(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); setAllMonths([d.toISOString().slice(0, 7)]); });
   }, []);
 
   useEffect(() => { load(); }, [load]);

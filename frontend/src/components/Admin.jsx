@@ -1165,14 +1165,14 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
     if (!proposalForm.title.trim() || !proposalForm.author.trim()) { toast.error("Titolo e autore sono obbligatori."); return; }
     setSavingProposal(true);
     try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const nextMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
       await axios.post(`${API}/proposals`, {
         title: proposalForm.title.trim(),
         author: proposalForm.author.trim(),
         genre: proposalForm.genre || null,
         cover_url: proposalForm.cover_url.trim() || null,
         description: proposalForm.description.trim() || null,
-        proposed_month: currentMonth,
+        proposed_month: nextMonth,
       });
       toast.success("Proposta aggiunta.");
       setProposalForm({ title: "", author: "", genre: "", cover_url: "", description: "" });
