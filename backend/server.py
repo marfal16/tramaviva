@@ -315,6 +315,9 @@ class Film(BaseModel):
     screening_month: Optional[str] = None  # "YYYY-MM"
     description: Optional[str] = None
     recensione: Optional[str] = None
+    trailer_url: Optional[str] = None
+    discussion_topics: Optional[str] = None
+    external_reviews: List[dict] = Field(default_factory=list)
     linked_event_ids: List[str] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -329,6 +332,9 @@ class FilmCreate(BaseModel):
     screening_month: Optional[str] = None
     description: Optional[str] = None
     recensione: Optional[str] = None
+    trailer_url: Optional[str] = None
+    discussion_topics: Optional[str] = None
+    external_reviews: List[dict] = Field(default_factory=list)
     linked_event_ids: List[str] = Field(default_factory=list)
 
 class FilmUpdate(BaseModel):
@@ -342,6 +348,9 @@ class FilmUpdate(BaseModel):
     screening_month: Optional[str] = None
     description: Optional[str] = None
     recensione: Optional[str] = None
+    trailer_url: Optional[str] = None
+    discussion_topics: Optional[str] = None
+    external_reviews: Optional[List[dict]] = None
     linked_event_ids: Optional[List[str]] = None
 
 class FilmProposal(BaseModel):
@@ -352,6 +361,7 @@ class FilmProposal(BaseModel):
     cover_url: Optional[str] = None
     genre: Optional[str] = None
     description: Optional[str] = None
+    discussion_topics: Optional[str] = None
     proposed_month: str  # "YYYY-MM"
     votes: int = 0
     nome: Optional[str] = None
@@ -366,6 +376,7 @@ class FilmProposalCreate(BaseModel):
     cover_url: Optional[str] = None
     genre: Optional[str] = None
     description: Optional[str] = None
+    discussion_topics: Optional[str] = None
     proposed_month: Optional[str] = None
     nome: Optional[str] = None
     cognome: Optional[str] = None
@@ -2221,7 +2232,7 @@ async def admin_get_film_proposals():
 
 @api_router.put("/admin/film-proposals/{proposal_id}", dependencies=[Depends(require_admin)])
 async def admin_update_film_proposal(proposal_id: str, payload: dict):
-    allowed = {"title", "director", "genre", "cover_url", "description", "proposed_month"}
+    allowed = {"title", "director", "genre", "cover_url", "description", "discussion_topics", "proposed_month"}
     update = {k: v for k, v in payload.items() if k in allowed}
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")

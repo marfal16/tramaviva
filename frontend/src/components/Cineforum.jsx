@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, MessageCircle } from "lucide-react";
+import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, MessageCircle, Play, ExternalLink } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -45,6 +45,47 @@ const getNextMonthTitle = () => {
   } catch { return null; }
 };
 
+const getYouTubeId = (url) => {
+  if (!url) return null;
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/))([\w-]{11})/);
+  return m ? m[1] : null;
+};
+
+const TrailerSection = ({ trailerUrl }) => {
+  const [showEmbed, setShowEmbed] = useState(false);
+  const ytId = getYouTubeId(trailerUrl);
+
+  if (!showEmbed) {
+    return (
+      <button
+        onClick={() => setShowEmbed(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tv-green-deep text-tv-cream text-xs font-black hover:bg-tv-green transition-colors tracking-wide"
+      >
+        <Play size={12} fill="currentColor" /> TRAILER
+      </button>
+    );
+  }
+  if (ytId) {
+    return (
+      <div className="relative rounded-xl overflow-hidden bg-black" style={{ paddingBottom: "56.25%", height: 0 }}>
+        <iframe
+          className="absolute inset-0 w-full h-full"
+          src={`https://www.youtube.com/embed/${ytId}?autoplay=1`}
+          allow="autoplay; encrypted-media; fullscreen"
+          allowFullScreen
+          title="Trailer"
+        />
+      </div>
+    );
+  }
+  return (
+    <a href={trailerUrl} target="_blank" rel="noopener noreferrer"
+      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-tv-sky text-white text-xs font-black hover:bg-tv-sky/80 transition-colors">
+      <ExternalLink size={12} /> Apri trailer
+    </a>
+  );
+};
+
 const SectionHeading = ({ dot, label, title, sub, labelSize = "text-xs" }) => (
   <div className="mb-8">
     <div className="flex items-center gap-2 mb-3">
@@ -65,13 +106,18 @@ const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
   return (
     <article className="bg-white rounded-[2rem] border border-tv-green-deep/8 flex flex-col overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] transition-shadow">
       <div className="flex gap-5 p-6 flex-1">
-        {film.cover_url ? (
-          <img src={film.cover_url} alt={film.title} className="w-20 h-28 object-cover rounded-2xl shrink-0 shadow-md" />
-        ) : (
-          <div className="w-20 h-28 rounded-2xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-            <Film size={26} className="text-tv-green-deep/20" />
-          </div>
-        )}
+        <div className="shrink-0 flex flex-col gap-3">
+          {film.cover_url ? (
+            <img src={film.cover_url} alt={film.title} className="w-20 h-28 object-cover rounded-2xl shadow-md" />
+          ) : (
+            <div className="w-20 h-28 rounded-2xl bg-tv-green-deep/8 flex items-center justify-center">
+              <Film size={26} className="text-tv-green-deep/20" />
+            </div>
+          )}
+          {film.trailer_url && (
+            <TrailerSection trailerUrl={film.trailer_url} />
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-display font-black text-lg leading-tight text-tv-green-deep">{film.title}</h3>
           <div className="text-sm text-tv-green-deep/55 mt-0.5">
@@ -97,6 +143,39 @@ const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
           )}
         </div>
       </div>
+      {film.discussion_topics && (
+        <div className="mx-5 mb-3 rounded-2xl bg-tv-green-deep p-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <MessageCircle size={11} className="text-tv-sky shrink-0" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-tv-sky">Temi di discussione</span>
+          </div>
+          <p className="text-xs text-tv-cream/80 leading-relaxed whitespace-pre-line">{film.discussion_topics}</p>
+        </div>
+      )}
+      {film.external_reviews && film.external_reviews.length > 0 && (
+        <div className="mx-5 mb-3">
+          <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-2">Critica</div>
+          <div className="flex flex-wrap gap-2">
+            {film.external_reviews.map((r, i) => (
+              r.url ? (
+                <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 hover:border-tv-sky/40 hover:bg-tv-sky/5 transition-colors group">
+                  <Star size={10} className="text-tv-orange fill-tv-orange" />
+                  <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
+                  <span className="text-[10px] text-tv-green-deep/50 group-hover:text-tv-sky transition-colors">— {r.source}</span>
+                  <ExternalLink size={9} className="text-tv-green-deep/30 group-hover:text-tv-sky transition-colors" />
+                </a>
+              ) : (
+                <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10">
+                  <Star size={10} className="text-tv-orange fill-tv-orange" />
+                  <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
+                  <span className="text-[10px] text-tv-green-deep/50">— {r.source}</span>
+                </span>
+              )
+            ))}
+          </div>
+        </div>
+      )}
       {film.recensione && (
         <div className="mx-5 mb-3 rounded-2xl bg-tv-mint/40 border-l-4 border-tv-sky p-4">
           <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-1">La nostra visione</div>
@@ -126,7 +205,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
   })();
   const [form, setForm] = useState({
     title: "", director: "", genre: "", cover_url: "", description: "",
-    proposed_month: defaultMonth, nome: "", cognome: "", in_community_whatsapp: null,
+    discussion_topics: "", proposed_month: defaultMonth, nome: "", cognome: "", in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -145,6 +224,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           genre: form.genre.trim() || null,
           cover_url: form.cover_url.trim() || null,
           description: form.description.trim() || null,
+          discussion_topics: form.discussion_topics.trim() || null,
           proposed_month: form.proposed_month || currentMonth,
           nome: form.nome.trim() || null,
           cognome: form.cognome.trim() || null,
@@ -232,6 +312,10 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           <label>
             <div className={labelClass}>Breve descrizione / trama</div>
             <textarea className={`${fieldClass} resize-none`} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+          </label>
+          <label>
+            <div className={labelClass}>Temi di discussione (opzionale)</div>
+            <textarea className={`${fieldClass} resize-none`} rows={2} value={form.discussion_topics} onChange={(e) => set("discussion_topics", e.target.value)} placeholder="Cosa vorresti discutere con il gruppo su questo film?" />
           </label>
           <label>
             <div className={labelClass}>Mese di riferimento *</div>
@@ -401,9 +485,18 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
           </div>
         </div>
         {proposal.description && (
-          <div className="px-6 pb-6">
+          <div className="px-6 pb-4">
             <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
             <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
+          </div>
+        )}
+        {proposal.discussion_topics && (
+          <div className="mx-6 mb-6 rounded-2xl bg-tv-green-deep p-4">
+            <div className="flex items-center gap-1.5 mb-2">
+              <MessageCircle size={11} className="text-tv-sky shrink-0" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-tv-sky">Temi di discussione</span>
+            </div>
+            <p className="text-xs text-tv-cream/80 leading-relaxed whitespace-pre-line">{proposal.discussion_topics}</p>
           </div>
         )}
       </div>

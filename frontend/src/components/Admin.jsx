@@ -564,6 +564,7 @@ const FILM_STATUS_LABELS = {
 const FILM_EMPTY = {
   title: "", director: "", cover_url: "", genre: "", status: "prossimamente",
   year: "", duration: "", screening_month: "", description: "", recensione: "",
+  trailer_url: "", discussion_topics: "", external_reviews: [],
   linked_event_ids: [],
 };
 
@@ -783,6 +784,9 @@ const FilmEditor = ({ film, events, onSave, onClose, token }) => {
         screening_month: form.screening_month || null,
         description: form.description?.trim() || null,
         recensione: form.recensione?.trim() || null,
+        trailer_url: form.trailer_url?.trim() || null,
+        discussion_topics: form.discussion_topics?.trim() || null,
+        external_reviews: (form.external_reviews || []).filter(r => r.source?.trim()),
         linked_event_ids: form.linked_event_ids || [],
       };
       if (isNew) {
@@ -865,6 +869,46 @@ const FilmEditor = ({ film, events, onSave, onClose, token }) => {
             <div className={labelClass}>Recensione redazione (dopo la proiezione)</div>
             <textarea className={`${fieldClass} resize-none`} rows={4} value={form.recensione || ""} onChange={e => set("recensione", e.target.value)} />
           </label>
+          <label>
+            <div className={labelClass}>Link trailer (YouTube o altro)</div>
+            <input className={fieldClass} value={form.trailer_url || ""} onChange={e => set("trailer_url", e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+          </label>
+          <label>
+            <div className={labelClass}>Temi di discussione</div>
+            <textarea className={`${fieldClass} resize-none`} rows={3} value={form.discussion_topics || ""} onChange={e => set("discussion_topics", e.target.value)} placeholder="Es. Il ruolo dell'identità, La redenzione, ..." />
+          </label>
+          <div className="rounded-2xl border border-tv-green-deep/10 p-4 grid gap-3">
+            <div className={labelClass}>Recensioni della critica</div>
+            {(form.external_reviews || []).map((r, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <input
+                  value={r.source || ""}
+                  onChange={e => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], source: e.target.value }; set("external_reviews", arr); }}
+                  placeholder="Fonte (es. MyMovies)"
+                  className="flex-1 text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1.5 focus:outline-none"
+                />
+                <input
+                  value={r.score || ""}
+                  onChange={e => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], score: e.target.value }; set("external_reviews", arr); }}
+                  placeholder="Voto (es. 7/10)"
+                  className="w-24 text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1.5 focus:outline-none"
+                />
+                <input
+                  value={r.url || ""}
+                  onChange={e => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], url: e.target.value }; set("external_reviews", arr); }}
+                  placeholder="URL (opzionale)"
+                  className="flex-1 text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1.5 focus:outline-none"
+                />
+                <button type="button" onClick={() => set("external_reviews", (form.external_reviews || []).filter((_, j) => j !== i))}
+                  className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux shrink-0 mt-0.5"><X size={14} /></button>
+              </div>
+            ))}
+            <button type="button"
+              onClick={() => set("external_reviews", [...(form.external_reviews || []), { source: "", score: "", url: "" }])}
+              className="text-xs font-bold text-tv-sky hover:text-tv-green-deep flex items-center gap-1">
+              <Plus size={12} /> Aggiungi fonte critica
+            </button>
+          </div>
           {events && events.filter(ev => ev.title?.toLowerCase().includes("cineforum")).length > 0 && (
             <div>
               <div className={labelClass}>Collega a eventi</div>
@@ -1283,7 +1327,7 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   const voters = p.voters || [];
 
   const startEdit = () => {
-    setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "", proposed_month: p.proposed_month || "" });
+    setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "", discussion_topics: p.discussion_topics || "", proposed_month: p.proposed_month || "" });
     setEditing(true);
   };
 
@@ -1296,6 +1340,7 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
         genre: editForm.genre.trim() || null,
         cover_url: editForm.cover_url.trim() || null,
         description: editForm.description.trim() || null,
+        discussion_topics: editForm.discussion_topics.trim() || null,
         proposed_month: editForm.proposed_month || p.proposed_month,
       }, authHeader);
       toast.success("Proposta aggiornata.");
@@ -1391,6 +1436,11 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
             <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Descrizione</label>
             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
               className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none resize-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Temi di discussione</label>
+            <textarea value={editForm.discussion_topics || ""} onChange={e => setEditForm(f => ({ ...f, discussion_topics: e.target.value }))} rows={2}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none resize-none" placeholder="Es. Il ruolo dell'identità, ..." />
           </div>
           <div>
             <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Mese di riferimento</label>
@@ -1709,7 +1759,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   const [expandedReviews, setExpandedReviews] = useState(null);
   const [addingProposal, setAddingProposal] = useState(false);
   const defaultFilmProposalMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
-  const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "", proposed_month: defaultFilmProposalMonth });
+  const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "", discussion_topics: "", proposed_month: defaultFilmProposalMonth });
   const [savingProposal, setSavingProposal] = useState(false);
 
   const handleDelete = async (id) => {
@@ -1759,10 +1809,11 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
         genre: proposalForm.genre || null,
         cover_url: proposalForm.cover_url.trim() || null,
         description: proposalForm.description.trim() || null,
+        discussion_topics: proposalForm.discussion_topics.trim() || null,
         proposed_month: proposalForm.proposed_month || defaultFilmProposalMonth,
       });
       toast.success("Proposta aggiunta.");
-      setProposalForm({ title: "", director: "", genre: "", cover_url: "", description: "", proposed_month: defaultFilmProposalMonth });
+      setProposalForm({ title: "", director: "", genre: "", cover_url: "", description: "", discussion_topics: "", proposed_month: defaultFilmProposalMonth });
       setAddingProposal(false);
       onReload();
     } catch { toast.error("Errore nel salvataggio."); }
@@ -1923,6 +1974,10 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Descrizione / trama</label>
                 <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm resize-none" rows={3} value={proposalForm.description} onChange={e => setProposalForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Temi di discussione</label>
+                <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm resize-none" rows={2} value={proposalForm.discussion_topics} onChange={e => setProposalForm(f => ({ ...f, discussion_topics: e.target.value }))} placeholder="Es. Il ruolo dell'identità, La redenzione, ..." />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Mese di riferimento *</label>
