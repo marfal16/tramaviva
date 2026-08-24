@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, MessageCircle, Play, ExternalLink } from "lucide-react";
+import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, MessageCircle, Play, ExternalLink, Send } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -52,6 +52,50 @@ const getYouTubeId = (url) => {
 
 const splitTopics = (text) =>
   text ? text.split(";").map((t) => t.trim()).filter(Boolean) : [];
+
+const StarInput = ({ value, onChange }) => {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button key={s} type="button"
+          onClick={() => onChange(s)}
+          onMouseEnter={() => setHovered(s)}
+          onMouseLeave={() => setHovered(0)}
+          className="text-3xl leading-none focus:outline-none transition-colors"
+          style={{ color: (hovered || value) >= s ? "#E07B2A" : "#d1cfc3" }}
+          aria-label={`${s} stelle`}>★</button>
+      ))}
+    </div>
+  );
+};
+
+const StarDisplay = ({ rating }) => {
+  const filled = Math.round(rating || 0);
+  return (
+    <span className="flex gap-0.5 text-base">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <span key={s} style={{ color: filled >= s ? "#E07B2A" : "#d1cfc3" }}>★</span>
+      ))}
+    </span>
+  );
+};
+
+const FilmReviewCard = ({ review }) => {
+  const initials = (review.reviewer_name || "?").split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  return (
+    <div className="rounded-2xl bg-tv-green-deep/[0.04] border border-tv-green-deep/8 p-4">
+      <div className="flex items-start gap-3 mb-2">
+        <div className="w-8 h-8 rounded-xl bg-tv-bordeaux text-tv-cream flex items-center justify-center font-black text-xs shrink-0">{initials}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-tv-green-deep text-sm">{review.reviewer_name}</div>
+          <StarDisplay rating={review.rating} />
+        </div>
+      </div>
+      <p className="text-sm text-tv-green-deep/70 leading-relaxed">{review.content}</p>
+    </div>
+  );
+};
 
 // ── Trailer cinematico (grande, espandibile al click) ────────────────────────
 const TrailerSection = ({ trailerUrl, coverUrl, title }) => {
@@ -112,11 +156,65 @@ const SectionHeading = ({ dot, label, title, sub, labelSize = "text-xs" }) => (
   </div>
 );
 
+// ── Form recensione film (dentro il modal) ───────────────────────────────────
+const FilmReviewForm = ({ film, onReviewAdded }) => {
+  const [name, setName] = useState("");
+  const [content, setContent] = useState("");
+  const [rating, setRating] = useState(5);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const fc = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !content.trim()) return;
+    setSending(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/films/${film.id}/film-reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewer_name: name.trim(), content: content.trim(), rating }),
+      });
+      if (!res.ok) throw new Error();
+      const newReview = await res.json();
+      setSent(true);
+      setName(""); setContent(""); setRating(5);
+      onReviewAdded(newReview);
+    } catch { alert("Errore nell'invio. Riprova."); }
+    finally { setSending(false); }
+  };
+
+  if (sent) return (
+    <div className="rounded-2xl bg-tv-sky/10 border border-tv-sky/20 p-5 text-center">
+      <div className="text-3xl mb-2">🎬</div>
+      <div className="font-display font-black text-base text-tv-green-deep">Grazie per la recensione!</div>
+      <button onClick={() => setSent(false)} className="mt-3 text-xs font-bold text-tv-sky">Scrivi un'altra</button>
+    </div>
+  );
+
+  return (
+    <form onSubmit={submit} className="rounded-2xl bg-tv-green-deep/[0.04] border border-tv-green-deep/8 p-4 grid gap-3">
+      <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40">La tua recensione</div>
+      <StarInput value={rating} onChange={setRating} />
+      <input className={fc} value={name} onChange={(e) => setName(e.target.value)} placeholder="Il tuo nome" required />
+      <textarea className={`${fc} resize-none`} rows={3} value={content}
+        onChange={(e) => setContent(e.target.value)}
+        placeholder={`Cosa ti ha colpito di «${film.title}»?`} required />
+      <button type="submit" disabled={sending}
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors disabled:opacity-60 w-fit">
+        <Send size={13} /> {sending ? "Invio…" : "Pubblica"}
+      </button>
+    </form>
+  );
+};
+
 // ── Modal dettaglio film (scheda completa) ──────────────────────────────────
 const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
+  const [localReviews, setLocalReviews] = useState(filmReviews);
   const evMap = Object.fromEntries(events.map((e) => [e.id, e]));
   const linked = (film.linked_event_ids || []).map((id) => evMap[id]).filter(Boolean);
   const topics = splitTopics(film.discussion_topics);
+  const allReviews = localReviews;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4" onClick={onClose}>
@@ -168,8 +266,8 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
                     </span>
                   )}
                 </div>
-                {filmReviews.length > 0 && (
-                  <div className="mt-2"><AvgStars reviews={filmReviews} /></div>
+                {allReviews.length > 0 && (
+                  <div className="mt-2"><AvgStars reviews={allReviews} /></div>
                 )}
               </div>
             </div>
@@ -254,6 +352,21 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
                   <Calendar size={11} /> {ev.title} <ArrowRight size={10} />
                 </Link>
               ))}
+            </div>
+          )}
+
+          {/* Recensioni utenti (solo per film conclusi) */}
+          {film.status === "concluso" && (
+            <div className="pt-2 border-t border-tv-green-deep/10">
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-3">
+                Recensioni ({allReviews.length})
+              </div>
+              {allReviews.length > 0 && (
+                <div className="grid gap-3 mb-4">
+                  {allReviews.map((r) => <FilmReviewCard key={r.id} review={r} />)}
+                </div>
+              )}
+              <FilmReviewForm film={film} onReviewAdded={(r) => setLocalReviews((prev) => [...prev, r])} />
             </div>
           )}
         </div>
@@ -449,18 +562,21 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           </label>
           <div>
             <div className={labelClass}>Critica esterna (opzionale)</div>
-            {(form.external_reviews || []).map((r, i) => (
-              <div key={i} className="flex gap-2 mb-2">
-                <input value={r.source || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], source: e.target.value }; set("external_reviews", arr); }}
-                  className={`${fieldClass} w-1/3`} placeholder="Fonte" />
-                <input value={r.score || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], score: e.target.value }; set("external_reviews", arr); }}
-                  className={`${fieldClass} w-1/5`} placeholder="8/10" />
-                <input value={r.url || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], url: e.target.value }; set("external_reviews", arr); }}
-                  className={`${fieldClass} flex-1`} placeholder="https://..." />
-                <button type="button" onClick={() => set("external_reviews", (form.external_reviews || []).filter((_, j) => j !== i))}
-                  className="px-3 text-tv-bordeaux/60 hover:text-tv-bordeaux">✕</button>
-              </div>
-            ))}
+            {(form.external_reviews || []).map((r, i) => {
+              const f2 = "min-w-0 px-3 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
+              return (
+                <div key={i} className="flex gap-2 mb-2 items-center">
+                  <input value={r.source || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], source: e.target.value }; set("external_reviews", arr); }}
+                    className={`flex-[2] ${f2}`} placeholder="Fonte" />
+                  <input value={r.score || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], score: e.target.value }; set("external_reviews", arr); }}
+                    className={`w-20 shrink-0 ${f2}`} placeholder="8/10" />
+                  <input value={r.url || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], url: e.target.value }; set("external_reviews", arr); }}
+                    className={`flex-[3] ${f2}`} placeholder="https://..." />
+                  <button type="button" onClick={() => set("external_reviews", (form.external_reviews || []).filter((_, j) => j !== i))}
+                    className="shrink-0 px-3 py-1 text-tv-bordeaux/60 hover:text-tv-bordeaux text-lg leading-none">✕</button>
+                </div>
+              );
+            })}
             <button type="button" onClick={() => set("external_reviews", [...(form.external_reviews || []), { source: "", score: "", url: "" }])}
               className="text-xs text-tv-sky font-bold">+ Aggiungi recensione esterna</button>
           </div>
@@ -990,17 +1106,23 @@ export const Cineforum = () => {
         <div className="text-center text-tv-green-deep/40 py-24">Caricamento…</div>
       ) : (
         <>
-          {/* In visione */}
-          {inVisione.length > 0 && (
-            <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
-              <div className="mx-auto max-w-5xl">
-                <SectionHeading dot="bg-tv-sky" label="Ora in corso" title="Stiamo guardando" labelSize="text-sm" />
+          {/* In visione — sempre visibile */}
+          <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
+            <div className="mx-auto max-w-5xl">
+              <SectionHeading dot="bg-tv-sky" label="Ora in corso" title="Stiamo guardando" labelSize="text-sm" />
+              {inVisione.length > 0 ? (
                 <div className="grid md:grid-cols-2 gap-4">
                   {inVisione.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
                 </div>
-              </div>
-            </section>
-          )}
+              ) : (
+                <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-8 text-center text-tv-green-deep/40">
+                  <Film size={36} className="mx-auto mb-3 opacity-20" />
+                  <p className="font-bold text-sm">Nessuna proiezione in corso al momento.</p>
+                  <p className="text-sm mt-1">Vota i film del mese per la prossima visione!</p>
+                </div>
+              )}
+            </div>
+          </section>
 
           {/* Proposte del mese */}
           <FilmProposalsSection />
