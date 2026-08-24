@@ -600,7 +600,7 @@ export const EventoDettaglio = () => {
                           <div className="flex gap-2">
                             {[
                               { v: "bonifico", label: "🏦 Bonifico" },
-                              { v: "elettronico", label: "💳 Carta" },
+                              { v: "elettronico", label: "💳 Carta / SumUp" },
                             ].map(({ v, label }) => (
                               <button
                                 key={v}
@@ -661,7 +661,7 @@ export const EventoDettaglio = () => {
                           {[
                             { v: "contanti", label: "💵 Contanti" },
                             { v: "bonifico", label: "🏦 Bonifico" },
-                            { v: "elettronico", label: "💳 Carta" },
+                            { v: "elettronico", label: "💳 Carta / SumUp" },
                           ].map(({ v, label }) => (
                             <button
                               key={v}
