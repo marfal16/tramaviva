@@ -4,11 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import {
   LogOut, Camera, Edit2, Check, X, Calendar, ChevronRight,
-  Loader2, Lock, Star, BookOpen, MessageSquare, ThumbsUp, Award,
+  Loader2, Lock, Star, BookOpen, Film, MessageSquare, ThumbsUp, Award,
   Heart, Send, Trash2, ImagePlus, Users, Trophy, Gift
 } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { CLUBS_CONFIG } from "../clubsConfig";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -671,9 +672,19 @@ export const AreaSoci = () => {
 
   const [eventsData, setEventsData] = useState(null);
   const [memberInfo, setMemberInfo] = useState(null);
+  const [activeClub, setActiveClub] = useState(CLUBS_CONFIG[0].key);
+
+  // Club del Libro
   const [reviews, setReviews] = useState([]);
   const [votes, setVotes] = useState([]);
   const [books, setBooks] = useState([]);
+
+  // Cineforum
+  const [films, setFilms] = useState([]);
+  const [filmReviews, setFilmReviews] = useState([]);
+  const [filmVotes, setFilmVotes] = useState([]);
+  const [filmClubLoaded, setFilmClubLoaded] = useState(false);
+
   const [loadingTab, setLoadingTab] = useState(false);
 
   // Missioni state
@@ -691,18 +702,27 @@ export const AreaSoci = () => {
     fetch(`${API}/api/auth/me/member-info`, { headers: h }).then(r => r.ok ? r.json() : {}).then(setMemberInfo);
     fetch(`${API}/api/auth/me/events`, { headers: h }).then(r => r.ok ? r.json() : null).then(setEventsData);
     fetch(`${API}/api/books`).then(r => r.ok ? r.json() : []).then(data => setBooks((data || []).filter(b => b.status === "concluso")));
+    fetch(`${API}/api/films`).then(r => r.ok ? r.json() : []).then(data => setFilms((data || []).filter(f => f.status === "concluso")));
   }, [token, navigate]);
 
   useEffect(() => {
-    if (tab === "club" && reviews.length === 0 && votes.length === 0) {
+    if (tab !== "clubs") return;
+    const h = { Authorization: `Bearer ${token}` };
+    if (activeClub === "club-del-libro" && reviews.length === 0 && votes.length === 0) {
       setLoadingTab(true);
-      const h = { Authorization: `Bearer ${token}` };
       Promise.all([
         fetch(`${API}/api/auth/me/reviews`, { headers: h }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/api/auth/me/votes`, { headers: h }).then(r => r.ok ? r.json() : []),
       ]).then(([rev, vot]) => { setReviews(rev); setVotes(vot); setLoadingTab(false); });
     }
-  }, [tab, token]);
+    if (activeClub === "cineforum" && !filmClubLoaded) {
+      setLoadingTab(true);
+      Promise.all([
+        fetch(`${API}/api/auth/me/film-reviews`, { headers: h }).then(r => r.ok ? r.json() : []),
+        fetch(`${API}/api/auth/me/film-votes`, { headers: h }).then(r => r.ok ? r.json() : []),
+      ]).then(([rev, vot]) => { setFilmReviews(rev); setFilmVotes(vot); setFilmClubLoaded(true); setLoadingTab(false); });
+    }
+  }, [tab, activeClub, token]);
 
   const loadPosts = useCallback(async (skip = 0) => {
     setLoadingPosts(true);
@@ -769,10 +789,10 @@ export const AreaSoci = () => {
   const isFondatore = memberInfo?.is_fondatore || !memberInfo?.tessera_number;
 
   const tabs = [
-    { key: "eventi", label: "I miei eventi", icon: Calendar },
-    { key: "missioni", label: "Missioni", icon: Trophy },
-    { key: "club", label: "Club del Libro", icon: BookOpen },
-    { key: "profilo", label: "Profilo", icon: Edit2 },
+    { key: "eventi",  label: "I miei eventi",  icon: Calendar },
+    { key: "missioni", label: "Missioni",       icon: Trophy },
+    { key: "clubs",   label: "I nostri Club",  icon: BookOpen },
+    { key: "profilo", label: "Profilo",         icon: Edit2 },
   ];
 
   return (
@@ -926,95 +946,195 @@ export const AreaSoci = () => {
           </div>
         )}
 
-        {/* ── Tab: club del libro ── */}
-        {tab === "club" && (
+        {/* ── Tab: I nostri Club ── */}
+        {tab === "clubs" && (
           <div className="flex flex-col gap-6">
 
-            {/* Libri letti */}
-            <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
-              <h2 className="font-display font-black text-lg text-tv-green-deep mb-4">Libri letti insieme</h2>
-              {books.length === 0 ? (
-                <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun libro concluso ancora.</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {books.map(b => (
-                    <Link key={b.id} to={`/club-del-libro/${b.id}`}
-                      className="group flex flex-col gap-1.5 p-3 rounded-2xl hover:bg-tv-mint/30 transition-colors">
-                      {b.cover_url ? (
-                        <img src={b.cover_url} alt={b.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
-                      ) : (
-                        <div className="w-full aspect-[2/3] bg-tv-green-deep/10 rounded-xl flex items-center justify-center">
-                          <BookOpen size={24} className="text-tv-green-deep/30" />
-                        </div>
-                      )}
-                      <p className="text-xs font-bold text-tv-green-deep leading-tight group-hover:text-tv-green transition-colors line-clamp-2">{b.title}</p>
-                      <p className="text-[10px] text-tv-green-deep/45 truncate">{b.author}</p>
-                    </Link>
-                  ))}
-                </div>
-              )}
+            {/* Selettore club dinamico */}
+            <div className="flex gap-2 p-1.5 bg-white rounded-2xl border border-tv-green-deep/8 w-fit">
+              {CLUBS_CONFIG.map(({ key, label, icon: Icon, iconColor }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveClub(key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    activeClub === key
+                      ? "bg-tv-green-deep text-tv-cream shadow-sm"
+                      : "text-tv-green-deep/55 hover:text-tv-green-deep hover:bg-tv-mint/30"
+                  }`}
+                >
+                  <Icon size={14} className={activeClub === key ? "" : iconColor} />
+                  {label}
+                </button>
+              ))}
             </div>
 
-            {loadingTab ? (
-              <div className="flex items-center justify-center py-10 text-tv-green-deep/30"><Loader2 size={24} className="animate-spin" /></div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-
-                {/* Le mie recensioni */}
+            {/* ── Club del Libro ── */}
+            {activeClub === "club-del-libro" && (
+              <>
                 <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <MessageSquare size={16} className="text-tv-green-deep/50" />
-                    <h2 className="font-display font-black text-lg text-tv-green-deep">Le mie recensioni</h2>
-                  </div>
-                  {reviews.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessuna recensione ancora.</p>
+                  <h2 className="font-display font-black text-lg text-tv-green-deep mb-4">Libri letti insieme</h2>
+                  {books.length === 0 ? (
+                    <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun libro concluso ancora.</p>
                   ) : (
-                    <div className="flex flex-col divide-y divide-tv-green-deep/8">
-                      {reviews.map(r => (
-                        <div key={r.id} className="py-3.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="font-semibold text-sm text-tv-green-deep leading-tight">{r.book_title || "—"}</p>
-                            <Stars rating={r.rating} />
-                          </div>
-                          {r.content && <p className="text-xs text-tv-green-deep/60 mt-1 line-clamp-2">{r.content}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* I miei voti */}
-                <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <ThumbsUp size={16} className="text-tv-green-deep/50" />
-                    <h2 className="font-display font-black text-lg text-tv-green-deep">Proposte votate</h2>
-                  </div>
-                  {votes.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun voto registrato.</p>
-                  ) : (
-                    <div className="flex flex-col divide-y divide-tv-green-deep/8">
-                      {votes.map(p => (
-                        <div key={p.id} className="py-3.5 flex items-start gap-3">
-                          {p.cover_url ? (
-                            <img src={p.cover_url} alt={p.title} className="w-9 h-12 object-cover rounded-lg shrink-0 shadow-sm" />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {books.map(b => (
+                        <Link key={b.id} to={`/club-del-libro/${b.id}`}
+                          className="group flex flex-col gap-1.5 p-3 rounded-2xl hover:bg-tv-mint/30 transition-colors">
+                          {b.cover_url ? (
+                            <img src={b.cover_url} alt={b.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
                           ) : (
-                            <div className="w-9 h-12 bg-tv-green-deep/10 rounded-lg flex items-center justify-center shrink-0">
-                              <BookOpen size={14} className="text-tv-green-deep/30" />
+                            <div className="w-full aspect-[2/3] bg-tv-green-deep/10 rounded-xl flex items-center justify-center">
+                              <BookOpen size={24} className="text-tv-green-deep/30" />
                             </div>
                           )}
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm text-tv-green-deep leading-tight truncate">{p.title}</p>
-                            {p.author && <p className="text-xs text-tv-green-deep/50 truncate">{p.author}</p>}
-                            <p className="text-[10px] text-tv-green-deep/35 mt-0.5">{fmtMonth(p.proposed_month)} · {p.votes} voti totali</p>
-                          </div>
+                          <p className="text-xs font-bold text-tv-green-deep leading-tight group-hover:text-tv-green transition-colors line-clamp-2">{b.title}</p>
+                          <p className="text-[10px] text-tv-green-deep/45 truncate">{b.author}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {loadingTab ? (
+                  <div className="flex items-center justify-center py-10 text-tv-green-deep/30"><Loader2 size={24} className="animate-spin" /></div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <MessageSquare size={16} className="text-tv-green-deep/50" />
+                        <h2 className="font-display font-black text-lg text-tv-green-deep">Le mie recensioni</h2>
+                      </div>
+                      {reviews.length === 0 ? (
+                        <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessuna recensione ancora.</p>
+                      ) : (
+                        <div className="flex flex-col divide-y divide-tv-green-deep/8">
+                          {reviews.map(r => (
+                            <div key={r.id} className="py-3.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="font-semibold text-sm text-tv-green-deep leading-tight">{r.book_title || "—"}</p>
+                                <Stars rating={r.rating} />
+                              </div>
+                              {r.content && <p className="text-xs text-tv-green-deep/60 mt-1 line-clamp-2">{r.content}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <ThumbsUp size={16} className="text-tv-green-deep/50" />
+                        <h2 className="font-display font-black text-lg text-tv-green-deep">Proposte votate</h2>
+                      </div>
+                      {votes.length === 0 ? (
+                        <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun voto registrato.</p>
+                      ) : (
+                        <div className="flex flex-col divide-y divide-tv-green-deep/8">
+                          {votes.map(p => (
+                            <div key={p.id} className="py-3.5 flex items-start gap-3">
+                              {p.cover_url ? (
+                                <img src={p.cover_url} alt={p.title} className="w-9 h-12 object-cover rounded-lg shrink-0 shadow-sm" />
+                              ) : (
+                                <div className="w-9 h-12 bg-tv-green-deep/10 rounded-lg flex items-center justify-center shrink-0">
+                                  <BookOpen size={14} className="text-tv-green-deep/30" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm text-tv-green-deep leading-tight truncate">{p.title}</p>
+                                {p.author && <p className="text-xs text-tv-green-deep/50 truncate">{p.author}</p>}
+                                <p className="text-[10px] text-tv-green-deep/35 mt-0.5">{fmtMonth(p.proposed_month)} · {p.votes} voti totali</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── Cineforum ── */}
+            {activeClub === "cineforum" && (
+              <>
+                <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
+                  <h2 className="font-display font-black text-lg text-tv-green-deep mb-4">Film visti insieme</h2>
+                  {films.length === 0 ? (
+                    <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun film concluso ancora.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {films.map(f => (
+                        <div key={f.id} className="flex flex-col gap-1.5 p-3 rounded-2xl hover:bg-tv-sky/5 transition-colors">
+                          {f.cover_url ? (
+                            <img src={f.cover_url} alt={f.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
+                          ) : (
+                            <div className="w-full aspect-[2/3] bg-tv-sky/10 rounded-xl flex items-center justify-center">
+                              <Film size={24} className="text-tv-sky/40" />
+                            </div>
+                          )}
+                          <p className="text-xs font-bold text-tv-green-deep leading-tight line-clamp-2">{f.title}</p>
+                          <p className="text-[10px] text-tv-green-deep/45 truncate">{f.director}</p>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-
-              </div>
+                {loadingTab ? (
+                  <div className="flex items-center justify-center py-10 text-tv-sky/40"><Loader2 size={24} className="animate-spin" /></div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <MessageSquare size={16} className="text-tv-sky/60" />
+                        <h2 className="font-display font-black text-lg text-tv-green-deep">Le mie recensioni</h2>
+                      </div>
+                      {filmReviews.length === 0 ? (
+                        <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessuna recensione ancora.</p>
+                      ) : (
+                        <div className="flex flex-col divide-y divide-tv-green-deep/8">
+                          {filmReviews.map(r => (
+                            <div key={r.id} className="py-3.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="font-semibold text-sm text-tv-green-deep leading-tight">{r.film_title || "—"}</p>
+                                <Stars rating={r.rating} />
+                              </div>
+                              {r.content && <p className="text-xs text-tv-green-deep/60 mt-1 line-clamp-2">{r.content}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <ThumbsUp size={16} className="text-tv-sky/60" />
+                        <h2 className="font-display font-black text-lg text-tv-green-deep">Proposte votate</h2>
+                      </div>
+                      {filmVotes.length === 0 ? (
+                        <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun voto registrato.</p>
+                      ) : (
+                        <div className="flex flex-col divide-y divide-tv-green-deep/8">
+                          {filmVotes.map(p => (
+                            <div key={p.id} className="py-3.5 flex items-start gap-3">
+                              {p.cover_url ? (
+                                <img src={p.cover_url} alt={p.title} className="w-9 h-12 object-cover rounded-lg shrink-0 shadow-sm" />
+                              ) : (
+                                <div className="w-9 h-12 bg-tv-sky/10 rounded-lg flex items-center justify-center shrink-0">
+                                  <Film size={14} className="text-tv-sky/40" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm text-tv-green-deep leading-tight truncate">{p.title}</p>
+                                {p.director && <p className="text-xs text-tv-green-deep/50 truncate">{p.director}</p>}
+                                <p className="text-[10px] text-tv-green-deep/35 mt-0.5">{fmtMonth(p.proposed_month)} · {p.votes} voti totali</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
+
           </div>
         )}
 

@@ -1174,6 +1174,31 @@ async def socio_my_votes(user=Depends(require_socio)):
     ).sort("proposed_month", -1).to_list(100)
     return proposals
 
+@api_router.get("/auth/me/film-reviews")
+async def socio_my_film_reviews(user=Depends(require_socio)):
+    name = user.get("name", "").strip()
+    reviews = await db.film_reviews.find(
+        {"reviewer_name": re.compile(f"^{re.escape(name)}$", re.IGNORECASE)},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return reviews
+
+@api_router.get("/auth/me/film-votes")
+async def socio_my_film_votes(user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        return []
+    nome = name_parts[0]
+    cognome = " ".join(name_parts[1:])
+    proposals = await db.film_proposals.find(
+        {"voters": {"$elemMatch": {
+            "nome": re.compile(f"^{re.escape(nome)}$", re.IGNORECASE),
+            "cognome": re.compile(f"^{re.escape(cognome)}$", re.IGNORECASE)
+        }}},
+        {"_id": 0, "id": 1, "title": 1, "director": 1, "votes": 1, "proposed_month": 1, "cover_url": 1}
+    ).sort("proposed_month", -1).to_list(100)
+    return proposals
+
 # ========== MISSIONI SOCI ==========
 
 @api_router.get("/auth/me/missions")

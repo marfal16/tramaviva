@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Logo } from "./Logo";
-import { Menu, X, User, LogOut, ChevronDown, Heart, BookOpen, Film } from "lucide-react";
+import { Menu, X, User, LogOut, ChevronDown, Heart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-
+import { CLUBS_CONFIG } from "../clubsConfig";
 
 const links = [
   { href: "#chi-siamo", label: "Chi siamo" },
@@ -12,10 +12,7 @@ const links = [
   { href: "#contatti", label: "Contatti" },
 ];
 
-const CLUBS = [
-  { to: "/club-del-libro", label: "Club del Libro", icon: BookOpen, color: "text-tv-green-deep" },
-  { to: "/cineforum",      label: "Cineforum",      icon: Film,     color: "text-tv-sky" },
-];
+const CLUBS = CLUBS_CONFIG.map(c => ({ to: c.path, label: c.label, icon: c.icon, color: c.iconColor }));
 
 const NAVBAR_HEIGHT = 80;
 
