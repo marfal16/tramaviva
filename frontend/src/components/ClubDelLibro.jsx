@@ -513,7 +513,7 @@ const ProposalsSection = () => {
   }, [selectedMonth]);
 
   const [allMonths, setAllMonths] = useState([]);
-  useEffect(() => {
+  const loadAllMonths = useCallback(() => {
     fetch(`${BACKEND_URL}/api/proposals`)
       .then((r) => r.json())
       .then((d) => {
@@ -524,6 +524,7 @@ const ProposalsSection = () => {
       })
       .catch(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); setAllMonths([d.toISOString().slice(0, 7)]); });
   }, []);
+  useEffect(() => { loadAllMonths(); }, [loadAllMonths]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -623,7 +624,7 @@ const ProposalsSection = () => {
       </div>
 
       {showForm && (
-        <ProposalForm currentMonth={selectedMonth} onSubmit={load} onClose={() => setShowForm(false)} />
+        <ProposalForm currentMonth={selectedMonth} onSubmit={() => { loadAllMonths(); load(); }} onClose={() => setShowForm(false)} />
       )}
     </section>
   );

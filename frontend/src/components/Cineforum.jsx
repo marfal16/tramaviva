@@ -27,6 +27,16 @@ const fmtMonthYear = (iso) => {
   catch { return iso; }
 };
 
+const getUpcomingMonths = (count = 7) => {
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    months.push(d.toISOString().slice(0, 7));
+  }
+  return months;
+};
+
 const getNextMonthTitle = () => {
   try {
     const d = new Date();
@@ -108,9 +118,15 @@ const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
 
 // ── Form proposta film ───────────────────────────────────────────────────────
 const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
+  const defaultMonth = (() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    const next = d.toISOString().slice(0, 7);
+    return getUpcomingMonths().includes(currentMonth) ? currentMonth : next;
+  })();
   const [form, setForm] = useState({
     title: "", director: "", genre: "", cover_url: "", description: "",
-    proposed_month: currentMonth, nome: "", cognome: "", in_community_whatsapp: null,
+    proposed_month: defaultMonth, nome: "", cognome: "", in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -216,6 +232,14 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           <label>
             <div className={labelClass}>Breve descrizione / trama</div>
             <textarea className={`${fieldClass} resize-none`} rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+          </label>
+          <label>
+            <div className={labelClass}>Mese di riferimento *</div>
+            <select className={fieldClass} value={form.proposed_month} onChange={(e) => set("proposed_month", e.target.value)} required>
+              {getUpcomingMonths().map((m) => (
+                <option key={m} value={m}>{fmtMonthYear(m)}</option>
+              ))}
+            </select>
           </label>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
@@ -476,7 +500,7 @@ const FilmProposalsSection = () => {
   }, [selectedMonth]);
 
   const [allMonths, setAllMonths] = useState([]);
-  useEffect(() => {
+  const loadAllMonths = useCallback(() => {
     fetch(`${BACKEND_URL}/api/film-proposals`)
       .then((r) => r.json())
       .then((d) => {
@@ -487,6 +511,7 @@ const FilmProposalsSection = () => {
       })
       .catch(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); setAllMonths([d.toISOString().slice(0, 7)]); });
   }, []);
+  useEffect(() => { loadAllMonths(); }, [loadAllMonths]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -586,7 +611,7 @@ const FilmProposalsSection = () => {
       </div>
 
       {showForm && (
-        <ProposalForm currentMonth={selectedMonth} onSubmit={load} onClose={() => setShowForm(false)} />
+        <ProposalForm currentMonth={selectedMonth} onSubmit={() => { loadAllMonths(); load(); }} onClose={() => setShowForm(false)} />
       )}
     </section>
   );
