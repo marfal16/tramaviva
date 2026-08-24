@@ -1134,7 +1134,7 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   };
 
   const startEdit = () => {
-    setEditForm({ title: p.title || "", author: p.author || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "" });
+    setEditForm({ title: p.title || "", author: p.author || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "", proposed_month: p.proposed_month || "" });
     setEditing(true);
   };
 
@@ -1147,6 +1147,7 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
         genre: editForm.genre.trim() || null,
         cover_url: editForm.cover_url.trim() || null,
         description: editForm.description.trim() || null,
+        proposed_month: editForm.proposed_month || p.proposed_month,
       }, authHeader);
       toast.success("Proposta aggiornata.");
       setEditing(false);
@@ -1255,6 +1256,11 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
               className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30 resize-none" />
           </div>
+          <div>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Mese di riferimento</label>
+            <input type="month" value={editForm.proposed_month} onChange={e => setEditForm(f => ({ ...f, proposed_month: e.target.value }))}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30" />
+          </div>
           <div className="flex gap-2 justify-end">
             <button onClick={() => setEditing(false)} className="text-xs px-3 py-1 rounded-lg border border-tv-green-deep/20 text-tv-green-deep/50 hover:bg-tv-green-deep/5">Annulla</button>
             <button onClick={handleSaveEdit} disabled={savingEdit} className="text-xs px-3 py-1 rounded-lg bg-tv-green-deep text-white font-bold hover:bg-tv-green-deep/80 disabled:opacity-50">
@@ -1277,7 +1283,7 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   const voters = p.voters || [];
 
   const startEdit = () => {
-    setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "" });
+    setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "", proposed_month: p.proposed_month || "" });
     setEditing(true);
   };
 
@@ -1290,6 +1296,7 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
         genre: editForm.genre.trim() || null,
         cover_url: editForm.cover_url.trim() || null,
         description: editForm.description.trim() || null,
+        proposed_month: editForm.proposed_month || p.proposed_month,
       }, authHeader);
       toast.success("Proposta aggiornata.");
       setEditing(false);
@@ -1384,6 +1391,11 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
             <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Descrizione</label>
             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
               className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none resize-none" />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Mese di riferimento</label>
+            <input type="month" value={editForm.proposed_month} onChange={e => setEditForm(f => ({ ...f, proposed_month: e.target.value }))}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" />
           </div>
           <div className="flex gap-2 justify-end">
             <button onClick={() => setEditing(false)} className="text-xs px-3 py-1 rounded-lg border border-tv-green-deep/20 text-tv-green-deep/50">Annulla</button>

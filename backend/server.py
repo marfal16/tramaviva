@@ -1981,7 +1981,7 @@ async def remove_anon_votes(proposal_id: str):
 
 @api_router.put("/admin/proposals/{proposal_id}", dependencies=[Depends(require_admin)])
 async def admin_update_proposal(proposal_id: str, payload: dict):
-    allowed = {"title", "author", "genre", "cover_url", "description"}
+    allowed = {"title", "author", "genre", "cover_url", "description", "proposed_month"}
     update = {k: v for k, v in payload.items() if k in allowed}
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
@@ -2196,7 +2196,7 @@ async def admin_get_film_proposals():
 
 @api_router.put("/admin/film-proposals/{proposal_id}", dependencies=[Depends(require_admin)])
 async def admin_update_film_proposal(proposal_id: str, payload: dict):
-    allowed = {"title", "director", "genre", "cover_url", "description"}
+    allowed = {"title", "director", "genre", "cover_url", "description", "proposed_month"}
     update = {k: v for k, v in payload.items() if k in allowed}
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
