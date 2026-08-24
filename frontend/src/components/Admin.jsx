@@ -1324,6 +1324,7 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const voters = p.voters || [];
 
   const startEdit = () => {
@@ -1397,13 +1398,20 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-1 shrink-0">
-          <button onClick={startEdit} className="p-1.5 rounded-full hover:bg-tv-sky/10 text-tv-sky self-end" title="Modifica">
+        <div className="flex flex-col gap-1 shrink-0 items-end">
+          <button onClick={startEdit} className="p-1.5 rounded-full hover:bg-tv-sky/10 text-tv-sky" title="Modifica">
             <Pencil size={13} />
           </button>
-          <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux self-end" title="Elimina">
-            <Trash2 size={13} />
-          </button>
+          {confirmDelete ? (
+            <div className="flex items-center gap-1">
+              <button onClick={() => setConfirmDelete(false)} className="text-[10px] px-2 py-1 rounded-lg border border-tv-green-deep/20 text-tv-green-deep/50">No</button>
+              <button onClick={() => { setConfirmDelete(false); onDelete(p.id); }} className="text-[10px] px-2 py-1 rounded-lg bg-tv-bordeaux text-white font-bold">Sì</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux" title="Elimina">
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
       {editing && (
@@ -1790,12 +1798,14 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   }, [filmReviews]);
 
   const handleDeleteProposal = async (id) => {
-    if (!window.confirm("Eliminare questa proposta?")) return;
     try {
       await axios.delete(`${API}/admin/film-proposals/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       toast.success("Proposta eliminata.");
       onReload();
-    } catch { toast.error("Errore nell'eliminazione."); }
+    } catch (err) {
+      const detail = err?.response?.data?.detail || err?.message || "Errore sconosciuto";
+      toast.error(`Errore eliminazione: ${detail}`);
+    }
   };
 
   const handleAddProposal = async (e) => {
