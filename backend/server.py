@@ -1585,6 +1585,10 @@ async def admin_delete(collection: str, doc_id: str):
         "reviews": "reviews",
         "proposals": "proposals",
         "books": "books",
+        "films": "films",
+        "film-proposals": "film_proposals",
+        "film-reviews": "film_reviews",
+        "missions": "missions",
     }
     if collection not in allowed:
         raise HTTPException(status_code=400, detail="Collezione non valida")
