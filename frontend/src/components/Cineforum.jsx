@@ -633,10 +633,10 @@ export const Cineforum = () => {
             <Film size={13} /> Cineforum · Trama Viva APS
           </div>
           <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-[0.93] tracking-tight text-tv-green-deep">
-            Guardiamo <span className="italic font-light text-tv-sky">insieme</span>,<br />riflettiamo insieme.
+            Stessa sala, <span className="italic font-light text-tv-sky">sguardi diversi</span>.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/65">
-            Ogni mese scegliamo un film, lo guardiamo e lo discutiamo insieme. Puoi proporre titoli, votare i tuoi preferiti e condividere la tua recensione.
+            Scegliamo un film, lo guardiamo, lo discutiamo. Dal voto dei titoli alla discussione finale, ogni proiezione è un pretesto per guardarsi — e guardare il mondo — con occhi nuovi.
           </p>
         </div>
       </section>
