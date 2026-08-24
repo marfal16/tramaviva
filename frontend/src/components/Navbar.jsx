@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Logo } from "./Logo";
-import { Menu, X, User, LogOut, ChevronDown, Heart } from "lucide-react";
+import { Menu, X, User, LogOut, ChevronDown, Heart, BookOpen, Film } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 
@@ -12,7 +12,12 @@ const links = [
   { href: "#contatti", label: "Contatti" },
 ];
 
-const NAVBAR_HEIGHT = 80; // pixel offset for smooth scroll
+const CLUBS = [
+  { to: "/club-del-libro", label: "Club del Libro", icon: BookOpen, color: "text-tv-green-deep" },
+  { to: "/cineforum",      label: "Cineforum",      icon: Film,     color: "text-tv-sky" },
+];
+
+const NAVBAR_HEIGHT = 80;
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -20,13 +25,19 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [clubsOpen, setClubsOpen] = useState(false);
+  const [mobileClubsOpen, setMobileClubsOpen] = useState(false);
   const userMenuRef = useRef();
+  const clubsRef = useRef();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    const handleClick = e => { if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false); };
+    const handleClick = e => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false);
+      if (clubsRef.current && !clubsRef.current.contains(e.target)) setClubsOpen(false);
+    };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
@@ -39,52 +50,38 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Handle scroll to anchor when location changes (home page)
   useEffect(() => {
     if (location.pathname === "/" && location.hash) {
       const el = document.querySelector(location.hash);
       if (el) {
         const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-        setTimeout(() => {
-          window.scrollTo({
-            top: offsetTop,
-            behavior: "smooth"
-          });
-        }, 50);
+        setTimeout(() => { window.scrollTo({ top: offsetTop, behavior: "smooth" }); }, 50);
       }
     }
   }, [location]);
 
-  // Check if we're on a detail page (not home)
+  // Reset mobile clubs when mobile menu closes
+  useEffect(() => { if (!open) setMobileClubsOpen(false); }, [open]);
+
   const isDetailPage = location.pathname !== "/";
 
   const scrollTo = (href) => (e) => {
     e.preventDefault();
     setOpen(false);
-
-     // If we're on a detail page, navigate back to home first
-    if (isDetailPage) {
-      window.location.href = "/" + href;
-      return;
-    }
-
-    // Otherwise, scroll to the anchor on the current page
+    if (isDetailPage) { window.location.href = "/" + href; return; }
     const el = document.querySelector(href);
     if (el) {
       const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-      window.scrollTo({
-        top: offsetTop,
-        behavior: "smooth"
-      });
+      window.scrollTo({ top: offsetTop, behavior: "smooth" });
     }
   };
+
+  const closeAll = () => { setOpen(false); setClubsOpen(false); setUserMenuOpen(false); };
 
   return (
     <header
       data-testid="navbar"
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled ? "py-2" : "py-4"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? "py-2" : "py-4"}`}
     >
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div
@@ -97,6 +94,8 @@ export const Navbar = () => {
           <a href="/" onClick={scrollTo("#hero")} data-testid="navbar-logo-link">
             <Logo size={36} />
           </a>
+
+          {/* ── Desktop nav ── */}
           <nav className="hidden md:flex items-center gap-1">
             {links.map((l) => (
               <a
@@ -109,27 +108,48 @@ export const Navbar = () => {
                 {l.label}
               </a>
             ))}
-            <Link
-              to="/club-del-libro"
-              onClick={() => setOpen(false)}
-              className="px-4 py-2 rounded-full text-sm font-semibold text-tv-green-deep/80 hover:text-tv-green-deep hover:bg-tv-mint/40 transition-colors"
-            >
-              Club del Libro
-            </Link>
-            <Link
-              to="/cineforum"
-              onClick={() => setOpen(false)}
-              className="px-4 py-2 rounded-full text-sm font-semibold text-tv-green-deep/80 hover:text-tv-green-deep hover:bg-tv-sky/20 transition-colors"
-            >
-              Cineforum
-            </Link>
+
+            {/* Dropdown "I nostri Club" */}
+            <div className="relative" ref={clubsRef}>
+              <button
+                onClick={() => setClubsOpen(o => !o)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                  clubsOpen
+                    ? "bg-tv-mint/50 text-tv-green-deep"
+                    : "text-tv-green-deep/80 hover:text-tv-green-deep hover:bg-tv-mint/40"
+                }`}
+              >
+                I nostri Club
+                <ChevronDown size={13} className={`transition-transform duration-200 ${clubsOpen ? "rotate-180" : ""}`} />
+              </button>
+              {/* Dropdown menu */}
+              <div
+                className={`absolute left-0 top-full mt-2 w-48 bg-white rounded-2xl border border-tv-green-deep/10 shadow-lg overflow-hidden z-50 transition-all duration-150 origin-top ${
+                  clubsOpen ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
+                }`}
+              >
+                {CLUBS.map(({ to, label, icon: Icon, color }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={closeAll}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-tv-green-deep hover:bg-tv-mint/30 transition-colors first:border-b first:border-tv-green-deep/8"
+                  >
+                    <Icon size={15} className={color} />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             <Link
               to="/donazioni"
-              onClick={() => setOpen(false)}
+              onClick={closeAll}
               className="px-4 py-2 rounded-full text-sm font-semibold text-tv-bordeaux/80 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors flex items-center gap-1.5"
             >
               <Heart size={12} fill="currentColor" /> Dona
             </Link>
+
             {user ? (
               <div className="relative ml-2" ref={userMenuRef}>
                 <button
@@ -176,6 +196,7 @@ export const Navbar = () => {
               </a>
             )}
           </nav>
+
           <button
             className="md:hidden p-2 rounded-full bg-tv-green-deep text-tv-cream"
             onClick={() => setOpen(!open)}
@@ -185,72 +206,85 @@ export const Navbar = () => {
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
+
+        {/* ── Mobile menu ── */}
         <div
-            className={`md:hidden mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
-              open ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
-            }`}
-            data-testid="nav-mobile-menu"
-          >
-            {links.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                onClick={scrollTo(l.href)}
-                className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40"
-                data-testid={`nav-mobile-link-${l.href.replace("#", "")}`}
-              >
-                {l.label}
-              </a>
-            ))}
-            <Link
-              to="/club-del-libro"
-              onClick={() => setOpen(false)}
+          className={`md:hidden mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
+            open ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
+          }`}
+          data-testid="nav-mobile-menu"
+        >
+          {links.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              onClick={scrollTo(l.href)}
               className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40"
+              data-testid={`nav-mobile-link-${l.href.replace("#", "")}`}
             >
-              Club del Libro
-            </Link>
-            <Link
-              to="/cineforum"
-              onClick={() => setOpen(false)}
-              className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-sky/15"
-            >
-              Cineforum
-            </Link>
-            <Link
-              to="/donazioni"
-              onClick={() => setOpen(false)}
-              className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-bordeaux hover:bg-tv-bordeaux/8 flex items-center gap-2"
-            >
-              <Heart size={14} fill="currentColor" /> Dona
-            </Link>
-            {user ? (
-              <>
-                <Link to="/area-soci" onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40">
-                  <User size={16} /> Area soci
-                </Link>
-                <button onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-3 rounded-2xl text-base font-semibold text-tv-bordeaux hover:bg-tv-bordeaux/5">
-                  <LogOut size={16} /> Esci
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" onClick={() => setOpen(false)}
-                  className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40">
-                  Area soci — Accedi
-                </Link>
-                <a
-                  href="#iscrizione"
-                  onClick={scrollTo("#iscrizione")}
-                  className="mt-2 text-center px-4 py-3 rounded-2xl text-base font-bold bg-tv-green-deep text-tv-cream"
-                  data-testid="nav-mobile-cta"
+              {l.label}
+            </a>
+          ))}
+
+          {/* "I nostri Club" collapsibile mobile */}
+          <button
+            onClick={() => setMobileClubsOpen(o => !o)}
+            className="flex items-center justify-between px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40 w-full text-left"
+          >
+            I nostri Club
+            <ChevronDown size={16} className={`transition-transform duration-200 ${mobileClubsOpen ? "rotate-180" : ""}`} />
+          </button>
+          {mobileClubsOpen && (
+            <div className="ml-3 flex flex-col gap-0.5 border-l-2 border-tv-green-deep/10 pl-3">
+              {CLUBS.map(({ to, label, icon: Icon, color }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  onClick={closeAll}
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-2xl text-sm font-semibold text-tv-green-deep hover:bg-tv-mint/40"
                 >
-                  Diventa socio: unisciti alla trama
-                </a>
-              </>
-            )}
-          </div>
+                  <Icon size={14} className={color} />
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <Link
+            to="/donazioni"
+            onClick={closeAll}
+            className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-bordeaux hover:bg-tv-bordeaux/8 flex items-center gap-2"
+          >
+            <Heart size={14} fill="currentColor" /> Dona
+          </Link>
+          {user ? (
+            <>
+              <Link to="/area-soci" onClick={closeAll}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40">
+                <User size={16} /> Area soci
+              </Link>
+              <button onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl text-base font-semibold text-tv-bordeaux hover:bg-tv-bordeaux/5">
+                <LogOut size={16} /> Esci
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" onClick={closeAll}
+                className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40">
+                Area soci — Accedi
+              </Link>
+              <a
+                href="#iscrizione"
+                onClick={scrollTo("#iscrizione")}
+                className="mt-2 text-center px-4 py-3 rounded-2xl text-base font-bold bg-tv-green-deep text-tv-cream"
+                data-testid="nav-mobile-cta"
+              >
+                Diventa socio: unisciti alla trama
+              </a>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
