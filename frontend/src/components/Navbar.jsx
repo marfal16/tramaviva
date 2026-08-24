@@ -178,9 +178,10 @@ export const Navbar = () => {
             {open ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
-        {open && (
-          <div
-            className="md:hidden mt-2 rounded-3xl bg-tv-cream/95 backdrop-blur-xl border border-tv-green-deep/10 p-4 flex flex-col gap-1"
+        <div
+            className={`md:hidden mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
+              open ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
+            }`}
             data-testid="nav-mobile-menu"
           >
             {links.map((l) => (
@@ -236,7 +237,6 @@ export const Navbar = () => {
               </>
             )}
           </div>
-        )}
       </div>
     </header>
   );
