@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -102,6 +102,7 @@ const NAV = [
   { key: "home",          label: "Dashboard",           icon: LayoutDashboard },
   { key: "events",        label: "Eventi",               icon: CalendarPlus },
   { key: "books",         label: "Club del Libro",       icon: BookOpen },
+  { key: "cineforum",     label: "Cineforum",            icon: Film },
   { key: "missions",      label: "Missioni",             icon: Trophy },
   { key: "members",       label: "Soci tesserati",       icon: IdCard },
   { key: "registrations", label: "Richieste iscrizione", icon: Users },
@@ -546,6 +547,26 @@ const BOOK_GENRES = [
   "Altro",
 ];
 
+const FILM_GENRES = [
+  "Azione", "Avventura", "Animazione", "Commedia", "Commedia romantica",
+  "Drammatico", "Fantasy", "Fantascienza", "Horror", "Thriller",
+  "Giallo / Noir", "Storico", "Biografico / Documentario", "Western",
+  "Musical", "Guerra", "Romantico", "Arte / Surrealismo",
+  "Cult", "Classico", "Cinema del mondo", "Altro",
+];
+
+const FILM_STATUS_LABELS = {
+  in_visione:    { label: "In visione",    color: "bg-tv-sky/30 text-tv-green-deep" },
+  concluso:      { label: "Concluso",      color: "bg-tv-green/20 text-tv-green-deep" },
+  prossimamente: { label: "Prossimamente", color: "bg-tv-orange/15 text-tv-orange" },
+};
+
+const FILM_EMPTY = {
+  title: "", director: "", cover_url: "", genre: "", status: "prossimamente",
+  year: "", duration: "", screening_month: "", description: "", recensione: "",
+  linked_event_ids: [],
+};
+
 const BOOK_EMPTY = {
   title: "", author: "", cover_url: "", genre: "", status: "in_lettura",
   reading_month: "", start_date: "", end_date: "", description: "", recensione: "",
@@ -729,6 +750,146 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               Annulla
             </button>
             <button type="submit" disabled={saving} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
+              {saving ? "Salvo…" : isNew ? "Aggiungi" : "Salva"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ── FilmEditor ───────────────────────────────────────────────────────────────
+const FilmEditor = ({ film, events, onSave, onClose, token }) => {
+  const isNew = !film.id;
+  const [form, setForm] = useState({ ...FILM_EMPTY, ...film });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.director.trim()) { toast.error("Titolo e regista sono obbligatori."); return; }
+    setSaving(true);
+    try {
+      const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+      const payload = {
+        title: form.title.trim(),
+        director: form.director.trim(),
+        cover_url: form.cover_url?.trim() || null,
+        genre: form.genre?.trim() || null,
+        status: form.status,
+        year: form.year ? parseInt(form.year, 10) : null,
+        duration: form.duration ? parseInt(form.duration, 10) : null,
+        screening_month: form.screening_month || null,
+        description: form.description?.trim() || null,
+        recensione: form.recensione?.trim() || null,
+        linked_event_ids: form.linked_event_ids || [],
+      };
+      if (isNew) {
+        const res = await axios.post(`${API}/admin/films`, payload, authHeader);
+        toast.success("Film aggiunto!");
+        onSave(res.data);
+      } else {
+        const res = await axios.put(`${API}/admin/films/${film.id}`, payload, authHeader);
+        toast.success("Film aggiornato!");
+        onSave(res.data);
+      }
+      onClose();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSaving(false); }
+  };
+
+  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
+          <h2 className="font-display font-black text-xl text-tv-green-deep">
+            {isNew ? "Aggiungi film" : "Modifica film"}
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
+        </div>
+        <form onSubmit={submit} className="p-6 grid gap-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <label>
+              <div className={labelClass}>Titolo *</div>
+              <input className={fieldClass} value={form.title} onChange={e => set("title", e.target.value)} required />
+            </label>
+            <label>
+              <div className={labelClass}>Regista *</div>
+              <input className={fieldClass} value={form.director} onChange={e => set("director", e.target.value)} required />
+            </label>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <label>
+              <div className={labelClass}>Genere</div>
+              <select className={fieldClass} value={form.genre || ""} onChange={e => set("genre", e.target.value)}>
+                <option value="">— Seleziona —</option>
+                {FILM_GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </label>
+            <label>
+              <div className={labelClass}>Stato</div>
+              <select className={fieldClass} value={form.status} onChange={e => set("status", e.target.value)}>
+                <option value="in_visione">In visione</option>
+                <option value="concluso">Concluso</option>
+                <option value="prossimamente">Prossimamente</option>
+              </select>
+            </label>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <label>
+              <div className={labelClass}>Mese proiezione</div>
+              <input className={fieldClass} value={form.screening_month || ""} onChange={e => set("screening_month", e.target.value)} placeholder="es. 2025-09" />
+            </label>
+            <label>
+              <div className={labelClass}>Anno uscita</div>
+              <input type="number" min="1900" max="2099" className={fieldClass} value={form.year || ""} onChange={e => set("year", e.target.value)} placeholder="es. 2023" />
+            </label>
+            <label>
+              <div className={labelClass}>Durata (min)</div>
+              <input type="number" min="1" className={fieldClass} value={form.duration || ""} onChange={e => set("duration", e.target.value)} placeholder="es. 120" />
+            </label>
+          </div>
+          <label>
+            <div className={labelClass}>URL locandina</div>
+            <input className={fieldClass} value={form.cover_url || ""} onChange={e => set("cover_url", e.target.value)} placeholder="https://..." />
+          </label>
+          <label>
+            <div className={labelClass}>Descrizione / perché lo guardiamo</div>
+            <textarea className={`${fieldClass} resize-none`} rows={3} value={form.description || ""} onChange={e => set("description", e.target.value)} />
+          </label>
+          <label>
+            <div className={labelClass}>Recensione redazione (dopo la proiezione)</div>
+            <textarea className={`${fieldClass} resize-none`} rows={4} value={form.recensione || ""} onChange={e => set("recensione", e.target.value)} />
+          </label>
+          {events && events.filter(ev => ev.title?.toLowerCase().includes("cineforum")).length > 0 && (
+            <div>
+              <div className={labelClass}>Collega a eventi</div>
+              <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                {events.filter(ev => ev.title?.toLowerCase().includes("cineforum")).map(ev => (
+                  <label key={ev.id} className="flex items-center gap-2 text-sm text-tv-green-deep cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={(form.linked_event_ids || []).includes(ev.id)}
+                      onChange={e => {
+                        const ids = form.linked_event_ids || [];
+                        set("linked_event_ids", e.target.checked ? [...ids, ev.id] : ids.filter(id => id !== ev.id));
+                      }}
+                    />
+                    {ev.title}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep/5">
+              Annulla
+            </button>
+            <button type="submit" disabled={saving} className="flex-1 px-4 py-3 rounded-full bg-tv-sky text-white font-bold text-sm disabled:opacity-60">
               {saving ? "Salvo…" : isNew ? "Aggiungi" : "Salva"}
             </button>
           </div>
@@ -1106,6 +1267,136 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   );
 };
 
+// ── FilmProposalAdminCard ─────────────────────────────────────────────────────
+const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
+  const authHeader = { headers: { Authorization: `Bearer ${token}` } };
+  const [showVoters, setShowVoters] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const voters = p.voters || [];
+
+  const startEdit = () => {
+    setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "" });
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    setSavingEdit(true);
+    try {
+      await axios.put(`${API}/admin/film-proposals/${p.id}`, {
+        title: editForm.title.trim() || p.title,
+        director: editForm.director.trim() || p.director,
+        genre: editForm.genre.trim() || null,
+        cover_url: editForm.cover_url.trim() || null,
+        description: editForm.description.trim() || null,
+      }, authHeader);
+      toast.success("Proposta aggiornata.");
+      setEditing(false);
+      onReload();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSavingEdit(false); }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+      <div className="p-4 flex items-start gap-4">
+        {p.cover_url ? (
+          <img src={p.cover_url} alt={p.title} className="w-10 h-14 object-cover rounded-xl shrink-0" />
+        ) : (
+          <div className="w-10 h-14 rounded-xl bg-tv-sky/10 flex items-center justify-center shrink-0">
+            <Film size={16} className="text-tv-sky/50" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="font-bold text-tv-green-deep">{p.title}</span>
+            <span className="text-sm text-tv-green-deep/55">{p.director}</span>
+            {p.genre && <span className="text-xs text-tv-green-deep/40 italic">{p.genre}</span>}
+            <span className="text-xs font-black text-tv-orange">👍 {p.votes} voti</span>
+            <span className="text-xs text-tv-green-deep/30">{p.proposed_month}</span>
+          </div>
+          {(p.nome || p.cognome) && (
+            <div className="mt-1 text-xs text-tv-green-deep/55">
+              Proposto da: <strong>{[p.nome, p.cognome].filter(Boolean).join(" ")}</strong>
+              {p.in_community_whatsapp !== null && p.in_community_whatsapp !== undefined && (
+                <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${p.in_community_whatsapp ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                  {p.in_community_whatsapp ? "Community" : "Non nella community"}
+                </span>
+              )}
+            </div>
+          )}
+          {voters.length > 0 && (
+            <button onClick={() => setShowVoters(v => !v)}
+              className="mt-1.5 text-[11px] font-bold text-tv-sky hover:text-tv-green-deep transition-colors flex items-center gap-1">
+              👥 {voters.length} {voters.length === 1 ? "votante" : "votanti"} {showVoters ? "▲" : "▼"}
+            </button>
+          )}
+          {showVoters && voters.length > 0 && (
+            <div className="mt-2 pl-2 border-l-2 border-tv-sky/30 grid gap-1">
+              {voters.map((v, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-tv-green-deep/70">
+                  <div className="w-5 h-5 rounded-full bg-tv-sky/30 text-tv-green-deep flex items-center justify-center font-black text-[9px] shrink-0">
+                    {(v.nome?.[0] || "?").toUpperCase()}
+                  </div>
+                  <span className="font-medium">{[v.nome, v.cognome].filter(Boolean).join(" ") || "Anonimo"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1 shrink-0">
+          <button onClick={startEdit} className="p-1.5 rounded-full hover:bg-tv-sky/10 text-tv-sky self-end" title="Modifica">
+            <Pencil size={13} />
+          </button>
+          <button onClick={() => onDelete(p.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux self-end" title="Elimina">
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+      {editing && (
+        <div className="border-t border-tv-green-deep/10 bg-tv-cream/30 p-4 grid gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Titolo</label>
+              <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Regista</label>
+              <input value={editForm.director} onChange={e => setEditForm(f => ({ ...f, director: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Genere</label>
+              <input value={editForm.genre} onChange={e => setEditForm(f => ({ ...f, genre: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">URL Locandina</label>
+              <input value={editForm.cover_url} onChange={e => setEditForm(f => ({ ...f, cover_url: e.target.value }))}
+                className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Descrizione</label>
+            <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
+              className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none resize-none" />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setEditing(false)} className="text-xs px-3 py-1 rounded-lg border border-tv-green-deep/20 text-tv-green-deep/50">Annulla</button>
+            <button onClick={handleSaveEdit} disabled={savingEdit} className="text-xs px-3 py-1 rounded-lg bg-tv-sky text-white font-bold disabled:opacity-50">
+              {savingEdit ? "Salvataggio…" : "Salva"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── BookManager con sub-tab ──────────────────────────────────────────────────
 const BookManager = ({ books, events, reviews, proposals, token, onReload }) => {
   const [subTab, setSubTab] = useState("catalogo");
@@ -1395,6 +1686,261 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   );
 };
 
+// ── CineforumManager con sub-tab ─────────────────────────────────────────────
+const CineforumManager = ({ films, events, filmReviews, filmProposals, token, onReload }) => {
+  const [subTab, setSubTab] = useState("catalogo");
+  const [editor, setEditor] = useState(null);
+  const [expandedReviews, setExpandedReviews] = useState(null);
+  const [addingProposal, setAddingProposal] = useState(false);
+  const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "" });
+  const [savingProposal, setSavingProposal] = useState(false);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Eliminare questo film?")) return;
+    try {
+      await axios.delete(`${API}/admin/films/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Film eliminato.");
+      onReload();
+    } catch { toast.error("Errore nell'eliminazione."); }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Eliminare questa recensione?")) return;
+    try {
+      await axios.delete(`${API}/admin/film-reviews/${reviewId}`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Recensione eliminata.");
+      onReload();
+    } catch { toast.error("Errore nell'eliminazione."); }
+  };
+
+  const reviewsByFilm = useMemo(() => {
+    const map = {};
+    (filmReviews || []).forEach(r => {
+      if (!map[r.film_id]) map[r.film_id] = [];
+      map[r.film_id].push(r);
+    });
+    return map;
+  }, [filmReviews]);
+
+  const handleDeleteProposal = async (id) => {
+    if (!window.confirm("Eliminare questa proposta?")) return;
+    try {
+      await axios.delete(`${API}/admin/film-proposals/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Proposta eliminata.");
+      onReload();
+    } catch { toast.error("Errore nell'eliminazione."); }
+  };
+
+  const handleAddProposal = async (e) => {
+    e.preventDefault();
+    if (!proposalForm.title.trim() || !proposalForm.director.trim()) { toast.error("Titolo e regista sono obbligatori."); return; }
+    setSavingProposal(true);
+    try {
+      const nextMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
+      await axios.post(`${API}/film-proposals`, {
+        title: proposalForm.title.trim(),
+        director: proposalForm.director.trim(),
+        genre: proposalForm.genre || null,
+        cover_url: proposalForm.cover_url.trim() || null,
+        description: proposalForm.description.trim() || null,
+        proposed_month: nextMonth,
+      });
+      toast.success("Proposta aggiunta.");
+      setProposalForm({ title: "", director: "", genre: "", cover_url: "", description: "" });
+      setAddingProposal(false);
+      onReload();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSavingProposal(false); }
+  };
+
+  const tabBtn = (key, label, count) => (
+    <button
+      onClick={() => setSubTab(key)}
+      className={`px-4 py-2 rounded-full text-sm font-bold transition-colors flex items-center gap-1.5 ${
+        subTab === key ? "bg-tv-sky text-white" : "text-tv-green-deep/60 hover:bg-tv-sky/10"
+      }`}
+    >
+      {label}
+      {count > 0 && (
+        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${subTab === key ? "bg-white/20" : "bg-tv-sky/15"}`}>
+          {count}
+        </span>
+      )}
+    </button>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h2 className="font-display font-black text-2xl text-tv-green-deep">Cineforum</h2>
+        {subTab === "catalogo" && (
+          <button
+            onClick={() => setEditor(FILM_EMPTY)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-sky text-white font-bold text-sm hover:bg-tv-sky/80 transition-colors"
+          >
+            <Plus size={16} /> Aggiungi film
+          </button>
+        )}
+      </div>
+
+      <div className="flex gap-1 mb-6 p-1 bg-tv-sky/5 rounded-2xl w-fit flex-wrap">
+        {tabBtn("catalogo", "Catalogo film", 0)}
+        {tabBtn("proposte", "Proposte", filmProposals?.length || 0)}
+      </div>
+
+      {/* ── Catalogo ── */}
+      {subTab === "catalogo" && (
+        films.length === 0 ? (
+          <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+            Nessun film ancora. Aggiungine uno!
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {films.map(film => {
+              const st = FILM_STATUS_LABELS[film.status] || FILM_STATUS_LABELS.prossimamente;
+              const filmReviewsList = reviewsByFilm[film.id] || [];
+              return (
+                <div key={film.id} className="bg-white rounded-3xl border border-tv-green-deep/10 overflow-hidden">
+                  <div className="flex gap-4 p-5">
+                    {film.cover_url ? (
+                      <img src={film.cover_url} alt={film.title} className="w-16 h-24 object-cover rounded-2xl shrink-0" />
+                    ) : (
+                      <div className="w-16 h-24 rounded-2xl bg-tv-sky/10 flex items-center justify-center shrink-0">
+                        <Film size={24} className="text-tv-sky/40" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div>
+                          <h3 className="font-display font-black text-lg text-tv-green-deep leading-tight">{film.title}</h3>
+                          <div className="text-sm text-tv-green-deep/60">
+                            {film.director}{film.genre ? ` · ${film.genre}` : ""}
+                            {film.year ? ` · ${film.year}` : ""}
+                            {film.duration ? ` · ${film.duration} min` : ""}
+                          </div>
+                          {film.screening_month && <div className="text-xs text-tv-green-deep/40 mt-0.5">📅 {film.screening_month}</div>}
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0 ${st.color}`}>
+                          {st.label}
+                        </span>
+                      </div>
+                      {film.description && (
+                        <p className="mt-2 text-sm text-tv-green-deep/65 line-clamp-2">{film.description}</p>
+                      )}
+                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        <button onClick={() => setEditor(film)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-xs hover:bg-tv-green-deep/5">
+                          <Pencil size={11} /> Modifica
+                        </button>
+                        <button onClick={() => handleDelete(film.id)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-bordeaux/20 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/5">
+                          <Trash2 size={11} /> Elimina
+                        </button>
+                        {filmReviewsList.length > 0 && (
+                          <button
+                            onClick={() => setExpandedReviews(expandedReviews === film.id ? null : film.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-tv-sky/40 text-tv-green-deep font-bold text-xs hover:bg-tv-sky/10"
+                          >
+                            💬 {filmReviewsList.length} recension{filmReviewsList.length === 1 ? "e" : "i"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {expandedReviews === film.id && (
+                    <div className="border-t border-tv-green-deep/8 px-5 py-4 bg-tv-sky/5 flex flex-col gap-3">
+                      {filmReviewsList.map(r => (
+                        <div key={r.id} className="flex items-start justify-between gap-3 bg-white rounded-2xl p-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-black text-tv-green-deep">{r.reviewer_name}</div>
+                            <div className="text-xs text-tv-green-deep/50 mt-0.5">{fmtDate(r.created_at)}</div>
+                            <p className="text-sm text-tv-green-deep/75 mt-1 leading-snug">{r.content}</p>
+                          </div>
+                          <button onClick={() => handleDeleteReview(r.id)} className="p-1.5 rounded-full hover:bg-tv-bordeaux/10 text-tv-bordeaux shrink-0">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
+
+      {/* ── Proposte ── */}
+      {subTab === "proposte" && (
+        <div>
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-display font-black text-xl text-tv-green-deep">Proposte dei cinefili</h3>
+            <button
+              onClick={() => setAddingProposal(a => !a)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors"
+            >
+              <Plus size={15} /> Aggiungi proposta
+            </button>
+          </div>
+          {addingProposal && (
+            <form onSubmit={handleAddProposal} className="rounded-2xl border border-tv-orange/20 bg-tv-orange/5 p-5 grid gap-4 mb-5">
+              <div className="text-sm font-black text-tv-orange uppercase tracking-wider">Nuova proposta</div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Titolo *</label>
+                  <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.title} onChange={e => setProposalForm(f => ({ ...f, title: e.target.value }))} required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Regista *</label>
+                  <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.director} onChange={e => setProposalForm(f => ({ ...f, director: e.target.value }))} required />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Genere</label>
+                <select className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.genre} onChange={e => setProposalForm(f => ({ ...f, genre: e.target.value }))}>
+                  <option value="">— Seleziona un genere —</option>
+                  {FILM_GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">URL locandina</label>
+                <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.cover_url} onChange={e => setProposalForm(f => ({ ...f, cover_url: e.target.value }))} placeholder="https://..." />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Descrizione / trama</label>
+                <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm resize-none" rows={3} value={proposalForm.description} onChange={e => setProposalForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setAddingProposal(false)} className="px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
+                <button type="submit" disabled={savingProposal} className="px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60">{savingProposal ? "Salvo…" : "Aggiungi proposta"}</button>
+              </div>
+            </form>
+          )}
+          {(filmProposals || []).length === 0 ? (
+            <div className="rounded-2xl bg-white border border-tv-green-deep/10 p-8 text-center text-tv-green-deep/40">
+              Nessuna proposta ancora.
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {[...(filmProposals || [])].sort((a, b) => b.votes - a.votes).map(p => (
+                <FilmProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {editor !== null && (
+        <FilmEditor
+          film={editor}
+          events={events}
+          token={token}
+          onSave={() => onReload()}
+          onClose={() => setEditor(null)}
+        />
+      )}
+    </div>
+  );
+};
+
 const DashboardHome = ({ data, onNavigate }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
@@ -1629,6 +2175,7 @@ const Dashboard = ({ token, onLogout }) => {
   const [tab, setTab] = useState("home");
   const [data, setData] = useState({
     registrations: [], "event-signups": [], contacts: [], events: [], members: [], books: [], reviews: [], proposals: [],
+    films: [], "film-reviews": [], "film-proposals": [],
   });
   const [loading, setLoading] = useState(true);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
@@ -1649,7 +2196,7 @@ const Dashboard = ({ token, onLogout }) => {
 
     setLoading(true);
     try {
-      const [r, es, c, ev, mem, bk, rv, pr, mis, don] = await Promise.all([
+      const [r, es, c, ev, mem, bk, rv, pr, mis, don, fl, frv, fpr] = await Promise.all([
         axios.get(`${API}/admin/registrations`, authHeader),
         axios.get(`${API}/admin/event-signups`, authHeader),
         axios.get(`${API}/admin/contacts`, authHeader),
@@ -1660,6 +2207,9 @@ const Dashboard = ({ token, onLogout }) => {
         axios.get(`${API}/admin/proposals`, authHeader),
         axios.get(`${API}/admin/missions`, authHeader),
         axios.get(`${API}/admin/donations`, authHeader),
+        axios.get(`${API}/films`, authHeader),
+        axios.get(`${API}/admin/film-reviews`, authHeader),
+        axios.get(`${API}/admin/film-proposals`, authHeader),
       ]);
       setData({
         registrations: r.data || [],
@@ -1672,6 +2222,9 @@ const Dashboard = ({ token, onLogout }) => {
         proposals: pr.data || [],
         missions: mis.data || [],
         donations: don.data || [],
+        films: fl.data || [],
+        "film-reviews": frv.data || [],
+        "film-proposals": fpr.data || [],
       });
     } catch (err) {
       if (err.response?.status === 401) {
@@ -2019,6 +2572,15 @@ const Dashboard = ({ token, onLogout }) => {
               events={data.events}
               reviews={data.reviews}
               proposals={data.proposals}
+              token={token}
+              onReload={loadAll}
+            />
+          ) : tab === "cineforum" ? (
+            <CineforumManager
+              films={data.films || []}
+              events={data.events || []}
+              filmReviews={data["film-reviews"] || []}
+              filmProposals={data["film-proposals"] || []}
               token={token}
               onReload={loadAll}
             />

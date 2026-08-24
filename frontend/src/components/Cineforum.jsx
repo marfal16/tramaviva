@@ -1,28 +1,17 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, MessageCircle } from "lucide-react";
+import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, MessageCircle } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const WHATSAPP_COMMUNITY = "https://chat.whatsapp.com/IXeTAXUIfdK54NiJEaO7Pt";
+const WHATSAPP_CINEFORUM = "https://chat.whatsapp.com/IXeTAXUIfdK54NiJEaO7Pt";
 
-const BOOK_GENRES = [
-  "Romanzo", "Romanzo storico", "Romanzo contemporaneo", "Romanzo rosa",
-  "Giallo", "Thriller", "Mystery", "Horror",
-  "Fantasy", "Fantascienza", "Avventura",
-  "Classico", "Letteratura italiana", "Letteratura straniera",
-  "Narrativa", "Raccolta di racconti",
-  "Biografia", "Autobiografia", "Memorie",
-  "Saggio", "Saggistica",
-  "Self-help", "Crescita personale", "Benessere e Self-Help",
-  "Psicologia", "Filosofia", "Spiritualità",
-  "Storia", "Scienza", "Natura",
-  "Economia", "Business",
-  "Poesia", "Teatro",
-  "Young Adult", "Graphic novel", "Fumetto",
-  "Umorismo", "Satira",
-  "Viaggio", "Arte", "Cucina",
-  "Altro",
+const FILM_GENRES = [
+  "Azione", "Avventura", "Animazione", "Commedia", "Commedia romantica",
+  "Drammatico", "Fantasy", "Fantascienza", "Horror", "Thriller",
+  "Giallo / Noir", "Storico", "Biografico / Documentario", "Western",
+  "Musical", "Guerra", "Romantico", "Arte / Surrealismo",
+  "Cult", "Classico", "Cinema del mondo", "Altro",
 ];
 
 
@@ -57,44 +46,51 @@ const SectionHeading = ({ dot, label, title, sub, labelSize = "text-xs" }) => (
   </div>
 );
 
-// ── Card libro (archivio / in lettura) ──────────────────────────────────────
-const BookCard = ({ book, reviewsByBook, events = [] }) => {
+// ── Card film (archivio / in visione) ───────────────────────────────────────
+const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
   const evMap = Object.fromEntries(events.map((e) => [e.id, e]));
-  const linked = (book.linked_event_ids || []).map((id) => evMap[id]).filter(Boolean);
-  const bookReviews = reviewsByBook[book.id] || [];
+  const linked = (film.linked_event_ids || []).map((id) => evMap[id]).filter(Boolean);
+  const filmReviews = reviewsByFilm[film.id] || [];
 
   return (
     <article className="bg-white rounded-[2rem] border border-tv-green-deep/8 flex flex-col overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] transition-shadow">
       <div className="flex gap-5 p-6 flex-1">
-        {book.cover_url ? (
-          <img src={book.cover_url} alt={book.title} className="w-20 h-28 object-cover rounded-2xl shrink-0 shadow-md" />
+        {film.cover_url ? (
+          <img src={film.cover_url} alt={film.title} className="w-20 h-28 object-cover rounded-2xl shrink-0 shadow-md" />
         ) : (
           <div className="w-20 h-28 rounded-2xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-            <BookOpen size={26} className="text-tv-green-deep/20" />
+            <Film size={26} className="text-tv-green-deep/20" />
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <Link to={`/club-del-libro/${book.id}`}>
-            <h3 className="font-display font-black text-lg leading-tight text-tv-green-deep hover:text-tv-bordeaux transition-colors">{book.title}</h3>
-          </Link>
+          <h3 className="font-display font-black text-lg leading-tight text-tv-green-deep">{film.title}</h3>
           <div className="text-sm text-tv-green-deep/55 mt-0.5">
-            {book.author}{book.genre && <span className="italic"> · {book.genre}</span>}
+            {film.director}{film.genre && <span className="italic"> · {film.genre}</span>}
           </div>
-          {book.reading_month && (
+          <div className="text-xs text-tv-green-deep/40 mt-0.5 flex items-center gap-1 flex-wrap">
+            {film.year && <span>· {film.year}</span>}
+            {film.duration && <span>· {film.duration} min</span>}
+          </div>
+          {film.screening_month && (
             <div className="mt-1 text-xs text-tv-green-deep/40 flex items-center gap-1">
-              <Calendar size={10} /> {fmtMonthYear(book.reading_month)}
+              <Calendar size={10} /> {fmtMonthYear(film.screening_month)}
             </div>
           )}
-          {bookReviews.length > 0 && <div className="mt-2"><AvgStars reviews={bookReviews} /></div>}
-          {book.description && (
-            <p className="mt-2 text-sm text-tv-green-deep/65 leading-relaxed line-clamp-3">{book.description}</p>
+          {film.status === "in_visione" && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tv-sky/15 text-tv-sky text-[10px] font-black uppercase tracking-wider">
+              <Film size={9} /> In visione
+            </div>
+          )}
+          {filmReviews.length > 0 && <div className="mt-2"><AvgStars reviews={filmReviews} /></div>}
+          {film.description && (
+            <p className="mt-2 text-sm text-tv-green-deep/65 leading-relaxed line-clamp-3">{film.description}</p>
           )}
         </div>
       </div>
-      {book.recensione && (
-        <div className="mx-5 mb-3 rounded-2xl bg-tv-mint/40 border-l-4 border-tv-green p-4">
-          <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-1">La nostra lettura</div>
-          <p className="text-sm text-tv-green-deep/80 leading-relaxed line-clamp-3">{book.recensione}</p>
+      {film.recensione && (
+        <div className="mx-5 mb-3 rounded-2xl bg-tv-mint/40 border-l-4 border-tv-sky p-4">
+          <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-1">La nostra visione</div>
+          <p className="text-sm text-tv-green-deep/80 leading-relaxed line-clamp-3">{film.recensione}</p>
         </div>
       )}
       {linked.length > 0 && (
@@ -106,23 +102,14 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
           ))}
         </div>
       )}
-      {(book.status === "concluso" || book.status === "in_lettura") && (
-        <div className="px-5 pb-5 pt-1">
-          <Link to={`/club-del-libro/${book.id}`} className="inline-flex items-center gap-2 text-xs font-bold text-tv-bordeaux hover:text-tv-green-deep transition-colors group">
-            <Star size={11} />
-            {bookReviews.length > 0 ? `Vedi tutte le recensioni (${bookReviews.length})` : "Scrivi una recensione"}
-            <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-        </div>
-      )}
     </article>
   );
 };
 
-// ── Form proposta libro ──────────────────────────────────────────────────────
+// ── Form proposta film ───────────────────────────────────────────────────────
 const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
   const [form, setForm] = useState({
-    title: "", author: "", genre: "", cover_url: "", description: "",
+    title: "", director: "", genre: "", cover_url: "", description: "",
     proposed_month: currentMonth, nome: "", cognome: "", in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
@@ -130,15 +117,15 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.author.trim()) return;
+    if (!form.title.trim() || !form.director.trim()) return;
     setSending(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/proposals`, {
+      const res = await fetch(`${BACKEND_URL}/api/film-proposals`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.title.trim(),
-          author: form.author.trim(),
+          director: form.director.trim(),
           genre: form.genre.trim() || null,
           cover_url: form.cover_url.trim() || null,
           description: form.description.trim() || null,
@@ -155,14 +142,14 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
     finally { setSending(false); }
   };
 
-  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
+  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
   const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
-          <h2 className="font-display font-black text-xl text-tv-green-deep">Proponi un libro</h2>
+          <h2 className="font-display font-black text-xl text-tv-green-deep">Proponi un film</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
         </div>
         <form onSubmit={submit} className="p-6 grid gap-4">
@@ -177,9 +164,9 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
             </label>
           </div>
           <div>
-            <div className={labelClass}>Sei nella community WhatsApp del Club del Libro? *</div>
+            <div className={labelClass}>Sei nella community WhatsApp del Cineforum? *</div>
             <div className="flex gap-3">
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === true ? "bg-tv-sky/15 border-tv-sky text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
                 <input type="radio" name="whatsapp" className="hidden" onChange={() => set("in_community_whatsapp", true)} />
                 ✅ Sì
               </label>
@@ -192,11 +179,11 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           {form.in_community_whatsapp === false && (
             <div className="rounded-2xl bg-tv-bordeaux/10 border border-tv-bordeaux/25 p-4 grid gap-3">
               <p className="text-sm font-bold text-tv-green-deep">
-                🔒 Solo i membri della community WhatsApp possono proporre libri.
+                🔒 Solo i membri della community WhatsApp possono proporre film.
               </p>
               <p className="text-xs text-tv-green-deep/60">Unisciti al gruppo e poi torna qui per fare la tua proposta!</p>
               <a
-                href={WHATSAPP_COMMUNITY}
+                href={WHATSAPP_CINEFORUM}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-sm hover:bg-[#25D366]/80 transition-colors self-start"
@@ -207,23 +194,23 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           )}
           <div className="grid sm:grid-cols-2 gap-4">
             <label>
-              <div className={labelClass}>Titolo libro *</div>
+              <div className={labelClass}>Titolo film *</div>
               <input className={fieldClass} value={form.title} onChange={(e) => set("title", e.target.value)} required />
             </label>
             <label>
-              <div className={labelClass}>Autore *</div>
-              <input className={fieldClass} value={form.author} onChange={(e) => set("author", e.target.value)} required />
+              <div className={labelClass}>Regista *</div>
+              <input className={fieldClass} value={form.director} onChange={(e) => set("director", e.target.value)} required />
             </label>
           </div>
           <label>
             <div className={labelClass}>Genere</div>
             <select className={fieldClass} value={form.genre} onChange={(e) => set("genre", e.target.value)}>
               <option value="">— Seleziona un genere —</option>
-              {BOOK_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+              {FILM_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </label>
           <label>
-            <div className={labelClass}>URL copertina (opzionale)</div>
+            <div className={labelClass}>URL locandina (opzionale)</div>
             <input className={fieldClass} value={form.cover_url} onChange={(e) => set("cover_url", e.target.value)} placeholder="https://..." />
           </label>
           <label>
@@ -277,7 +264,7 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
     await vote(false);
   };
 
-  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
+  const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
   const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
 
   return (
@@ -327,7 +314,7 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
               <div>
                 <div className={labelClass}>Sei nella community WhatsApp?</div>
                 <div className="flex gap-2">
-                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
+                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === true ? "bg-tv-sky/15 border-tv-sky text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
                     <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", true)} /> ✅ Sì
                   </label>
                   <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
@@ -350,8 +337,8 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
 };
 
 
-// ── Modal dettaglio proposta ─────────────────────────────────────────────────
-const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
+// ── Modal dettaglio proposta film ────────────────────────────────────────────
+const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
@@ -365,13 +352,13 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
             <img src={proposal.cover_url} alt={proposal.title} className="w-28 h-40 object-cover rounded-2xl shrink-0 shadow-md" />
           ) : (
             <div className="w-28 h-40 rounded-2xl bg-tv-green-deep/8 flex items-center justify-center shrink-0">
-              <BookOpen size={36} className="text-tv-green-deep/20" />
+              <Film size={36} className="text-tv-green-deep/20" />
             </div>
           )}
           <div className="flex-1 min-w-0">
             <h3 className="font-display font-black text-xl leading-tight text-tv-green-deep">{proposal.title}</h3>
             <div className="text-sm text-tv-green-deep/55 mt-1">
-              {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
+              {proposal.director}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
             </div>
             {initials && (
               <div className="mt-2 flex items-center gap-1.5">
@@ -400,8 +387,8 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
   );
 };
 
-// ── Card proposta nella griglia ──────────────────────────────────────────────
-const ProposalCard = ({ proposal, onVote, onUnvote }) => {
+// ── Card proposta film nella griglia ─────────────────────────────────────────
+const FilmProposalCard = ({ proposal, onVote, onUnvote }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
@@ -417,7 +404,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote }) => {
                  className="w-full h-52 object-cover group-hover:scale-[1.02] transition-transform duration-300" />
           ) : (
             <div className="w-full h-52 flex items-center justify-center">
-              <BookOpen size={40} className="text-tv-green-deep/15" />
+              <Film size={40} className="text-tv-green-deep/15" />
             </div>
           )}
           {/* Vote badge */}
@@ -433,7 +420,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote }) => {
               {proposal.title}
             </div>
             <div className="text-sm text-tv-green-deep/55 mt-0.5 truncate">
-              {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
+              {proposal.director}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
             </div>
           </div>
 
@@ -450,7 +437,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote }) => {
       </div>
 
       {showDetail && !showVoteModal && (
-        <ProposalDetailModal
+        <FilmProposalDetailModal
           proposal={proposal}
           onVoteRequest={() => { setShowDetail(false); setShowVoteModal(true); }}
           onClose={() => setShowDetail(false)}
@@ -468,8 +455,8 @@ const ProposalCard = ({ proposal, onVote, onUnvote }) => {
   );
 };
 
-// ── Sezione proposte ─────────────────────────────────────────────────────────
-const ProposalsSection = () => {
+// ── Sezione proposte film ─────────────────────────────────────────────────────
+const FilmProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -481,7 +468,7 @@ const ProposalsSection = () => {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`${BACKEND_URL}/api/proposals?month=${selectedMonth}`)
+    fetch(`${BACKEND_URL}/api/film-proposals?month=${selectedMonth}`)
       .then((r) => r.json())
       .then((d) => setProposals(Array.isArray(d) ? d : []))
       .catch(() => {})
@@ -490,7 +477,7 @@ const ProposalsSection = () => {
 
   const [allMonths, setAllMonths] = useState([]);
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/proposals`)
+    fetch(`${BACKEND_URL}/api/film-proposals`)
       .then((r) => r.json())
       .then((d) => {
         const months = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month))].sort().reverse();
@@ -504,7 +491,7 @@ const ProposalsSection = () => {
   useEffect(() => { load(); }, [load]);
 
   const handleVote = async (id, voterInfo, force = false) => {
-    const url = `${BACKEND_URL}/api/proposals/${id}/vote${force ? "?force=true" : ""}`;
+    const url = `${BACKEND_URL}/api/film-proposals/${id}/vote${force ? "?force=true" : ""}`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -524,7 +511,7 @@ const ProposalsSection = () => {
   };
 
   const handleUnvote = async (id, voterInfo) => {
-    const res = await fetch(`${BACKEND_URL}/api/proposals/${id}/unvote`, {
+    const res = await fetch(`${BACKEND_URL}/api/film-proposals/${id}/unvote`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(voterInfo || {}),
@@ -540,7 +527,7 @@ const ProposalsSection = () => {
 
   const nextMonthLabel = getNextMonthTitle();
   const nextMonthPrep = nextMonthLabel && /^[aeiouAEIOU]/.test(nextMonthLabel) ? "ad" : "a";
-  const sectionTitle = nextMonthLabel ? `Cosa leggiamo ${nextMonthPrep} ${nextMonthLabel}` : "Cosa leggiamo dopo?";
+  const sectionTitle = nextMonthLabel ? `Cosa guardiamo ${nextMonthPrep} ${nextMonthLabel}` : "Cosa guardiamo dopo?";
 
   return (
     <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
@@ -550,13 +537,13 @@ const ProposalsSection = () => {
             dot="bg-tv-orange"
             label="Proposte del mese"
             title={sectionTitle}
-            sub="Proponi un libro e vota i tuoi preferiti. I più votati diventano le prossime letture."
+            sub="Proponi un film e vota i tuoi preferiti. I più votati diventano le prossime visioni."
           />
           <button
             onClick={() => setShowForm(true)}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors shrink-0"
           >
-            <Plus size={15} /> Proponi un libro
+            <Plus size={15} /> Proponi un film
           </button>
         </div>
 
@@ -582,9 +569,9 @@ const ProposalsSection = () => {
           <div className="text-tv-green-deep/30 text-sm py-8 text-center">Caricamento…</div>
         ) : proposals.length === 0 ? (
           <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/40">
-            <BookOpen size={36} className="mx-auto mb-3 opacity-20" />
+            <Film size={36} className="mx-auto mb-3 opacity-20" />
             <p className="font-bold">Nessuna proposta per {fmtMonthYear(selectedMonth)}.</p>
-            <p className="text-sm mt-1">Sii il primo a proporre un libro!</p>
+            <p className="text-sm mt-1">Sii il primo a proporre un film!</p>
             <button onClick={() => setShowForm(true)} className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors">
               <Plus size={14} /> Proponi
             </button>
@@ -592,7 +579,7 @@ const ProposalsSection = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {proposals.map((p) => (
-              <ProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote} />
+              <FilmProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote} />
             ))}
           </div>
         )}
@@ -606,20 +593,20 @@ const ProposalsSection = () => {
 };
 
 // ── Pagina principale ────────────────────────────────────────────────────────
-export const ClubDelLibro = () => {
-  const [books, setBooks] = useState([]);
+export const Cineforum = () => {
+  const [films, setFilms] = useState([]);
   const [events, setEvents] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      fetch(`${BACKEND_URL}/api/books`).then((r) => r.json()),
-      fetch(`${BACKEND_URL}/api/events`).then((r) => r.json()),
-      fetch(`${BACKEND_URL}/api/reviews`).then((r) => r.json()),
+      fetch(`${BACKEND_URL}/api/films`).then(r => r.json()),
+      fetch(`${BACKEND_URL}/api/events`).then(r => r.json()),
+      fetch(`${BACKEND_URL}/api/film-reviews`).then(r => r.json()),
     ])
-      .then(([bk, ev, rv]) => {
-        setBooks(Array.isArray(bk) ? bk : []);
+      .then(([fl, ev, rv]) => {
+        setFilms(Array.isArray(fl) ? fl : []);
         setEvents(Array.isArray(ev) ? ev : []);
         setReviews(Array.isArray(rv) ? rv : []);
       })
@@ -627,51 +614,42 @@ export const ClubDelLibro = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const reviewsByBook = useMemo(() => {
+  const reviewsByFilm = useMemo(() => {
     const map = {};
-    reviews.forEach((r) => { if (!map[r.book_id]) map[r.book_id] = []; map[r.book_id].push(r); });
+    reviews.forEach(r => { if (!map[r.film_id]) map[r.film_id] = []; map[r.film_id].push(r); });
     return map;
   }, [reviews]);
 
-  const inLettura   = books.filter((b) => b.status === "in_lettura" && !b.is_lent && !b.is_library_book);
-  const conclusi    = books.filter((b) => b.status === "concluso" && !b.is_library_book);
-  const prossimi    = books.filter((b) => b.status === "prossimamente" && !b.is_library_book);
-  const disponibili = books.filter((b) => b.in_biblioteca && !b.is_lent && !b.is_to_find);
-  const inPrestito  = books.filter((b) => b.is_lent);
-  const daReperire  = books.filter((b) => b.is_to_find);
-
-  const cardProps = { reviewsByBook, events };
+  const inVisione   = films.filter(f => f.status === "in_visione");
+  const conclusi    = films.filter(f => f.status === "concluso");
+  const prossimi    = films.filter(f => f.status === "prossimamente");
 
   return (
     <div className="bg-tv-cream">
       {/* Hero */}
       <section className="pt-32 pb-6 md:pt-40 md:pb-8 px-6 md:px-10">
         <div className="mx-auto max-w-5xl">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-tv-green-deep/90 text-tv-cream text-xs font-bold uppercase tracking-wider mb-7">
-            <BookOpen size={13} /> Club del Libro · Trama Viva APS
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-tv-sky/90 text-white text-xs font-bold uppercase tracking-wider mb-7">
+            <Film size={13} /> Cineforum · Trama Viva APS
           </div>
           <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-[0.93] tracking-tight text-tv-green-deep">
-            Leggiamo <span className="italic font-light text-tv-bordeaux">insieme</span>,<br />cresciamo insieme.
+            Guardiamo <span className="italic font-light text-tv-sky">insieme</span>,<br />riflettiamo insieme.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/65">
-            Ogni mese scegliamo un libro, lo discutiamo e condividiamo impressioni, voti e recensioni. Puoi proporre titoli, votare quelli degli altri e prendere libri in prestito dalla nostra community.
+            Ogni mese scegliamo un film, lo guardiamo e lo discutiamo insieme. Puoi proporre titoli, votare i tuoi preferiti e condividere la tua recensione.
           </p>
         </div>
       </section>
 
-      {/* WhatsApp community strip */}
+      {/* WhatsApp strip */}
       <div className="px-6 md:px-10 pb-6 md:pb-8">
         <div className="mx-auto max-w-5xl">
-          <a
-            href={WHATSAPP_COMMUNITY}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group"
-          >
+          <a href={WHATSAPP_CINEFORUM} target="_blank" rel="noopener noreferrer"
+             className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group">
             <MessageCircle size={18} className="text-[#25D366] shrink-0" />
             <div className="min-w-0">
-              <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/50 mb-0.5">Community WhatsApp</div>
-              <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Club del Libro</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50 mb-0.5">Community WhatsApp</div>
+              <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Cineforum</div>
             </div>
             <ArrowRight size={14} className="text-tv-green-deep/30 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
           </a>
@@ -682,28 +660,28 @@ export const ClubDelLibro = () => {
         <div className="text-center text-tv-green-deep/40 py-24">Caricamento…</div>
       ) : (
         <>
-          {/* Stiamo leggendo — on top */}
-          {inLettura.length > 0 && (
+          {/* In visione */}
+          {inVisione.length > 0 && (
             <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
               <div className="mx-auto max-w-5xl">
-                <SectionHeading dot="bg-tv-green" label="Ora in corso" title="Stiamo leggendo" labelSize="text-sm" />
+                <SectionHeading dot="bg-tv-sky" label="Ora in corso" title="Stiamo guardando" labelSize="text-sm" />
                 <div className="grid md:grid-cols-2 gap-5">
-                  {inLettura.map((b) => <BookCard key={b.id} book={b} {...cardProps} />)}
+                  {inVisione.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
                 </div>
               </div>
             </section>
           )}
 
-          {/* Proposte del mese — sezione con votazione */}
-          <ProposalsSection />
+          {/* Proposte del mese */}
+          <FilmProposalsSection />
 
           {/* Archivio */}
           {conclusi.length > 0 && (
             <section className="py-14 md:py-20 px-6 md:px-10">
               <div className="mx-auto max-w-5xl">
-                <SectionHeading dot="bg-tv-sky" label="Archivio" title="Libri letti" sub="La nostra storia di letture condivise." />
+                <SectionHeading dot="bg-tv-bordeaux" label="Archivio" title="Film visti" sub="I film che abbiamo guardato e discusso insieme." />
                 <div className="grid md:grid-cols-2 gap-5">
-                  {conclusi.map((b) => <BookCard key={b.id} book={b} {...cardProps} />)}
+                  {conclusi.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
                 </div>
               </div>
             </section>
@@ -713,119 +691,46 @@ export const ClubDelLibro = () => {
           {prossimi.length > 0 && (
             <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
               <div className="mx-auto max-w-5xl">
-                <SectionHeading dot="bg-tv-orange" label="In arrivo" title="Prossime letture selezionate" />
+                <SectionHeading dot="bg-tv-orange" label="In arrivo" title="Prossime proiezioni selezionate" />
                 <div className="grid md:grid-cols-2 gap-5">
-                  {prossimi.map((b) => <BookCard key={b.id} book={b} {...cardProps} />)}
+                  {prossimi.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
                 </div>
               </div>
             </section>
           )}
-
-          {/* Biblioteca — sempre visibile */}
-          <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep text-tv-cream">
-            <div className="mx-auto max-w-5xl">
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <Library size={18} className="text-tv-orange" />
-                  <span className="text-xs font-black uppercase tracking-widest text-tv-cream/50">Biblioteca condivisa</span>
-                </div>
-                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">«Il libro sospeso»</h2>
-                <p className="mt-2 text-tv-cream/55">Libri messi a disposizione dalla nostra community. Puoi prenderli in prestito e restituirli al prossimo incontro — contattaci per sapere come.</p>
-              </div>
-
-              {disponibili.length === 0 && inPrestito.length === 0 && daReperire.length === 0 ? (
-                <div className="rounded-[2rem] bg-tv-cream/10 border border-tv-cream/10 p-10 text-center text-tv-cream/40">
-                  <Library size={36} className="mx-auto mb-3 opacity-30" />
-                  <p className="font-bold">Nessun libro disponibile al momento.</p>
-                  <p className="text-sm mt-1 opacity-70">Torna presto — la nostra biblioteca condivisa è in continua crescita.</p>
-                </div>
-              ) : (
-                <div className="grid gap-8">
-                  {(disponibili.length > 0 || inPrestito.length > 0) && (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {[...disponibili, ...inPrestito].map((b) => (
-                        <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-cream/10 border border-tv-cream/10 p-4">
-                          {b.cover_url ? <img src={b.cover_url} alt={b.title} className={`w-12 h-16 object-cover rounded-xl shrink-0${b.is_lent ? " opacity-70" : ""}`} /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                          <div className="min-w-0 flex-1">
-                            <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
-                            <div className="text-sm text-tv-cream/55">{b.author}</div>
-                            {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
-                            <div className="mt-1 text-xs font-bold">
-                              {b.is_lent
-                                ? <span className="text-tv-orange/70">📤 In prestito{b.lent_date ? <span className="font-normal text-tv-cream/40"> · dal {fmtDay(b.lent_date)}</span> : ""}</span>
-                                : <span className="text-tv-green/70">✅ Disponibile{(b.quantity || 1) > 1 ? <span className="font-normal text-tv-cream/40"> · {b.quantity} cop.</span> : ""}</span>
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {daReperire.length > 0 && (
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-widest text-tv-sky/80 mb-4">🔍 Da reperire in autonomia ({daReperire.length})</div>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {daReperire.map((b) => (
-                          <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-sky/10 border border-tv-sky/20 p-4">
-                            {b.cover_url ? <img src={b.cover_url} alt={b.title} className="w-12 h-16 object-cover rounded-xl shrink-0 opacity-70" /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                            <div className="min-w-0">
-                              <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
-                              <div className="text-sm text-tv-cream/55">{b.author}</div>
-                              {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
-                              <div className="text-xs text-tv-sky/70 mt-1">Acquistalo o cercalo in biblioteca</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
         </>
       )}
     </div>
   );
 };
 
-// ── Card club per la sezione "I nostri club" in home ─────────────────────────
-export const ClubDelLibroTeaser = () => {
+// ── Card cineforum per la sezione "I nostri club" in home ─────────────────────
+export const CineforumTeaser = () => {
   const [current, setCurrent] = useState(null);
-  const [reviews, setReviews] = useState([]);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${BACKEND_URL}/api/books`).then((r) => r.json()),
-      fetch(`${BACKEND_URL}/api/reviews`).then((r) => r.json()),
-    ])
-      .then(([bk, rv]) => {
-        const books = Array.isArray(bk) ? bk : [];
-        setCurrent(books.find((b) => b.status === "in_lettura" && !b.is_lent && !b.is_library_book) || null);
-        setReviews(Array.isArray(rv) ? rv : []);
+    fetch(`${BACKEND_URL}/api/films`)
+      .then(r => r.json())
+      .then(fl => {
+        const films = Array.isArray(fl) ? fl : [];
+        setCurrent(films.find(f => f.status === "in_visione") || null);
       })
       .catch(() => {});
   }, []);
 
-  const bookReviews = current ? reviews.filter((r) => r.book_id === current.id) : [];
-  const avgRating = bookReviews.length
-    ? (bookReviews.reduce((s, r) => s + (r.rating ?? 5), 0) / bookReviews.length).toFixed(1)
-    : null;
-
   return (
     <Link
-      to="/club-del-libro"
+      to="/cineforum"
       className="group flex flex-col rounded-[2rem] bg-white border border-tv-green-deep/10 overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] hover:border-tv-green-deep/20 transition-all"
     >
-      <div className="h-1.5 bg-gradient-to-r from-tv-green to-tv-green-deep" />
-
+      <div className="h-1.5 bg-gradient-to-r from-tv-sky to-tv-sky/60" />
       <div className="p-6 flex-1 flex flex-col gap-5">
         <div>
           <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">
-            <BookOpen size={11} /> Club del Libro
+            <Film size={11} /> Cineforum
           </div>
           <p className="text-sm text-tv-green-deep/55 leading-relaxed">
-            Ci ritroviamo ogni mese attorno a un libro. Si legge, si discute, si lascia qualcosa — una recensione, un voto, un consiglio.
+            Ogni mese un film, una serata insieme. Si guarda, si discute, si condivide — un frame alla volta.
           </p>
         </div>
 
@@ -835,32 +740,25 @@ export const ClubDelLibroTeaser = () => {
               <img src={current.cover_url} alt={current.title} className="w-10 h-14 object-cover rounded-xl shrink-0 shadow-sm" />
             ) : (
               <div className="w-10 h-14 rounded-xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
-                <BookOpen size={16} className="text-tv-green-deep/30" />
+                <Film size={16} className="text-tv-green-deep/30" />
               </div>
             )}
             <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-0.5">Stiamo leggendo</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-0.5">Stiamo guardando</div>
               <div className="font-bold text-tv-green-deep text-sm leading-tight truncate">{current.title}</div>
-              <div className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{current.author}</div>
-              {avgRating && (
-                <div className="mt-1.5 flex items-center gap-1 text-xs text-tv-green-deep/45">
-                  <span className="text-tv-orange text-[11px]">{"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}</span>
-                  <span className="font-bold">{avgRating}</span>
-                  <span>· {bookReviews.length} rec.</span>
-                </div>
-              )}
+              <div className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{current.director}</div>
             </div>
           </div>
         ) : (
           <div className="rounded-2xl bg-tv-green-deep/[0.04] p-3 text-xs text-tv-green-deep/35 italic">
-            Nessuna lettura attiva al momento — le proposte del mese ti aspettano.
+            Nessuna proiezione attiva — vota i tuoi film del mese!
           </div>
         )}
 
         <div className="mt-auto pt-1 flex items-center justify-between">
-          <span className="text-xs text-tv-green-deep/35">Proposte · Recensioni · Biblioteca</span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-tv-green-deep group-hover:text-tv-green transition-colors">
-            Entra nel club <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+          <span className="text-xs text-tv-green-deep/35">Proposte · Recensioni · Proiezioni</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-tv-green-deep group-hover:text-tv-sky transition-colors">
+            Entra nel cineforum <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
           </span>
         </div>
       </div>
@@ -868,4 +766,4 @@ export const ClubDelLibroTeaser = () => {
   );
 };
 
-export default ClubDelLibro;
+export default Cineforum;

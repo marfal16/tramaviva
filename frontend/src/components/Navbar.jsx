@@ -117,6 +117,13 @@ export const Navbar = () => {
               Club del Libro
             </Link>
             <Link
+              to="/cineforum"
+              onClick={() => setOpen(false)}
+              className="px-4 py-2 rounded-full text-sm font-semibold text-tv-green-deep/80 hover:text-tv-green-deep hover:bg-tv-sky/20 transition-colors"
+            >
+              Cineforum
+            </Link>
+            <Link
               to="/donazioni"
               onClick={() => setOpen(false)}
               className="px-4 py-2 rounded-full text-sm font-semibold text-tv-bordeaux/80 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors flex items-center gap-1.5"
@@ -201,6 +208,13 @@ export const Navbar = () => {
               className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40"
             >
               Club del Libro
+            </Link>
+            <Link
+              to="/cineforum"
+              onClick={() => setOpen(false)}
+              className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-sky/15"
+            >
+              Cineforum
             </Link>
             <Link
               to="/donazioni"

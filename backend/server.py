@@ -300,6 +300,92 @@ class ReviewCreate(BaseModel):
     content: str
     rating: int = Field(default=5, ge=1, le=5)
 
+# ========== FILM MODELS ==========
+
+class Film(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    director: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    year: Optional[int] = None
+    duration: Optional[int] = None  # minuti
+    status: str = "prossimamente"  # "in_visione" | "concluso" | "prossimamente"
+    screening_month: Optional[str] = None  # "YYYY-MM"
+    description: Optional[str] = None
+    recensione: Optional[str] = None
+    linked_event_ids: List[str] = Field(default_factory=list)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class FilmCreate(BaseModel):
+    title: str
+    director: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    year: Optional[int] = None
+    duration: Optional[int] = None
+    status: str = "prossimamente"
+    screening_month: Optional[str] = None
+    description: Optional[str] = None
+    recensione: Optional[str] = None
+    linked_event_ids: List[str] = Field(default_factory=list)
+
+class FilmUpdate(BaseModel):
+    title: Optional[str] = None
+    director: Optional[str] = None
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    year: Optional[int] = None
+    duration: Optional[int] = None
+    status: Optional[str] = None
+    screening_month: Optional[str] = None
+    description: Optional[str] = None
+    recensione: Optional[str] = None
+    linked_event_ids: Optional[List[str]] = None
+
+class FilmProposal(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    director: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    description: Optional[str] = None
+    proposed_month: str  # "YYYY-MM"
+    votes: int = 0
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
+    in_community_whatsapp: Optional[bool] = None
+    voters: List[dict] = Field(default_factory=list)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class FilmProposalCreate(BaseModel):
+    title: str
+    director: str
+    cover_url: Optional[str] = None
+    genre: Optional[str] = None
+    description: Optional[str] = None
+    proposed_month: Optional[str] = None
+    nome: Optional[str] = None
+    cognome: Optional[str] = None
+    in_community_whatsapp: Optional[bool] = None
+
+class FilmReview(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    film_id: str
+    film_title: str = ""
+    reviewer_name: str
+    content: str
+    rating: int = Field(default=5, ge=1, le=5)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class FilmReviewCreate(BaseModel):
+    reviewer_name: str
+    content: str
+    rating: int = Field(default=5, ge=1, le=5)
+
 class MemberCreate(BaseModel):
     first_name: str
     last_name: str
@@ -1972,6 +2058,197 @@ async def admin_delete_book(book_id: str):
     res = await db.books.delete_one({"id": book_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Libro non trovato")
+    return {"ok": True}
+
+# ========== FILMS: PUBLIC ==========
+
+@api_router.get("/films")
+async def get_films():
+    docs = await db.films.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+@api_router.get("/films/{film_id}")
+async def get_film(film_id: str):
+    doc = await db.films.find_one({"id": film_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Film non trovato")
+    return doc
+
+# ========== FILM PROPOSALS: PUBLIC ==========
+
+@api_router.get("/film-proposals")
+async def get_film_proposals(month: Optional[str] = None):
+    query = {"proposed_month": month} if month else {}
+    docs = await db.film_proposals.find(query, {"_id": 0}).sort("votes", -1).to_list(1000)
+    return docs
+
+@api_router.post("/film-proposals")
+async def create_film_proposal(payload: FilmProposalCreate):
+    if not payload.title.strip() or not payload.director.strip():
+        raise HTTPException(status_code=400, detail="Titolo e regista sono obbligatori")
+    month = payload.proposed_month or datetime.now(timezone.utc).strftime("%Y-%m")
+    obj = FilmProposal(
+        title=payload.title.strip(),
+        director=payload.director.strip(),
+        cover_url=payload.cover_url or None,
+        genre=payload.genre or None,
+        description=payload.description or None,
+        proposed_month=month,
+        nome=payload.nome or None,
+        cognome=payload.cognome or None,
+        in_community_whatsapp=payload.in_community_whatsapp,
+    )
+    await db.film_proposals.insert_one(obj.model_dump())
+    return obj.model_dump()
+
+@api_router.post("/film-proposals/{proposal_id}/vote")
+async def vote_film_proposal(proposal_id: str, voter: VoterCreate, force: bool = False):
+    if voter.nome and voter.cognome and not force:
+        proposal = await db.film_proposals.find_one({"id": proposal_id})
+        if not proposal:
+            raise HTTPException(status_code=404, detail="Proposta non trovata")
+        nome_lower = voter.nome.strip().lower()
+        cognome_lower = voter.cognome.strip().lower()
+        existing = next(
+            (v for v in proposal.get("voters", [])
+             if v.get("nome", "").strip().lower() == nome_lower
+             and v.get("cognome", "").strip().lower() == cognome_lower),
+            None,
+        )
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail=f"DUPLICATE:{existing.get('nome', '')} {existing.get('cognome', '')}",
+            )
+    voter_data = {k: v for k, v in voter.model_dump().items() if v is not None}
+    update_op = {"$inc": {"votes": 1}}
+    if voter_data:
+        update_op["$push"] = {"voters": voter_data}
+    doc = await db.film_proposals.find_one_and_update(
+        {"id": proposal_id},
+        update_op,
+        return_document=True,
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    doc.pop("_id", None)
+    return doc
+
+@api_router.post("/film-proposals/{proposal_id}/unvote")
+async def unvote_film_proposal(proposal_id: str, voter: VoterCreate):
+    if not voter.nome or not voter.cognome:
+        raise HTTPException(status_code=400, detail="Nome e cognome sono obbligatori per rimuovere il voto")
+    proposal = await db.film_proposals.find_one({"id": proposal_id})
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    nome_lower = voter.nome.strip().lower()
+    cognome_lower = voter.cognome.strip().lower()
+    voters = proposal.get("voters", [])
+    idx = next(
+        (i for i, v in enumerate(voters)
+         if v.get("nome", "").strip().lower() == nome_lower
+         and v.get("cognome", "").strip().lower() == cognome_lower),
+        None,
+    )
+    if idx is None:
+        raise HTTPException(status_code=404, detail="Nessun voto trovato per questo nome")
+    new_voters = [v for i, v in enumerate(voters) if i != idx]
+    doc = await db.film_proposals.find_one_and_update(
+        {"id": proposal_id},
+        {"$set": {"voters": new_voters}, "$inc": {"votes": -1}},
+        return_document=True,
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    doc.pop("_id", None)
+    return doc
+
+# ========== FILM REVIEWS: PUBLIC ==========
+
+@api_router.get("/film-reviews")
+async def get_film_reviews():
+    docs = await db.film_reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+@api_router.post("/films/{film_id}/film-reviews")
+async def submit_film_review(film_id: str, payload: FilmReviewCreate):
+    if not payload.reviewer_name.strip() or not payload.content.strip():
+        raise HTTPException(status_code=400, detail="Nome e testo sono obbligatori")
+    film = await db.films.find_one({"id": film_id}, {"_id": 0})
+    if not film:
+        raise HTTPException(status_code=404, detail="Film non trovato")
+    review = FilmReview(
+        film_id=film_id,
+        film_title=film.get("title", ""),
+        reviewer_name=payload.reviewer_name.strip(),
+        content=payload.content.strip(),
+        rating=payload.rating,
+    )
+    await db.film_reviews.insert_one(review.model_dump())
+    return review.model_dump()
+
+# ========== ADMIN: FILM PROPOSALS ==========
+
+@api_router.get("/admin/film-proposals", dependencies=[Depends(require_admin)])
+async def admin_get_film_proposals():
+    docs = await db.film_proposals.find({}, {"_id": 0}).sort("votes", -1).to_list(1000)
+    return docs
+
+@api_router.put("/admin/film-proposals/{proposal_id}", dependencies=[Depends(require_admin)])
+async def admin_update_film_proposal(proposal_id: str, payload: dict):
+    allowed = {"title", "director", "genre", "cover_url", "description"}
+    update = {k: v for k, v in payload.items() if k in allowed}
+    if not update:
+        raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    res = await db.film_proposals.update_one({"id": proposal_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    return await db.film_proposals.find_one({"id": proposal_id}, {"_id": 0})
+
+@api_router.delete("/admin/film-proposals/{proposal_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_film_proposal(proposal_id: str):
+    res = await db.film_proposals.delete_one({"id": proposal_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    return {"ok": True}
+
+# ========== ADMIN: FILM REVIEWS ==========
+
+@api_router.get("/admin/film-reviews", dependencies=[Depends(require_admin)])
+async def admin_get_film_reviews():
+    docs = await db.film_reviews.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return docs
+
+@api_router.delete("/admin/film-reviews/{review_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_film_review(review_id: str):
+    res = await db.film_reviews.delete_one({"id": review_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Recensione non trovata")
+    return {"ok": True}
+
+# ========== ADMIN: FILMS ==========
+
+@api_router.post("/admin/films", dependencies=[Depends(require_admin)])
+async def admin_create_film(payload: FilmCreate):
+    obj = Film(**payload.model_dump())
+    await db.films.insert_one(obj.model_dump())
+    return obj.model_dump()
+
+@api_router.put("/admin/films/{film_id}", dependencies=[Depends(require_admin)])
+async def admin_update_film(film_id: str, payload: FilmUpdate):
+    update = {k: v for k, v in payload.model_dump(exclude_unset=True).items()}
+    if not update:
+        raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    res = await db.films.update_one({"id": film_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Film non trovato")
+    return await db.films.find_one({"id": film_id}, {"_id": 0})
+
+@api_router.delete("/admin/films/{film_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_film(film_id: str):
+    res = await db.films.delete_one({"id": film_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Film non trovato")
     return {"ok": True}
 
 app.include_router(api_router)

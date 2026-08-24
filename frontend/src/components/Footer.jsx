@@ -53,6 +53,11 @@ export const Footer = () => (
               </Link>
             </li>
             <li>
+              <Link to="/cineforum" className="hover:text-tv-mint transition-colors">
+                Cineforum
+              </Link>
+            </li>
+            <li>
               <Link to="/area-soci" className="hover:text-tv-mint transition-colors">
                 Area soci
               </Link>

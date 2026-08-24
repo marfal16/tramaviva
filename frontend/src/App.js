@@ -14,6 +14,7 @@ import Footer from "./components/Footer";
 import Admin from "./components/Admin";
 import EventoDettaglio from "./components/EventoDettaglio";
 import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
+import { Cineforum, CineforumTeaser } from "./components/Cineforum";
 import { LibroDettaglio } from "./components/LibroDettaglio";
 import { AuthProvider } from "./context/AuthContext";
 import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./components/Auth";
@@ -37,7 +38,7 @@ const ClubsSection = () => (
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <ClubDelLibroTeaser />
-        {/* Future clubs: <CineforumTeaser />, <GiochiDaTavoloTeaser />, … */}
+        <CineforumTeaser />
       </div>
     </div>
   </section>
@@ -116,6 +117,17 @@ const ClubDelLibroPageWrapper = () => {
   );
 };
 
+const CineforumPageWrapper = () => {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  return (
+    <div className="App bg-tv-cream min-h-screen">
+      <Navbar />
+      <Cineforum />
+      <Footer />
+    </div>
+  );
+};
+
 const LibroDettaglioPageWrapper = () => {
   useEffect(() => { window.scrollTo(0, 0); }, []);
   return (
@@ -140,6 +152,7 @@ function App() {
           <Route path="/iscrizione" element={<IscrizionePageWrapper />} />
           <Route path="/club-del-libro" element={<ClubDelLibroPageWrapper />} />
           <Route path="/club-del-libro/:bookId" element={<LibroDettaglioPageWrapper />} />
+          <Route path="/cineforum" element={<CineforumPageWrapper />} />
           <Route path="/area-soci" element={<AreaSoci />} />
           <Route path="/donazioni" element={<Donazioni />} />
           <Route path="/login" element={<LoginPage />} />
