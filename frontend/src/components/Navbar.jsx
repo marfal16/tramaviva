@@ -60,7 +60,6 @@ export const Navbar = () => {
     }
   }, [location]);
 
-  // Reset mobile clubs when mobile menu closes
   useEffect(() => { if (!open) setMobileClubsOpen(false); }, [open]);
 
   const isDetailPage = location.pathname !== "/";
@@ -83,7 +82,8 @@ export const Navbar = () => {
       data-testid="navbar"
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? "py-2" : "py-4"}`}
     >
-      <div className="mx-auto max-w-7xl px-4 md:px-8">
+      {/* relative qui perché il menu mobile è absolute rispetto a questo container */}
+      <div className="mx-auto max-w-7xl px-4 md:px-8 relative">
         <div
           className={`flex items-center justify-between rounded-full px-4 md:px-6 py-3 backdrop-blur-xl transition-all duration-500 ${
             scrolled
@@ -122,7 +122,6 @@ export const Navbar = () => {
                 I nostri Club
                 <ChevronDown size={13} className={`transition-transform duration-200 ${clubsOpen ? "rotate-180" : ""}`} />
               </button>
-              {/* Dropdown menu */}
               <div
                 className={`absolute left-0 top-full mt-2 w-48 bg-white rounded-2xl border border-tv-green-deep/10 shadow-lg overflow-hidden z-50 transition-all duration-150 origin-top ${
                   clubsOpen ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
@@ -207,9 +206,9 @@ export const Navbar = () => {
           </button>
         </div>
 
-        {/* ── Mobile menu ── */}
+        {/* ── Mobile menu — absolute per non estendere l'header e bloccare i click ── */}
         <div
-          className={`md:hidden mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
+          className={`md:hidden absolute top-full left-0 right-0 mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
             open ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
           }`}
           data-testid="nav-mobile-menu"

@@ -2455,42 +2455,70 @@ const Dashboard = ({ token, onLogout }) => {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {NAV.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => { setTab(item.key); setSidebarOpen(false); }}
-              data-testid={`admin-tab-${item.key}`}
-              title={!sidebarOpen ? item.label : undefined}
-              className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
-                ${sidebarOpen ? "gap-3 px-4 py-3" : "justify-center p-3"}
-                ${tab === item.key
-                  ? "bg-tv-cream/15 text-tv-cream"
-                  : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
-                }`}
-            >
-              <span className="relative flex-shrink-0">
-                <item.icon size={18} />
-                {(() => {
-                  let dot = 0;
-                  if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
-                  else if (item.key === "event-signups") {
-                    const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
-                    dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
-                  }
-                  else if (item.key === "contacts") dot = (data.contacts || []).length;
-                  return dot > 0 ? <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux border border-tv-green-deep" /> : null;
-                })()}
-              </span>
-              {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
-              {sidebarOpen && data[item.key] && item.key !== "home" && (
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                  tab === item.key ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
-                }`}>
-                  {data[item.key]?.length ?? 0}
+          {NAV.map((item) => {
+            const isClub = item.key === "books" || item.key === "cineforum";
+            const btn = (
+              <button
+                key={item.key}
+                onClick={() => { setTab(item.key); setSidebarOpen(false); }}
+                data-testid={`admin-tab-${item.key}`}
+                title={!sidebarOpen ? item.label : undefined}
+                className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
+                  ${sidebarOpen ? `gap-3 py-3 ${isClub ? "px-3 pl-5" : "px-4"}` : "justify-center p-3"}
+                  ${tab === item.key
+                    ? "bg-tv-cream/15 text-tv-cream"
+                    : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
+                  }`}
+              >
+                <span className="relative flex-shrink-0">
+                  <item.icon size={18} />
+                  {(() => {
+                    let dot = 0;
+                    if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+                    else if (item.key === "event-signups") {
+                      const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
+                      dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
+                    }
+                    else if (item.key === "contacts") dot = (data.contacts || []).length;
+                    return dot > 0 ? <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux border border-tv-green-deep" /> : null;
+                  })()}
                 </span>
-              )}
-            </button>
-          ))}
+                {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
+                {sidebarOpen && data[item.key] && item.key !== "home" && (
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                    tab === item.key ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
+                  }`}>
+                    {data[item.key]?.length ?? 0}
+                  </span>
+                )}
+              </button>
+            );
+
+            if (item.key === "books") {
+              return (
+                <React.Fragment key={item.key}>
+                  {sidebarOpen && (
+                    <div className="px-4 pt-3 pb-0.5">
+                      <span className="text-[10px] uppercase tracking-widest font-black text-tv-cream/30">I nostri Club</span>
+                    </div>
+                  )}
+                  {!sidebarOpen && <div key="clubs-divider" className="border-t border-tv-cream/10 my-1" />}
+                  {btn}
+                </React.Fragment>
+              );
+            }
+            if (item.key === "cineforum") {
+              return (
+                <React.Fragment key={item.key}>
+                  {btn}
+                  {sidebarOpen && <div className="border-t border-tv-cream/10 my-1" />}
+                  {!sidebarOpen && <div key="clubs-end-divider" className="border-t border-tv-cream/10 my-1" />}
+                </React.Fragment>
+              );
+            }
+
+            return btn;
+          })}
         </nav>
 
         {/* Bottom actions */}
