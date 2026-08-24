@@ -192,7 +192,7 @@ const BonificoBox = ({ firstName, lastName }) => {
 const METODI = [
   { value: "contanti", label: "Contanti", icon: Banknote, desc: "Consegna il modulo e paga di persona" },
   { value: "bonifico", label: "Bonifico", icon: Landmark, desc: "Riceverai le coordinate bancarie" },
-  { value: "elettronico", label: "Carta / Online", icon: Smartphone, desc: "Pagamento sicuro via SumUp" },
+  { value: "elettronico", label: "Carta",          icon: Smartphone, desc: "Pagamento online sicuro" },
 ];
 
 const MetodoPagamento = ({ value, onChange }) => (

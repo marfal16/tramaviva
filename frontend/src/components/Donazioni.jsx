@@ -170,7 +170,7 @@ const DonationForm = ({ onSuccess }) => {
         <div className="grid sm:grid-cols-2 gap-3">
           {[
             { key: "bonifico", label: "Bonifico bancario", desc: "Riceverai i dati IBAN subito dopo" },
-            { key: "sumup",    label: "Carta / SumUp",     desc: "Pagamento online sicuro, subito" },
+            { key: "sumup",    label: "Carta",              desc: "Pagamento online sicuro, subito" },
           ].map(({ key, label, desc }) => (
             <button key={key} type="button" onClick={() => setMetodo(key)}
               className={`text-left p-4 rounded-2xl border-2 transition-all ${metodo === key ? "border-tv-green-deep bg-tv-green-deep/5" : "border-tv-green-deep/12 hover:border-tv-green-deep/25"}`}>

@@ -1415,7 +1415,8 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   const [editor, setEditor] = useState(null);
   const [expandedReviews, setExpandedReviews] = useState(null);
   const [addingProposal, setAddingProposal] = useState(false);
-  const [proposalForm, setProposalForm] = useState({ title: "", author: "", genre: "", cover_url: "", description: "" });
+  const defaultProposalMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
+  const [proposalForm, setProposalForm] = useState({ title: "", author: "", genre: "", cover_url: "", description: "", proposed_month: defaultProposalMonth });
   const [savingProposal, setSavingProposal] = useState(false);
 
   const handleSave = () => onReload();
@@ -1468,17 +1469,16 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
     if (!proposalForm.title.trim() || !proposalForm.author.trim()) { toast.error("Titolo e autore sono obbligatori."); return; }
     setSavingProposal(true);
     try {
-      const nextMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
       await axios.post(`${API}/proposals`, {
         title: proposalForm.title.trim(),
         author: proposalForm.author.trim(),
         genre: proposalForm.genre || null,
         cover_url: proposalForm.cover_url.trim() || null,
         description: proposalForm.description.trim() || null,
-        proposed_month: nextMonth,
+        proposed_month: proposalForm.proposed_month || defaultProposalMonth,
       });
       toast.success("Proposta aggiunta.");
-      setProposalForm({ title: "", author: "", genre: "", cover_url: "", description: "" });
+      setProposalForm({ title: "", author: "", genre: "", cover_url: "", description: "", proposed_month: defaultProposalMonth });
       setAddingProposal(false);
       onReload();
     } catch { toast.error("Errore nel salvataggio."); }
@@ -1665,6 +1665,10 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Descrizione / trama</label>
                 <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm resize-none" rows={3} value={proposalForm.description} onChange={e => setProposalForm(f => ({ ...f, description: e.target.value }))} />
               </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Mese di riferimento *</label>
+                <input type="month" className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.proposed_month} onChange={e => setProposalForm(f => ({ ...f, proposed_month: e.target.value }))} required />
+              </div>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setAddingProposal(false)} className="px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
                 <button type="submit" disabled={savingProposal} className="px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60">{savingProposal ? "Salvo…" : "Aggiungi proposta"}</button>
@@ -1704,7 +1708,8 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   const [editor, setEditor] = useState(null);
   const [expandedReviews, setExpandedReviews] = useState(null);
   const [addingProposal, setAddingProposal] = useState(false);
-  const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "" });
+  const defaultFilmProposalMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
+  const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "", proposed_month: defaultFilmProposalMonth });
   const [savingProposal, setSavingProposal] = useState(false);
 
   const handleDelete = async (id) => {
@@ -1748,17 +1753,16 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
     if (!proposalForm.title.trim() || !proposalForm.director.trim()) { toast.error("Titolo e regista sono obbligatori."); return; }
     setSavingProposal(true);
     try {
-      const nextMonth = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
       await axios.post(`${API}/film-proposals`, {
         title: proposalForm.title.trim(),
         director: proposalForm.director.trim(),
         genre: proposalForm.genre || null,
         cover_url: proposalForm.cover_url.trim() || null,
         description: proposalForm.description.trim() || null,
-        proposed_month: nextMonth,
+        proposed_month: proposalForm.proposed_month || defaultFilmProposalMonth,
       });
       toast.success("Proposta aggiunta.");
-      setProposalForm({ title: "", director: "", genre: "", cover_url: "", description: "" });
+      setProposalForm({ title: "", director: "", genre: "", cover_url: "", description: "", proposed_month: defaultFilmProposalMonth });
       setAddingProposal(false);
       onReload();
     } catch { toast.error("Errore nel salvataggio."); }
@@ -1919,6 +1923,10 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Descrizione / trama</label>
                 <textarea className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm resize-none" rows={3} value={proposalForm.description} onChange={e => setProposalForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Mese di riferimento *</label>
+                <input type="month" className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm" value={proposalForm.proposed_month} onChange={e => setProposalForm(f => ({ ...f, proposed_month: e.target.value }))} required />
               </div>
               <div className="flex gap-3">
                 <button type="button" onClick={() => setAddingProposal(false)} className="px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
