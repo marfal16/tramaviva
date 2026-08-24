@@ -2426,6 +2426,7 @@ const Dashboard = ({ token, onLogout }) => {
   };
     
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [clubsNavOpen, setClubsNavOpen] = useState(true);
   const list = data[tab] || [];
 
   return (
@@ -2457,14 +2458,18 @@ const Dashboard = ({ token, onLogout }) => {
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {NAV.map((item) => {
             const isClub = item.key === "books" || item.key === "cineforum";
-            const btn = (
+
+            // Render club items: skip them here if sidebar is expanded (handled by accordion below)
+            if (isClub) return null;
+
+            const navBtn = (
               <button
                 key={item.key}
                 onClick={() => { setTab(item.key); setSidebarOpen(false); }}
                 data-testid={`admin-tab-${item.key}`}
                 title={!sidebarOpen ? item.label : undefined}
                 className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
-                  ${sidebarOpen ? `gap-3 py-3 ${isClub ? "px-3 pl-5" : "px-4"}` : "justify-center p-3"}
+                  ${sidebarOpen ? "gap-3 px-4 py-3" : "justify-center p-3"}
                   ${tab === item.key
                     ? "bg-tv-cream/15 text-tv-cream"
                     : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
@@ -2494,30 +2499,69 @@ const Dashboard = ({ token, onLogout }) => {
               </button>
             );
 
-            if (item.key === "books") {
+            // Inject the "I nostri Club" accordion before "missions"
+            if (item.key === "missions") {
+              const clubItems = NAV.filter(n => n.key === "books" || n.key === "cineforum");
               return (
-                <React.Fragment key={item.key}>
-                  {sidebarOpen && (
-                    <div className="px-4 pt-3 pb-0.5">
-                      <span className="text-[10px] uppercase tracking-widest font-black text-tv-cream/30">I nostri Club</span>
-                    </div>
+                <React.Fragment key="clubs-group-and-missions">
+                  {/* Accordion header */}
+                  {sidebarOpen ? (
+                    <button
+                      onClick={() => setClubsNavOpen(o => !o)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream transition-all"
+                    >
+                      <BookOpen size={18} />
+                      <span className="flex-1 text-left">I nostri Club</span>
+                      <ChevronDown size={14} className={`transition-transform duration-200 ${clubsNavOpen ? "rotate-180" : ""}`} />
+                    </button>
+                  ) : (
+                    <div className="border-t border-tv-cream/10 my-1" />
                   )}
-                  {!sidebarOpen && <div key="clubs-divider" className="border-t border-tv-cream/10 my-1" />}
-                  {btn}
-                </React.Fragment>
-              );
-            }
-            if (item.key === "cineforum") {
-              return (
-                <React.Fragment key={item.key}>
-                  {btn}
-                  {sidebarOpen && <div className="border-t border-tv-cream/10 my-1" />}
-                  {!sidebarOpen && <div key="clubs-end-divider" className="border-t border-tv-cream/10 my-1" />}
+
+                  {/* Club sub-items */}
+                  {clubItems.map(club => {
+                    const isActive = tab === club.key;
+                    const visible = !sidebarOpen || clubsNavOpen;
+                    return (
+                      <div
+                        key={club.key}
+                        className={`overflow-hidden transition-all duration-200 ${visible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"}`}
+                      >
+                        <button
+                          onClick={() => { setTab(club.key); setSidebarOpen(false); }}
+                          data-testid={`admin-tab-${club.key}`}
+                          title={!sidebarOpen ? club.label : undefined}
+                          className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
+                            ${sidebarOpen ? "gap-3 pl-8 pr-4 py-2.5" : "justify-center p-3"}
+                            ${isActive
+                              ? "bg-tv-cream/15 text-tv-cream"
+                              : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
+                            }`}
+                        >
+                          <club.icon size={16} />
+                          {sidebarOpen && <span className="flex-1 text-left">{club.label}</span>}
+                          {sidebarOpen && data[club.key] && (
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                              isActive ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
+                            }`}>
+                              {data[club.key]?.length ?? 0}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  {/* Divider after club group in icon mode */}
+                  {!sidebarOpen && <div className="border-t border-tv-cream/10 my-1" />}
+
+                  {/* Then render "missions" button */}
+                  {navBtn}
                 </React.Fragment>
               );
             }
 
-            return btn;
+            return navBtn;
           })}
         </nav>
 
