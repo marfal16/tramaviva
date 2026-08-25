@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/cineforum", "destination": "/api/og" },
+    { "source": "/club-del-libro", "destination": "/api/og" },
+    { "source": "/club-del-libro/:rest*", "destination": "/api/og" },
+    { "source": "/eventi/:rest*", "destination": "/api/og" },
+    { "source": "/iscrizione", "destination": "/api/og" },
+    { "source": "/donazioni", "destination": "/api/og" }
+  ]
+}
