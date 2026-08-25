@@ -154,16 +154,19 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     const updateLabelDOM = () => {
       const container = labelsRef.current;
       if (!container) return;
-      const ww = renderer.domElement.width  / window.devicePixelRatio;
-      const hh = renderer.domElement.height / window.devicePixelRatio;
+      // Usa window.innerWidth/Height (CSS pixels) — corretto per qualsiasi devicePixelRatio
+      const ww = window.innerWidth;
+      const hh = window.innerHeight;
+      const offset = isMob ? 22 : 28;
+      // Aggiorna le matrici camera esplicitamente prima di proiettare
+      camera.updateMatrixWorld(true);
+      camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
       meshes.forEach((mesh, i) => {
         const el = container.children[i];
         if (!el) return;
         const v = mesh.position.clone().project(camera);
-        const x = (v.x * 0.5 + 0.5) * ww;
-        const y = (-v.y * 0.5 + 0.5) * hh;
-        el.style.left = x + "px";
-        el.style.top  = (y - (isMob ? 22 : 28)) + "px";
+        el.style.left = ((v.x * 0.5 + 0.5) * ww) + "px";
+        el.style.top  = ((-v.y * 0.5 + 0.5) * hh - offset) + "px";
       });
     };
 
