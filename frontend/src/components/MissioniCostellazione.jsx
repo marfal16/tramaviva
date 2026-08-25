@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { ChevronLeft, Lock, Gift, CheckCircle } from "lucide-react";
+import { ChevronLeft, Gift, Lock } from "lucide-react";
 
-// Posizioni predefinite per le stelle costellazione (x, y in unità scena)
+// Posizioni predefinite costellazione (unità scena)
 const STAR_POSITIONS = [
   [-2.2,  1.1],
   [-0.7,  1.8],
@@ -16,89 +16,187 @@ const STAR_POSITIONS = [
   [ 0.4,  0.1],
 ];
 
-const COLOR_DONE      = new THREE.Color(0xf59e0b); // ambra / completata
-const COLOR_AVAILABLE = new THREE.Color(0x38bdf8); // sky blue / sbloccata
-const COLOR_LOCKED    = new THREE.Color(0x1e3a5f); // blu scuro / bloccata
+const COLOR_DONE      = new THREE.Color(0xf59e0b);
+const COLOR_AVAILABLE = new THREE.Color(0x38bdf8);
+const COLOR_LOCKED    = new THREE.Color(0x1e3a5f);
+
+function makeGalaxySpiral(count, arms, spread, radius) {
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  const c0  = new THREE.Color(0x4466ff);
+  const c1  = new THREE.Color(0xffffff);
+  const c2  = new THREE.Color(0xaa66cc);
+  for (let i = 0; i < count; i++) {
+    const arm     = i % arms;
+    const t       = Math.random();
+    const angle   = (arm / arms) * Math.PI * 2 + t * Math.PI * 4 + (Math.random() - 0.5) * spread;
+    const r       = Math.sqrt(Math.random()) * radius;
+    const scatter = (1 - t) * 0.6 + 0.1;
+    pos[i * 3]     = Math.cos(angle) * r + (Math.random() - 0.5) * scatter;
+    pos[i * 3 + 1] = (Math.random() - 0.5) * scatter * 0.4;
+    pos[i * 3 + 2] = Math.sin(angle) * r + (Math.random() - 0.5) * scatter;
+    const mix  = Math.random();
+    const base = mix < 0.5 ? c0.clone().lerp(c1, mix * 2) : c1.clone().lerp(c2, (mix - 0.5) * 2);
+    col[i * 3]     = base.r;
+    col[i * 3 + 1] = base.g;
+    col[i * 3 + 2] = base.b;
+  }
+  return { pos, col };
+}
 
 export const MissioniCostellazione = ({ missionsData, onBack }) => {
-  const canvasRef   = useRef();
-  const meshesRef   = useRef([]);
-  const rendererRef = useRef();
-  const frameRef    = useRef();
+  const canvasRef = useRef();
+  const stateRef  = useRef({
+    camera: null, renderer: null,
+    meshes: [], hitMeshes: [], glows: [],
+    isDragging: false,
+    mouseDownX: 0, mouseDownY: 0,
+    panAtDown: { x: 0, y: 0 },
+    hasDragged: false,
+    panOffset: { x: 0, y: 0 },
+    targetPan: { x: 0, y: 0 },
+    zoom: 7, targetZoom: 7,
+    pinchDist: null,
+    touchStartX: 0, touchStartY: 0,
+    touchPanAtDown: { x: 0, y: 0 },
+    touchHasDragged: false,
+    frameId: null,
+  });
 
-  const [labels, setLabels]           = useState([]);
-  const [selected, setSelected]       = useState(null);
-  const [panelVisible, setPanelVisible] = useState(false);
+  const [labels, setLabels]       = useState([]);
+  const [selected, setSelected]   = useState(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const missions = missionsData?.missions || [];
+  const isMob    = window.innerWidth < 768;
 
-  // ── Setup Three.js ──────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
     const W = window.innerWidth;
     const H = window.innerHeight;
+    const s = stateRef.current;
 
-    // Scene + camera
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 500);
-    camera.position.z = 7;
+    camera.position.set(0, 0, 7);
+    s.camera = camera;
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x05101e);
-    rendererRef.current = renderer;
+    renderer.setClearColor(0x020b18);
+    s.renderer = renderer;
 
-    // ── Stelle di sfondo ──────────────────────────────────────────────────────
-    const N = 1800;
-    const bgPos  = new Float32Array(N * 3);
-    const bgAlpha = new Float32Array(N);
+    // ── Stelle sfondo ─────────────────────────────────────────────────────────
+    const N = 5000;
+    const bgPos = new Float32Array(N * 3);
+    const bgCol = new Float32Array(N * 3);
+    const palette = [
+      new THREE.Color(0xffffff), new THREE.Color(0xaaccff),
+      new THREE.Color(0xffeebb), new THREE.Color(0xccaaff),
+    ];
     for (let i = 0; i < N; i++) {
-      bgPos[i * 3]     = (Math.random() - 0.5) * 80;
-      bgPos[i * 3 + 1] = (Math.random() - 0.5) * 80;
-      bgPos[i * 3 + 2] = (Math.random() - 0.5) * 30 - 5;
-      bgAlpha[i] = Math.random();
+      bgPos[i * 3]     = (Math.random() - 0.5) * 120;
+      bgPos[i * 3 + 1] = (Math.random() - 0.5) * 120;
+      bgPos[i * 3 + 2] = (Math.random() - 0.5) * 40 - 8;
+      const c = palette[Math.floor(Math.random() * palette.length)];
+      bgCol[i * 3]     = c.r;
+      bgCol[i * 3 + 1] = c.g;
+      bgCol[i * 3 + 2] = c.b;
     }
     const bgGeo = new THREE.BufferGeometry();
     bgGeo.setAttribute("position", new THREE.BufferAttribute(bgPos, 3));
-    const bgMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.045, transparent: true, opacity: 0.5, sizeAttenuation: true });
-    const bgStars = new THREE.Points(bgGeo, bgMat);
+    bgGeo.setAttribute("color",    new THREE.BufferAttribute(bgCol, 3));
+    const bgStars = new THREE.Points(bgGeo, new THREE.PointsMaterial({
+      size: isMob ? 0.07 : 0.055, vertexColors: true,
+      transparent: true, opacity: 0.75, sizeAttenuation: true,
+    }));
     scene.add(bgStars);
 
+    // ── Galassie a spirale ────────────────────────────────────────────────────
+    const addGalaxy = (count, arms, spread, radius, posArr, rotZ, opacity) => {
+      const { pos, col } = makeGalaxySpiral(count, arms, spread, radius);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("color",    new THREE.BufferAttribute(col, 3));
+      const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+        size: 0.06, vertexColors: true, transparent: true, opacity, sizeAttenuation: true,
+      }));
+      pts.position.set(...posArr);
+      pts.rotation.z = rotZ;
+      scene.add(pts);
+      return pts;
+    };
+    const galaxy1 = addGalaxy(2200, 3, 1.2, 22, [8,  -5, -18], 0.3,  0.35);
+    const galaxy2 = addGalaxy(900,  2, 1.5, 10, [-12, 6, -22], -0.8, 0.25);
+
+    // ── Nebulose ──────────────────────────────────────────────────────────────
+    [
+      { color: 0x6633aa, spread: [14, 6, 3], pos: [-5,  3, -12], count: 400, opacity: 0.18 },
+      { color: 0x003388, spread: [10, 8, 2], pos: [ 6, -4, -10], count: 350, opacity: 0.15 },
+      { color: 0xaa3344, spread: [ 8, 5, 2], pos: [-2, -6,  -8], count: 280, opacity: 0.12 },
+    ].forEach(({ color, spread, pos, count, opacity }) => {
+      const p = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        p[i * 3]     = (Math.random() - 0.5) * spread[0];
+        p[i * 3 + 1] = (Math.random() - 0.5) * spread[1];
+        p[i * 3 + 2] = (Math.random() - 0.5) * spread[2];
+      }
+      const ng = new THREE.BufferGeometry();
+      ng.setAttribute("position", new THREE.BufferAttribute(p, 3));
+      const np = new THREE.Points(ng, new THREE.PointsMaterial({
+        color, size: 0.25, transparent: true, opacity, sizeAttenuation: true,
+      }));
+      np.position.set(...pos);
+      scene.add(np);
+    });
+
     // ── Stelle missione ───────────────────────────────────────────────────────
-    const meshes  = [];
-    const glows   = [];
+    const meshes    = [];
+    const hitMeshes = [];
+    const glows     = [];
 
     missions.forEach((m, i) => {
       const [x, y] = STAR_POSITIONS[i % STAR_POSITIONS.length];
       const done      = m.unlocked && m.current_count >= m.required_events;
       const available = m.unlocked && !done;
       const locked    = !m.unlocked;
+      const color     = done ? COLOR_DONE : available ? COLOR_AVAILABLE : COLOR_LOCKED;
+      const radius    = done ? 0.14 : available ? 0.11 : 0.08;
 
-      const color  = done ? COLOR_DONE : available ? COLOR_AVAILABLE : COLOR_LOCKED;
-      const radius = done ? 0.13 : available ? 0.10 : 0.07;
-
-      // Stella principale
-      const geo  = new THREE.SphereGeometry(radius, 16, 16);
-      const mat  = new THREE.MeshBasicMaterial({ color });
-      const mesh = new THREE.Mesh(geo, mat);
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 16, 16),
+        new THREE.MeshBasicMaterial({ color })
+      );
       mesh.position.set(x, y, 0);
-      mesh.userData = { mission: m, index: i, done, available, locked };
+      mesh.userData = { mission: m, done, available, locked };
       scene.add(mesh);
       meshes.push(mesh);
 
-      // Alone luminoso
+      // hit area invisibile più grande
+      const hitR    = isMob ? 0.45 : 0.28;
+      const hitMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(hitR, 8, 8),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+      );
+      hitMesh.position.set(x, y, 0);
+      hitMesh.userData = mesh.userData;
+      scene.add(hitMesh);
+      hitMeshes.push(hitMesh);
+
       if (!locked) {
-        const glowGeo = new THREE.SphereGeometry(radius * 3.5, 16, 16);
-        const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.07 });
-        const glow    = new THREE.Mesh(glowGeo, glowMat);
+        const glow = new THREE.Mesh(
+          new THREE.SphereGeometry(radius * 4, 16, 16),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.07 })
+        );
         glow.position.set(x, y, 0);
         scene.add(glow);
-        glows.push({ mesh: glow, baseOp: 0.07, phase: i * 1.3 });
+        glows.push({ mesh: glow, base: 0.07, phase: i * 1.4 });
       }
     });
-    meshesRef.current = meshes;
+    s.meshes    = meshes;
+    s.hitMeshes = hitMeshes;
+    s.glows     = glows;
 
     // ── Linee costellazione ───────────────────────────────────────────────────
     if (missions.length >= 2) {
@@ -106,253 +204,371 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
         const [x, y] = STAR_POSITIONS[i % STAR_POSITIONS.length];
         return new THREE.Vector3(x, y, 0);
       });
-      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-      const lineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.14 });
-      scene.add(new THREE.Line(lineGeo, lineMat));
+      scene.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.12 })
+      ));
     }
 
-    // ── Calcolo posizioni label (una volta sola) ──────────────────────────────
-    const computeLabels = (w, h) =>
-      meshes.map((mesh) => {
+    // ── Labels helper ─────────────────────────────────────────────────────────
+    const computeLabels = () => {
+      const ww = renderer.domElement.width  / window.devicePixelRatio;
+      const hh = renderer.domElement.height / window.devicePixelRatio;
+      setLabels(meshes.map((mesh) => {
         const v = mesh.position.clone().project(camera);
         return {
-          x: (v.x * 0.5 + 0.5) * w,
-          y: (-v.y * 0.5 + 0.5) * h,
+          x: (v.x * 0.5 + 0.5) * ww,
+          y: (-v.y * 0.5 + 0.5) * hh,
           mission: mesh.userData.mission,
           locked:  mesh.userData.locked,
         };
-      });
+      }));
+    };
+    computeLabels();
 
-    setLabels(computeLabels(W, H));
+    // ── Raycasting ────────────────────────────────────────────────────────────
+    const raycaster = new THREE.Raycaster();
+    const pick = (cx, cy) => {
+      const rect = canvas.getBoundingClientRect();
+      raycaster.setFromCamera({
+        x: ((cx - rect.left) / rect.width)  * 2 - 1,
+        y: -(((cy - rect.top) / rect.height) * 2 - 1),
+      }, camera);
+      const hits = raycaster.intersectObjects(hitMeshes);
+      return hits.length > 0 ? hits[0].object.userData.mission : null;
+    };
+
+    // ── Clamp pan ─────────────────────────────────────────────────────────────
+    const clampPan = () => {
+      const lim = 4;
+      s.targetPan.x = Math.max(-lim, Math.min(lim, s.targetPan.x));
+      s.targetPan.y = Math.max(-lim, Math.min(lim, s.targetPan.y));
+    };
 
     // ── Animation loop ────────────────────────────────────────────────────────
-    let t = 0;
+    let t = 0, labelTick = 0;
     const animate = () => {
-      frameRef.current = requestAnimationFrame(animate);
-      t += 0.012;
+      s.frameId = requestAnimationFrame(animate);
+      t += 0.01;
 
-      bgStars.rotation.y = Math.sin(t * 0.04) * 0.025;
-      bgStars.rotation.x = Math.sin(t * 0.025) * 0.012;
+      // smooth pan + zoom
+      s.panOffset.x += (s.targetPan.x - s.panOffset.x) * 0.08;
+      s.panOffset.y += (s.targetPan.y - s.panOffset.y) * 0.08;
+      s.zoom        += (s.targetZoom  - s.zoom)         * 0.08;
+      camera.position.set(s.panOffset.x, s.panOffset.y, s.zoom);
+      camera.lookAt(s.panOffset.x, s.panOffset.y, 0);
+
+      bgStars.rotation.y = Math.sin(t * 0.025) * 0.03;
+      bgStars.rotation.x = Math.cos(t * 0.018) * 0.015;
+      galaxy1.rotation.y = t * 0.005;
+      galaxy2.rotation.y = -t * 0.008;
 
       meshes.forEach((mesh, i) => {
-        if (!mesh.userData.locked) {
-          mesh.scale.setScalar(1 + Math.sin(t + i * 1.4) * 0.12);
-        }
+        if (!mesh.userData.locked) mesh.scale.setScalar(1 + Math.sin(t + i * 1.4) * 0.12);
       });
-      glows.forEach(({ mesh, baseOp, phase }) => {
-        mesh.material.opacity = baseOp + Math.sin(t + phase) * 0.045;
+      glows.forEach(({ mesh, base, phase }) => {
+        mesh.material.opacity = base + Math.sin(t + phase) * 0.04;
         mesh.scale.setScalar(1 + Math.sin(t + phase) * 0.25);
       });
 
       renderer.render(scene, camera);
+      if (++labelTick % 4 === 0) computeLabels();
     };
     animate();
 
     // ── Resize ────────────────────────────────────────────────────────────────
     const onResize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = window.innerWidth, h = window.innerHeight;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
-      setLabels(computeLabels(w, h));
+      computeLabels();
     };
     window.addEventListener("resize", onResize);
 
-    // ── Raycasting (click + touch) ────────────────────────────────────────────
-    const raycaster = new THREE.Raycaster();
-    raycaster.params.Mesh = {};
-
-    const pick = (clientX, clientY) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = ((clientX - rect.left) / rect.width)  * 2 - 1;
-      const my = -((clientY - rect.top)  / rect.height) * 2 + 1;
-      raycaster.setFromCamera({ x: mx, y: my }, camera);
-      const hits = raycaster.intersectObjects(meshes);
-      if (hits.length > 0) {
-        setSelected(hits[0].object.userData.mission);
-        setPanelVisible(true);
-      } else {
-        setPanelVisible(false);
-        setTimeout(() => setSelected(null), 300);
+    // ── Mouse events ──────────────────────────────────────────────────────────
+    const onMouseDown = (e) => {
+      s.isDragging  = true;
+      s.hasDragged  = false;
+      s.mouseDownX  = e.clientX;
+      s.mouseDownY  = e.clientY;
+      s.panAtDown   = { x: s.targetPan.x, y: s.targetPan.y };
+    };
+    const onMouseMove = (e) => {
+      if (!s.isDragging) return;
+      const dx = e.clientX - s.mouseDownX;
+      const dy = e.clientY - s.mouseDownY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) s.hasDragged = true;
+      const f = s.zoom / window.innerWidth * 1.8;
+      s.targetPan.x = s.panAtDown.x - dx * f;
+      s.targetPan.y = s.panAtDown.y + dy * f;
+      clampPan();
+    };
+    const onMouseUp = (e) => {
+      if (!s.isDragging) return;
+      s.isDragging = false;
+      if (!s.hasDragged) {
+        const m = pick(e.clientX, e.clientY);
+        if (m) { setSelected(m); setPanelOpen(true); }
+        else   { setPanelOpen(false); setTimeout(() => setSelected(null), 300); }
       }
     };
+    const onWheel = (e) => {
+      e.preventDefault();
+      s.targetZoom = Math.max(3.5, Math.min(14, s.targetZoom + e.deltaY * 0.01));
+    };
 
-    const onClick    = (e) => pick(e.clientX, e.clientY);
-    const onTouchEnd = (e) => { e.preventDefault(); pick(e.changedTouches[0].clientX, e.changedTouches[0].clientY); };
+    // ── Touch events ──────────────────────────────────────────────────────────
+    const getTouchDist = (touches) =>
+      Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
 
-    canvas.addEventListener("click", onClick);
-    canvas.addEventListener("touchend", onTouchEnd, { passive: false });
+    const onTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        s.touchStartX     = e.touches[0].clientX;
+        s.touchStartY     = e.touches[0].clientY;
+        s.touchPanAtDown  = { x: s.targetPan.x, y: s.targetPan.y };
+        s.touchHasDragged = false;
+        s.pinchDist       = null;
+      } else if (e.touches.length === 2) {
+        s.pinchDist = getTouchDist(e.touches);
+      }
+    };
+    const onTouchMove = (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].clientX - s.touchStartX;
+        const dy = e.touches[0].clientY - s.touchStartY;
+        if (Math.abs(dx) > 6 || Math.abs(dy) > 6) s.touchHasDragged = true;
+        const f = s.zoom / window.innerWidth * 2.5;
+        s.targetPan.x = s.touchPanAtDown.x - dx * f;
+        s.targetPan.y = s.touchPanAtDown.y + dy * f;
+        clampPan();
+      } else if (e.touches.length === 2 && s.pinchDist !== null) {
+        const d = getTouchDist(e.touches);
+        s.targetZoom = Math.max(3.5, Math.min(14, s.targetZoom - (d - s.pinchDist) * 0.02));
+        s.pinchDist  = d;
+      }
+    };
+    const onTouchEnd = (e) => {
+      if (e.changedTouches.length === 1 && !s.touchHasDragged) {
+        const m = pick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        if (m) { setSelected(m); setPanelOpen(true); }
+        else   { setPanelOpen(false); setTimeout(() => setSelected(null), 300); }
+      }
+      s.pinchDist = null;
+    };
+
+    canvas.addEventListener("mousedown",  onMouseDown);
+    window.addEventListener("mousemove",  onMouseMove);
+    window.addEventListener("mouseup",    onMouseUp);
+    canvas.addEventListener("wheel",      onWheel,       { passive: false });
+    canvas.addEventListener("touchstart", onTouchStart,  { passive: true });
+    canvas.addEventListener("touchmove",  onTouchMove,   { passive: false });
+    canvas.addEventListener("touchend",   onTouchEnd,    { passive: true });
 
     return () => {
-      cancelAnimationFrame(frameRef.current);
-      window.removeEventListener("resize", onResize);
-      canvas.removeEventListener("click", onClick);
-      canvas.removeEventListener("touchend", onTouchEnd);
+      cancelAnimationFrame(s.frameId);
+      window.removeEventListener("resize",    onResize);
+      canvas.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup",   onMouseUp);
+      canvas.removeEventListener("wheel",     onWheel);
+      canvas.removeEventListener("touchstart",onTouchStart);
+      canvas.removeEventListener("touchmove", onTouchMove);
+      canvas.removeEventListener("touchend",  onTouchEnd);
       renderer.dispose();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missions.length]);
 
   const pct = selected
-    ? Math.min(100, (selected.current_count / selected.required_events) * 100)
+    ? Math.min(100, Math.round((selected.current_count / selected.required_events) * 100))
     : 0;
 
   return (
-    <div className="fixed inset-0 z-50" style={{ background: "#05101e" }}>
-      {/* Canvas Three.js */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <div
+      className="fixed inset-0 z-50 overflow-hidden"
+      style={{ background: "#020b18", cursor: stateRef.current.isDragging ? "grabbing" : "grab" }}
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction: "none" }} />
 
-      {/* Titolo */}
-      <div className="absolute top-5 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none">
-        <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.35em", color: "rgba(56,189,248,0.5)", textTransform: "uppercase" }}>
+      {/* ── Titolo ── */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none">
+        <div style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.4em", color: "rgba(56,189,248,0.4)", textTransform: "uppercase" }}>
           Trama Viva
         </div>
-        <div style={{ fontWeight: 900, fontSize: 17, color: "rgba(255,255,255,0.8)", lineHeight: 1.2 }}>
+        <div style={{ fontWeight: 900, fontSize: isMob ? 14 : 16, color: "rgba(255,255,255,0.72)", lineHeight: 1.2, marginTop: 2 }}>
           Costellazione delle Missioni
         </div>
       </div>
 
-      {/* Back */}
+      {/* ── Back ── */}
       <button
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={onBack}
-        className="absolute top-5 left-5 flex items-center gap-2 text-sm font-bold transition-colors"
-        style={{ color: "rgba(255,255,255,0.45)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "8px 16px", borderRadius: 99 }}
+        style={{
+          position: "absolute", top: 14, left: 14, zIndex: 10,
+          display: "flex", alignItems: "center", gap: 6,
+          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          color: "rgba(255,255,255,0.5)", borderRadius: 99,
+          padding: isMob ? "8px 14px" : "8px 16px",
+          fontSize: isMob ? 12 : 13, fontWeight: 700, cursor: "pointer",
+        }}
       >
-        <ChevronLeft size={14} /> Area soci
+        <ChevronLeft size={13} /> Area soci
       </button>
 
-      {/* Legenda */}
-      <div className="absolute bottom-6 right-5 flex flex-col gap-2 pointer-events-none select-none">
+      {/* ── Legenda ── */}
+      <div
+        className="select-none pointer-events-none"
+        style={{
+          position: "absolute",
+          ...(isMob
+            ? { bottom: 48, left: 14, display: "flex", flexDirection: "row", gap: 12 }
+            : { bottom: 28, right: 18, display: "flex", flexDirection: "column", gap: 6 }
+          ),
+          opacity: panelOpen && isMob ? 0 : 1,
+          transition: "opacity 0.3s",
+        }}
+      >
         {[
           { color: "#f59e0b", label: "Completata" },
           { color: "#38bdf8", label: "Sbloccata" },
-          { color: "#1e3a5f", label: "Bloccata" },
-        ].map(({ color, label }) => (
-          <div key={label} className="flex items-center gap-2">
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}` }} />
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{label}</span>
+          { color: "#2a4a7f", label: "Bloccata", border: "rgba(255,255,255,0.18)" },
+        ].map(({ color, label, border }) => (
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", flexShrink: 0, background: color, boxShadow: `0 0 6px ${color}`, border: border ? `1px solid ${border}` : undefined }} />
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.28)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Label stelle */}
+      {/* ── Hint navigazione ── */}
+      {!panelOpen && (
+        <div className="select-none pointer-events-none" style={{
+          position: "absolute", bottom: isMob ? 26 : 28, left: "50%", transform: "translateX(-50%)",
+          fontSize: 9, color: "rgba(255,255,255,0.16)", fontWeight: 700,
+          letterSpacing: "0.15em", textTransform: "uppercase", textAlign: "center", whiteSpace: "nowrap",
+        }}>
+          {isMob
+            ? "Trascina · Pizzica per zoomare · Tocca una stella"
+            : "Trascina per navigare · Scroll per zoomare · Clicca una stella"}
+        </div>
+      )}
+
+      {/* ── Label stelle ── */}
       {labels.map((lp, i) => (
-        <div
-          key={i}
-          className="absolute pointer-events-none select-none text-center"
-          style={{ left: lp.x, top: lp.y - 28, transform: "translateX(-50%)" }}
-        >
-          <div style={{ fontSize: 14, lineHeight: 1, filter: lp.locked ? "grayscale(1) opacity(0.25)" : "none" }}>
+        <div key={i} className="select-none pointer-events-none" style={{
+          position: "absolute", left: lp.x, top: lp.y - (isMob ? 22 : 28),
+          transform: "translateX(-50%)", textAlign: "center",
+        }}>
+          <div style={{ fontSize: isMob ? 12 : 14, lineHeight: 1, filter: lp.locked ? "grayscale(1) opacity(0.2)" : "none" }}>
             {lp.mission.emoji}
           </div>
           <div style={{
-            fontSize: 9, fontWeight: 800, letterSpacing: "0.05em", marginTop: 2,
-            color: lp.locked ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.7)",
-            maxWidth: 80, textAlign: "center", lineHeight: 1.2,
-            textShadow: lp.locked ? "none" : "0 1px 8px rgba(0,0,0,0.8)",
+            fontSize: isMob ? 7 : 9, fontWeight: 800, letterSpacing: "0.04em", marginTop: 2,
+            color: lp.locked ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.65)",
+            maxWidth: isMob ? 60 : 78, lineHeight: 1.2,
+            textShadow: lp.locked ? "none" : "0 1px 8px rgba(0,0,0,0.9)",
           }}>
             {lp.mission.title}
           </div>
         </div>
       ))}
 
-      {/* Pannello dettaglio missione */}
+      {/* ── Pannello dettaglio ── */}
       <div
-        className="absolute left-0 right-0 bottom-0 transition-transform duration-300 ease-out"
+        onPointerDown={(e) => e.stopPropagation()}
         style={{
-          transform: panelVisible ? "translateY(0)" : "translateY(110%)",
-          background: "rgba(8,18,38,0.97)",
-          borderTop: "1px solid rgba(56,189,248,0.2)",
-          backdropFilter: "blur(20px)",
-          padding: "24px 24px 32px",
-          maxHeight: "55vh",
+          position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20,
+          transform: panelOpen ? "translateY(0)" : "translateY(110%)",
+          transition: "transform 0.35s cubic-bezier(0.32,0.72,0,1)",
+          background: "rgba(4,10,28,0.97)",
+          borderTop: "1px solid rgba(56,189,248,0.16)",
+          backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+          padding: isMob ? "18px 18px 40px" : "24px 32px 44px",
+          maxHeight: isMob ? "58vh" : "52vh",
           overflowY: "auto",
         }}
-        onClick={(e) => e.stopPropagation()}
       >
+        <button
+          onClick={() => { setPanelOpen(false); setTimeout(() => setSelected(null), 300); }}
+          style={{
+            position: "absolute", top: 14, right: 14,
+            width: 28, height: 28, borderRadius: 99,
+            background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+            color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 13, cursor: "pointer",
+          }}
+        >✕</button>
+
         {selected && (
-          <div className="max-w-xl mx-auto">
-            {/* Header missione */}
-            <div className="flex items-start gap-4 mb-4">
+          <div style={{ maxWidth: 520, margin: "0 auto" }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "flex-start", marginBottom: 14 }}>
               <div style={{
-                width: 56, height: 56, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 26, flexShrink: 0,
+                width: isMob ? 46 : 54, height: isMob ? 46 : 54, borderRadius: 13,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: isMob ? 20 : 24, flexShrink: 0,
                 background: selected.unlocked ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.04)",
-                border: selected.unlocked ? "1px solid rgba(245,158,11,0.35)" : "1px solid rgba(255,255,255,0.08)",
-                boxShadow: selected.unlocked ? "0 0 20px rgba(245,158,11,0.2)" : "none",
-                filter: selected.unlocked ? "none" : "grayscale(1) opacity(0.4)",
+                border: selected.unlocked ? "1px solid rgba(245,158,11,0.32)" : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: selected.unlocked ? "0 0 18px rgba(245,158,11,0.18)" : "none",
+                filter: selected.unlocked ? "none" : "grayscale(1) opacity(0.35)",
               }}>
                 {selected.emoji}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span style={{ fontWeight: 900, fontSize: 16, color: selected.unlocked ? "white" : "rgba(255,255,255,0.3)", lineHeight: 1.2 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 5 }}>
+                  <span style={{ fontWeight: 900, fontSize: isMob ? 14 : 15, color: selected.unlocked ? "white" : "rgba(255,255,255,0.25)", lineHeight: 1.2 }}>
                     {selected.title}
                   </span>
                   {selected.unlocked && selected.current_count >= selected.required_events && (
-                    <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.15em", background: "rgba(245,158,11,0.18)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.4)", padding: "2px 8px", borderRadius: 99, textTransform: "uppercase" }}>
-                      ✓ Completata
-                    </span>
+                    <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.15em", background: "rgba(245,158,11,0.18)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.38)", padding: "2px 7px", borderRadius: 99, textTransform: "uppercase" }}>✓ Completata</span>
                   )}
                   {selected.unlocked && selected.current_count < selected.required_events && (
-                    <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.15em", background: "rgba(56,189,248,0.15)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.35)", padding: "2px 8px", borderRadius: 99, textTransform: "uppercase" }}>
-                      In corso
-                    </span>
+                    <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.15em", background: "rgba(56,189,248,0.14)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.32)", padding: "2px 7px", borderRadius: 99, textTransform: "uppercase" }}>In corso</span>
                   )}
                   {!selected.unlocked && (
-                    <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.15em", background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.1)", padding: "2px 8px", borderRadius: 99, textTransform: "uppercase" }}>
-                      <Lock size={8} style={{ display: "inline", marginRight: 3 }} />Bloccata
+                    <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.15em", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.1)", padding: "2px 7px", borderRadius: 99, textTransform: "uppercase", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <Lock size={7} /> Bloccata
                     </span>
                   )}
                 </div>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, margin: 0 }}>
+                <p style={{ fontSize: isMob ? 11 : 12, color: "rgba(255,255,255,0.4)", lineHeight: 1.6, margin: 0 }}>
                   {selected.description}
                 </p>
               </div>
             </div>
 
-            {/* Barra progresso */}
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Progressione</span>
-                <span style={{ fontSize: 10, color: selected.unlocked ? "#38bdf8" : "rgba(255,255,255,0.25)", fontWeight: 800 }}>
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.28)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Progressione</span>
+                <span style={{ fontSize: 10, color: selected.unlocked ? "#38bdf8" : "rgba(255,255,255,0.2)", fontWeight: 800 }}>
                   {selected.current_count} / {selected.required_events} eventi
                 </span>
               </div>
-              <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 99, overflow: "hidden" }}>
+              <div style={{ height: 4, background: "rgba(255,255,255,0.07)", borderRadius: 99, overflow: "hidden" }}>
                 <div style={{
                   height: "100%", width: `${pct}%`, borderRadius: 99,
-                  background: selected.current_count >= selected.required_events
+                  background: pct >= 100
                     ? "linear-gradient(90deg,#f59e0b,#fbbf24)"
                     : selected.unlocked
                     ? "linear-gradient(90deg,#38bdf8,#818cf8)"
-                    : "rgba(255,255,255,0.1)",
-                  boxShadow: selected.unlocked ? "0 0 10px rgba(56,189,248,0.5)" : "none",
-                  transition: "width 0.8s ease",
+                    : "rgba(255,255,255,0.07)",
+                  boxShadow: selected.unlocked && pct > 0 ? "0 0 10px rgba(56,189,248,0.4)" : "none",
+                  transition: "width 0.9s ease",
                 }} />
               </div>
             </div>
 
-            {/* Premio */}
             {selected.reward && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, color: selected.unlocked ? "#f59e0b" : "rgba(255,255,255,0.2)", fontSize: 12, fontWeight: 700 }}>
-                <Gift size={13} /> {selected.reward}
+              <div style={{ display: "flex", alignItems: "center", gap: 7, color: selected.unlocked ? "#f59e0b" : "rgba(255,255,255,0.16)", fontSize: isMob ? 11 : 12, fontWeight: 700 }}>
+                <Gift size={12} /> {selected.reward}
               </div>
             )}
           </div>
         )}
       </div>
-
-      {/* Hint tocca */}
-      {labels.length > 0 && !panelVisible && (
-        <div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-none select-none"
-          style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", textAlign: "center" }}
-        >
-          Tocca una stella per scoprire la missione
-        </div>
-      )}
     </div>
   );
 };
