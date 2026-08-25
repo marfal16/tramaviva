@@ -218,7 +218,8 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4" onClick={onClose}>
-      <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] overflow-y-auto">
 
         {/* Header cinematico */}
         <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">
@@ -371,6 +372,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
           )}
         </div>
       </div>
+      </div>
     </div>
   );
 };
@@ -481,7 +483,8 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
-      <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
           <h2 className="font-display font-black text-xl text-tv-green-deep">Proponi un film</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
@@ -597,6 +600,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   );
@@ -717,7 +721,8 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
-      <div className="bg-tv-cream rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] overflow-y-auto">
 
         {/* Header con poster */}
         <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">
@@ -829,6 +834,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
