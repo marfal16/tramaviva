@@ -227,7 +227,9 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     sun.shadow.camera.left = sun.shadow.camera.bottom = -8;
     sun.shadow.camera.right = sun.shadow.camera.top   =  8;
     scene.add(sun);
-    scene.add(new THREE.DirectionalLight(0xddeeff, 0.35).position.set(-4, 4, -3) && new THREE.DirectionalLight(0xddeeff, 0.35));
+    const fillLight = new THREE.DirectionalLight(0xddeeff, 0.35);
+    fillLight.position.set(-4, 4, -3);
+    scene.add(fillLight);
 
     // ── Piano (ombra sotto il ragno) ──────────────────────────────────────────
     const floor = new THREE.Mesh(
@@ -292,10 +294,9 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     s.mNodes = mNodes;
 
     // Hub centrale
-    scene.add(Object.assign(
-      new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 10), new THREE.MeshPhongMaterial({ color: 0xb0a080, shininess: 30 })),
-      { position: new THREE.Vector3(0, 0.01, 0) }
-    ));
+    const hub = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 10), new THREE.MeshPhongMaterial({ color: 0xb0a080, shininess: 30 }));
+    hub.position.set(0, 0.01, 0);
+    scene.add(hub);
 
     // ── Ragno ─────────────────────────────────────────────────────────────────
     const spider = buildSpider();
