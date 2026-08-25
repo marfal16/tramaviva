@@ -1,303 +1,346 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { OrbitControls }   from "three/examples/jsm/controls/OrbitControls.js";
 import { EffectComposer }  from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass }      from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { ChevronLeft, Gift, Lock, Star } from "lucide-react";
+import { ChevronLeft, Gift, Lock } from "lucide-react";
 
-// ── Posizioni costellazione ───────────────────────────────────────────────────
-const STAR_POSITIONS = [
-  [-2.2,  1.1], [-0.7,  1.8], [ 0.8,  1.3], [ 2.3,  1.9], [ 2.9,  0.3],
-  [ 1.6, -0.9], [ 0.2, -1.6], [-1.3, -1.4], [-2.5, -0.4], [ 0.4,  0.1],
+// ── Palette Trama Viva ────────────────────────────────────────────────────────
+const BG         = 0x030a05;
+const C_CREAM    = new THREE.Color(0xf5f0e8);
+const C_GOLD     = new THREE.Color(0xc8a030);   // missione completata
+const C_BORD     = new THREE.Color(0x78141f);   // missione disponibile
+const C_LOCKED   = new THREE.Color(0x1c2a1c);   // bloccata
+const C_WEB      = new THREE.Color(0xd4c9a8);   // filo base
+const C_WEB_DONE = new THREE.Color(0xe8d070);   // filo completato
+const C_WEB_AVAIL= new THREE.Color(0xaa3020);   // filo disponibile
+
+// ── Struttura ragnatela: 6 raggi × 4 anelli ──────────────────────────────────
+const RADIALS = 6;
+const RINGS   = [1.0, 1.85, 2.7, 3.5];
+
+// 10 posizioni missioni sulla ragnatela (anello, raggio)
+const MISSION_J = [
+  [0,0],[0,2],[0,4],
+  [1,1],[1,3],[1,5],
+  [2,0],[2,2],[2,4],
+  [3,3],
 ];
 
-// ── Palette gioco ─────────────────────────────────────────────────────────────
-const C_DONE      = new THREE.Color(0xffd166); // oro gioco
-const C_AVAILABLE = new THREE.Color(0x06d6e0); // ciano gioco
-const C_LOCKED    = new THREE.Color(0x2a2d4a); // grigio-viola spento
-
-// ── Glow texture (canvas) ─────────────────────────────────────────────────────
-function makeGlow(size = 128) {
-  const c = document.createElement("canvas");
-  c.width = c.height = size;
-  const ctx = c.getContext("2d");
-  const h = size / 2;
-  const g = ctx.createRadialGradient(h, h, 0, h, h, h);
-  g.addColorStop(0,    "rgba(255,255,255,1)");
-  g.addColorStop(0.08, "rgba(255,255,255,0.9)");
-  g.addColorStop(0.25, "rgba(255,255,255,0.45)");
-  g.addColorStop(0.55, "rgba(255,255,255,0.1)");
-  g.addColorStop(1,    "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
-  return new THREE.CanvasTexture(c);
+function jPos(ring, rad) {
+  const a = (rad / RADIALS) * Math.PI * 2 + Math.PI * 0.5;
+  const r = RINGS[ring];
+  const z = Math.sin(a * 1.8) * 0.15 * (ring * 0.6 + 0.3);
+  return new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, z);
 }
 
-// ── Nebulosa stylized (canvas) ────────────────────────────────────────────────
-function makeNebula(r, g, b, w = 256, h = 256) {
-  const c = document.createElement("canvas");
-  c.width = w; c.height = h;
-  const ctx = c.getContext("2d");
-  // blob principale
-  const g1 = ctx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.48);
-  g1.addColorStop(0,   `rgba(${r},${g},${b},0.55)`);
-  g1.addColorStop(0.4, `rgba(${r},${g},${b},0.25)`);
-  g1.addColorStop(0.75,`rgba(${r},${g},${b},0.06)`);
-  g1.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-  ctx.fillStyle = g1;
-  ctx.fillRect(0, 0, w, h);
-  // secondo blob offset
-  const g2 = ctx.createRadialGradient(w*0.65, h*0.35, 0, w*0.65, h*0.35, w*0.3);
-  g2.addColorStop(0,   `rgba(${r},${g},${b},0.3)`);
-  g2.addColorStop(0.5, `rgba(${r},${g},${b},0.08)`);
-  g2.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-  ctx.fillStyle = g2;
-  ctx.fillRect(0, 0, w, h);
-  return new THREE.CanvasTexture(c);
+function ease(t) { return t < 0.5 ? 2*t*t : 1-((-2*t+2)**2)*0.5; }
+
+// ── Stringa filo con sag ──────────────────────────────────────────────────────
+function makeThread(from, to, color, opacity, scene) {
+  const mid = from.clone().lerp(to, 0.5);
+  const dist = from.distanceTo(to);
+  mid.y -= dist * 0.035;
+  mid.z  = (from.z + to.z) * 0.5;
+  const curve = new THREE.QuadraticBezierCurve3(from, mid, to);
+  const pts   = curve.getPoints(18);
+  const geo   = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat   = new THREE.LineBasicMaterial({
+    color, transparent:true, opacity,
+    blending: THREE.AdditiveBlending, depthWrite:false,
+  });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  return line;
+}
+
+// ── Ragno 3D ──────────────────────────────────────────────────────────────────
+function buildSpider() {
+  const g = new THREE.Group();
+
+  const mBody = new THREE.MeshPhongMaterial({ color:0x0a120a, shininess:120, specular:0x334433 });
+  const mAbd  = new THREE.MeshPhongMaterial({ color:0x78141f, shininess:60,  specular:0x441122, emissive:0x180005 });
+  const mLeg  = new THREE.MeshPhongMaterial({ color:0x0d180d, shininess:50 });
+  const mEye  = new THREE.MeshBasicMaterial({ color:0xddaa00 });
+
+  // Torace
+  const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 14), mBody);
+  g.add(thorax);
+
+  // Addome (bordeaux, ovale)
+  const abd = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 14), mAbd);
+  abd.position.set(-0.26, -0.02, 0);
+  abd.scale.set(1, 1.05, 1.12);
+  g.add(abd);
+
+  // 4 coppie di occhi sul torace anteriore
+  [[-0.024, 0.044],[ 0.024, 0.044],[-0.048, 0.016],[ 0.048, 0.016]].forEach(([ez,ey]) => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), mEye);
+    eye.position.set(0.10, ey, ez);
+    g.add(eye);
+  });
+
+  // Zampe: 4 per lato con TubeGeometry (CatmullRomCurve3)
+  [0.12, 0.36, 0.63, 0.87].forEach((frac) => {
+    [-1, 1].forEach(side => {
+      const sx = -0.08 - frac * 0.06,  sy = -0.01, sz = side * 0.10;
+      const kx = sx - 0.12,           ky = -0.03 - frac*0.02, kz = side*(0.10 + 0.20 + frac*0.12);
+      const tx = kx - 0.09,           ty = ky - 0.06,         tz = side*(0.10 + 0.16 + frac*0.22);
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(sx, sy, sz),
+        new THREE.Vector3(kx, ky, kz),
+        new THREE.Vector3(tx, ty, tz),
+      ]);
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 6, 0.014, 4, false), mLeg));
+    });
+  });
+
+  return g;
 }
 
 export const MissioniCostellazione = ({ missionsData, onBack }) => {
-  const canvasRef = useRef();
+  const mountRef  = useRef();
   const labelsRef = useRef();
   const stateRef  = useRef({
-    camera: null, renderer: null, composer: null,
-    stars: [], hitMeshes: [], rings: [],
-    panOffset: {x:0,y:0}, targetPan: {x:0,y:0},
-    zoom: 7, targetZoom: 7,
-    isDragging: false, mouseDownX:0, mouseDownY:0,
-    panAtDown: {x:0,y:0}, hasDragged: false,
-    pinchDist: null, touchStartX:0, touchStartY:0,
-    touchPanAtDown: {x:0,y:0}, touchHasDragged: false,
-    frameId: null,
+    spider: null, controls: null, composer: null, renderer: null, camera: null,
+    nodes: [], threads: [],
+    spiderPos:   new THREE.Vector3(0,0,0.4),
+    spiderTarget:new THREE.Vector3(0,0,0.4),
+    spiderT:0, isCrawling:false, returnAfter:false,
+    frameId: null, t:0,
   });
 
   const [selected, setSelected]   = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [labelData, setLabelData] = useState([]);
 
   const missions = missionsData?.missions || [];
   const isMob    = window.innerWidth < 768;
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const container = mountRef.current;
     const W = window.innerWidth, H = window.innerHeight;
     const s = stateRef.current;
 
-    // Scene + camera
+    // ── Scene ─────────────────────────────────────────────────────────────────
     const scene  = new THREE.Scene();
-    scene.fog    = new THREE.FogExp2(0x080918, 0.012); // nebbia profonda
-    const camera = new THREE.PerspectiveCamera(60, W/H, 0.1, 300);
-    camera.position.set(0, 0, 7);
+    scene.fog    = new THREE.FogExp2(BG, 0.055);
+    scene.background = new THREE.Color(BG);
+
+    const camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 100);
+    camera.position.set(0, 1.5, 8);
     s.camera = camera;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
     renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x080918);
     renderer.toneMapping        = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.3;
+    container.appendChild(renderer.domElement);
     s.renderer = renderer;
 
-    const glowTex = makeGlow(128);
+    // ── Luci ─────────────────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0x0d1a0d, 0.8));
+    const centerLight = new THREE.PointLight(0xf5eedd, 2.0, 12);
+    centerLight.position.set(0, 0, 1.5);
+    scene.add(centerLight);
+    const rimLight = new THREE.PointLight(0x78141f, 0.8, 8);
+    rimLight.position.set(-3, 2, -1);
+    scene.add(rimLight);
 
-    // ── Stelle sfondo — bianche/blu/viola, varie dimensioni ──────────────────
-    const BG = isMob ? 2500 : 4000;
-    const bgPos = new Float32Array(BG*3);
-    const bgCol = new Float32Array(BG*3);
-    const bgPal = [
-      [1.0, 1.0, 1.0], [0.85, 0.9, 1.0], [0.75, 0.8, 1.0],
-      [0.9, 0.85, 1.0], [1.0, 0.95, 0.9],
-    ];
-    for (let i=0;i<BG;i++) {
-      bgPos[i*3]   = (Math.random()-0.5)*100;
-      bgPos[i*3+1] = (Math.random()-0.5)*100;
-      bgPos[i*3+2] = (Math.random()-0.5)*30 - 8;
-      const [r,g,b] = bgPal[Math.floor(Math.random()*bgPal.length)];
-      const br = 0.3 + Math.random()*0.7;
-      bgCol[i*3]=r*br; bgCol[i*3+1]=g*br; bgCol[i*3+2]=b*br;
+    // ── OrbitControls ─────────────────────────────────────────────────────────
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping    = true;
+    controls.dampingFactor    = 0.06;
+    controls.autoRotate       = true;
+    controls.autoRotateSpeed  = 0.35;
+    controls.enablePan        = false;
+    controls.minDistance      = 4;
+    controls.maxDistance      = 14;
+    controls.maxPolarAngle    = Math.PI * 0.72;
+    controls.minPolarAngle    = Math.PI * 0.18;
+    s.controls = controls;
+
+    // ── Hub centrale ─────────────────────────────────────────────────────────
+    const hub = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 12, 12),
+      new THREE.MeshBasicMaterial({ color:0xf5f0e8 })
+    );
+    scene.add(hub);
+
+    // ── Fili ragnatela ────────────────────────────────────────────────────────
+    const HUB   = new THREE.Vector3(0, 0, 0);
+    const threads = [];
+
+    // funzione di stato filo: max completamento delle missioni adiacenti
+    const getMissionState = (ring, rad) => {
+      const idx = MISSION_J.findIndex(([mr,mm]) => mr===ring && mm===rad);
+      if (idx < 0 || idx >= missions.length) return "locked";
+      const m = missions[idx];
+      if (!m.unlocked) return "locked";
+      if (m.current_count >= m.required_events) return "done";
+      return "available";
+    };
+
+    const strandColor = (state) => state === "done" ? C_WEB_DONE : state === "available" ? C_WEB_AVAIL : C_WEB;
+    const strandOpacity = (state) => state === "done" ? 0.85 : state === "available" ? 0.40 : 0.08;
+
+    // Fili raggi (hub → ogni giunzione lungo ciascun raggio)
+    for (let r = 0; r < RADIALS; r++) {
+      let prev = HUB.clone();
+      for (let ring = 0; ring < RINGS.length; ring++) {
+        const next   = jPos(ring, r);
+        const state  = getMissionState(ring, r);
+        const line   = makeThread(prev, next, strandColor(state), strandOpacity(state), scene);
+        threads.push(line);
+        prev = next.clone();
+      }
     }
-    const bgGeo = new THREE.BufferGeometry();
-    bgGeo.setAttribute("position", new THREE.BufferAttribute(bgPos,3));
-    bgGeo.setAttribute("color",    new THREE.BufferAttribute(bgCol,3));
-    const bgStars = new THREE.Points(bgGeo, new THREE.PointsMaterial({
-      size: 0.22, map: glowTex, vertexColors: true,
-      transparent: true, opacity:1, sizeAttenuation:true,
-      blending: THREE.AdditiveBlending, depthWrite:false,
-    }));
-    scene.add(bgStars);
 
-    // ── Nebulose stylized (grandi sprite piani) ───────────────────────────────
-    const nebs = [
-      { rgb:[130,60,220], pos:[-5, 2,-14],  sx:18, sy:14, rot:0.5,  op:0.55 },
-      { rgb:[20,160,220], pos:[ 6,-4,-12],  sx:16, sy:12, rot:-0.3, op:0.45 },
-      { rgb:[220,50,120], pos:[-3,-6,-10],  sx:12, sy:10, rot:1.1,  op:0.40 },
-      { rgb:[40,200,150], pos:[ 7, 6,-16],  sx:14, sy:11, rot:-0.8, op:0.35 },
-    ];
-    nebs.forEach(({ rgb:[r,g,b], pos, sx, sy, rot, op }) => {
-      const spr = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: makeNebula(r,g,b), transparent:true, opacity:op,
-        blending: THREE.AdditiveBlending, depthWrite:false,
-      }));
-      spr.scale.set(sx, sy, 1);
-      spr.position.set(...pos);
-      spr.material.rotation = rot;
-      scene.add(spr);
-    });
+    // Fili anello (tra raggi adiacenti per ogni anello)
+    for (let ring = 0; ring < RINGS.length; ring++) {
+      for (let r = 0; r < RADIALS; r++) {
+        const from  = jPos(ring, r);
+        const to    = jPos(ring, (r+1) % RADIALS);
+        const s1    = getMissionState(ring, r);
+        const s2    = getMissionState(ring, (r+1) % RADIALS);
+        const state = (s1 === "done" || s2 === "done") ? "done" : (s1 === "available" || s2 === "available") ? "available" : "locked";
+        const line  = makeThread(from, to, strandColor(state), strandOpacity(state), scene);
+        threads.push(line);
+      }
+    }
+    s.threads = threads;
 
-    // ── Stelle missione ───────────────────────────────────────────────────────
-    const stars    = [];
+    // ── Nodi missione ─────────────────────────────────────────────────────────
+    const nodes    = [];
     const hitMeshes= [];
-    const rings    = [];
 
     missions.forEach((m, i) => {
-      const [x,y] = STAR_POSITIONS[i % STAR_POSITIONS.length];
-      const done      = m.unlocked && m.current_count >= m.required_events;
-      const available = m.unlocked && !done;
-      const locked    = !m.unlocked;
-      const color     = done ? C_DONE : available ? C_AVAILABLE : C_LOCKED;
-      const radius    = done ? 0.18 : available ? 0.13 : 0.08;
+      const [ring, rad] = MISSION_J[i % MISSION_J.length];
+      const pos   = jPos(ring, rad);
+      const done  = m.unlocked && m.current_count >= m.required_events;
+      const avail = m.unlocked && !done;
+      const locked= !m.unlocked;
+      const color = done ? C_GOLD : avail ? C_BORD : C_LOCKED;
+      const radius= done ? 0.14 : avail ? 0.11 : 0.07;
 
-      // Sfera core
-      const core = new THREE.Mesh(
-        new THREE.SphereGeometry(radius, 20, 20),
-        new THREE.MeshBasicMaterial({ color })
+      const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 16, 16),
+        new THREE.MeshPhongMaterial({ color, shininess:80, emissive: done ? 0x1a0f00 : avail ? 0x100003 : 0x000000 })
       );
-      core.position.set(x, y, 0);
-      core.userData = { mission:m, done, available, locked, radius };
-      scene.add(core);
-      stars.push(core);
+      sphere.position.copy(pos);
+      sphere.userData = { mission:m, done, avail, locked, pos:pos.clone() };
+      scene.add(sphere);
+      nodes.push(sphere);
 
-      // Glow sprite sopra la sfera
+      // Glow sprite per non-locked
       if (!locked) {
-        const gsz = done ? 1.8 : 1.2;
-        const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-          map: glowTex, color,
-          blending: THREE.AdditiveBlending, transparent:true,
-          opacity: done ? 0.7 : 0.5, depthWrite:false,
-        }));
-        glow.scale.set(gsz, gsz, 1);
-        glow.position.set(x, y, 0.02);
-        scene.add(glow);
-        core.userData.glow = glow;
-
-        // Anello orbitante (solo disponibili/completate)
-        const ringGeo = new THREE.RingGeometry(radius*1.8, radius*2.1, 48);
-        const ringMat = new THREE.MeshBasicMaterial({
-          color, transparent:true,
-          opacity: done ? 0.55 : 0.35,
-          side: THREE.DoubleSide,
+        const glowGeo = new THREE.SphereGeometry(radius * 3.5, 10, 10);
+        const glowMat = new THREE.MeshBasicMaterial({
+          color, transparent:true, opacity:0.08,
+          blending: THREE.AdditiveBlending, depthWrite:false
         });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.position.set(x, y, 0);
-        ring.rotation.x = Math.PI * 0.18; // inclinato per effetto 3D
-        scene.add(ring);
-        rings.push({ mesh:ring, phase: i*0.9 });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        glow.position.copy(pos);
+        scene.add(glow);
+        sphere.userData.glow = glow;
       }
 
       // Hit sphere invisibile
       const hit = new THREE.Mesh(
-        new THREE.SphereGeometry(isMob?0.55:0.35, 6,6),
+        new THREE.SphereGeometry(isMob ? 0.4 : 0.28, 6, 6),
         new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false })
       );
-      hit.position.set(x, y, 0);
-      hit.userData = core.userData;
+      hit.position.copy(pos);
+      hit.userData = sphere.userData;
       scene.add(hit);
       hitMeshes.push(hit);
     });
-    s.stars     = stars;
-    s.hitMeshes = hitMeshes;
-    s.rings     = rings;
+    s.nodes    = nodes;
 
-    // ── Linee costellazione glow ──────────────────────────────────────────────
-    if (missions.length >= 2) {
-      const pts = missions.map((_,i)=>{const[x,y]=STAR_POSITIONS[i%STAR_POSITIONS.length];return new THREE.Vector3(x,y,0);});
-      // linea base sottile
-      scene.add(new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color:0x8899cc, transparent:true, opacity:0.25 })
-      ));
-    }
+    // ── Ragno ─────────────────────────────────────────────────────────────────
+    const spider = buildSpider();
+    spider.position.set(0, 0, 0.45);
+    scene.add(spider);
+    s.spider = spider;
+
+    // Filo di seta che si srotola quando si muove (aggiornato ogni frame)
+    const silkPoints = [new THREE.Vector3(0,0,0.45), new THREE.Vector3(0,0,0.45)];
+    const silkGeo = new THREE.BufferGeometry().setFromPoints(silkPoints);
+    const silkMat = new THREE.LineBasicMaterial({ color:0xf5f0e8, transparent:true, opacity:0.6, blending:THREE.AdditiveBlending });
+    const silkLine = new THREE.Line(silkGeo, silkMat);
+    scene.add(silkLine);
 
     // ── EffectComposer + Bloom ────────────────────────────────────────────────
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(new UnrealBloomPass(
       new THREE.Vector2(isMob ? W/2 : W, isMob ? H/2 : H),
-      isMob ? 1.1 : 1.5,  // strength — gioco, vivace
-      0.7,                  // radius
-      0.1,                  // threshold basso → tutto brilla un po'
+      isMob ? 0.8 : 1.0, 0.6, 0.15
     ));
     s.composer = composer;
 
-    // ── Label DOM ─────────────────────────────────────────────────────────────
-    const updateLabelDOM = () => {
-      const container = labelsRef.current;
-      if (!container) return;
+    // ── Label DOM helper ──────────────────────────────────────────────────────
+    const updateLabels = () => {
       camera.updateMatrixWorld(true);
       camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
       const ww = window.innerWidth, hh = window.innerHeight;
-      const off = isMob ? 24 : 32;
-      stars.forEach((star, i) => {
-        const el = container.children[i];
-        if (!el) return;
-        const v = star.position.clone().project(camera);
-        el.style.left = ((v.x*0.5+0.5)*ww) + "px";
-        el.style.top  = ((-v.y*0.5+0.5)*hh - off) + "px";
+      const off = isMob ? 22 : 26;
+      const next = nodes.map(node => {
+        const v = node.position.clone().project(camera);
+        return { x:(v.x*0.5+0.5)*ww, y:(-v.y*0.5+0.5)*hh - off, mission:node.userData.mission, done:node.userData.done, avail:node.userData.avail, locked:node.userData.locked };
       });
+      // direct DOM update
+      const container = labelsRef.current;
+      if (container) {
+        next.forEach((lp, i) => {
+          const el = container.children[i];
+          if (!el) return;
+          el.style.left = lp.x + "px";
+          el.style.top  = lp.y + "px";
+        });
+      }
     };
 
     // ── Raycasting ────────────────────────────────────────────────────────────
     const raycaster = new THREE.Raycaster();
-    const pick = (cx,cy) => {
-      const rect=canvas.getBoundingClientRect();
-      raycaster.setFromCamera({x:((cx-rect.left)/rect.width)*2-1,y:-(((cy-rect.top)/rect.height)*2-1)},camera);
-      const hits=raycaster.intersectObjects(hitMeshes);
-      return hits.length>0 ? hits[0].object.userData.mission : null;
+    let lastTap = 0;
+
+    const pick = (cx, cy) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      raycaster.setFromCamera({
+        x:((cx-rect.left)/rect.width)*2-1,
+        y:-(((cy-rect.top)/rect.height)*2-1),
+      }, camera);
+      const hits = raycaster.intersectObjects(hitMeshes);
+      return hits.length > 0 ? hits[0].object.userData : null;
     };
 
-    const clampPan = () => { const L=4; s.targetPan.x=Math.max(-L,Math.min(L,s.targetPan.x)); s.targetPan.y=Math.max(-L,Math.min(L,s.targetPan.y)); };
-
-    // ── Animation loop ────────────────────────────────────────────────────────
-    let t = 0;
-    const animate = () => {
-      s.frameId = requestAnimationFrame(animate);
-      t += 0.012;
-
-      // camera smooth
-      s.panOffset.x += (s.targetPan.x-s.panOffset.x)*0.09;
-      s.panOffset.y += (s.targetPan.y-s.panOffset.y)*0.09;
-      s.zoom        += (s.targetZoom-s.zoom)*0.09;
-      camera.position.set(s.panOffset.x, s.panOffset.y, s.zoom);
-      camera.lookAt(s.panOffset.x, s.panOffset.y, 0);
-
-      // sfondo leggero drift
-      bgStars.rotation.y = Math.sin(t*0.02)*0.04;
-      bgStars.rotation.x = Math.cos(t*0.015)*0.02;
-
-      // stelle missione
-      stars.forEach((star, i) => {
-        const { done, available, locked, radius, glow } = star.userData;
-        if (!locked) {
-          // pulsazione scala
-          const pulse = 1 + Math.sin(t + i*1.3) * (done ? 0.14 : 0.1);
-          star.scale.setScalar(pulse);
-          if (glow) {
-            glow.material.opacity = (done ? 0.7 : 0.5) + Math.sin(t+i*1.3)*0.15;
-            const gsz = (done ? 1.8 : 1.2) * (1 + Math.sin(t+i*1.3)*0.2);
-            glow.scale.setScalar(gsz);
-          }
-        }
-      });
-
-      // anelli rotanti
-      rings.forEach(({ mesh, phase }) => {
-        mesh.rotation.z = t*0.4 + phase;
-        mesh.material.opacity = 0.35 + Math.sin(t + phase)*0.15;
-      });
-
-      composer.render();
-      updateLabelDOM();
+    // ── Click / touch ─────────────────────────────────────────────────────────
+    const onClick = (e) => {
+      const data = pick(e.clientX, e.clientY);
+      if (data) {
+        setSelected(data.mission);
+        setPanelOpen(true);
+        // Spider crawls to that node
+        s.spiderTarget   = data.pos.clone().add(new THREE.Vector3(0, 0, 0.45));
+        s.spiderT        = 0;
+        s.isCrawling     = true;
+        s.returnAfter    = false;
+        controls.autoRotate = false;
+      }
     };
-    animate();
+    const onTouchEnd = (e) => {
+      const now = Date.now();
+      if (now - lastTap < 300) { // double tap for mobile as click
+        const t = e.changedTouches[0];
+        onClick({ clientX:t.clientX, clientY:t.clientY });
+      }
+      lastTap = now;
+    };
+    renderer.domElement.addEventListener("click", onClick);
+    renderer.domElement.addEventListener("touchend", onTouchEnd, { passive:true });
 
     // ── Resize ────────────────────────────────────────────────────────────────
     const onResize = () => {
@@ -307,61 +350,106 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     };
     window.addEventListener("resize", onResize);
 
-    // ── Mouse ─────────────────────────────────────────────────────────────────
-    const onMouseDown=(e)=>{s.isDragging=true;s.hasDragged=false;s.mouseDownX=e.clientX;s.mouseDownY=e.clientY;s.panAtDown={x:s.targetPan.x,y:s.targetPan.y};};
-    const onMouseMove=(e)=>{if(!s.isDragging)return;const dx=e.clientX-s.mouseDownX,dy=e.clientY-s.mouseDownY;if(Math.abs(dx)>3||Math.abs(dy)>3)s.hasDragged=true;const f=s.zoom/window.innerWidth*1.8;s.targetPan.x=s.panAtDown.x-dx*f;s.targetPan.y=s.panAtDown.y+dy*f;clampPan();};
-    const onMouseUp=(e)=>{if(!s.isDragging)return;s.isDragging=false;if(!s.hasDragged){const m=pick(e.clientX,e.clientY);if(m){setSelected(m);setPanelOpen(true);}else{setPanelOpen(false);setTimeout(()=>setSelected(null),300);}}};
-    const onWheel=(e)=>{e.preventDefault();s.targetZoom=Math.max(3.5,Math.min(14,s.targetZoom+e.deltaY*0.01));};
+    // ── Animation loop ────────────────────────────────────────────────────────
+    const HUB3D = new THREE.Vector3(0, 0, 0.45);
+    let t = 0;
+    const animate = () => {
+      s.frameId = requestAnimationFrame(animate);
+      t += 0.012;
+      s.t = t;
 
-    // ── Touch ─────────────────────────────────────────────────────────────────
-    const getTD=(ts)=>Math.hypot(ts[0].clientX-ts[1].clientX,ts[0].clientY-ts[1].clientY);
-    const onTouchStart=(e)=>{if(e.touches.length===1){s.touchStartX=e.touches[0].clientX;s.touchStartY=e.touches[0].clientY;s.touchPanAtDown={x:s.targetPan.x,y:s.targetPan.y};s.touchHasDragged=false;s.pinchDist=null;}else if(e.touches.length===2)s.pinchDist=getTD(e.touches);};
-    const onTouchMove=(e)=>{e.preventDefault();if(e.touches.length===1){const dx=e.touches[0].clientX-s.touchStartX,dy=e.touches[0].clientY-s.touchStartY;if(Math.abs(dx)>6||Math.abs(dy)>6)s.touchHasDragged=true;const f=s.zoom/window.innerWidth*2.5;s.targetPan.x=s.touchPanAtDown.x-dx*f;s.targetPan.y=s.touchPanAtDown.y+dy*f;clampPan();}else if(e.touches.length===2&&s.pinchDist!==null){const d=getTD(e.touches);s.targetZoom=Math.max(3.5,Math.min(14,s.targetZoom-(d-s.pinchDist)*0.02));s.pinchDist=d;}};
-    const onTouchEnd=(e)=>{if(e.changedTouches.length===1&&!s.touchHasDragged){const m=pick(e.changedTouches[0].clientX,e.changedTouches[0].clientY);if(m){setSelected(m);setPanelOpen(true);}else{setPanelOpen(false);setTimeout(()=>setSelected(null),300);}}s.pinchDist=null;};
+      controls.update();
 
-    canvas.addEventListener("mousedown",   onMouseDown);
-    window.addEventListener("mousemove",   onMouseMove);
-    window.addEventListener("mouseup",     onMouseUp);
-    canvas.addEventListener("wheel",       onWheel,       {passive:false});
-    canvas.addEventListener("touchstart",  onTouchStart,  {passive:true});
-    canvas.addEventListener("touchmove",   onTouchMove,   {passive:false});
-    canvas.addEventListener("touchend",    onTouchEnd,    {passive:true});
+      // Spider crawl
+      if (s.isCrawling) {
+        s.spiderT = Math.min(1, s.spiderT + 0.022);
+        spider.position.lerpVectors(HUB3D, s.spiderTarget, ease(s.spiderT));
+        spider.lookAt(s.spiderTarget);
+        if (s.spiderT >= 1) s.isCrawling = false;
+      }
+
+      // Subtle spider idle animations
+      spider.position.y += Math.sin(t * 2.5) * 0.0006;
+      const abd = spider.children[1];
+      if (abd) abd.scale.setScalar(1 + Math.sin(t * 1.8) * 0.025);
+
+      // Update silk line: from center to spider
+      const silkPts = [HUB3D.clone(), spider.position.clone()];
+      silkGeo.setFromPoints(silkPts);
+      silkGeo.attributes.position.needsUpdate = true;
+      silkMat.opacity = s.isCrawling ? 0.7 : 0.3;
+
+      // Pulse mission nodes
+      nodes.forEach((node, i) => {
+        if (!node.userData.locked) {
+          const pulse = 1 + Math.sin(t + i * 1.1) * (node.userData.done ? 0.12 : 0.08);
+          node.scale.setScalar(pulse);
+          const glow = node.userData.glow;
+          if (glow) glow.material.opacity = 0.08 + Math.sin(t + i * 1.1) * 0.04;
+        }
+      });
+
+      centerLight.intensity = 1.8 + Math.sin(t * 1.2) * 0.4;
+
+      composer.render();
+      updateLabels();
+    };
+    animate();
+
+    // ── Aggiungi label iniziali ───────────────────────────────────────────────
+    setLabelData(missions.map((m, i) => {
+      const done  = m.unlocked && m.current_count >= m.required_events;
+      const avail = m.unlocked && !done;
+      return { mission:m, done, avail, locked:!m.unlocked };
+    }));
 
     return () => {
       cancelAnimationFrame(s.frameId);
-      window.removeEventListener("resize",    onResize);
-      canvas.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup",   onMouseUp);
-      canvas.removeEventListener("wheel",     onWheel);
-      canvas.removeEventListener("touchstart",onTouchStart);
-      canvas.removeEventListener("touchmove", onTouchMove);
-      canvas.removeEventListener("touchend",  onTouchEnd);
-      composer.dispose(); renderer.dispose();
+      window.removeEventListener("resize", onResize);
+      renderer.domElement.removeEventListener("click", onClick);
+      renderer.domElement.removeEventListener("touchend", onTouchEnd);
+      controls.dispose();
+      composer.dispose();
+      renderer.dispose();
+      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missions.length]);
 
-  const done = selected ? selected.current_count >= selected.required_events : false;
-  const pct  = selected ? Math.min(100, Math.round((selected.current_count/selected.required_events)*100)) : 0;
-  const accentColor = selected?.unlocked ? (done ? "#ffd166" : "#06d6e0") : "rgba(255,255,255,0.3)";
+  const closePanel = () => {
+    setPanelOpen(false);
+    setTimeout(() => setSelected(null), 350);
+    // Spider ritorna al centro
+    const s = stateRef.current;
+    s.spiderTarget   = new THREE.Vector3(0, 0, 0.45);
+    s.spiderT        = 0;
+    s.isCrawling     = true;
+    if (s.controls) s.controls.autoRotate = true;
+  };
+
+  const accentHex = selected?.unlocked
+    ? (selected.current_count >= selected.required_events ? "#c8a030" : "#78141f")
+    : "rgba(255,255,255,0.3)";
+  const pct = selected
+    ? Math.min(100, Math.round((selected.current_count / selected.required_events) * 100))
+    : 0;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden select-none" style={{ background:"#080918", cursor:"grab" }}>
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ touchAction:"none" }} />
+    <div className="fixed inset-0 z-50 overflow-hidden select-none" style={{ background:"#030a05" }}>
+      {/* Canvas Three.js — il renderer ci appende il suo canvas */}
+      <div ref={mountRef} className="absolute inset-0" />
 
       {/* Vignetta */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background:"radial-gradient(ellipse at center, transparent 50%, rgba(8,9,24,0.6) 100%)" }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background:"radial-gradient(ellipse at center, transparent 55%, rgba(3,10,5,0.65) 100%)" }} />
 
-      {/* Label stelle */}
+      {/* Label missioni — posizionate dal loop via DOM */}
       <div ref={labelsRef} className="absolute inset-0 pointer-events-none">
-        {missions.map((m, i) => {
-          const done = m.unlocked && m.current_count >= m.required_events;
-          const col  = done ? "#ffd166" : m.unlocked ? "#06d6e0" : "rgba(255,255,255,0.2)";
+        {labelData.map((lp, i) => {
+          const col = lp.done ? "#c8a030" : lp.avail ? "#a03020" : "rgba(200,210,200,0.2)";
           return (
             <div key={i} style={{ position:"absolute", transform:"translateX(-50%)", textAlign:"center" }}>
-              <div style={{ fontSize: isMob?13:15, lineHeight:1, filter: !m.unlocked ? "grayscale(1) opacity(0.25)" : "none" }}>{m.emoji}</div>
-              <div style={{ fontSize: isMob?8:10, fontWeight:900, letterSpacing:"0.05em", marginTop:3, color:col, textShadow: m.unlocked ? `0 0 12px ${col}` : "none", maxWidth: isMob?68:85, lineHeight:1.2 }}>{m.title}</div>
+              <div style={{ fontSize: isMob?12:14, lineHeight:1, filter:lp.locked?"grayscale(1) opacity(0.2)":"none" }}>{lp.mission.emoji}</div>
+              <div style={{ fontSize:isMob?7:9, fontWeight:900, marginTop:2, color:col, textShadow:!lp.locked?`0 0 8px ${col}`:"none", maxWidth:isMob?62:78, lineHeight:1.2 }}>{lp.mission.title}</div>
             </div>
           );
         })}
@@ -369,79 +457,72 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
 
       {/* Titolo */}
       <div className="absolute top-5 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-        <div style={{ fontSize:8, fontWeight:900, letterSpacing:"0.45em", color:"rgba(180,200,255,0.35)", textTransform:"uppercase" }}>Trama Viva</div>
-        <div style={{ fontWeight:900, fontSize: isMob?15:18, color:"rgba(255,255,255,0.85)", letterSpacing:"0.02em", marginTop:2 }}>✦ Costellazione delle Missioni ✦</div>
+        <div style={{ fontSize:8, fontWeight:900, letterSpacing:"0.45em", color:"rgba(212,201,168,0.4)", textTransform:"uppercase" }}>Trama Viva</div>
+        <div style={{ fontWeight:900, fontSize:isMob?15:18, color:"rgba(245,240,232,0.85)", letterSpacing:"0.01em", marginTop:2 }}>La Ragnatela delle Missioni</div>
+        <div style={{ fontSize:isMob?10:11, color:"rgba(212,201,168,0.4)", marginTop:3, fontStyle:"italic" }}>Trascina per ruotare · {isMob?"tocca":"clicca"} una missione</div>
       </div>
 
       {/* Back */}
-      <button onPointerDown={(e)=>e.stopPropagation()} onClick={onBack} style={{ position:"absolute",top:14,left:14,zIndex:10,display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.14)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",color:"rgba(255,255,255,0.55)",borderRadius:99,padding:isMob?"8px 14px":"9px 18px",fontSize:isMob?12:13,fontWeight:700,cursor:"pointer",letterSpacing:"0.03em" }}>
+      <button onPointerDown={(e)=>e.stopPropagation()} onClick={onBack} style={{ position:"absolute",top:14,left:14,zIndex:10,display:"flex",alignItems:"center",gap:6,background:"rgba(245,240,232,0.07)",border:"1px solid rgba(245,240,232,0.14)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",color:"rgba(245,240,232,0.55)",borderRadius:99,padding:isMob?"8px 14px":"9px 18px",fontSize:isMob?12:13,fontWeight:700,cursor:"pointer" }}>
         <ChevronLeft size={13}/> Area soci
       </button>
 
       {/* Legenda */}
-      <div className="pointer-events-none" style={{ position:"absolute", ...(isMob?{bottom:52,left:14,display:"flex",flexDirection:"row",gap:14}:{bottom:30,right:20,display:"flex",flexDirection:"column",gap:8}), opacity:panelOpen&&isMob?0:1, transition:"opacity 0.3s" }}>
+      <div className="pointer-events-none" style={{ position:"absolute", ...(isMob?{bottom:52,left:14,display:"flex",flexDirection:"row",gap:14}:{bottom:30,right:20,display:"flex",flexDirection:"column",gap:8}), opacity:panelOpen&&isMob?0:1,transition:"opacity 0.3s" }}>
         {[
-          { color:"#ffd166", glow:"rgba(255,209,102,0.6)", label:"Completata" },
-          { color:"#06d6e0", glow:"rgba(6,214,224,0.5)",   label:"Sbloccata"  },
-          { color:"#444466", glow:"none",                   label:"Bloccata"   },
-        ].map(({ color, glow, label }) => (
+          { color:"#c8a030", glow:"rgba(200,160,48,0.7)", label:"Completata" },
+          { color:"#78141f", glow:"rgba(120,20,31,0.7)",  label:"Disponibile" },
+          { color:"#2a3a2a", glow:"none",                  label:"Bloccata" },
+        ].map(({ color,glow,label }) => (
           <div key={label} style={{ display:"flex",alignItems:"center",gap:7 }}>
-            <div style={{ width:9,height:9,borderRadius:"50%",background:color,boxShadow:glow!=="none"?`0 0 8px ${glow}`:undefined,flexShrink:0 }} />
-            <span style={{ fontSize:9,color:"rgba(255,255,255,0.35)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>{label}</span>
+            <div style={{ width:9,height:9,borderRadius:"50%",background:color,boxShadow:glow!=="none"?`0 0 7px ${glow}`:undefined,flexShrink:0 }} />
+            <span style={{ fontSize:9,color:"rgba(245,240,232,0.35)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Hint */}
-      {!panelOpen && (
-        <div className="pointer-events-none" style={{ position:"absolute",bottom:isMob?28:30,left:"50%",transform:"translateX(-50%)",fontSize:9,color:"rgba(255,255,255,0.18)",fontWeight:700,letterSpacing:"0.15em",textTransform:"uppercase",textAlign:"center",whiteSpace:"nowrap" }}>
-          {isMob ? "Trascina · Pizzica · Tocca una stella" : "Trascina per navigare · Scroll per zoomare · Clicca una stella"}
-        </div>
-      )}
-
       {/* Pannello dettaglio */}
-      <div onPointerDown={(e)=>e.stopPropagation()} style={{ position:"absolute",left:0,right:0,bottom:0,zIndex:20,transform:panelOpen?"translateY(0)":"translateY(110%)",transition:"transform 0.38s cubic-bezier(0.32,0.72,0,1)",background:"rgba(8,9,28,0.97)",borderTop:`1px solid ${accentColor}40`,backdropFilter:"blur(28px)",WebkitBackdropFilter:"blur(28px)",padding:isMob?"20px 18px 44px":"26px 36px 48px",maxHeight:isMob?"60vh":"54vh",overflowY:"auto" }}>
+      <div onPointerDown={(e)=>e.stopPropagation()} style={{ position:"absolute",left:0,right:0,bottom:0,zIndex:20,transform:panelOpen?"translateY(0)":"translateY(110%)",transition:"transform 0.38s cubic-bezier(0.32,0.72,0,1)",background:"rgba(4,10,5,0.97)",borderTop:`1px solid ${accentHex}55`,backdropFilter:"blur(28px)",WebkitBackdropFilter:"blur(28px)",padding:isMob?"20px 18px 44px":"26px 36px 48px",maxHeight:isMob?"62vh":"55vh",overflowY:"auto" }}>
 
-        <button onClick={()=>{setPanelOpen(false);setTimeout(()=>setSelected(null),300);}} style={{ position:"absolute",top:14,right:14,width:30,height:30,borderRadius:99,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.45)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,cursor:"pointer" }}>✕</button>
+        <button onClick={closePanel} style={{ position:"absolute",top:14,right:14,width:30,height:30,borderRadius:99,background:"rgba(245,240,232,0.07)",border:"1px solid rgba(245,240,232,0.12)",color:"rgba(245,240,232,0.45)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,cursor:"pointer" }}>✕</button>
 
-        {selected && (
-          <div style={{ maxWidth:540,margin:"0 auto" }}>
-            {/* Header */}
-            <div style={{ display:"flex",gap:16,alignItems:"flex-start",marginBottom:18 }}>
-              <div style={{ width:isMob?52:62,height:isMob?52:62,borderRadius:16,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isMob?24:28, background:`${accentColor}14`, border:`1px solid ${accentColor}30`, boxShadow:selected.unlocked?`0 0 24px ${accentColor}20`:"none", filter:selected.unlocked?"none":"grayscale(1) opacity(0.3)" }}>
-                {selected.emoji}
-              </div>
-              <div style={{ flex:1,minWidth:0 }}>
-                <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6 }}>
-                  <span style={{ fontWeight:900,fontSize:isMob?15:17,color:selected.unlocked?"white":"rgba(255,255,255,0.25)",letterSpacing:"0.01em" }}>{selected.title}</span>
-                  {selected.unlocked && done && <span style={{ fontSize:9,fontWeight:900,letterSpacing:"0.15em",background:"rgba(255,209,102,0.15)",color:"#ffd166",border:"1px solid rgba(255,209,102,0.35)",padding:"3px 8px",borderRadius:99,textTransform:"uppercase" }}>★ Completata</span>}
-                  {selected.unlocked && !done && <span style={{ fontSize:9,fontWeight:900,letterSpacing:"0.15em",background:"rgba(6,214,224,0.12)",color:"#06d6e0",border:"1px solid rgba(6,214,224,0.3)",padding:"3px 8px",borderRadius:99,textTransform:"uppercase" }}>◉ In corso</span>}
-                  {!selected.unlocked && <span style={{ fontSize:9,fontWeight:900,letterSpacing:"0.15em",background:"rgba(255,255,255,0.05)",color:"rgba(255,255,255,0.25)",border:"1px solid rgba(255,255,255,0.12)",padding:"3px 8px",borderRadius:99,textTransform:"uppercase",display:"inline-flex",alignItems:"center",gap:3 }}><Lock size={8}/> Bloccata</span>}
+        {selected && (() => {
+          const done = selected.current_count >= selected.required_events;
+          return (
+            <div style={{ maxWidth:540,margin:"0 auto" }}>
+              <div style={{ display:"flex",gap:16,alignItems:"flex-start",marginBottom:18 }}>
+                <div style={{ width:isMob?52:62,height:isMob?52:62,borderRadius:16,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isMob?24:28,background:`${accentHex}18`,border:`1px solid ${accentHex}40`,boxShadow:selected.unlocked?`0 0 24px ${accentHex}22`:"none",filter:selected.unlocked?"none":"grayscale(1) opacity(0.3)" }}>
+                  {selected.emoji}
                 </div>
-                <p style={{ fontSize:isMob?12:13,color:"rgba(255,255,255,0.45)",lineHeight:1.65,margin:0 }}>{selected.description}</p>
+                <div style={{ flex:1,minWidth:0 }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6 }}>
+                    <span style={{ fontWeight:900,fontSize:isMob?15:17,color:selected.unlocked?"rgba(245,240,232,0.95)":"rgba(245,240,232,0.25)" }}>{selected.title}</span>
+                    {selected.unlocked && done && <span style={{ fontSize:9,fontWeight:900,letterSpacing:"0.12em",background:"rgba(200,160,48,0.15)",color:"#c8a030",border:"1px solid rgba(200,160,48,0.38)",padding:"3px 8px",borderRadius:99,textTransform:"uppercase" }}>★ Completata</span>}
+                    {selected.unlocked && !done && <span style={{ fontSize:9,fontWeight:900,letterSpacing:"0.12em",background:"rgba(120,20,31,0.15)",color:"#a03838",border:"1px solid rgba(120,20,31,0.4)",padding:"3px 8px",borderRadius:99,textTransform:"uppercase" }}>◉ In corso</span>}
+                    {!selected.unlocked && <span style={{ fontSize:9,fontWeight:900,letterSpacing:"0.12em",background:"rgba(245,240,232,0.05)",color:"rgba(245,240,232,0.22)",border:"1px solid rgba(245,240,232,0.1)",padding:"3px 8px",borderRadius:99,textTransform:"uppercase",display:"inline-flex",alignItems:"center",gap:3 }}><Lock size={8}/> Bloccata</span>}
+                  </div>
+                  <p style={{ fontSize:isMob?12:13,color:"rgba(245,240,232,0.42)",lineHeight:1.65,margin:0 }}>{selected.description}</p>
+                </div>
               </div>
-            </div>
 
-            {/* Barra progresso */}
-            <div style={{ marginBottom:16 }}>
-              <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
-                <span style={{ fontSize:10,color:"rgba(255,255,255,0.3)",fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase" }}>Progresso</span>
-                <span style={{ fontSize:12,color:selected.unlocked?accentColor:"rgba(255,255,255,0.2)",fontWeight:900 }}>{pct}%</span>
+              <div style={{ marginBottom:16 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
+                  <span style={{ fontSize:10,color:"rgba(245,240,232,0.3)",fontWeight:800,letterSpacing:"0.1em",textTransform:"uppercase" }}>Progressione</span>
+                  <span style={{ fontSize:12,color:selected.unlocked?accentHex:"rgba(245,240,232,0.2)",fontWeight:900 }}>{selected.current_count} / {selected.required_events}</span>
+                </div>
+                <div style={{ height:5,background:"rgba(245,240,232,0.08)",borderRadius:99,overflow:"hidden" }}>
+                  <div style={{ height:"100%",width:`${pct}%`,borderRadius:99,background:selected.unlocked?(done?"linear-gradient(90deg,#c8a030,#e8c850)":"linear-gradient(90deg,#78141f,#a82030)"):"rgba(245,240,232,0.1)",boxShadow:selected.unlocked&&pct>0?`0 0 12px ${accentHex}88`:"none",transition:"width 1s ease" }} />
+                </div>
               </div>
-              <div style={{ height:5,background:"rgba(255,255,255,0.08)",borderRadius:99,overflow:"hidden" }}>
-                <div style={{ height:"100%",width:`${pct}%`,borderRadius:99,background:selected.unlocked?(done?`linear-gradient(90deg,#ffd166,#ffb347)`:`linear-gradient(90deg,#06d6e0,#4fc3f7)`):"rgba(255,255,255,0.1)",boxShadow:selected.unlocked&&pct>0?`0 0 12px ${accentColor}80`:"none",transition:"width 1s ease" }} />
-              </div>
-              <div style={{ marginTop:6,fontSize:10,color:"rgba(255,255,255,0.25)",fontWeight:700,textAlign:"right" }}>{selected.current_count} / {selected.required_events} eventi</div>
-            </div>
 
-            {/* Premio */}
-            {selected.reward && (
-              <div style={{ display:"flex",alignItems:"center",gap:8,color:selected.unlocked?accentColor:"rgba(255,255,255,0.18)",fontSize:isMob?12:13,fontWeight:800, background:`${selected.unlocked?accentColor:"rgba(255,255,255,0.05)"}12`, border:`1px solid ${selected.unlocked?accentColor:"rgba(255,255,255,0.08)"}28`, padding:"10px 14px", borderRadius:12 }}>
-                <Gift size={14}/> {selected.reward}
-              </div>
-            )}
-          </div>
-        )}
+              {selected.reward && (
+                <div style={{ display:"flex",alignItems:"center",gap:8,color:selected.unlocked?accentHex:"rgba(245,240,232,0.18)",fontSize:isMob?12:13,fontWeight:800,background:`${accentHex}14`,border:`1px solid ${accentHex}30`,padding:"10px 14px",borderRadius:12 }}>
+                  <Gift size={14}/> {selected.reward}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
