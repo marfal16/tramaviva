@@ -242,8 +242,8 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     scene.fog        = new THREE.Fog(BG, 8, 22);
 
     // ── Camera (terza persona, segue il ragno) ────────────────────────────────
-    const CAM_Z = isMob ? 2.2 : 2.8;
-    const CAM_Y = isMob ? 0.9 : 1.1;
+    const CAM_Z = isMob ? 3.2 : 2.8;
+    const CAM_Y = isMob ? 1.4 : 1.1;
     const camera = new THREE.PerspectiveCamera(58, W / H, 0.05, 50);
     // Spider parte con yaw=0, forward=(0,0,1), quindi camera sta a z negativo
     camera.position.set(0, CAM_Y, -CAM_Z);
@@ -543,6 +543,22 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
 
       {/* Joystick mobile */}
       {isMob && !panelOpen && <Joystick onMove={onJoyMove} />}
+
+      {/* Bottone ruota camera — mobile */}
+      {isMob && !panelOpen && (
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={() => {
+            const s = stateRef.current;
+            // Alterna: davanti (π) ↔ dietro (0)
+            s.camYaw = Math.abs(s.camYaw - Math.PI) < 0.3 ? 0 : Math.PI;
+          }}
+          style={{ position: "absolute", bottom: 44, right: 28, zIndex: 11, width: 56, height: 56, borderRadius: "50%", background: "rgba(5,47,23,0.12)", border: "2px solid rgba(5,47,23,0.22)", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+          aria-label="Ruota camera"
+        >
+          👀
+        </button>
+      )}
 
       {/* Legenda desktop */}
       {!isMob && (
