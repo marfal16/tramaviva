@@ -717,7 +717,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
-      <div className="bg-tv-cream rounded-[2rem] w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
 
         {/* Header con poster */}
         <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">
