@@ -10,6 +10,7 @@ import {
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { CLUBS_CONFIG } from "../clubsConfig";
+import { MissioniCostellazione } from "./MissioniCostellazione";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -909,9 +910,12 @@ export const AreaSoci = () => {
           </div>
         )}
 
-        {/* ── Tab: missioni (gamer UI) ── */}
+        {/* ── Tab: missioni — overlay full-screen costellazione ── */}
         {tab === "missioni" && (
-          <MissioniGamer missionsData={missionsData} user={user} API={API} />
+          <MissioniCostellazione
+            missionsData={missionsData}
+            onBack={() => setTab("eventi")}
+          />
         )}
 
         {/* ── Tab: bacheca (nascosta, codice mantenuto) ── */}
