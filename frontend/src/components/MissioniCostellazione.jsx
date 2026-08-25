@@ -50,55 +50,82 @@ function buildWeb() {
   return { nodes, segs };
 }
 
-// ── Spider mesh ───────────────────────────────────────────────────────────────
+// ── Spider mesh — stile cartoon gentile ───────────────────────────────────────
 function buildSpider() {
   const g = new THREE.Group();
 
-  const mOr  = new THREE.MeshPhongMaterial({ color: SP_BDY, shininess: 70 });
-  const mAbd = new THREE.MeshPhongMaterial({ color: SP_ABD, shininess: 40 });
-  const mLeg = new THREE.MeshPhongMaterial({ color: SP_LEG, shininess: 25 });
-  const mEye = new THREE.MeshBasicMaterial({ color: SP_EYE });
-  const mStr = new THREE.MeshPhongMaterial({ color: 0x150300 });
+  const mOr    = new THREE.MeshPhongMaterial({ color: 0xee7515, shininess: 90 });
+  const mAbd   = new THREE.MeshPhongMaterial({ color: 0xcc5808, shininess: 50 });
+  const mLeg   = new THREE.MeshPhongMaterial({ color: 0x220800, shininess: 30 });
+  const mEyeY  = new THREE.MeshPhongMaterial({ color: 0xffee22, shininess: 120, emissive: 0x221100 });
+  const mPupil = new THREE.MeshBasicMaterial({ color: 0x110000 });
+  const mHl    = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const mCheek = new THREE.MeshPhongMaterial({ color: 0xff9090, transparent: true, opacity: 0.45 });
+  const mStr   = new THREE.MeshPhongMaterial({ color: 0x441800 });
 
-  // Torace
-  const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.18, 14, 14), mOr);
-  thorax.position.y = 0.18;
+  // Testa/torace grande e rotonda
+  const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mOr);
+  thorax.position.y = 0.22;
   g.add(thorax);
 
-  // Addome
-  const abd = new THREE.Mesh(new THREE.SphereGeometry(0.26, 16, 16), mAbd);
-  abd.scale.set(0.80, 0.88, 1.20);
-  abd.position.set(0, 0.16, -0.46);
+  // Addome più piccolo e carino
+  const abd = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mAbd);
+  abd.scale.set(0.80, 0.92, 1.10);
+  abd.position.set(0, 0.20, -0.42);
   g.add(abd);
 
   // Strisce addome
-  [[-0.34, 0.22], [-0.46, 0.18], [-0.57, 0.14]].forEach(([z, r]) => {
-    const s = new THREE.Mesh(new THREE.TorusGeometry(r, 0.018, 5, 10), mStr);
+  [[-0.32, 0.19], [-0.43, 0.15], [-0.52, 0.11]].forEach(([z, r]) => {
+    const s = new THREE.Mesh(new THREE.TorusGeometry(r, 0.014, 5, 10), mStr);
     s.rotation.x = Math.PI / 2;
-    s.position.set(0, 0.16, z);
+    s.position.set(0, 0.20, z);
     g.add(s);
   });
 
-  // Occhi
-  [[-0.055, 0.30, 0.12], [0.055, 0.30, 0.12], [-0.095, 0.28, 0.07], [0.095, 0.28, 0.07]].forEach(([ex, ey, ez]) => {
-    const e = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), mEye);
-    e.position.set(ex, ey, ez);
-    g.add(e);
+  // Occhi grandi cartoon (due principali)
+  [-0.10, 0.10].forEach(ex => {
+    const eyeOut = new THREE.Mesh(new THREE.SphereGeometry(0.082, 12, 12), mEyeY);
+    eyeOut.position.set(ex, 0.35, 0.18);
+    g.add(eyeOut);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), mPupil);
+    pupil.position.set(ex, 0.35, 0.24);
+    g.add(pupil);
+    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.020, 6, 6), mHl);
+    hl.position.set(ex + 0.028, 0.375, 0.27);
+    g.add(hl);
   });
 
-  // 8 zampe
+  // Occhi secondari piccoli
+  [-0.20, 0.20].forEach(ex => {
+    const eyeS = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 8), mEyeY);
+    eyeS.position.set(ex, 0.30, 0.14);
+    g.add(eyeS);
+    const pupilS = new THREE.Mesh(new THREE.SphereGeometry(0.020, 6, 6), mPupil);
+    pupilS.position.set(ex, 0.30, 0.19);
+    g.add(pupilS);
+  });
+
+  // Guancette rosse (cute!)
+  [-0.19, 0.19].forEach(ex => {
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), mCheek);
+    cheek.scale.set(1, 0.55, 0.35);
+    cheek.position.set(ex, 0.235, 0.17);
+    g.add(cheek);
+  });
+
+  // Zampe corte e cicciotte
   [
-    { xBase: 0.14, zBase:  0.12 },
-    { xBase: 0.15, zBase: -0.01 },
-    { xBase: 0.12, zBase: -0.15 },
-    { xBase: 0.09, zBase: -0.28 },
+    { xBase: 0.18, zBase:  0.10 },
+    { xBase: 0.20, zBase: -0.02 },
+    { xBase: 0.17, zBase: -0.14 },
+    { xBase: 0.13, zBase: -0.26 },
   ].forEach(({ xBase, zBase }) => {
     [-1, 1].forEach(side => {
-      const base  = new THREE.Vector3(side * xBase, 0.12, zBase);
-      const knee  = new THREE.Vector3(side * (xBase + 0.28), 0.26, zBase + side * 0.06);
-      const tip   = new THREE.Vector3(side * (xBase + 0.56), 0.01, zBase + side * 0.12);
+      const base  = new THREE.Vector3(side * xBase, 0.14, zBase);
+      const knee  = new THREE.Vector3(side * (xBase + 0.20), 0.30, zBase + side * 0.04);
+      const tip   = new THREE.Vector3(side * (xBase + 0.38), 0.01, zBase + side * 0.08);
       const curve = new THREE.CatmullRomCurve3([base, knee, tip]);
-      g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 6, 0.016, 4), mLeg));
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 6, 0.022, 5), mLeg));
     });
   });
 
@@ -212,8 +239,13 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     scene.fog        = new THREE.Fog(BG, 8, 22);
 
     // ── Camera (terza persona, segue il ragno) ────────────────────────────────
+    const CAM_Z = isMob ? 2.2 : 2.8;
+    const CAM_Y = isMob ? 0.9 : 1.1;
     const camera = new THREE.PerspectiveCamera(58, W / H, 0.05, 50);
-    camera.position.set(0, 1.1, 2.8);
+    // Spider parte con yaw=0, forward=(0,0,1), quindi camera sta a z negativo
+    camera.position.set(0, CAM_Y, -CAM_Z);
+    s.camPos.set(0, CAM_Y, -CAM_Z);
+    camera.lookAt(new THREE.Vector3(0, 0.3, 1.0));
     s.camera = camera;
 
     // ── Luci ──────────────────────────────────────────────────────────────────
@@ -323,8 +355,6 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     const TURN_SPEED = 2.2;
     const MOVE_SPEED = 1.8;
     const MAX_R      = 4.8;
-    const CAM_Z      = isMob ? 2.2 : 2.8;
-    const CAM_Y      = isMob ? 0.9 : 1.1;
     const TRIG_DIST  = 0.75;
     const dt         = 1 / 60;
     let frameT       = 0;
@@ -456,7 +486,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
       <div className="absolute top-5 left-1/2 -translate-x-1/2 text-center pointer-events-none" style={{ zIndex: 11 }}>
         <div style={{ fontWeight: 900, fontSize: isMob ? 14 : 16, color: "rgba(5,47,23,0.70)" }}>La Ragnatela delle Missioni</div>
         <div style={{ fontSize: isMob ? 9 : 10, color: "rgba(5,47,23,0.35)", marginTop: 2, fontStyle: "italic" }}>
-          {isMob ? "Joystick per muovere il ragno" : "WASD o frecce per muovere il ragno"}
+          Guida il ragno · scopri le missioni
         </div>
       </div>
 
@@ -464,7 +494,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
       {hint && !panelOpen && (
         <div className="pointer-events-none" style={{ position: "absolute", bottom: isMob ? 160 : 30, left: "50%", transform: "translateX(-50%)", zIndex: 11 }}>
           <div style={{ background: "rgba(5,47,23,0.09)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", borderRadius: 99, padding: "8px 20px", border: "1px solid rgba(5,47,23,0.14)", fontSize: isMob ? 11 : 12, color: "rgba(5,47,23,0.55)", fontWeight: 700, whiteSpace: "nowrap" }}>
-            {isMob ? "🕷️ Usa il joystick — vai sui nodi per scoprire le missioni" : "🕷️ Usa WASD — avvicinati ai nodi per scoprire le missioni"}
+            {isMob ? "🕷️ Usa il joystick · avvicinati ai nodi per scoprire le missioni" : "🕷️ Usa le frecce · avvicinati ai nodi per scoprire le missioni"}
           </div>
         </div>
       )}
@@ -481,9 +511,6 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
               <span style={{ fontSize: 9, color: "rgba(5,47,23,0.34)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</span>
             </div>
           ))}
-          <div style={{ marginTop: 8, padding: "6px 10px", background: "rgba(5,47,23,0.06)", borderRadius: 10, fontSize: 9, color: "rgba(5,47,23,0.38)", fontWeight: 700, lineHeight: 1.8 }}>
-            W / ↑ Avanti<br />S / ↓ Indietro<br />A D / ← → Ruota
-          </div>
         </div>
       )}
 
