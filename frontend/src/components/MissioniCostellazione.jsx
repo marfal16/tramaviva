@@ -10,9 +10,10 @@ const STAR_POSITIONS = [
   [ 1.6, -0.9], [ 0.2, -1.6], [-1.3, -1.4], [-2.5, -0.4], [ 0.4,  0.1],
 ];
 
-const COLOR_DONE      = new THREE.Color(0xf5a623);
-const COLOR_AVAILABLE = new THREE.Color(0x5bc8f5);
-const COLOR_LOCKED    = new THREE.Color(0x2a3a50);
+// Colori realistici: stelle bianche/bianco-calde/spente
+const COLOR_DONE      = new THREE.Color(0xfff7e8); // bianco caldo (tipo G/F)
+const COLOR_AVAILABLE = new THREE.Color(0xeaf2ff); // bianco freddo (tipo B/A)
+const COLOR_LOCKED    = new THREE.Color(0x0d1825); // quasi spenta
 
 // ── Texture stellare Gaussian con o senza diffraction spikes ─────────────────
 function makeStarTex(spiked, size = 128) {
@@ -211,12 +212,12 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
       const available = m.unlocked && !done;
       const locked    = !m.unlocked;
       const color     = done ? COLOR_DONE : available ? COLOR_AVAILABLE : COLOR_LOCKED;
-      const sz        = done ? 1.1 : available ? 0.82 : 0.32;
+      const sz        = done ? 1.3 : available ? 0.85 : 0.28; // solo dimensione distingue gli stati
 
       const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
         map: locked ? starTex : spikeTex,
         color, blending: THREE.AdditiveBlending,
-        transparent: true, opacity: locked ? 0.22 : 1,
+        transparent: true, opacity: locked ? 0.10 : done ? 1.0 : 0.78,
         depthWrite: false,
       }));
       sprite.scale.set(sz, sz, 1);
@@ -230,7 +231,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
         const halo = new THREE.Sprite(new THREE.SpriteMaterial({
           map: starTex, color,
           blending: THREE.AdditiveBlending, transparent: true,
-          opacity: done ? 0.2 : 0.14, depthWrite: false,
+          opacity: done ? 0.14 : 0.08, depthWrite: false,
         }));
         halo.scale.set(sz*4, sz*4, 1);
         halo.position.set(x, y, 0);
@@ -256,7 +257,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
       const pts = missions.map((_,i) => { const [x,y]=STAR_POSITIONS[i%STAR_POSITIONS.length]; return new THREE.Vector3(x,y,0); });
       scene.add(new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color:0x5bc8f5, transparent:true, opacity:0.08 })
+        new THREE.LineBasicMaterial({ color:0xaaccee, transparent:true, opacity:0.06 })
       ));
     }
 
@@ -265,9 +266,9 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(new UnrealBloomPass(
       new THREE.Vector2(isMob ? W/2 : W, isMob ? H/2 : H),
-      isMob ? 0.85 : 1.1,  // strength
-      0.65,                  // radius
-      0.0,                   // threshold
+      isMob ? 0.55 : 0.75,  // strength — contenuto, non neon
+      0.55,                  // radius
+      0.22,                  // threshold — solo le stelle più luminose
     ));
     s.composer = composer;
 
@@ -322,7 +323,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
           const h = sprite.userData.halo;
           if (h) {
             h.scale.setScalar(sz*4*(1+Math.sin(t+i*1.4)*0.2));
-            h.material.opacity = (sprite.userData.done ? 0.2 : 0.14) + Math.sin(t+i*1.4)*0.05;
+            h.material.opacity = (sprite.userData.done ? 0.14 : 0.08) + Math.sin(t+i*1.4)*0.04;
           }
         }
       });
@@ -416,7 +417,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
 
       {/* Titolo */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 text-center pointer-events-none select-none">
-        <div style={{ fontSize:8, fontWeight:900, letterSpacing:"0.4em", color:"rgba(91,200,245,0.4)", textTransform:"uppercase" }}>Trama Viva</div>
+        <div style={{ fontSize:8, fontWeight:900, letterSpacing:"0.4em", color:"rgba(200,220,255,0.3)", textTransform:"uppercase" }}>Trama Viva</div>
         <div style={{ fontWeight:900, fontSize: isMob?14:16, color:"rgba(255,255,255,0.72)", lineHeight:1.2, marginTop:2 }}>Costellazione delle Missioni</div>
       </div>
 
@@ -427,7 +428,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
 
       {/* Legenda */}
       <div className="pointer-events-none select-none" style={{ position:"absolute", ...(isMob?{bottom:48,left:14,display:"flex",flexDirection:"row",gap:12}:{bottom:28,right:18,display:"flex",flexDirection:"column",gap:6}), opacity: panelOpen&&isMob?0:1, transition:"opacity 0.3s" }}>
-        {[{color:"#f5a623",label:"Completata"},{color:"#5bc8f5",label:"Sbloccata"},{color:"#2a3a50",label:"Bloccata",border:"rgba(255,255,255,0.15)"}].map(({color,label,border})=>(
+        {[{color:"#fff7e8",label:"Completata"},{color:"#ddeeff",label:"Sbloccata"},{color:"#1a2535",label:"Bloccata",border:"rgba(255,255,255,0.12)"}].map(({color,label,border})=>(
           <div key={label} style={{ display:"flex",alignItems:"center",gap:6 }}>
             <div style={{ width:8,height:8,borderRadius:"50%",flexShrink:0,background:color,boxShadow:`0 0 6px ${color}`,border:border?`1px solid ${border}`:undefined }} />
             <span style={{ fontSize:9,color:"rgba(255,255,255,0.27)",fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>{label}</span>
@@ -439,18 +440,18 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
       {!panelOpen && <div className="pointer-events-none select-none" style={{ position:"absolute", bottom: isMob?26:28, left:"50%", transform:"translateX(-50%)", fontSize:9, color:"rgba(255,255,255,0.13)", fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase", textAlign:"center", whiteSpace:"nowrap" }}>{isMob?"Trascina · Pizzica per zoomare · Tocca una stella":"Trascina per navigare · Scroll per zoomare · Clicca una stella"}</div>}
 
       {/* Pannello dettaglio */}
-      <div onPointerDown={(e)=>e.stopPropagation()} style={{ position:"absolute",left:0,right:0,bottom:0,zIndex:20, transform:panelOpen?"translateY(0)":"translateY(110%)", transition:"transform 0.35s cubic-bezier(0.32,0.72,0,1)", background:"rgba(1,3,12,0.97)", borderTop:"1px solid rgba(91,200,245,0.14)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", padding: isMob?"18px 18px 40px":"24px 32px 44px", maxHeight: isMob?"58vh":"52vh", overflowY:"auto" }}>
+      <div onPointerDown={(e)=>e.stopPropagation()} style={{ position:"absolute",left:0,right:0,bottom:0,zIndex:20, transform:panelOpen?"translateY(0)":"translateY(110%)", transition:"transform 0.35s cubic-bezier(0.32,0.72,0,1)", background:"rgba(1,3,12,0.97)", borderTop:"1px solid rgba(200,220,255,0.1)", backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", padding: isMob?"18px 18px 40px":"24px 32px 44px", maxHeight: isMob?"58vh":"52vh", overflowY:"auto" }}>
         <button onClick={()=>{setPanelOpen(false);setTimeout(()=>setSelected(null),300);}} style={{ position:"absolute",top:14,right:14,width:28,height:28,borderRadius:99,background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,cursor:"pointer" }}>✕</button>
 
         {selected && (
           <div style={{ maxWidth:520, margin:"0 auto" }}>
             <div style={{ display:"flex",gap:14,alignItems:"flex-start",marginBottom:14 }}>
-              <div style={{ width:isMob?46:54,height:isMob?46:54,borderRadius:13,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isMob?20:24, background:selected.unlocked?"rgba(245,166,35,0.12)":"rgba(255,255,255,0.04)", border:selected.unlocked?"1px solid rgba(245,166,35,0.32)":"1px solid rgba(255,255,255,0.08)", boxShadow:selected.unlocked?"0 0 18px rgba(245,166,35,0.18)":"none", filter:selected.unlocked?"none":"grayscale(1) opacity(0.35)" }}>{selected.emoji}</div>
+              <div style={{ width:isMob?46:54,height:isMob?46:54,borderRadius:13,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isMob?20:24, background:selected.unlocked?"rgba(255,250,242,0.07)":"rgba(255,255,255,0.04)", border:selected.unlocked?"1px solid rgba(255,250,242,0.18)":"1px solid rgba(255,255,255,0.08)", boxShadow:selected.unlocked?"0 0 16px rgba(255,250,242,0.08)":"none", filter:selected.unlocked?"none":"grayscale(1) opacity(0.35)" }}>{selected.emoji}</div>
               <div style={{ flex:1,minWidth:0 }}>
                 <div style={{ display:"flex",alignItems:"center",gap:7,flexWrap:"wrap",marginBottom:5 }}>
                   <span style={{ fontWeight:900,fontSize:isMob?14:15,color:selected.unlocked?"white":"rgba(255,255,255,0.25)",lineHeight:1.2 }}>{selected.title}</span>
-                  {selected.unlocked&&selected.current_count>=selected.required_events&&<span style={{ fontSize:8,fontWeight:900,letterSpacing:"0.15em",background:"rgba(245,166,35,0.18)",color:"#f5a623",border:"1px solid rgba(245,166,35,0.38)",padding:"2px 7px",borderRadius:99,textTransform:"uppercase" }}>✓ Completata</span>}
-                  {selected.unlocked&&selected.current_count<selected.required_events&&<span style={{ fontSize:8,fontWeight:900,letterSpacing:"0.15em",background:"rgba(91,200,245,0.14)",color:"#5bc8f5",border:"1px solid rgba(91,200,245,0.32)",padding:"2px 7px",borderRadius:99,textTransform:"uppercase" }}>In corso</span>}
+                  {selected.unlocked&&selected.current_count>=selected.required_events&&<span style={{ fontSize:8,fontWeight:900,letterSpacing:"0.15em",background:"rgba(255,247,232,0.1)",color:"rgba(255,247,232,0.85)",border:"1px solid rgba(255,247,232,0.25)",padding:"2px 7px",borderRadius:99,textTransform:"uppercase" }}>✓ Completata</span>}
+                  {selected.unlocked&&selected.current_count<selected.required_events&&<span style={{ fontSize:8,fontWeight:900,letterSpacing:"0.15em",background:"rgba(220,238,255,0.1)",color:"rgba(220,238,255,0.75)",border:"1px solid rgba(220,238,255,0.2)",padding:"2px 7px",borderRadius:99,textTransform:"uppercase" }}>In corso</span>}
                   {!selected.unlocked&&<span style={{ fontSize:8,fontWeight:900,letterSpacing:"0.15em",background:"rgba(255,255,255,0.04)",color:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.1)",padding:"2px 7px",borderRadius:99,textTransform:"uppercase",display:"inline-flex",alignItems:"center",gap:3 }}><Lock size={7}/> Bloccata</span>}
                 </div>
                 <p style={{ fontSize:isMob?11:12,color:"rgba(255,255,255,0.4)",lineHeight:1.6,margin:0 }}>{selected.description}</p>
@@ -459,13 +460,13 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
             <div style={{ marginBottom:14 }}>
               <div style={{ display:"flex",justifyContent:"space-between",marginBottom:6 }}>
                 <span style={{ fontSize:9,color:"rgba(255,255,255,0.27)",fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase" }}>Progressione</span>
-                <span style={{ fontSize:10,color:selected.unlocked?"#5bc8f5":"rgba(255,255,255,0.2)",fontWeight:800 }}>{selected.current_count} / {selected.required_events} eventi</span>
+                <span style={{ fontSize:10,color:selected.unlocked?"rgba(220,238,255,0.8)":"rgba(255,255,255,0.2)",fontWeight:800 }}>{selected.current_count} / {selected.required_events} eventi</span>
               </div>
               <div style={{ height:4,background:"rgba(255,255,255,0.07)",borderRadius:99,overflow:"hidden" }}>
-                <div style={{ height:"100%",width:`${pct}%`,borderRadius:99, background:pct>=100?"linear-gradient(90deg,#f5a623,#fbbf24)":selected.unlocked?"linear-gradient(90deg,#5bc8f5,#818cf8)":"rgba(255,255,255,0.07)", boxShadow:selected.unlocked&&pct>0?"0 0 10px rgba(91,200,245,0.4)":"none",transition:"width 0.9s ease" }} />
+                <div style={{ height:"100%",width:`${pct}%`,borderRadius:99, background:pct>=100?"rgba(255,250,242,0.7)":selected.unlocked?"rgba(220,235,255,0.55)":"rgba(255,255,255,0.07)", boxShadow:"none",transition:"width 0.9s ease" }} />
               </div>
             </div>
-            {selected.reward&&<div style={{ display:"flex",alignItems:"center",gap:7,color:selected.unlocked?"#f5a623":"rgba(255,255,255,0.16)",fontSize:isMob?11:12,fontWeight:700 }}><Gift size={12}/> {selected.reward}</div>}
+            {selected.reward&&<div style={{ display:"flex",alignItems:"center",gap:7,color:selected.unlocked?"rgba(255,250,230,0.75)":"rgba(255,255,255,0.16)",fontSize:isMob?11:12,fontWeight:700 }}><Gift size={12}/> {selected.reward}</div>}
           </div>
         )}
       </div>
