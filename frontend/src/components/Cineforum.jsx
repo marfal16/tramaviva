@@ -563,17 +563,19 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
           <div>
             <div className={labelClass}>Critica esterna (opzionale)</div>
             {(form.external_reviews || []).map((r, i) => {
-              const f2 = "min-w-0 px-3 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
+              const f2 = "w-full px-3 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
+              const upd = (field, val) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], [field]: val }; set("external_reviews", arr); };
               return (
-                <div key={i} className="flex gap-2 mb-2 items-center">
-                  <input value={r.source || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], source: e.target.value }; set("external_reviews", arr); }}
-                    className={`flex-[2] ${f2}`} placeholder="Fonte" />
-                  <input value={r.score || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], score: e.target.value }; set("external_reviews", arr); }}
-                    className={`w-20 shrink-0 ${f2}`} placeholder="8/10" />
-                  <input value={r.url || ""} onChange={(e) => { const arr = [...(form.external_reviews || [])]; arr[i] = { ...arr[i], url: e.target.value }; set("external_reviews", arr); }}
-                    className={`flex-[3] ${f2}`} placeholder="https://..." />
-                  <button type="button" onClick={() => set("external_reviews", (form.external_reviews || []).filter((_, j) => j !== i))}
-                    className="shrink-0 px-3 py-1 text-tv-bordeaux/60 hover:text-tv-bordeaux text-lg leading-none">✕</button>
+                <div key={i} className="mb-2 grid gap-2">
+                  <div className="grid grid-cols-[1fr_80px] gap-2">
+                    <input value={r.source || ""} onChange={(e) => upd("source", e.target.value)} className={f2} placeholder="Fonte" />
+                    <input value={r.score || ""} onChange={(e) => upd("score", e.target.value)} className={f2} placeholder="8/10" />
+                  </div>
+                  <div className="flex gap-2">
+                    <input value={r.url || ""} onChange={(e) => upd("url", e.target.value)} className={`flex-1 min-w-0 ${f2}`} placeholder="https://..." />
+                    <button type="button" onClick={() => set("external_reviews", (form.external_reviews || []).filter((_, j) => j !== i))}
+                      className="shrink-0 px-3 py-2 text-tv-bordeaux/60 hover:text-tv-bordeaux text-lg leading-none">✕</button>
+                  </div>
                 </div>
               );
             })}
@@ -715,7 +717,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
-      <div className="bg-tv-cream rounded-[2rem] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
 
         {/* Header con poster */}
         <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">

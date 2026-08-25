@@ -9,7 +9,6 @@ const links = [
   { href: "#chi-siamo", label: "Chi siamo" },
   { href: "#attivita", label: "Attività" },
   { href: "#eventi", label: "Eventi" },
-  { href: "#contatti", label: "Contatti" },
 ];
 
 const CLUBS = CLUBS_CONFIG.map(c => ({ to: c.path, label: c.label, icon: c.icon, color: c.iconColor }));
@@ -138,6 +137,14 @@ export const Navbar = () => {
               </div>
             </div>
 
+            <a
+              href="#contatti"
+              onClick={scrollTo("#contatti")}
+              className="px-4 py-2 rounded-full text-sm font-semibold text-tv-green-deep/80 hover:text-tv-green-deep hover:bg-tv-mint/40 transition-colors"
+            >
+              Contatti
+            </a>
+
             <Link
               to="/donazioni"
               onClick={closeAll}
@@ -245,6 +252,14 @@ export const Navbar = () => {
               ))}
             </div>
           )}
+
+          <a
+            href="#contatti"
+            onClick={scrollTo("#contatti")}
+            className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40"
+          >
+            Contatti
+          </a>
 
           <Link
             to="/donazioni"
