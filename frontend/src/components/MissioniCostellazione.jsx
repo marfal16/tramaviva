@@ -50,80 +50,81 @@ function buildWeb() {
   return { nodes, segs };
 }
 
-// ── Spider mesh — stile cartoon gentile ───────────────────────────────────────
+// ── Spider mesh — fedele al logo Trama Viva ───────────────────────────────────
 function buildSpider() {
   const g = new THREE.Group();
 
-  const mOr    = new THREE.MeshPhongMaterial({ color: 0xee7515, shininess: 90 });
-  const mAbd   = new THREE.MeshPhongMaterial({ color: 0xcc5808, shininess: 50 });
-  const mLeg   = new THREE.MeshPhongMaterial({ color: 0x220800, shininess: 30 });
-  const mEyeY  = new THREE.MeshPhongMaterial({ color: 0xffee22, shininess: 120, emissive: 0x221100 });
+  // Palette dal logo: testa arancio, addome turchese, zampe arancio scuro
+  const mHead  = new THREE.MeshPhongMaterial({ color: 0xd94e10, shininess: 80 });
+  const mAbd   = new THREE.MeshPhongMaterial({ color: 0x2a8888, shininess: 55 }); // turchese logo
+  const mSpot  = new THREE.MeshPhongMaterial({ color: 0xe05010, shininess: 40 }); // macchie arancio
+  const mLeg   = new THREE.MeshPhongMaterial({ color: 0xb04010, shininess: 35 }); // zampe arancio scuro
+  const mEyeW  = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 100 });
   const mPupil = new THREE.MeshBasicMaterial({ color: 0x110000 });
   const mHl    = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const mCheek = new THREE.MeshPhongMaterial({ color: 0xff9090, transparent: true, opacity: 0.45 });
-  const mStr   = new THREE.MeshPhongMaterial({ color: 0x441800 });
+  const mCheek = new THREE.MeshPhongMaterial({ color: 0xff8888, transparent: true, opacity: 0.50 });
 
-  // Testa/torace grande e rotonda
-  const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mOr);
-  thorax.position.y = 0.22;
-  g.add(thorax);
+  // Testa grande (il ragno del logo ha una testa rotonda prominente)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mHead);
+  head.position.y = 0.22;
+  g.add(head);
 
-  // Addome più piccolo e carino
-  const abd = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mAbd);
-  abd.scale.set(0.80, 0.92, 1.10);
-  abd.position.set(0, 0.20, -0.42);
+  // Addome grande turchese
+  const abd = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 18), mAbd);
+  abd.scale.set(0.85, 1.00, 1.15);
+  abd.position.set(0, 0.22, -0.50);
   g.add(abd);
 
-  // Strisce addome
-  [[-0.32, 0.19], [-0.43, 0.15], [-0.52, 0.11]].forEach(([z, r]) => {
-    const s = new THREE.Mesh(new THREE.TorusGeometry(r, 0.014, 5, 10), mStr);
-    s.rotation.x = Math.PI / 2;
-    s.position.set(0, 0.20, z);
-    g.add(s);
+  // Macchie arancioni sull'addome (come nel logo)
+  [[0, 0.34, -0.38], [0, 0.28, -0.54], [0, 0.22, -0.65]].forEach(([x, y, z]) => {
+    const spot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), mSpot);
+    spot.scale.set(0.8, 0.5, 0.4);
+    spot.position.set(x, y, z);
+    g.add(spot);
   });
 
-  // Occhi grandi cartoon (due principali)
+  // Occhi grandi bianchi con pupilla nera (cartoon)
   [-0.10, 0.10].forEach(ex => {
-    const eyeOut = new THREE.Mesh(new THREE.SphereGeometry(0.082, 12, 12), mEyeY);
-    eyeOut.position.set(ex, 0.35, 0.18);
-    g.add(eyeOut);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), mPupil);
-    pupil.position.set(ex, 0.35, 0.24);
+    const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.090, 12, 12), mEyeW);
+    eyeW.position.set(ex, 0.34, 0.17);
+    g.add(eyeW);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.050, 10, 10), mPupil);
+    pupil.position.set(ex, 0.34, 0.23);
     g.add(pupil);
-    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.020, 6, 6), mHl);
-    hl.position.set(ex + 0.028, 0.375, 0.27);
+    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), mHl);
+    hl.position.set(ex + 0.030, 0.362, 0.265);
     g.add(hl);
   });
 
   // Occhi secondari piccoli
-  [-0.20, 0.20].forEach(ex => {
-    const eyeS = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 8), mEyeY);
-    eyeS.position.set(ex, 0.30, 0.14);
-    g.add(eyeS);
-    const pupilS = new THREE.Mesh(new THREE.SphereGeometry(0.020, 6, 6), mPupil);
-    pupilS.position.set(ex, 0.30, 0.19);
-    g.add(pupilS);
+  [-0.21, 0.21].forEach(ex => {
+    const eS = new THREE.Mesh(new THREE.SphereGeometry(0.040, 8, 8), mEyeW);
+    eS.position.set(ex, 0.295, 0.13);
+    g.add(eS);
+    const pS = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 6), mPupil);
+    pS.position.set(ex, 0.295, 0.18);
+    g.add(pS);
   });
 
-  // Guancette rosse (cute!)
-  [-0.19, 0.19].forEach(ex => {
-    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), mCheek);
-    cheek.scale.set(1, 0.55, 0.35);
-    cheek.position.set(ex, 0.235, 0.17);
+  // Guancette rosa
+  [-0.20, 0.20].forEach(ex => {
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 8), mCheek);
+    cheek.scale.set(1, 0.50, 0.32);
+    cheek.position.set(ex, 0.235, 0.16);
     g.add(cheek);
   });
 
-  // Zampe corte e cicciotte
+  // 8 zampe arancio scuro (come nel logo)
   [
-    { xBase: 0.18, zBase:  0.10 },
-    { xBase: 0.20, zBase: -0.02 },
-    { xBase: 0.17, zBase: -0.14 },
-    { xBase: 0.13, zBase: -0.26 },
+    { xBase: 0.19, zBase:  0.12 },
+    { xBase: 0.21, zBase: -0.01 },
+    { xBase: 0.18, zBase: -0.15 },
+    { xBase: 0.14, zBase: -0.28 },
   ].forEach(({ xBase, zBase }) => {
     [-1, 1].forEach(side => {
       const base  = new THREE.Vector3(side * xBase, 0.14, zBase);
-      const knee  = new THREE.Vector3(side * (xBase + 0.20), 0.30, zBase + side * 0.04);
-      const tip   = new THREE.Vector3(side * (xBase + 0.38), 0.01, zBase + side * 0.08);
+      const knee  = new THREE.Vector3(side * (xBase + 0.22), 0.32, zBase + side * 0.05);
+      const tip   = new THREE.Vector3(side * (xBase + 0.42), 0.01, zBase + side * 0.10);
       const curve = new THREE.CatmullRomCurve3([base, knee, tip]);
       g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 6, 0.022, 5), mLeg));
     });
@@ -188,19 +189,21 @@ const WEB = buildWeb();
 export const MissioniCostellazione = ({ missionsData, onBack }) => {
   const mountRef = useRef();
   const stateRef = useRef({
-    pos:      new THREE.Vector3(0, 0, 0),
-    yaw:      0,
-    keys:     new Set(),
-    joy:      { x: 0, y: 0 },
-    spider:   null,
-    camera:   null,
-    renderer: null,
-    frameId:  null,
-    mNodes:   [],          // {pos, mesh, glowMesh, mission, state}
-    legPhase: 0,
-    camPos:   new THREE.Vector3(0, 1.1, 2.8),
-    nearNode: -1,
-    triggered:new Set(),   // indici già triggerati in questa sessione
+    pos:       new THREE.Vector3(0, 0, 0),
+    yaw:       0,
+    keys:      new Set(),
+    joy:       { x: 0, y: 0 },
+    camJoy:    { x: 0, y: 0 },   // joystick camera (touch destra)
+    spider:    null,
+    camera:    null,
+    renderer:  null,
+    frameId:   null,
+    mNodes:    [],
+    legPhase:  0,
+    camPos:    new THREE.Vector3(0, 1.1, 2.8),
+    camYaw:    0,              // orbita camera attorno al ragno
+    triggered: new Set(),
+    panelOpen: false,          // specchio di panelOpen per il loop
   });
 
   const [selected,  setSelected]  = useState(null);
@@ -343,6 +346,44 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup",   onKeyUp);
 
+    // ── Drag mouse per ruotare camera ─────────────────────────────────────────
+    let dragStart = null;
+    const onMouseDown = (e) => { if (e.button === 0) dragStart = { x: e.clientX, camYaw: s.camYaw }; };
+    const onMouseMove = (e) => {
+      if (!dragStart || s.panelOpen) return;
+      const dx = e.clientX - dragStart.x;
+      s.camYaw = dragStart.camYaw - dx * 0.008;
+    };
+    const onMouseUp = () => { dragStart = null; };
+    renderer.domElement.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup",   onMouseUp);
+
+    // ── Touch destra per ruotare camera (mobile) ──────────────────────────────
+    let camTouch = null;
+    const onTouchStartCam = (e) => {
+      const rightTouches = Array.from(e.changedTouches).filter(t => t.clientX > window.innerWidth * 0.5);
+      if (rightTouches.length > 0) {
+        const t = rightTouches[0];
+        camTouch = { id: t.identifier, x: t.clientX, camYaw: s.camYaw };
+      }
+    };
+    const onTouchMoveCam = (e) => {
+      if (!camTouch || s.panelOpen) return;
+      const t = Array.from(e.touches).find(t => t.identifier === camTouch.id);
+      if (!t) return;
+      const dx = t.clientX - camTouch.x;
+      s.camYaw = camTouch.camYaw - dx * 0.010;
+    };
+    const onTouchEndCam = (e) => {
+      if (camTouch && Array.from(e.changedTouches).some(t => t.identifier === camTouch.id)) {
+        camTouch = null;
+      }
+    };
+    renderer.domElement.addEventListener("touchstart", onTouchStartCam, { passive: true });
+    renderer.domElement.addEventListener("touchmove",  onTouchMoveCam,  { passive: true });
+    renderer.domElement.addEventListener("touchend",   onTouchEndCam,   { passive: true });
+
     // ── Resize ────────────────────────────────────────────────────────────────
     const onResize = () => {
       const w = window.innerWidth, h = window.innerHeight;
@@ -363,80 +404,74 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
       s.frameId = requestAnimationFrame(animate);
       frameT += dt;
 
-      // ── Input ──────────────────────────────────────────────────────────────
-      const K   = s.keys;
-      const joy = s.joy;
-
-      let turn  = 0, move = 0;
-      if (K.has("ArrowLeft")  || K.has("a") || K.has("A")) turn += 1;
-      if (K.has("ArrowRight") || K.has("d") || K.has("D")) turn -= 1;
-      if (K.has("ArrowUp")    || K.has("w") || K.has("W")) move  = 1;
-      if (K.has("ArrowDown")  || K.has("s") || K.has("S")) move  = -1;
-      // Joystick
-      if (Math.abs(joy.x) > 0.1) turn -= joy.x;
-      if (Math.abs(joy.y) > 0.1) move  = -joy.y;
+      // ── Input (bloccato se pannello aperto) ───────────────────────────────
+      let turn = 0, move = 0;
+      if (!s.panelOpen) {
+        const K   = s.keys;
+        const joy = s.joy;
+        if (K.has("ArrowLeft")  || K.has("a") || K.has("A")) turn += 1;
+        if (K.has("ArrowRight") || K.has("d") || K.has("D")) turn -= 1;
+        if (K.has("ArrowUp")    || K.has("w") || K.has("W")) move  = 1;
+        if (K.has("ArrowDown")  || K.has("s") || K.has("S")) move  = -1;
+        if (Math.abs(joy.x) > 0.1) turn -= joy.x;
+        if (Math.abs(joy.y) > 0.1) move  = -joy.y;
+      }
 
       // ── Movimento ragno ────────────────────────────────────────────────────
       s.yaw += turn * TURN_SPEED * dt;
       const fwd = new THREE.Vector3(Math.sin(s.yaw), 0, Math.cos(s.yaw));
-      const vel = fwd.clone().multiplyScalar(move * MOVE_SPEED * dt);
-      s.pos.add(vel);
-
-      // Confine ragnatela
-      const dist2d = Math.sqrt(s.pos.x * s.pos.x + s.pos.z * s.pos.z);
-      if (dist2d > MAX_R) {
-        s.pos.x *= MAX_R / dist2d;
-        s.pos.z *= MAX_R / dist2d;
+      if (!s.panelOpen) {
+        const vel = fwd.clone().multiplyScalar(move * MOVE_SPEED * dt);
+        s.pos.add(vel);
+        const dist2d = Math.sqrt(s.pos.x * s.pos.x + s.pos.z * s.pos.z);
+        if (dist2d > MAX_R) { s.pos.x *= MAX_R / dist2d; s.pos.z *= MAX_R / dist2d; }
       }
 
       // ── Mesh ragno ────────────────────────────────────────────────────────
       spider.position.set(s.pos.x, 0, s.pos.z);
       spider.rotation.y = s.yaw;
-
-      // Camminata: rimbalzo + zampe
-      const isMoving = Math.abs(move) > 0.05 || Math.abs(joy.y) > 0.1;
+      const isMoving = !s.panelOpen && (Math.abs(move) > 0.05 || Math.abs(s.joy.y) > 0.1);
       if (isMoving) {
         spider.position.y = Math.abs(Math.sin(frameT * 14)) * 0.05;
         s.legPhase += dt * 12;
-        // Anima zampe
         spider.children.forEach((child, ci) => {
           if (ci > 6) child.rotation.z = Math.sin(s.legPhase + ci * 0.8) * 0.08;
         });
       } else {
         spider.position.y = Math.abs(Math.sin(frameT * 1.5)) * 0.006;
-        // Respiro addome idle
-        if (spider.children[1]) spider.children[1].scale.z = 1.20 + Math.sin(frameT * 1.3) * 0.02;
+        if (spider.children[1]) spider.children[1].scale.z = 1.15 + Math.sin(frameT * 1.3) * 0.02;
       }
 
-      // ── Camera terza persona ───────────────────────────────────────────────
-      const behind = fwd.clone().negate().multiplyScalar(CAM_Z);
+      // ── Camera terza persona con orbita ───────────────────────────────────
+      // Angolo camera = spider yaw + offset orbita
+      const totalCamAngle = s.yaw + s.camYaw;
+      const camDirX = Math.sin(totalCamAngle);
+      const camDirZ = Math.cos(totalCamAngle);
       const desiredCam = new THREE.Vector3(
-        s.pos.x + behind.x,
+        s.pos.x - camDirX * CAM_Z,
         CAM_Y,
-        s.pos.z + behind.z
+        s.pos.z - camDirZ * CAM_Z
       );
-      s.camPos.lerp(desiredCam, 0.09);
+      s.camPos.lerp(desiredCam, 0.10);
       camera.position.copy(s.camPos);
-      const lookAt = new THREE.Vector3(s.pos.x + fwd.x * 1.2, 0.28, s.pos.z + fwd.z * 1.2);
+      // LookAt: ragno leggermente in avanti nella direzione in cui guarda
+      const lookAt = new THREE.Vector3(s.pos.x, 0.30, s.pos.z);
       camera.lookAt(lookAt);
 
       // ── Proximity missioni ─────────────────────────────────────────────────
       s.mNodes.forEach((mn, i) => {
         const d = s.pos.distanceTo(mn.pos);
         const near = d < TRIG_DIST;
-        // Glow ring
         mn.glowMat.opacity = near
           ? 0.35 + Math.sin(frameT * 5) * 0.12
           : Math.max(0, mn.glowMat.opacity - 0.04);
-        // Trigger missione (solo se unlocked, solo una volta per sessione di avvicinamento)
-        if (near && mn.state !== "locked" && !s.triggered.has(i)) {
+        if (near && mn.state !== "locked" && !s.triggered.has(i) && !s.panelOpen) {
           s.triggered.add(i);
+          s.panelOpen = true;
           setSelected(mn.mission);
           setPanelOpen(true);
         }
-        if (!near && s.triggered.has(i)) {
-          s.triggered.delete(i); // reset quando si allontana
-        }
+        if (!near && s.triggered.has(i)) s.triggered.delete(i);
       });
 
       renderer.render(scene, camera);
@@ -445,9 +480,15 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
 
     return () => {
       cancelAnimationFrame(s.frameId);
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup",   onKeyUp);
-      window.removeEventListener("resize",  onResize);
+      window.removeEventListener("keydown",    onKeyDown);
+      window.removeEventListener("keyup",      onKeyUp);
+      window.removeEventListener("mousemove",  onMouseMove);
+      window.removeEventListener("mouseup",    onMouseUp);
+      window.removeEventListener("resize",     onResize);
+      renderer.domElement.removeEventListener("mousedown",  onMouseDown);
+      renderer.domElement.removeEventListener("touchstart", onTouchStartCam);
+      renderer.domElement.removeEventListener("touchmove",  onTouchMoveCam);
+      renderer.domElement.removeEventListener("touchend",   onTouchEndCam);
       renderer.dispose();
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement);
     };
@@ -455,6 +496,7 @@ export const MissioniCostellazione = ({ missionsData, onBack }) => {
   }, [missions.length]);
 
   const closePanel = () => {
+    stateRef.current.panelOpen = false;
     setPanelOpen(false);
     setTimeout(() => setSelected(null), 350);
   };
