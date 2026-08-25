@@ -222,7 +222,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
       <div className="max-h-[90vh] overflow-y-auto">
 
         {/* Header cinematico */}
-        <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">
+        <div className="relative bg-tv-green-deep overflow-hidden">
           {film.cover_url && (
             <div
               className="absolute inset-0 opacity-10 scale-110"
@@ -725,7 +725,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
       <div className="max-h-[90vh] overflow-y-auto">
 
         {/* Header con poster */}
-        <div className="relative bg-tv-green-deep rounded-t-[2rem] overflow-hidden">
+        <div className="relative bg-tv-green-deep overflow-hidden">
           {proposal.cover_url && (
             <div
               className="absolute inset-0 opacity-10 scale-110"
