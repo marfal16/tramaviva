@@ -473,7 +473,8 @@ export const EventoDettaglio = () => {
                   </p>
                   {event.solo_soci && (
                     <div className="mt-3 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
-                      ℹ️ Evento riservato ai soci. Inserisci l'email con cui sei registrato/a.
+                      ℹ️ Evento riservato ai soci. Inserisci l'email con cui sei registrato/a — oppure{" "}
+                      <a href="https://www.tramavivaaps.com/iscrizione" target="_blank" rel="noreferrer" className="underline font-bold hover:text-tv-bordeaux">iscriviti qui</a>.
                     </div>
                   )}
                   <div className="mt-5 space-y-3">
@@ -725,12 +726,14 @@ export const EventoDettaglio = () => {
                       <p className="text-xs text-tv-green-deep/70 mb-3">
                         La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio.
                       </p>
-                      <Link
-                        to="/#iscrizione"
+                      <a
+                        href="https://www.tramavivaaps.com/iscrizione"
+                        target="_blank"
+                        rel="noreferrer"
                         className="inline-block text-xs font-bold px-4 py-2 rounded-full bg-tv-bordeaux text-white hover:bg-tv-bordeaux/80 transition-colors"
                       >
                         Richiedi l'iscrizione →
-                      </Link>
+                      </a>
                     </div>
                   )}
                 </form>
