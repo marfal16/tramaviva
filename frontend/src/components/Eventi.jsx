@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays, Star } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays, Star, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
 import { it } from "date-fns/locale";
@@ -44,6 +45,7 @@ const isPast = (dateStr) => {
 };
 
 export const Eventi = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -187,16 +189,21 @@ export const Eventi = () => {
             </p>
 
             {/* Info solo soci */}
-            {selected.solo_soci && (
-              <div className="mt-4 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
-                ℹ️ La partecipazione è riservata ai <b>soci tesserati</b>. Se non lo sei ancora,{" "}
-                <a
-                  href="#iscrizione"
-                  onClick={(e) => { e.preventDefault(); setSelected(null); document.querySelector("#iscrizione")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="underline font-bold hover:text-tv-bordeaux"
+            {selected.solo_soci && !user && (
+              <div className="mt-4 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
+                <div className="flex items-center gap-2 font-bold text-tv-bordeaux mb-1">
+                  <Lock size={14} /> Evento riservato ai soci
+                </div>
+                <p className="text-xs text-tv-green-deep/70 mb-3">
+                  Per partecipare devi essere socio Trama Viva o avere una richiesta di iscrizione in corso.
+                </p>
+                <Link
+                  to="/#iscrizione"
+                  onClick={() => setSelected(null)}
+                  className="inline-block text-xs font-bold px-4 py-2 rounded-full bg-tv-bordeaux text-white hover:bg-tv-bordeaux/80 transition-colors"
                 >
-                  iscriviti prima qui
-                </a>.
+                  Richiedi l'iscrizione →
+                </Link>
               </div>
             )}
 
@@ -208,6 +215,7 @@ export const Eventi = () => {
               </div>
             )}
 
+            {(!selected.solo_soci || user) && (<>
             <div className="mt-6 space-y-3">
               <input
                 data-testid="event-form-name"
@@ -257,6 +265,7 @@ export const Eventi = () => {
             >
               {submitting ? "Invio in corso…" : "Invia richiesta"}
             </button>
+            </>)}
           </form>
         </div>
       )}

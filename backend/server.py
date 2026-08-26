@@ -686,6 +686,17 @@ async def get_event_signups_count(event_id: str):
 # ========== ROUTES: EVENT SIGNUPS & MEMBERSHIPS ==========
 @api_router.post("/event-signup", response_model=EventSignup)
 async def create_event_signup(payload: EventSignupCreate):
+    # Controllo accesso: eventi solo soci
+    event_doc = await db.events.find_one({"id": payload.event_id})
+    if event_doc and event_doc.get("solo_soci"):
+        email = (payload.email or "").lower().strip()
+        is_member  = await db.members.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+        is_pending = await db.registrations.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
+        if not is_member and not is_pending:
+            raise HTTPException(
+                status_code=403,
+                detail="Questo evento è riservato ai soci Trama Viva. Per partecipare devi essere socio o avere una richiesta di iscrizione in corso."
+            )
     obj = EventSignup(**payload.model_dump())
     doc = obj.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
