@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send, Copy, MessageCircle, BookOpen, ArrowRight, Lock } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send, Copy, MessageCircle, BookOpen, ArrowRight } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { ThreadsBg } from "./ThreadsBg";
-import { useAuth } from "../context/AuthContext";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -37,7 +36,6 @@ const isPast = (dateStr) => {
 
 export const EventoDettaglio = () => {
   const { slug } = useParams();
-  const { user } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -47,6 +45,7 @@ export const EventoDettaglio = () => {
   const [opzioneScelta, setOpzioneScelta] = useState("");
   const [donazioneVolontaria, setDonazioneVolontaria] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [soloSociError, setSoloSociError] = useState(false);
   const [done, setDone] = useState(false);
   const [signupCount, setSignupCount] = useState(null);
 
@@ -137,8 +136,12 @@ export const EventoDettaglio = () => {
       toast.success("Richiesta inviata! Ti scriviamo presto.");
       setForm({ name: "", email: "", phone: "", message: "", referral: "", metodo_pagamento: "" });
       setNumPersone(1); setOspiti([]); setOpzioneScelta(""); setDonazioneVolontaria("");
-    } catch {
-      toast.error("Errore nell'invio. Riprova.");
+    } catch (err) {
+      if (err?.response?.status === 403) {
+        setSoloSociError(true);
+      } else {
+        toast.error("Errore nell'invio. Riprova.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -468,23 +471,11 @@ export const EventoDettaglio = () => {
                   <p className="mt-1 text-sm text-tv-green-deep/60">
                     Mandaci la tua richiesta, ti rispondiamo noi.
                   </p>
-                  {event.solo_soci && !user && (
-                    <div className="mt-4 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
-                      <div className="flex items-center gap-2 font-bold text-tv-bordeaux mb-1">
-                        <Lock size={14} /> Evento riservato ai soci
-                      </div>
-                      <p className="text-xs text-tv-green-deep/70 mb-3">
-                        Per partecipare devi essere socio Trama Viva o avere una richiesta di iscrizione in corso.
-                      </p>
-                      <Link
-                        to="/#iscrizione"
-                        className="inline-block text-xs font-bold px-4 py-2 rounded-full bg-tv-bordeaux text-white hover:bg-tv-bordeaux/80 transition-colors"
-                      >
-                        Richiedi l'iscrizione →
-                      </Link>
+                  {event.solo_soci && (
+                    <div className="mt-3 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
+                      ℹ️ Evento riservato ai soci. Inserisci l'email con cui sei registrato/a.
                     </div>
                   )}
-                  {(!event.solo_soci || user) && (<>
                   <div className="mt-5 space-y-3">
                     <input
                       data-testid="detail-form-name"
@@ -728,7 +719,20 @@ export const EventoDettaglio = () => {
                   >
                     {submitting ? "Invio…" : "Invia richiesta"}
                   </button>
-                  </>)}
+                  {soloSociError && (
+                    <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
+                      <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
+                      <p className="text-xs text-tv-green-deep/70 mb-3">
+                        La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio.
+                      </p>
+                      <Link
+                        to="/#iscrizione"
+                        className="inline-block text-xs font-bold px-4 py-2 rounded-full bg-tv-bordeaux text-white hover:bg-tv-bordeaux/80 transition-colors"
+                      >
+                        Richiedi l'iscrizione →
+                      </Link>
+                    </div>
+                  )}
                 </form>
               )}
             </aside>

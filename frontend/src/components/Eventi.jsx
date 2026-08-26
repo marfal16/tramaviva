@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays, Star, Lock } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
 import { it } from "date-fns/locale";
@@ -45,12 +44,12 @@ const isPast = (dateStr) => {
 };
 
 export const Eventi = () => {
-  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [soloSociError, setSoloSociError] = useState(false);
   const [view, setView] = useState("list");
   const [pickedDate, setPickedDate] = useState(null);
 
@@ -83,12 +82,18 @@ export const Eventi = () => {
       toast.success("Richiesta inviata! Ti scriviamo presto.");
       setSelected(null);
       setForm({ name: "", email: "", phone: "", message: "" });
-    } catch (e) {
-      toast.error("Qualcosa è andato storto. Riprova.");
+    } catch (err) {
+      if (err?.response?.status === 403) {
+        setSoloSociError(true);
+      } else {
+        toast.error("Qualcosa è andato storto. Riprova.");
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => { setSoloSociError(false); }, [selected]);
 
   return (
     <section
@@ -189,21 +194,9 @@ export const Eventi = () => {
             </p>
 
             {/* Info solo soci */}
-            {selected.solo_soci && !user && (
-              <div className="mt-4 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
-                <div className="flex items-center gap-2 font-bold text-tv-bordeaux mb-1">
-                  <Lock size={14} /> Evento riservato ai soci
-                </div>
-                <p className="text-xs text-tv-green-deep/70 mb-3">
-                  Per partecipare devi essere socio Trama Viva o avere una richiesta di iscrizione in corso.
-                </p>
-                <Link
-                  to="/#iscrizione"
-                  onClick={() => setSelected(null)}
-                  className="inline-block text-xs font-bold px-4 py-2 rounded-full bg-tv-bordeaux text-white hover:bg-tv-bordeaux/80 transition-colors"
-                >
-                  Richiedi l'iscrizione →
-                </Link>
+            {selected.solo_soci && (
+              <div className="mt-3 p-3 rounded-2xl bg-tv-sky/40 border border-tv-green-deep/10 text-xs text-tv-green-deep leading-relaxed">
+                ℹ️ Evento riservato ai soci. Inserisci l'email con cui sei registrato/a.
               </div>
             )}
 
@@ -215,7 +208,6 @@ export const Eventi = () => {
               </div>
             )}
 
-            {(!selected.solo_soci || user) && (<>
             <div className="mt-6 space-y-3">
               <input
                 data-testid="event-form-name"
@@ -265,7 +257,21 @@ export const Eventi = () => {
             >
               {submitting ? "Invio in corso…" : "Invia richiesta"}
             </button>
-            </>)}
+            {soloSociError && (
+              <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
+                <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
+                <p className="text-xs text-tv-green-deep/70 mb-3">
+                  La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio.
+                </p>
+                <Link
+                  to="/#iscrizione"
+                  onClick={() => setSelected(null)}
+                  className="inline-block text-xs font-bold px-4 py-2 rounded-full bg-tv-bordeaux text-white hover:bg-tv-bordeaux/80 transition-colors"
+                >
+                  Richiedi l'iscrizione →
+                </Link>
+              </div>
+            )}
           </form>
         </div>
       )}
