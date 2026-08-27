@@ -165,6 +165,11 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
                 🎫 Tessera #{row.tessera_number}
               </span>
             )}
+            {row.is_manual && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
+                📋 Cartaceo
+              </span>
+            )}
             {row.metodo_pagamento && (
               <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                 row.payment_completed
@@ -289,28 +294,31 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
         <span className="text-xs text-tv-green-deep/45">{fmtDate(row.created_at)}</span>
       </td>
       <td className="py-3 pr-4">
-        {row.tessera_number
-          ? <span className="text-[10px] font-bold bg-tv-orange/25 text-tv-green-deep px-2 py-0.5 rounded-full">🎫 #{row.tessera_number}</span>
-          : <span className="text-tv-green-deep/20 text-xs">—</span>}
+        <div className="flex flex-col gap-1">
+          {row.tessera_number
+            ? <span className="text-[10px] font-bold bg-tv-orange/25 text-tv-green-deep px-2 py-0.5 rounded-full">🎫 #{row.tessera_number}</span>
+            : <span className="text-tv-green-deep/20 text-xs">—</span>}
+          {row.is_manual && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">📋 Cartaceo</span>}
+        </div>
       </td>
       <td className="py-3 pr-4 hidden md:table-cell">
         {row.document_downloaded
-          ? <span className="text-[10px] font-bold bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full">📥 Scaricato</span>
+          ? <span className="text-[10px] font-bold bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full whitespace-nowrap">📥 Scaricato</span>
           : <span className="text-tv-green-deep/20 text-xs">—</span>}
       </td>
       <td className="py-3 pr-4 hidden lg:table-cell">
         {row.metodo_pagamento
-          ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-bordeaux"}`}>
-              {row.payment_completed ? "✓" : "⏳"} {row.metodo_pagamento}
+          ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-bordeaux"}`}>
+              {row.payment_completed ? "✓" : "⏳"} {{ contanti: "Contanti", bonifico: "Bonifico", elettronico: "Carta" }[row.metodo_pagamento] || row.metodo_pagamento}
             </span>
           : <span className="text-tv-green-deep/20 text-xs">—</span>}
       </td>
       <td className="py-3 pr-4">
         {isArchived
-          ? <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Archiviato</span>
+          ? <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full whitespace-nowrap">Archiviato</span>
           : isApproved
-          ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">✓ Socio</span>
-          : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ In attesa</span>}
+          ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full whitespace-nowrap">✓ Socio</span>
+          : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full whitespace-nowrap">⏳ Attesa</span>}
       </td>
       <td className="py-3 pr-4">
         <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
