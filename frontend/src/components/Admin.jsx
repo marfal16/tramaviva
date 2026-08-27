@@ -345,7 +345,7 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
   );
 };
 
-const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete }) => {
+const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onAddManual }) => {
   const [activeFilter, setActiveFilter] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState("created_at");
@@ -412,6 +412,12 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
           <input type="text" placeholder="Cerca nome o email…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
         </div>
+        {onAddManual && (
+          <button onClick={onAddManual}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tv-green-deep text-tv-cream text-xs font-bold hover:bg-tv-green-deep/80 transition-colors whitespace-nowrap">
+            + Cartaceo
+          </button>
+        )}
       </div>
       {filteredList.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
@@ -2316,6 +2322,9 @@ const Dashboard = ({ token, onLogout }) => {
   const [tesseraModal, setTesseraModal] = useState(null);
   const [tesseraInput, setTesseraInput] = useState("");
   const [tesseraLoading, setTesseraLoading] = useState(false);
+  const [manualModal, setManualModal] = useState(false);
+  const [manualForm, setManualForm] = useState({ first_name: "", last_name: "", email: "", phone: "", tessera_number: "", data_nascita: "", codice_fiscale: "", indirizzo: "", comune: "", cap: "" });
+  const [manualLoading, setManualLoading] = useState(false);
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
@@ -2444,6 +2453,47 @@ const Dashboard = ({ token, onLogout }) => {
       toast.error(msg);
     } finally {
       setTesseraLoading(false);
+    }
+  };
+
+  const saveTesseraOnly = async () => {
+    if (!tesseraModal || !tesseraInput.trim()) { setTesseraModal(null); return; }
+    setTesseraLoading(true);
+    try {
+      await axios.patch(`${API}/admin/registrations/${tesseraModal.id}/tessera`,
+        { tessera_number: tesseraInput.trim() }, authHeader
+      );
+      setData(prev => ({
+        ...prev,
+        registrations: prev.registrations.map(r =>
+          r.id === tesseraModal.id ? { ...r, tessera_number: tesseraInput.trim() } : r
+        ),
+      }));
+      toast.success("Numero tessera aggiornato.");
+      setTesseraModal(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Errore nell'aggiornamento.");
+    } finally {
+      setTesseraLoading(false);
+    }
+  };
+
+  const submitManualRegistration = async () => {
+    if (!manualForm.first_name || !manualForm.last_name || !manualForm.email) {
+      toast.error("Nome, cognome ed email sono obbligatori.");
+      return;
+    }
+    setManualLoading(true);
+    try {
+      const res = await axios.post(`${API}/admin/registrations`, manualForm, authHeader);
+      setData(prev => ({ ...prev, registrations: [res.data, ...prev.registrations] }));
+      toast.success("Socio aggiunto manualmente.");
+      setManualModal(false);
+      setManualForm({ first_name: "", last_name: "", email: "", phone: "", tessera_number: "", data_nascita: "", codice_fiscale: "", indirizzo: "", comune: "", cap: "" });
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Errore nell'inserimento.");
+    } finally {
+      setManualLoading(false);
     }
   };
 
@@ -2818,6 +2868,7 @@ const Dashboard = ({ token, onLogout }) => {
               onCleanup={cleanupRegistration}
               onResend={resendEmail}
               onDelete={(id) => remove("registrations", id)}
+              onAddManual={() => setManualModal(true)}
             />
           ) : tab === "event-signups" ? (
             <EventSignupsManager
@@ -3051,12 +3102,20 @@ const Dashboard = ({ token, onLogout }) => {
                 className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-lg font-bold mb-5"
                 autoFocus
               />
-              <div className="flex gap-3">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => setTesseraModal(null)}
-                  className="flex-1 px-4 py-3 rounded-full border-2 border-tv-green-deep/20 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep/5 transition-colors"
+                  className="px-4 py-3 rounded-full border-2 border-tv-green-deep/20 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep/5 transition-colors"
                 >
                   Annulla
+                </button>
+                <button
+                  onClick={saveTesseraOnly}
+                  disabled={tesseraLoading}
+                  className="flex-1 px-4 py-3 rounded-full bg-tv-green/20 text-tv-green-deep font-bold text-sm hover:bg-tv-green/30 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                >
+                  {tesseraLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                  Solo salva
                 </button>
                 <button
                   onClick={confirmTesseraAndDownload}
@@ -3064,13 +3123,92 @@ const Dashboard = ({ token, onLogout }) => {
                   className="flex-1 px-4 py-3 rounded-full bg-tv-sky text-tv-green-deep font-bold text-sm hover:bg-tv-sky/80 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                 >
                   {tesseraLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                  Scarica PDF
+                  Salva e PDF
                 </button>
               </div>
             </div>
           </div>
         );
       })()}
+      {manualModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-tv-cream rounded-[2rem] p-7 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="font-display font-black text-2xl text-tv-green-deep mb-1">📋 Aggiungi socio cartaceo</div>
+            <p className="text-sm text-tv-green-deep/70 mb-5">Inserisci i dati del modulo cartaceo. Il socio verrà aggiunto in stato <b>pending</b>.</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Nome *</label>
+                  <input value={manualForm.first_name} onChange={e => setManualForm(f => ({...f, first_name: e.target.value}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="Mario"/>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Cognome *</label>
+                  <input value={manualForm.last_name} onChange={e => setManualForm(f => ({...f, last_name: e.target.value}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="Rossi"/>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Email *</label>
+                <input type="email" value={manualForm.email} onChange={e => setManualForm(f => ({...f, email: e.target.value}))}
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="mario@email.com"/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Telefono</label>
+                  <input value={manualForm.phone} onChange={e => setManualForm(f => ({...f, phone: e.target.value}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="333 1234567"/>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">N° Tessera</label>
+                  <input type="number" min="1" value={manualForm.tessera_number} onChange={e => setManualForm(f => ({...f, tessera_number: e.target.value}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm font-bold" placeholder="19"/>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Data nascita</label>
+                  <input value={manualForm.data_nascita} onChange={e => setManualForm(f => ({...f, data_nascita: e.target.value}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="01/01/1990"/>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Codice fiscale</label>
+                  <input value={manualForm.codice_fiscale} onChange={e => setManualForm(f => ({...f, codice_fiscale: e.target.value.toUpperCase()}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm font-mono" placeholder="RSSMRA90A01H501Z"/>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Indirizzo</label>
+                <input value={manualForm.indirizzo} onChange={e => setManualForm(f => ({...f, indirizzo: e.target.value}))}
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="Via Roma 1"/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">Comune</label>
+                  <input value={manualForm.comune} onChange={e => setManualForm(f => ({...f, comune: e.target.value}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="Milano"/>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-tv-green-deep/60 uppercase tracking-wider mb-1 block">CAP</label>
+                  <input value={manualForm.cap} onChange={e => setManualForm(f => ({...f, cap: e.target.value}))}
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" placeholder="20121"/>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setManualModal(false)}
+                className="flex-1 px-4 py-3 rounded-full border-2 border-tv-green-deep/20 text-tv-green-deep font-bold text-sm hover:bg-tv-green-deep/5 transition-colors">
+                Annulla
+              </button>
+              <button onClick={submitManualRegistration} disabled={manualLoading}
+                className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/80 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+                {manualLoading ? <Loader2 size={14} className="animate-spin"/> : null}
+                Aggiungi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {memberEditor && (
         <MemberEditor
           token={token}

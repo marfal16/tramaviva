@@ -1434,6 +1434,50 @@ async def admin_contacts():
     docs = await db.contacts.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return docs
 
+class AdminRegistrationCreate(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = ""
+    tessera_number: Optional[str] = None
+    data_nascita: Optional[str] = ""
+    codice_fiscale: Optional[str] = ""
+    indirizzo: Optional[str] = ""
+    comune: Optional[str] = ""
+    cap: Optional[str] = ""
+    note: Optional[str] = None
+
+@api_router.post("/admin/registrations", dependencies=[Depends(require_admin)])
+async def admin_create_registration(payload: AdminRegistrationCreate):
+    reg = {
+        "id": str(uuid.uuid4()),
+        "first_name": payload.first_name.strip(),
+        "last_name": payload.last_name.strip(),
+        "email": payload.email.lower().strip(),
+        "phone": payload.phone or "",
+        "cellulare": payload.phone or "",
+        "tessera_number": payload.tessera_number.strip() if payload.tessera_number else None,
+        "data_nascita": payload.data_nascita or "",
+        "codice_fiscale": payload.codice_fiscale or "",
+        "indirizzo": payload.indirizzo or "",
+        "comune": payload.comune or "",
+        "cap": payload.cap or "",
+        "documento_tipo": "CI",
+        "consenso_privacy": True,
+        "consenso_dati": True,
+        "consenso_comunicazioni": False,
+        "consenso_pubblico": False,
+        "status": "pending",
+        "payment_completed": True,
+        "document_downloaded": False,
+        "is_manual": True,
+        "note": payload.note,
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db.registrations.insert_one(reg)
+    reg.pop("_id", None)
+    return reg
+
 @api_router.get("/admin/registrations", dependencies=[Depends(require_admin)])
 async def admin_get_registrations():
     docs = await db.registrations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
