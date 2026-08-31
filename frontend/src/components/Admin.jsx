@@ -2391,14 +2391,14 @@ const Dashboard = ({ token, onLogout }) => {
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
-  const loadAll = async () => {
+  const loadAll = async (silent = false) => {
     if (!token) {
       setLoading(false);
       if (typeof onLogout === "function") onLogout();
       return;
     }
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const [r, es, c, ev, mem, bk, rv, pr, mis, don, fl, frv, fpr] = await Promise.all([
         axios.get(`${API}/admin/registrations`, authHeader),
@@ -2440,7 +2440,7 @@ const Dashboard = ({ token, onLogout }) => {
       }
     } finally {
       // Viene eseguito sempre, impedendo il blocco infinito dell'interfaccia
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -2664,7 +2664,7 @@ const Dashboard = ({ token, onLogout }) => {
     try {
       await axios.post(`${API}/admin/event-signups/${row.id}/confirm`, {}, authHeader);
       toast.success("Presenza confermata, posto scalato!");
-      loadAll();
+      loadAll(true);
     } catch (e) {
       toast.error(e.response?.data?.detail || "Errore nella conferma");
     }
@@ -2942,7 +2942,7 @@ const Dashboard = ({ token, onLogout }) => {
               onDelete={(id) => remove("event-signups", id)}
               onTogglePayment={toggleEventPayment}
               token={token}
-              onReload={loadAll}
+              onReload={() => loadAll(true)}
             />
           ) : list.length === 0 ? (
             <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60" data-testid="admin-empty">
