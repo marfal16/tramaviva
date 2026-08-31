@@ -125,6 +125,7 @@ class Event(BaseModel):
     description: str
     emoji: str
     spots: int
+    max_participants: Optional[int] = None
     featured: bool = False
     contributo: float = 0.0
     contributo_note: Optional[str] = None
@@ -144,6 +145,7 @@ class EventCreate(BaseModel):
     description: str
     emoji: str = "✨"
     spots: int = 20
+    max_participants: Optional[int] = None
     slug: Optional[str] = None
     featured: bool = False
     contributo: float = 0.0
@@ -163,6 +165,7 @@ class EventUpdate(BaseModel):
     description: Optional[str] = None
     emoji: Optional[str] = None
     spots: Optional[int] = None
+    max_participants: Optional[int] = None
     featured: Optional[bool] = None
     contributo: Optional[float] = None
     contributo_note: Optional[str] = None
@@ -1941,6 +1944,8 @@ async def admin_create_event(payload: EventCreate):
     data = payload.model_dump()
     data["id"] = str(uuid.uuid4())
     data["slug"] = (data.get("slug") or make_slug(data["title"])) + "-" + data["id"][:6]
+    if data.get("max_participants") is None:
+        data["max_participants"] = data["spots"]
     await db.events.insert_one(dict(data))
     return Event(**data)
 
@@ -1949,6 +1954,11 @@ async def admin_update_event(event_id: str, payload: EventUpdate):
     update = {k: v for k, v in payload.model_dump().items() if v is not None}
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    if "max_participants" in update:
+        confirmed_ppl = 0
+        async for s in db.event_signups.find({"event_id": event_id, "confirmed": True}, {"num_persone": 1}):
+            confirmed_ppl += s.get("num_persone", 1)
+        update["spots"] = max(0, update["max_participants"] - confirmed_ppl)
     res = await db.events.update_one({"id": event_id}, {"$set": update})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Evento non trovato")

@@ -149,7 +149,30 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
     in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
+  const [pastProposals, setPastProposals] = useState(null);
+  const [loadingPast, setLoadingPast] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const loadPastProposals = async () => {
+    if (pastProposals !== null) { setPastProposals(null); return; }
+    setLoadingPast(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/proposals`);
+      const d = await res.json();
+      const unique = Object.values(
+        (Array.isArray(d) ? d : []).reduce((acc, p) => {
+          if (!acc[p.title]) acc[p.title] = p;
+          return acc;
+        }, {})
+      ).sort((a, b) => a.title.localeCompare(b.title));
+      setPastProposals(unique);
+    } catch {} finally { setLoadingPast(false); }
+  };
+
+  const pickPast = (p) => {
+    setForm(f => ({ ...f, title: p.title || "", author: p.author || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "" }));
+    setPastProposals(null);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -189,6 +212,27 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
           <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
         </div>
         <form onSubmit={submit} className="p-6 grid gap-4">
+          {/* Riproponi da precedenti */}
+          <div>
+            <button type="button" onClick={loadPastProposals}
+              className="text-xs font-bold text-tv-bordeaux hover:text-tv-green-deep transition-colors flex items-center gap-1">
+              {loadingPast ? "Caricamento…" : pastProposals !== null ? "↑ Chiudi" : "↩ Seleziona da proposte precedenti"}
+            </button>
+            {pastProposals !== null && (
+              <div className="mt-2 max-h-40 overflow-y-auto rounded-2xl border border-tv-green-deep/10 bg-white divide-y divide-tv-green-deep/6">
+                {pastProposals.length === 0
+                  ? <p className="text-xs text-tv-green-deep/40 p-3">Nessuna proposta trovata.</p>
+                  : pastProposals.map((p) => (
+                    <button key={p.id} type="button" onClick={() => pickPast(p)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-tv-sky/20 transition-colors">
+                      <div className="text-sm font-bold text-tv-green-deep line-clamp-1">{p.title}</div>
+                      <div className="text-xs text-tv-green-deep/45">{p.author}</div>
+                    </button>
+                  ))
+                }
+              </div>
+            )}
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <label>
               <div className={labelClass}>Il tuo nome *</div>

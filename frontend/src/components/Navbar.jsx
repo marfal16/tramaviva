@@ -54,10 +54,12 @@ export const Navbar = () => {
       isFirstRender.current = false;
       const doScroll = () => {
         const el = document.querySelector(hash);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (!el) return;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - NAVBAR_HEIGHT;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
       };
-      // on first load wait for fonts so layout is stable, then scroll
-      if (firstMount) document.fonts.ready.then(doScroll);
+      // on first load: wait for fonts AND at least 150ms for React + layout to settle
+      if (firstMount) Promise.all([document.fonts.ready, new Promise(r => setTimeout(r, 150))]).then(doScroll);
       else setTimeout(doScroll, 50);
     } else {
       isFirstRender.current = false;
@@ -73,7 +75,10 @@ export const Navbar = () => {
     setOpen(false);
     if (isDetailPage) { window.location.href = "/" + href; return; }
     const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.pageYOffset - NAVBAR_HEIGHT;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
   };
 
   const closeAll = () => { setOpen(false); setClubsOpen(false); setUserMenuOpen(false); };

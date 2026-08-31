@@ -2202,7 +2202,7 @@ const DashboardHome = ({ data, onNavigate }) => {
                         {new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" })} · {ev.time}
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-tv-green-deep/60 shrink-0">{ev.spots} posti</span>
+                    <span className="text-xs font-bold text-tv-green-deep/60 shrink-0">{ev.max_participants ?? ev.spots} posti</span>
                   </div>
                   <div className="h-1.5 bg-tv-green-deep/10 rounded-full overflow-hidden">
                     <div style={{ width: `${fillPct}%` }} className={`h-full rounded-full transition-all ${fillPct >= 90 ? "bg-tv-bordeaux" : fillPct >= 60 ? "bg-tv-orange" : "bg-tv-green"}`} />
@@ -4265,7 +4265,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
               </span>
             )}
           </h3>
-          <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"}</div>
+          <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.max_participants ?? ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"}</div>
         </div>
       </div>
       <div className="flex items-center gap-2 self-end md:self-center">
@@ -4328,12 +4328,14 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
 const EventEditor = ({ token, initial, onClose, onSaved }) => {
   const isNew = !initial;
   const [form, setForm] = useState(
-    initial || {
-      title: "", category: CATEGORIES[0], date: "", time: "19:00",
-      location: "", description: "", emoji: "✨", spots: 20, featured: false, contributo: 0,
-      contributo_note: "", non_rimborsabile: false, solo_soci: false,
-      contributo_volontario: false, opzioni_label: "", opzioni_custom: "",
-    }
+    initial
+      ? { ...initial, max_participants: initial.max_participants ?? initial.spots ?? 20 }
+      : {
+          title: "", category: CATEGORIES[0], date: "", time: "19:00",
+          location: "", description: "", emoji: "✨", spots: 20, max_participants: 20, featured: false, contributo: 0,
+          contributo_note: "", non_rimborsabile: false, solo_soci: false,
+          contributo_volontario: false, opzioni_label: "", opzioni_custom: "",
+        }
   );
   const [saving, setSaving] = useState(false);
   const [imageData, setImageData] = useState(null);
@@ -4358,7 +4360,8 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
     }
     setSaving(true);
     try {
-      const payload = { ...form, spots: Number(form.spots) >= 0 ? Number(form.spots) : 20 };
+      const maxP = Number(form.max_participants) >= 0 ? Number(form.max_participants) : 20;
+      const payload = { ...form, max_participants: maxP, spots: isNew ? maxP : form.spots };
       const headers = { Authorization: `Bearer ${token}` };
       let eventId;
       if (isNew) {
@@ -4403,7 +4406,7 @@ const EventEditor = ({ token, initial, onClose, onSaved }) => {
           <Field label="Data *" type="date" value={form.date} onChange={change("date")} required />
           <Field label="Ora *" type="time" value={form.time} onChange={change("time")} required />
           <Field label="Luogo *" value={form.location} onChange={change("location")} required />
-          <Field label="Posti" type="number" value={form.spots} onChange={change("spots")} />
+          <Field label="Posti massimi" type="number" value={form.max_participants ?? form.spots ?? 20} onChange={change("max_participants")} />
           <label className="block">
             <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo (€)</div>
             <input type="number" min="0" step="0.01" value={form.contributo ?? 0} onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none" />
