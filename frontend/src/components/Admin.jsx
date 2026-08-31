@@ -1505,6 +1505,63 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   );
 };
 
+const fmtMeseAnno = (ym) => {
+  if (!ym || ym === "senza_mese") return "Senza mese";
+  try { return new Date(ym + "-01").toLocaleDateString("it-IT", { month: "long", year: "numeric" }); }
+  catch { return ym; }
+};
+
+const ProposalAccordion = ({ proposals, renderCard }) => {
+  const months = useMemo(() => {
+    const grouped = {};
+    (proposals || []).forEach(p => {
+      const m = p.proposed_month || "senza_mese";
+      if (!grouped[m]) grouped[m] = [];
+      grouped[m].push(p);
+    });
+    return Object.entries(grouped)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([m, items]) => ({ m, items: [...items].sort((a, b) => b.votes - a.votes) }));
+  }, [proposals]);
+
+  const latestMonth = months[0]?.m;
+  const [open, setOpen] = useState(() => latestMonth ? new Set([latestMonth]) : new Set());
+
+  useEffect(() => {
+    if (latestMonth) setOpen(new Set([latestMonth]));
+  }, [latestMonth]);
+
+  const toggle = (m) => setOpen(prev => {
+    const next = new Set(prev);
+    if (next.has(m)) next.delete(m); else next.add(m);
+    return next;
+  });
+
+  if (months.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      {months.map(({ m, items }) => (
+        <div key={m} className="rounded-2xl border border-tv-green-deep/10 overflow-hidden bg-white">
+          <button onClick={() => toggle(m)}
+            className="w-full flex items-center justify-between px-5 py-3 bg-tv-cream/60 hover:bg-tv-cream text-left transition-colors">
+            <span className="font-bold text-sm text-tv-green-deep capitalize">{fmtMeseAnno(m)}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-tv-green-deep/40">{items.length} {items.length === 1 ? "proposta" : "proposte"}</span>
+              <ChevronDown size={14} className={`text-tv-green-deep/40 transition-transform ${open.has(m) ? "rotate-180" : ""}`} />
+            </div>
+          </button>
+          {open.has(m) && (
+            <div className="divide-y divide-tv-green-deep/[0.08]">
+              {items.map(p => renderCard(p))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ── BookManager con sub-tab ──────────────────────────────────────────────────
 const BookManager = ({ books, events, reviews, proposals, token, onReload }) => {
   const [subTab, setSubTab] = useState("catalogo");
@@ -1776,11 +1833,10 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
               Nessuna proposta ancora.
             </div>
           ) : (
-            <div className="grid gap-3">
-              {[...(proposals || [])].sort((a, b) => b.votes - a.votes).map(p => (
-                <ProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />
-              ))}
-            </div>
+            <ProposalAccordion
+              proposals={proposals}
+              renderCard={(p) => <ProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />}
+            />
           )}
         </div>
       )}
@@ -2065,11 +2121,10 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
               Nessuna proposta ancora.
             </div>
           ) : (
-            <div className="grid gap-3">
-              {[...(filmProposals || [])].sort((a, b) => b.votes - a.votes).map(p => (
-                <FilmProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />
-              ))}
-            </div>
+            <ProposalAccordion
+              proposals={filmProposals}
+              renderCard={(p) => <FilmProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />}
+            />
           )}
         </div>
       )}

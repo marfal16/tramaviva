@@ -912,11 +912,7 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote }) => {
 const FilmProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1);
-    return d.toISOString().slice(0, 7);
-  });
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [showForm, setShowForm] = useState(false);
 
   const load = useCallback(() => {
@@ -933,12 +929,11 @@ const FilmProposalsSection = () => {
     fetch(`${BACKEND_URL}/api/film-proposals`)
       .then((r) => r.json())
       .then((d) => {
-        const months = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month))].sort().reverse();
-        const next = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
-        if (!months.includes(next)) months.unshift(next);
+        const months = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month).filter(Boolean))].sort().reverse();
         setAllMonths(months);
+        if (months.length > 0) setSelectedMonth(months[0]);
       })
-      .catch(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); setAllMonths([d.toISOString().slice(0, 7)]); });
+      .catch(() => {});
   }, []);
   useEffect(() => { loadAllMonths(); }, [loadAllMonths]);
 
@@ -979,9 +974,15 @@ const FilmProposalsSection = () => {
     setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)).sort((a, b) => b.votes - a.votes));
   };
 
-  const nextMonthLabel = getNextMonthTitle();
-  const nextMonthPrep = nextMonthLabel && /^[aeiouAEIOU]/.test(nextMonthLabel) ? "ad" : "a";
-  const sectionTitle = nextMonthLabel ? `Cosa guardiamo ${nextMonthPrep} ${nextMonthLabel}` : "Cosa guardiamo dopo?";
+  const sectionTitle = (() => {
+    const ym = selectedMonth || proposals[0]?.proposed_month;
+    if (!ym) return "Cosa guardiamo dopo?";
+    try {
+      const mese = new Date(ym + "-01").toLocaleDateString("it-IT", { month: "long" });
+      const prep = /^[aeiouAEIOU]/.test(mese) ? "ad" : "a";
+      return `Cosa guardiamo ${prep} ${mese}`;
+    } catch { return "Cosa guardiamo dopo?"; }
+  })();
 
   return (
     <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
@@ -1114,24 +1115,6 @@ export const Cineforum = () => {
         <div className="text-center text-tv-green-deep/40 py-24">Caricamento…</div>
       ) : (
         <>
-          {/* In visione — sempre visibile */}
-          <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
-            <div className="mx-auto max-w-5xl">
-              <SectionHeading dot="bg-tv-sky" label="Ora in corso" title="Stiamo guardando" labelSize="text-sm" />
-              {inVisione.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {inVisione.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
-                </div>
-              ) : (
-                <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-8 text-center text-tv-green-deep/40">
-                  <Film size={36} className="mx-auto mb-3 opacity-20" />
-                  <p className="font-bold text-sm">Nessuna proiezione in corso al momento.</p>
-                  <p className="text-sm mt-1">Vota i film del mese per la prossima visione!</p>
-                </div>
-              )}
-            </div>
-          </section>
-
           {/* Proposte del mese */}
           <FilmProposalsSection />
 
