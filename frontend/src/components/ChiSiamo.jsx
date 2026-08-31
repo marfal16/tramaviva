@@ -35,7 +35,7 @@ export const ChiSiamo = () => (
   <section
     id="chi-siamo"
     data-testid="chi-siamo-section"
-    className="relative py-24 md:py-32 bg-tv-cream"
+    className="relative py-24 md:py-32 bg-tv-cream scroll-mt-20"
   >
     <div className="mx-auto max-w-7xl px-6 md:px-10">
       <div className="grid md:grid-cols-12 gap-10">

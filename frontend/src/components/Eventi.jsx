@@ -99,7 +99,7 @@ export const Eventi = () => {
     <section
       id="eventi"
       data-testid="eventi-section"
-      className="relative py-24 md:py-32 bg-tv-cream"
+      className="relative py-24 md:py-32 bg-tv-cream scroll-mt-20"
     >
       <div className="mx-auto max-w-7xl px-6 md:px-10">
         <div className="flex items-end justify-between flex-wrap gap-6 mb-14">

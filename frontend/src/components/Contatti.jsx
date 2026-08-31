@@ -67,7 +67,7 @@ export const Contatti = () => {
     <section
       id="contatti"
       data-testid="contatti-section"
-      className="relative py-24 md:py-32 bg-tv-sky/30 overflow-hidden"
+      className="relative py-24 md:py-32 bg-tv-sky/30 overflow-hidden scroll-mt-20"
     >
       <div className="mx-auto max-w-6xl px-6 md:px-10">
 
