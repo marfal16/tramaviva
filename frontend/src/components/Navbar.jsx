@@ -46,7 +46,12 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return; // on initial load, let native hash + CSS scroll-mt handle it
+    }
     if (location.pathname === "/" && location.hash) {
       const el = document.querySelector(location.hash);
       if (el) {
