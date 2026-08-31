@@ -48,16 +48,25 @@ export const Navbar = () => {
 
   const isFirstRender = useRef(true);
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return; // on initial load, let native hash + CSS scroll-mt handle it
-    }
     if (location.pathname === "/" && location.hash) {
-      const el = document.querySelector(location.hash);
-      if (el) {
-        const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-        setTimeout(() => { window.scrollTo({ top: offsetTop, behavior: "smooth" }); }, 50);
+      const hash = location.hash;
+      const firstMount = isFirstRender.current;
+      isFirstRender.current = false;
+      const doScroll = () => {
+        const el = document.querySelector(hash);
+        if (el) {
+          const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
+          window.scrollTo({ top: offsetTop, behavior: "smooth" });
+        }
+      };
+      if (firstMount) {
+        // wait for fonts so layout is stable before computing geometry
+        document.fonts.ready.then(doScroll);
+      } else {
+        setTimeout(doScroll, 50);
       }
+    } else {
+      isFirstRender.current = false;
     }
   }, [location]);
 
