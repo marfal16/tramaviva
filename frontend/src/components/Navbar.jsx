@@ -54,17 +54,11 @@ export const Navbar = () => {
       isFirstRender.current = false;
       const doScroll = () => {
         const el = document.querySelector(hash);
-        if (el) {
-          const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-          window.scrollTo({ top: offsetTop, behavior: "smooth" });
-        }
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       };
-      if (firstMount) {
-        // wait for fonts so layout is stable before computing geometry
-        document.fonts.ready.then(doScroll);
-      } else {
-        setTimeout(doScroll, 50);
-      }
+      // on first load wait for fonts so layout is stable, then scroll
+      if (firstMount) document.fonts.ready.then(doScroll);
+      else setTimeout(doScroll, 50);
     } else {
       isFirstRender.current = false;
     }
@@ -79,10 +73,7 @@ export const Navbar = () => {
     setOpen(false);
     if (isDetailPage) { window.location.href = "/" + href; return; }
     const el = document.querySelector(href);
-    if (el) {
-      const offsetTop = el.getBoundingClientRect().top + window.scrollY - NAVBAR_HEIGHT;
-      window.scrollTo({ top: offsetTop, behavior: "smooth" });
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const closeAll = () => { setOpen(false); setClubsOpen(false); setUserMenuOpen(false); };
