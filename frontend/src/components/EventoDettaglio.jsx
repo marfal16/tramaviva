@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import { toast } from "sonner";
 import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send, Copy, MessageCircle, BookOpen, ArrowRight } from "lucide-react";
@@ -36,6 +37,7 @@ const isPast = (dateStr) => {
 
 export const EventoDettaglio = () => {
   const { slug } = useParams();
+  const { user } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -77,6 +79,14 @@ export const EventoDettaglio = () => {
     })();
     return () => { document.title = "APS Trama Viva — Intrecciamo storie, persone, opportunità"; };
   }, [slug]);
+
+  useEffect(() => {
+    if (user) setForm(f => ({
+      ...f,
+      name: f.name || user.name || "",
+      email: f.email || user.email || "",
+    }));
+  }, [user]);
 
   const submit = async (e) => {
     e.preventDefault();

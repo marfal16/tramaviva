@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
@@ -44,6 +45,7 @@ const isPast = (dateStr) => {
 };
 
 export const Eventi = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -81,7 +83,7 @@ export const Eventi = () => {
       });
       toast.success("Richiesta inviata! Ti scriviamo presto.");
       setSelected(null);
-      setForm({ name: "", email: "", phone: "", message: "" });
+      setForm({ name: user?.name || "", email: user?.email || "", phone: "", message: "" });
     } catch (err) {
       if (err?.response?.status === 403) {
         setSoloSociError(true);
@@ -93,7 +95,10 @@ export const Eventi = () => {
     }
   };
 
-  useEffect(() => { setSoloSociError(false); }, [selected]);
+  useEffect(() => {
+    setSoloSociError(false);
+    setForm({ name: user?.name || "", email: user?.email || "", phone: "", message: "" });
+  }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section

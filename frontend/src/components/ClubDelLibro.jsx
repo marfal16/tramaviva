@@ -130,7 +130,7 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
 };
 
 // ── Form proposta libro ──────────────────────────────────────────────────────
-const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
+const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
   const defaultMonth = (() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
@@ -138,8 +138,15 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
     return getUpcomingMonths().includes(currentMonth) ? currentMonth : next;
   })();
   const [form, setForm] = useState({
-    title: "", author: "", genre: "", cover_url: "", description: "",
-    proposed_month: defaultMonth, nome: "", cognome: "", in_community_whatsapp: null,
+    title: initialData?.title || "",
+    author: initialData?.author || "",
+    genre: initialData?.genre || "",
+    cover_url: initialData?.cover_url || "",
+    description: initialData?.description || "",
+    proposed_month: defaultMonth,
+    nome: initialData?.nome || "",
+    cognome: initialData?.cognome || "",
+    in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -178,7 +185,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
-          <h2 className="font-display font-black text-xl text-tv-green-deep">Proponi un libro</h2>
+          <h2 className="font-display font-black text-xl text-tv-green-deep">{initialData ? "Riproponi libro" : "Proponi un libro"}</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
         </div>
         <form onSubmit={submit} className="p-6 grid gap-4">
@@ -425,7 +432,7 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 };
 
 // ── Card proposta nella griglia ──────────────────────────────────────────────
-const ProposalCard = ({ proposal, onVote, onUnvote }) => {
+const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
@@ -468,7 +475,14 @@ const ProposalCard = ({ proposal, onVote, onUnvote }) => {
                 <span className="text-xs text-tv-green-deep/35 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
             ) : <span />}
-            <span />
+            {onReproponi && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onReproponi(proposal); }}
+                className="text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
+              >
+                ↩ Riproponi
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -502,6 +516,7 @@ const ProposalsSection = () => {
     return d.toISOString().slice(0, 7);
   });
   const [showForm, setShowForm] = useState(false);
+  const [reproponiData, setReproponiData] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -617,14 +632,17 @@ const ProposalsSection = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {proposals.map((p) => (
-              <ProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote} />
+              <ProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote}
+                onReproponi={(p) => { setReproponiData(p); setShowForm(true); }} />
             ))}
           </div>
         )}
       </div>
 
       {showForm && (
-        <ProposalForm currentMonth={selectedMonth} onSubmit={() => { loadAllMonths(); load(); }} onClose={() => setShowForm(false)} />
+        <ProposalForm currentMonth={selectedMonth} onSubmit={() => { loadAllMonths(); load(); }}
+          onClose={() => { setShowForm(false); setReproponiData(null); }}
+          initialData={reproponiData} />
       )}
     </section>
   );

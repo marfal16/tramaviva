@@ -3663,6 +3663,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   const [bulkLoading, setBulkLoading] = useState(false);
   const [notifyTarget, setNotifyTarget] = useState(null);
   const [bulkNotifyOpen, setBulkNotifyOpen] = useState(false);
+  const [spotsEdit, setSpotsEdit] = useState(null);
 
   const eventById = useMemo(() => {
     const map = {};
@@ -3791,6 +3792,17 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     }
   };
 
+  const saveSpots = async (evId) => {
+    const n = Number(spotsEdit);
+    if (isNaN(n) || n < 0) return;
+    try {
+      await axios.put(`${API}/admin/events/${evId}`, { spots: n }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Posti massimi aggiornati!");
+      setSpotsEdit(null);
+      if (typeof onReload === "function") onReload();
+    } catch { toast.error("Errore nell'aggiornamento."); }
+  };
+
   if (!signups || signups.length === 0 || groups.length === 0) {
     return (
       <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
@@ -3812,16 +3824,21 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
           onChange={e => { setSelectedEventId(e.target.value); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
           className="w-full px-3 py-2.5 rounded-xl bg-white border border-tv-green-deep/15 text-sm text-tv-green-deep outline-none focus:border-tv-green"
         >
-          {groups.map(({ ev, items }) => {
-            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-            const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
-            const past = isPast(ev.date);
+          {(() => {
+            const upcoming = groups.filter(({ ev }) => !isPast(ev.date));
+            const past = groups.filter(({ ev }) => isPast(ev.date));
+            const renderOpt = ({ ev, items }) => {
+              const conf = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+              const tot = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+              return <option key={ev.id} value={ev.id}>{ev.title} — {conf}/{tot} conf.</option>;
+            };
             return (
-              <option key={ev.id} value={ev.id}>
-                {past ? "✓ " : ""}{ev.title} — {confirmedPpl}/{totalPeople} conf.
-              </option>
+              <>
+                {upcoming.length > 0 && <optgroup label="Prossimi eventi">{upcoming.map(renderOpt)}</optgroup>}
+                {past.length > 0 && <optgroup label="Conclusi">{past.map(renderOpt)}</optgroup>}
+              </>
             );
-          })}
+          })()}
         </select>
       </div>
 
@@ -3835,39 +3852,46 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
           </p>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {groups.map(({ ev, items }) => {
-            const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
-            const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
-            const past = isPast(ev.date);
-            const isSelected = selectedEventId === ev.id;
-            const pct = totalPeople > 0 ? Math.round((confirmedPpl / totalPeople) * 100) : 0;
+          {(() => {
+            const upcoming = groups.filter(({ ev }) => !isPast(ev.date));
+            const past = groups.filter(({ ev }) => isPast(ev.date));
+            const renderBtn = ({ ev, items }) => {
+              const totalPeople = items.reduce((s, r) => s + (r.num_persone || 1), 0);
+              const confirmedPpl = items.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+              const isPastEv = isPast(ev.date);
+              const isSelected = selectedEventId === ev.id;
+              const pct = totalPeople > 0 ? Math.round((confirmedPpl / totalPeople) * 100) : 0;
+              return (
+                <button
+                  key={ev.id}
+                  onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); setSpotsEdit(null); }}
+                  className={`w-full text-left px-3 py-3 rounded-xl transition-all ${
+                    isSelected
+                      ? isPastEv ? "bg-gray-400/70 shadow-md" : "bg-tv-green-deep shadow-md"
+                      : isPastEv ? "hover:bg-gray-200/60 opacity-60 hover:opacity-80" : "hover:bg-tv-green-deep/6"
+                  }`}
+                >
+                  <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-2 ${isSelected ? "text-white" : isPastEv ? "text-gray-400" : "text-tv-green-deep"}`}>{ev.title}</div>
+                  <div className={`text-[10px] mb-2 truncate ${isSelected ? "text-white/60" : isPastEv ? "text-gray-400/70" : "text-tv-green-deep/45"}`}>{fmtDay(ev.date)}{isPastEv ? " · concluso" : ""}</div>
+                  <div className={`h-1 rounded-full mb-1.5 ${isSelected ? "bg-white/20" : isPastEv ? "bg-gray-300/50" : "bg-tv-green-deep/10"}`}>
+                    <div className={`h-1 rounded-full transition-all ${isPastEv ? (isSelected ? "bg-white/50" : "bg-gray-400/60") : pct === 100 ? "bg-tv-green" : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"}`} style={{ width: `${pct}%` }}/>
+                  </div>
+                  <div className={`text-[10px] font-bold ${isSelected ? "text-white/60" : isPastEv ? "text-gray-400/70" : "text-tv-green-deep/45"}`}>{confirmedPpl}/{totalPeople} conf.</div>
+                </button>
+              );
+            };
             return (
-              <button
-                key={ev.id}
-                onClick={() => { setSelectedEventId(ev.id); setSearchQuery(""); setSelectedIds(new Set()); setActiveFilter("all"); }}
-                className={`w-full text-left px-3 py-3 rounded-xl transition-all ${
-                  isSelected
-                    ? past ? "bg-gray-400/70 shadow-md" : "bg-tv-green-deep shadow-md"
-                    : past ? "hover:bg-gray-200/60 opacity-60 hover:opacity-80" : "hover:bg-tv-green-deep/6"
-                }`}
-              >
-                <div className={`font-semibold text-sm leading-snug mb-0.5 line-clamp-2 ${
-                  isSelected ? "text-white" : past ? "text-gray-400" : "text-tv-green-deep"
-                }`}>{ev.title}</div>
-                <div className={`text-[10px] mb-2 truncate ${
-                  isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"
-                }`}>{fmtDay(ev.date)}{past ? " · concluso" : ""}</div>
-                <div className={`h-1 rounded-full mb-1.5 ${isSelected ? "bg-white/20" : past ? "bg-gray-300/50" : "bg-tv-green-deep/10"}`}>
-                  <div className={`h-1 rounded-full transition-all ${
-                    past ? (isSelected ? "bg-white/50" : "bg-gray-400/60") : pct === 100 ? "bg-tv-green" : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"
-                  }`} style={{ width: `${pct}%` }}/>
-                </div>
-                <div className={`text-[10px] font-bold ${isSelected ? "text-white/60" : past ? "text-gray-400/70" : "text-tv-green-deep/45"}`}>
-                  {confirmedPpl}/{totalPeople} conf.
-                </div>
-              </button>
+              <>
+                {upcoming.map(renderBtn)}
+                {past.length > 0 && upcoming.length > 0 && (
+                  <div className="px-3 pt-3 pb-1">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-tv-green-deep/30 border-t border-tv-green-deep/10 pt-2">Conclusi</p>
+                  </div>
+                )}
+                {past.map(renderBtn)}
+              </>
             );
-          })}
+          })()}
         </div>
       </div>
       <div className="md:flex-1 md:min-w-0 md:flex md:flex-col md:overflow-hidden">
@@ -3939,6 +3963,23 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-orange/10 text-tv-bordeaux px-2.5 py-1 rounded-full">
                       ⚠️ {unpaidCount} da incassare
                     </span>
+                  )}
+                  {spotsEdit !== null ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-sky/30 text-tv-green-deep px-2 py-1 rounded-full">
+                      🎟️ max
+                      <input type="number" value={spotsEdit} min={0}
+                        onChange={e => setSpotsEdit(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") saveSpots(selectedGroup.ev.id); if (e.key === "Escape") setSpotsEdit(null); }}
+                        className="w-12 text-center bg-white rounded px-1 outline-none border border-tv-green-deep/20 text-[11px]"
+                        autoFocus />
+                      <button onClick={() => saveSpots(selectedGroup.ev.id)} className="text-tv-green hover:text-tv-green-deep font-black">✓</button>
+                      <button onClick={() => setSpotsEdit(null)} className="text-tv-green-deep/40 hover:text-tv-green-deep">✕</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setSpotsEdit(selectedGroup.ev.spots ?? 0)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-sky/30 text-tv-green-deep px-2.5 py-1 rounded-full hover:bg-tv-sky/50 transition-colors">
+                      🎟️ {selectedGroup.ev.spots ?? "∞"} max
+                    </button>
                   )}
                 </div>
               </div>

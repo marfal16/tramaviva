@@ -433,7 +433,7 @@ const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
 };
 
 // ── Form proposta film ───────────────────────────────────────────────────────
-const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
+const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
   const defaultMonth = (() => {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
@@ -441,9 +441,18 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
     return getUpcomingMonths().includes(currentMonth) ? currentMonth : next;
   })();
   const [form, setForm] = useState({
-    title: "", director: "", genre: "", cover_url: "", description: "",
-    trailer_url: "", discussion_topics: "", external_reviews: [],
-    proposed_month: defaultMonth, nome: "", cognome: "", in_community_whatsapp: null,
+    title: initialData?.title || "",
+    director: initialData?.director || "",
+    genre: initialData?.genre || "",
+    cover_url: initialData?.cover_url || "",
+    description: initialData?.description || "",
+    trailer_url: initialData?.trailer_url || "",
+    discussion_topics: initialData?.discussion_topics || "",
+    external_reviews: [],
+    proposed_month: defaultMonth,
+    nome: initialData?.nome || "",
+    cognome: initialData?.cognome || "",
+    in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -486,7 +495,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose }) => {
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
       <div className="max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
-          <h2 className="font-display font-black text-xl text-tv-green-deep">Proponi un film</h2>
+          <h2 className="font-display font-black text-xl text-tv-green-deep">{initialData ? "Riproponi film" : "Proponi un film"}</h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
         </div>
         <form onSubmit={submit} className="p-6 grid gap-4">
@@ -841,7 +850,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 };
 
 // ── Card proposta film nella griglia ─────────────────────────────────────────
-const FilmProposalCard = ({ proposal, onVote, onUnvote }) => {
+const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
@@ -884,7 +893,14 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote }) => {
                 <span className="text-xs text-tv-green-deep/35 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
             ) : <span />}
-            <span />
+            {onReproponi && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onReproponi(proposal); }}
+                className="text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
+              >
+                ↩ Riproponi
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -914,6 +930,7 @@ const FilmProposalsSection = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [showForm, setShowForm] = useState(false);
+  const [reproponiData, setReproponiData] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -1034,14 +1051,17 @@ const FilmProposalsSection = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {proposals.map((p) => (
-              <FilmProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote} />
+              <FilmProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote}
+                onReproponi={(p) => { setReproponiData(p); setShowForm(true); }} />
             ))}
           </div>
         )}
       </div>
 
       {showForm && (
-        <ProposalForm currentMonth={selectedMonth} onSubmit={() => { loadAllMonths(); load(); }} onClose={() => setShowForm(false)} />
+        <ProposalForm currentMonth={selectedMonth} onSubmit={() => { loadAllMonths(); load(); }}
+          onClose={() => { setShowForm(false); setReproponiData(null); }}
+          initialData={reproponiData} />
       )}
     </section>
   );
