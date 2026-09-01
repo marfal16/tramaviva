@@ -650,7 +650,7 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
           </h2>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
         </div>
-        <form onSubmit={submit} className="p-6 grid gap-4">
+        <form onSubmit={submit} className="p-6 grid grid-cols-1 gap-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <label>
               <div className={labelClass}>Titolo *</div>
