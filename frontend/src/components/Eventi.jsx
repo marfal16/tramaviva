@@ -6,6 +6,7 @@ import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGr
 import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
 import { it } from "date-fns/locale";
+import { downloadICS, googleCalendarUrl } from "../utils/calendarUtils";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -49,6 +50,7 @@ export const Eventi = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [doneEvent, setDoneEvent] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
   const [soloSociError, setSoloSociError] = useState(false);
@@ -81,8 +83,7 @@ export const Eventi = () => {
         event_title: selected.title,
         ...form,
       });
-      toast.success("Richiesta inviata! Ti scriviamo presto.");
-      setSelected(null);
+      setDoneEvent(selected);
       setForm({ name: user?.name || "", email: user?.email || "", phone: "", message: "" });
     } catch (err) {
       if (err?.response?.status === 403) {
@@ -171,9 +172,45 @@ export const Eventi = () => {
       {selected && (
         <div
           className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
-          onClick={() => setSelected(null)}
+          onClick={() => { setSelected(null); setDoneEvent(null); }}
           data-testid="event-modal"
         >
+          {doneEvent ? (
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-tv-green text-tv-cream rounded-[2rem] p-7 md:p-9 relative my-4">
+              <button type="button" onClick={() => { setSelected(null); setDoneEvent(null); }}
+                className="absolute top-5 right-5 p-2 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30">
+                <X size={16} />
+              </button>
+              <div className="flex justify-center mb-5">
+                <div className="w-16 h-16 rounded-full bg-tv-cream/20 flex items-center justify-center text-4xl">✅</div>
+              </div>
+              <div className="font-display font-black text-2xl text-center">Richiesta inviata!</div>
+              <p className="mt-2 text-sm opacity-90 text-center">Ti confermiamo la partecipazione entro 24h via email.</p>
+              <div className="my-5 border-t border-tv-cream/30" />
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2"><span>📅</span><span className="font-semibold">{doneEvent.title}</span></div>
+                {(doneEvent.date || doneEvent.time) && (
+                  <div className="flex items-start gap-2"><span>🕐</span><span>{doneEvent.date ? new Date(doneEvent.date + 'T12:00:00').toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" }) : ""}{doneEvent.date && doneEvent.time ? " · " : ""}{doneEvent.time || ""}</span></div>
+                )}
+                {doneEvent.location && <div className="flex items-start gap-2"><span>📍</span><span>{doneEvent.location}</span></div>}
+              </div>
+              <p className="mt-4 text-xs opacity-70">Vuoi salvare l'evento nel calendario?</p>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button onClick={() => downloadICS(doneEvent)}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
+                  📅 Salva nel calendario
+                </button>
+                <a href={googleCalendarUrl(doneEvent)} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
+                  📆 Google Calendar
+                </a>
+              </div>
+              <button onClick={() => { setSelected(null); setDoneEvent(null); }}
+                className="mt-4 w-full px-4 py-3 rounded-full bg-tv-cream/10 hover:bg-tv-cream/20 text-tv-cream/80 font-bold text-sm transition-colors">
+                Chiudi
+              </button>
+            </div>
+          ) : (
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={submit}
@@ -280,6 +317,7 @@ export const Eventi = () => {
               </div>
             )}
           </form>
+          )}
         </div>
       )}
     </section>

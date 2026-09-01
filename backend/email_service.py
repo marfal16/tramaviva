@@ -7,6 +7,7 @@ try:
     import aiosmtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
+    from email.mime.base import MIMEBase
     HAS_SMTP = True
 except ImportError:
     HAS_SMTP = False
@@ -59,14 +60,17 @@ class EmailService:
             return
         try:
             subject = f"Presenza confermata: {event_title}"
+            gcal_url = self._google_cal_url(event_title, event_date, event_time, event_location)
             html_body = self._get_event_confirmation_template(
                 name=name,
                 event_title=event_title,
                 event_date=event_date,
                 event_time=event_time,
                 event_location=event_location,
+                gcal_url=gcal_url,
             )
-            await self._send_smtp(email, subject, html_body)
+            ics_content = self._generate_ics(event_title, event_date, event_time, event_location)
+            await self._send_smtp(email, subject, html_body, ics_content=ics_content)
             logger.info(f"Email conferma evento inviata a {email}")
         except Exception as e:
             logger.error(f"Errore invio email conferma evento: {e}")
@@ -192,15 +196,65 @@ class EmailService:
 </table>
 </body></html>"""
 
-    async def _send_smtp(self, to_email: str, subject: str, html_body: str):
+    def _generate_ics(self, event_title: str, event_date: str, event_time: str, event_location: str) -> str | None:
+        try:
+            from datetime import timedelta
+            y, m, d = [int(x) for x in event_date.split('-')]
+            h, mi = [int(x) for x in (event_time or '19:00').split(':')]
+            start = datetime(y, m, d, h, mi, 0)
+            end = start + timedelta(hours=2)
+            fmt = lambda dt: dt.strftime('%Y%m%dT%H%M%S')
+            def esc(s):
+                return (s or '').replace('\\', '\\\\').replace(',', '\\,').replace(';', '\\;').replace('\n', '\\n')
+            lines = [
+                'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Trama Viva APS//IT',
+                'METHOD:PUBLISH', 'BEGIN:VEVENT',
+                f'DTSTART:{fmt(start)}', f'DTEND:{fmt(end)}',
+                f'SUMMARY:{esc(event_title)}', f'LOCATION:{esc(event_location)}',
+                f'UID:{event_date}-tramaviva@tramavivaaps.com',
+                'END:VEVENT', 'END:VCALENDAR',
+            ]
+            return '\r\n'.join(lines)
+        except Exception:
+            return None
+
+    def _google_cal_url(self, event_title: str, event_date: str, event_time: str, event_location: str) -> str | None:
+        try:
+            from datetime import timedelta
+            from urllib.parse import urlencode
+            y, m, d = [int(x) for x in event_date.split('-')]
+            h, mi = [int(x) for x in (event_time or '19:00').split(':')]
+            start = datetime(y, m, d, h, mi, 0)
+            end = start + timedelta(hours=2)
+            fmt = lambda dt: dt.strftime('%Y%m%dT%H%M%S')
+            params = urlencode({
+                'action': 'TEMPLATE', 'text': event_title or '',
+                'dates': f'{fmt(start)}/{fmt(end)}', 'location': event_location or '',
+            })
+            return f'https://calendar.google.com/calendar/render?{params}'
+        except Exception:
+            return None
+
+    async def _send_smtp(self, to_email: str, subject: str, html_body: str, ics_content: str | None = None):
         if not HAS_SMTP:
             logger.warning("aiosmtplib non disponibile")
             return
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{self.from_name} <{self.from_email}>"
-        msg["To"] = to_email
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        if ics_content:
+            msg = MIMEMultipart("mixed")
+            msg["Subject"] = subject
+            msg["From"] = f"{self.from_name} <{self.from_email}>"
+            msg["To"] = to_email
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
+            ics_part = MIMEBase("text", "calendar", method="PUBLISH", name="evento.ics")
+            ics_part.set_payload(ics_content.encode("utf-8"))
+            ics_part["Content-Disposition"] = 'attachment; filename="evento.ics"'
+            msg.attach(ics_part)
+        else:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"{self.from_name} <{self.from_email}>"
+            msg["To"] = to_email
+            msg.attach(MIMEText(html_body, "html", "utf-8"))
         async with aiosmtplib.SMTP(hostname=self.smtp_host, port=self.smtp_port) as smtp:
             await smtp.login(self.smtp_user, self.smtp_password)
             await smtp.sendmail(self.from_email, to_email, msg.as_string())
@@ -300,7 +354,14 @@ class EmailService:
         </body>
         </html>"""
 
-    def _get_event_confirmation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str) -> str:
+    def _get_event_confirmation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str, gcal_url: str | None = None) -> str:
+        gcal_button = ""
+        if gcal_url:
+            gcal_button = f"""
+                    <div style="text-align:center;margin:20px 0 0;">
+                        <a href="{gcal_url}" style="display:inline-block;background:#4285F4;color:white;padding:11px 22px;border-radius:99px;text-decoration:none;font-weight:800;font-size:14px;">📆 Aggiungi a Google Calendar</a>
+                        <p style="margin:8px 0 0;font-size:12px;color:#888;">Oppure apri il file .ics allegato a questa email per aggiungerlo al tuo calendario preferito.</p>
+                    </div>"""
         return f"""<!DOCTYPE html>
         <html>
         <head>
@@ -323,7 +384,7 @@ class EmailService:
                     <div class="box">
                         <p>📅 <strong>{event_date}</strong> alle <strong>{event_time}</strong></p>
                         <p>📍 {event_location}</p>
-                    </div>
+                    </div>{gcal_button}
                     <p>Qualche piccolo consiglio:</p>
                     <ul style="font-size: 14px; line-height: 2; padding-left: 20px;">
                         <li>✓ Arriva qualche minuto prima dell'orario indicato</li>
