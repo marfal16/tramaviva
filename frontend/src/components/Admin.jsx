@@ -98,18 +98,35 @@ const Login = ({ onLogin }) => {
   );
 };
 
-const NAV = [
-  { key: "home",          label: "Dashboard",           icon: LayoutDashboard },
-  { key: "events",        label: "Eventi",               icon: CalendarPlus },
-  { key: "books",         label: "Club del Libro",       icon: BookOpen },
-  { key: "cineforum",     label: "Cineforum",            icon: Film },
-  { key: "missions",      label: "Missioni",             icon: Trophy },
-  { key: "members",       label: "Soci tesserati",       icon: IdCard },
-  { key: "registrations", label: "Richieste iscrizione", icon: Users },
-  { key: "event-signups", label: "Richieste eventi",     icon: Calendar },
-  { key: "contacts",      label: "Messaggi",             icon: MessageSquare },
-  { key: "donations",    label: "Donazioni",            icon: Heart },
+const NAV_GROUPS = [
+  { single: true, key: "home",   label: "Dashboard", icon: LayoutDashboard },
+  { single: true, key: "events", label: "Eventi",     icon: CalendarPlus },
+  {
+    group: true, groupKey: "clubs", label: "Club", icon: BookOpen,
+    items: [
+      { key: "books",     label: "Club del Libro", icon: BookOpen },
+      { key: "cineforum", label: "Cineforum",      icon: Film },
+    ],
+  },
+  {
+    group: true, groupKey: "community", label: "Community", icon: Users,
+    items: [
+      { key: "members",       label: "Soci tesserati",       icon: IdCard },
+      { key: "registrations", label: "Richieste iscrizione", icon: Users },
+      { key: "event-signups", label: "Richieste eventi",     icon: Calendar },
+    ],
+  },
+  {
+    group: true, groupKey: "gestione", label: "Gestione", icon: Heart,
+    items: [
+      { key: "missions", label: "Missioni",  icon: Trophy },
+      { key: "contacts", label: "Messaggi", icon: MessageSquare },
+      { key: "donations", label: "Donazioni", icon: Heart },
+    ],
+  },
 ];
+// flat list for compatibility (badge logic, etc.)
+const NAV = NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, icon: g.icon }] : (g.items || []));
 
 const CATEGORIES = ["Laboratori Artistici", "Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
@@ -360,28 +377,34 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
   const [sortDir, setSortDir] = useState("desc");
 
   const exportRegistrations = (rows) => {
-    const statusLabel = (s, isMember) => {
-      if (isMember || s === "approved") return "Approvato";
-      if (s === "archived") return "Archiviato";
-      return "In attesa";
-    };
-    const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
-    const data = rows.map(r => ({
-      "Data richiesta": fmtDate(r.created_at),
-      "Nome": r.first_name || "",
-      "Cognome": r.last_name || "",
-      "Email": r.email || "",
-      "Telefono": r.phone || "",
-      "Stato": statusLabel(r.status, r.is_member),
-      "N° Tessera": r.tessera_number || "",
-      "Pagamento": r.payment_received ? "Sì" : "No",
-      "Motivazione": r.motivation || "",
-    }));
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws["!cols"] = Object.keys(data[0] || {}).map(k => ({ wch: Math.min(Math.max(k.length, ...data.map(r => String(r[k] ?? "").length)) + 2, 50) }));
-    XLSX.utils.book_append_sheet(wb, ws, "Richieste iscrizione");
-    XLSX.writeFile(wb, `iscrizioni-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    try {
+      if (!rows || rows.length === 0) { toast.error("Nessuna iscrizione da esportare nel filtro attivo."); return; }
+      const statusLabel = (s, isMember) => {
+        if (isMember || s === "approved") return "Approvato";
+        if (s === "archived") return "Archiviato";
+        return "In attesa";
+      };
+      const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
+      const sheet = rows.map(r => ({
+        "Data richiesta": fmtDate(r.created_at),
+        "Nome": r.first_name || "",
+        "Cognome": r.last_name || "",
+        "Email": r.email || "",
+        "Telefono": r.phone || "",
+        "Stato": statusLabel(r.status, r.is_member),
+        "N° Tessera": r.tessera_number || "",
+        "Pagamento": r.payment_completed ? "Sì" : "No",
+        "Motivazione": r.motivation || "",
+      }));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(sheet);
+      ws["!cols"] = Object.keys(sheet[0]).map(k => ({ wch: Math.min(Math.max(k.length, ...sheet.map(r => String(r[k] ?? "").length)) + 2, 50) }));
+      XLSX.utils.book_append_sheet(wb, ws, "Richieste iscrizione");
+      XLSX.writeFile(wb, `iscrizioni-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success(`Esportate ${sheet.length} richieste.`);
+    } catch (e) {
+      toast.error("Errore export: " + (e.message || e));
+    }
   };
 
   const counts = useMemo(() => ({
@@ -2706,7 +2729,8 @@ const Dashboard = ({ token, onLogout }) => {
   };
     
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [clubsNavOpen, setClubsNavOpen] = useState(true);
+  const [openGroups, setOpenGroups] = useState({ clubs: true, community: true, gestione: true });
+  const toggleGroup = (key) => setOpenGroups(o => ({ ...o, [key]: !o[key] }));
   const list = data[tab] || [];
 
   return (
@@ -2736,112 +2760,91 @@ const Dashboard = ({ token, onLogout }) => {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {NAV.map((item) => {
-            const isClub = item.key === "books" || item.key === "cineforum";
-
-            // Render club items: skip them here if sidebar is expanded (handled by accordion below)
-            if (isClub) return null;
-
-            const navBtn = (
-              <button
-                key={item.key}
-                onClick={() => { setTab(item.key); setSidebarOpen(false); }}
-                data-testid={`admin-tab-${item.key}`}
-                title={!sidebarOpen ? item.label : undefined}
-                className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
-                  ${sidebarOpen ? "gap-3 px-4 py-3" : "justify-center p-3"}
-                  ${tab === item.key
-                    ? "bg-tv-cream/15 text-tv-cream"
-                    : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
-                  }`}
-              >
-                <span className="relative flex-shrink-0">
-                  <item.icon size={18} />
-                  {(() => {
-                    let dot = 0;
-                    if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
-                    else if (item.key === "event-signups") {
-                      const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
-                      dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
-                    }
-                    else if (item.key === "contacts") dot = (data.contacts || []).length;
-                    return dot > 0 ? <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux border border-tv-green-deep" /> : null;
-                  })()}
-                </span>
-                {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
-                {sidebarOpen && data[item.key] && item.key !== "home" && (
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                    tab === item.key ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
-                  }`}>
-                    {data[item.key]?.length ?? 0}
-                  </span>
-                )}
-              </button>
-            );
-
-            // Inject the "I nostri Club" accordion before "missions"
-            if (item.key === "missions") {
-              const clubItems = NAV.filter(n => n.key === "books" || n.key === "cineforum");
+          {NAV_GROUPS.map((entry) => {
+            if (entry.single) {
+              const item = entry;
               return (
-                <React.Fragment key="clubs-group-and-missions">
-                  {/* Accordion header */}
-                  {sidebarOpen ? (
-                    <button
-                      onClick={() => setClubsNavOpen(o => !o)}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream transition-all"
-                    >
-                      <BookOpen size={18} />
-                      <span className="flex-1 text-left">I nostri Club</span>
-                      <ChevronDown size={14} className={`transition-transform duration-200 ${clubsNavOpen ? "rotate-180" : ""}`} />
-                    </button>
-                  ) : (
-                    <div className="border-t border-tv-cream/10 my-1" />
-                  )}
-
-                  {/* Club sub-items */}
-                  {clubItems.map(club => {
-                    const isActive = tab === club.key;
-                    const visible = !sidebarOpen || clubsNavOpen;
-                    return (
-                      <div
-                        key={club.key}
-                        className={`overflow-hidden transition-all duration-200 ${visible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"}`}
-                      >
-                        <button
-                          onClick={() => { setTab(club.key); setSidebarOpen(false); }}
-                          data-testid={`admin-tab-${club.key}`}
-                          title={!sidebarOpen ? club.label : undefined}
-                          className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
-                            ${sidebarOpen ? "gap-3 pl-8 pr-4 py-2.5" : "justify-center p-3"}
-                            ${isActive
-                              ? "bg-tv-cream/15 text-tv-cream"
-                              : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
-                            }`}
-                        >
-                          <club.icon size={16} />
-                          {sidebarOpen && <span className="flex-1 text-left">{club.label}</span>}
-                          {sidebarOpen && data[club.key] && (
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                              isActive ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
-                            }`}>
-                              {data[club.key]?.length ?? 0}
-                            </span>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-
-                  {/* Divider after club group in icon mode */}
-                  {!sidebarOpen && <div className="border-t border-tv-cream/10 my-1" />}
-
-                  {/* Then render "missions" button */}
-                  {navBtn}
-                </React.Fragment>
+                <button
+                  key={item.key}
+                  onClick={() => { setTab(item.key); setSidebarOpen(false); }}
+                  data-testid={`admin-tab-${item.key}`}
+                  title={!sidebarOpen ? item.label : undefined}
+                  className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
+                    ${sidebarOpen ? "gap-3 px-4 py-3" : "justify-center p-3"}
+                    ${tab === item.key
+                      ? "bg-tv-cream/15 text-tv-cream"
+                      : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
+                    }`}
+                >
+                  <item.icon size={18} />
+                  {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
+                </button>
               );
             }
 
-            return navBtn;
+            // Group entry
+            const { groupKey, label, icon: GroupIcon, items } = entry;
+            const isOpen = openGroups[groupKey];
+            const hasActiveMember = items.some(i => i.key === tab);
+
+            return (
+              <React.Fragment key={groupKey}>
+                {!sidebarOpen && <div className="border-t border-tv-cream/10 my-1" />}
+                {sidebarOpen && (
+                  <button
+                    onClick={() => toggleGroup(groupKey)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
+                      ${hasActiveMember ? "text-tv-cream" : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"}`}
+                  >
+                    <GroupIcon size={18} />
+                    <span className="flex-1 text-left">{label}</span>
+                    <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                )}
+                {items.map(item => {
+                  const isActive = tab === item.key;
+                  const visible = !sidebarOpen || isOpen;
+                  let dot = 0;
+                  if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+                  else if (item.key === "event-signups") {
+                    const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
+                    dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
+                  }
+                  else if (item.key === "contacts") dot = (data.contacts || []).length;
+                  return (
+                    <div
+                      key={item.key}
+                      className={`overflow-hidden transition-all duration-200 ${visible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"}`}
+                    >
+                      <button
+                        onClick={() => { setTab(item.key); setSidebarOpen(false); }}
+                        data-testid={`admin-tab-${item.key}`}
+                        title={!sidebarOpen ? item.label : undefined}
+                        className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
+                          ${sidebarOpen ? "gap-3 pl-8 pr-4 py-2.5" : "justify-center p-3"}
+                          ${isActive
+                            ? "bg-tv-cream/15 text-tv-cream"
+                            : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
+                          }`}
+                      >
+                        <span className="relative flex-shrink-0">
+                          <item.icon size={16} />
+                          {dot > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux border border-tv-green-deep" />}
+                        </span>
+                        {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
+                        {sidebarOpen && data[item.key] && (
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                            isActive ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
+                          }`}>
+                            {data[item.key]?.length ?? 0}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </React.Fragment>
+            );
           })}
         </nav>
 
@@ -2946,6 +2949,7 @@ const Dashboard = ({ token, onLogout }) => {
           ) : tab === "donations" ? (
             <DonationsManager
               donations={data.donations || []}
+              eventSignups={(data["event-signups"] || []).filter(s => s.donazione_volontaria > 0)}
               token={token}
               onReload={loadAll}
             />
@@ -4586,7 +4590,7 @@ const DONATION_STATUS_LABELS = {
   annullata: { label: "Annullata",  cls: "bg-tv-bordeaux/10 text-tv-bordeaux" },
 };
 
-const DonationsManager = ({ donations, token, onReload }) => {
+const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => {
   const authHeader = { headers: { Authorization: `Bearer ${token}` } };
   const [filter, setFilter] = useState("all");
   const [editNote, setEditNote] = useState({});
@@ -4616,6 +4620,7 @@ const DonationsManager = ({ donations, token, onReload }) => {
   const copy = (text) => { navigator.clipboard.writeText(text); toast.success("Copiato!"); };
 
   const total = donations.filter(d => d.status === "completed").reduce((s, d) => s + (d.amount || 0), 0);
+  const totalEventi = eventSignups.reduce((s, d) => s + (d.donazione_volontaria || 0), 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -4730,6 +4735,59 @@ const DonationsManager = ({ donations, token, onReload }) => {
           })}
         </div>
       )}
+      {/* Donazioni da eventi */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display font-black text-lg text-tv-green-deep">Donazioni da eventi</h3>
+          {totalEventi > 0 && (
+            <span className="text-sm font-bold text-tv-bordeaux bg-tv-bordeaux/8 px-3 py-1 rounded-full">
+              Totale: {totalEventi.toFixed(2)} €
+            </span>
+          )}
+        </div>
+        {eventSignups.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-tv-green-deep/8 p-8 text-center text-tv-green-deep/40 text-sm">
+            Nessuna donazione volontaria registrata agli eventi.
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-tv-green-deep/8 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-tv-green-deep/8 text-xs text-tv-green-deep/40 uppercase tracking-wider">
+                    <th className="text-left px-4 py-3 font-bold">Evento</th>
+                    <th className="text-left px-4 py-3 font-bold">Nome</th>
+                    <th className="text-left px-4 py-3 font-bold">Email</th>
+                    <th className="text-left px-4 py-3 font-bold">Importo</th>
+                    <th className="text-left px-4 py-3 font-bold">Data</th>
+                    <th className="text-left px-4 py-3 font-bold">Confermato</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-tv-green-deep/5">
+                  {[...eventSignups].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).map(s => (
+                    <tr key={s.id} className="hover:bg-tv-cream/30 transition-colors">
+                      <td className="px-4 py-3 font-medium text-tv-green-deep max-w-[180px] truncate">{s.event_title || '—'}</td>
+                      <td className="px-4 py-3 text-tv-green-deep/80">{s.name || '—'}</td>
+                      <td className="px-4 py-3 text-tv-green-deep/60">
+                        <a href={`mailto:${s.email}`} className="hover:text-tv-green-deep">{s.email || '—'}</a>
+                      </td>
+                      <td className="px-4 py-3 font-black text-tv-bordeaux">{(s.donazione_volontaria || 0).toFixed(2)} €</td>
+                      <td className="px-4 py-3 text-tv-green-deep/50 whitespace-nowrap">
+                        {s.created_at ? new Date(s.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${s.confirmed ? 'bg-tv-green/20 text-tv-green-deep' : 'bg-tv-orange/15 text-tv-orange'}`}>
+                          {s.confirmed ? 'Sì' : 'No'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -5040,21 +5098,28 @@ const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
   }, [members, sortField, memberSearch]);
 
   const exportMembers = () => {
-    const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
-    const rows = sorted.map(m => ({
-      "N° Tessera": m.tessera_number || "Fondatore",
-      "Nome": m.first_name || "",
-      "Cognome": m.last_name || "",
-      "Email": m.email || "",
-      "Telefono": m.phone || "",
-      "Data iscrizione": fmtDate(m.joined_at),
-      "Note": m.notes || "",
-    }));
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = Object.keys(rows[0] || {}).map(k => ({ wch: Math.min(Math.max(k.length, ...rows.map(r => String(r[k] ?? "").length)) + 2, 40) }));
-    XLSX.utils.book_append_sheet(wb, ws, "Soci tesserati");
-    XLSX.writeFile(wb, `soci-tesserati-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    try {
+      if (!sorted || sorted.length === 0) { toast.error("Nessun socio da esportare."); return; }
+      const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
+      const rows = sorted.map(m => ({
+        "N° Tessera": m.tessera_number || "Fondatore",
+        "Nome": m.first_name || "",
+        "Cognome": m.last_name || "",
+        "Email": m.email || "",
+        "Telefono": m.phone || "",
+        "Data iscrizione": fmtDate(m.joined_at),
+        "Note": m.notes || "",
+      }));
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const colWidths = Object.keys(rows[0]).map(k => ({ wch: Math.min(Math.max(k.length, ...rows.map(r => String(r[k] ?? "").length)) + 2, 40) }));
+      ws["!cols"] = colWidths;
+      XLSX.utils.book_append_sheet(wb, ws, "Soci tesserati");
+      XLSX.writeFile(wb, `soci-tesserati-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success(`Esportati ${rows.length} soci.`);
+    } catch (e) {
+      toast.error("Errore export: " + (e.message || e));
+    }
   };
 
   const tessereNumeri = numbered.map(m => parseInt(m.tessera_number)).filter(n => !isNaN(n));
