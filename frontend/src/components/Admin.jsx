@@ -691,11 +691,15 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
             <label className="min-w-0">
               <div className={labelClass}>Data inizio</div>
-              <input type="date" className={`${fieldClass} max-w-full`} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
+              <div className="overflow-hidden rounded-2xl">
+                <input type="date" className={`${fieldClass} max-w-full`} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
+              </div>
             </label>
             <label className="min-w-0">
               <div className={labelClass}>Data fine</div>
-              <input type="date" className={`${fieldClass} max-w-full`} value={form.end_date || ""} onChange={e => set("end_date", e.target.value)} />
+              <div className="overflow-hidden rounded-2xl">
+                <input type="date" className={`${fieldClass} max-w-full`} value={form.end_date || ""} onChange={e => set("end_date", e.target.value)} />
+              </div>
             </label>
           </div>
           <label>
@@ -3798,7 +3802,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     const n = Number(spotsEdit);
     if (isNaN(n) || n < 0) return;
     try {
-      await axios.put(`${API}/admin/events/${evId}`, { spots: n }, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put(`${API}/admin/events/${evId}`, { max_participants: n }, { headers: { Authorization: `Bearer ${token}` } });
       toast.success("Posti massimi aggiornati!");
       setSpotsEdit(null);
       if (typeof onReload === "function") onReload();

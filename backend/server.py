@@ -1955,9 +1955,12 @@ async def admin_update_event(event_id: str, payload: EventUpdate):
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
     if "max_participants" in update:
-        confirmed_ppl = 0
-        async for s in db.event_signups.find({"event_id": event_id, "confirmed": True}, {"num_persone": 1}):
-            confirmed_ppl += s.get("num_persone", 1)
+        pipeline = [
+            {"$match": {"event_id": event_id, "confirmed": True}},
+            {"$group": {"_id": None, "total": {"$sum": {"$ifNull": ["$num_persone", 1]}}}}
+        ]
+        result = await db.event_signups.aggregate(pipeline).to_list(1)
+        confirmed_ppl = result[0]["total"] if result else 0
         update["spots"] = max(0, update["max_participants"] - confirmed_ppl)
     res = await db.events.update_one({"id": event_id}, {"$set": update})
     if res.matched_count == 0:
