@@ -514,7 +514,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
 
           <div className="mt-auto flex items-center justify-between">
             {initials ? (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                 <div className="w-5 h-5 rounded-full bg-tv-bordeaux/80 text-tv-cream flex items-center justify-center text-[9px] font-black shrink-0">{initials}</div>
                 <span className="text-xs text-tv-green-deep/35 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
@@ -522,7 +522,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
             {onReproponi && (
               <button
                 onClick={(e) => { e.stopPropagation(); onReproponi(proposal); }}
-                className="text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
+                className="shrink-0 text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
               >
                 ↩ Riproponi
               </button>
