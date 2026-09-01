@@ -3115,6 +3115,7 @@ const Dashboard = ({ token, onLogout }) => {
         <EventEditor
           token={token}
           initial={eventEditor === "new" ? null : eventEditor}
+          signups={data.signups || []}
           onClose={() => setEventEditor(null)}
           onSaved={() => { setEventEditor(null); loadAll(); }}
         />
@@ -4331,11 +4332,14 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
   );
 };
 
-const EventEditor = ({ token, initial, onClose, onSaved }) => {
+const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
   const isNew = !initial;
+  const confirmedForEvent = !initial ? 0 : (signups || [])
+    .filter(s => s.event_id === initial.id && s.confirmed)
+    .reduce((sum, s) => sum + (s.num_persone || 1), 0);
   const [form, setForm] = useState(
     initial
-      ? { ...initial, max_participants: initial.max_participants ?? initial.spots ?? 20 }
+      ? { ...initial, max_participants: initial.max_participants ?? ((initial.spots ?? 0) + confirmedForEvent) }
       : {
           title: "", category: CATEGORIES[0], date: "", time: "19:00",
           location: "", description: "", emoji: "✨", spots: 20, max_participants: 20, featured: false, contributo: 0,
