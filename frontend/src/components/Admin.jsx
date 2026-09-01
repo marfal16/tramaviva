@@ -3973,7 +3973,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                   {spotsEdit !== null ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-sky/30 text-tv-green-deep px-2 py-1 rounded-full">
                       🎟️ max
-                      <input type="number" value={spotsEdit} min={0}
+                      <input type="number" value={spotsEdit} min={confirmedPpl}
                         onChange={e => setSpotsEdit(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") saveSpots(selectedGroup.ev.id); if (e.key === "Escape") setSpotsEdit(null); }}
                         className="w-12 text-center bg-white rounded px-1 outline-none border border-tv-green-deep/20 text-[11px]"
@@ -3982,9 +3982,9 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                       <button onClick={() => setSpotsEdit(null)} className="text-tv-green-deep/40 hover:text-tv-green-deep">✕</button>
                     </span>
                   ) : (
-                    <button onClick={() => setSpotsEdit(selectedGroup.ev.spots ?? 0)}
+                    <button onClick={() => setSpotsEdit(selectedGroup.ev.max_participants ?? (selectedGroup.ev.spots + confirmedPpl))}
                       className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-sky/30 text-tv-green-deep px-2.5 py-1 rounded-full hover:bg-tv-sky/50 transition-colors">
-                      🎟️ {selectedGroup.ev.spots ?? "∞"} max
+                      🎟️ {selectedGroup.ev.max_participants ?? (selectedGroup.ev.spots + confirmedPpl)} max
                     </button>
                   )}
                 </div>
