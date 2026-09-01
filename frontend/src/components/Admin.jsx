@@ -643,7 +643,7 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
-      <div className="bg-tv-cream rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
           <h2 className="font-display font-black text-xl text-tv-green-deep">
             {isNew ? "Aggiungi libro" : "Modifica libro"}
@@ -678,22 +678,22 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               </select>
             </label>
           </div>
-          <div className="grid sm:grid-cols-4 gap-4 items-end">
-            <label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
+            <label className="min-w-0">
               <div className={labelClass}>Mese lettura</div>
               <input className={fieldClass} value={form.reading_month || ""} onChange={e => set("reading_month", e.target.value)} placeholder="es. 2025-07" />
             </label>
-            <label>
+            <label className="min-w-0">
               <div className={labelClass}>Pagine</div>
               <input type="number" min="1" className={fieldClass} value={form.pages || ""} onChange={e => set("pages", e.target.value)} placeholder="es. 320" />
             </label>
-            <label>
+            <label className="min-w-0">
               <div className={labelClass}>Data inizio</div>
-              <input type="date" className={fieldClass} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
+              <input type="date" className={`${fieldClass} max-w-full`} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
             </label>
-            <label>
+            <label className="min-w-0">
               <div className={labelClass}>Data fine</div>
-              <input type="date" className={fieldClass} value={form.end_date || ""} onChange={e => set("end_date", e.target.value)} />
+              <input type="date" className={`${fieldClass} max-w-full`} value={form.end_date || ""} onChange={e => set("end_date", e.target.value)} />
             </label>
           </div>
           <label>
