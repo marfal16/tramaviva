@@ -678,7 +678,7 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               </select>
             </label>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-2 gap-4 items-end">
             <label className="min-w-0">
               <div className={labelClass}>Mese lettura</div>
               <input className={fieldClass} value={form.reading_month || ""} onChange={e => set("reading_month", e.target.value)} placeholder="es. 2025-07" />
@@ -687,6 +687,8 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
               <div className={labelClass}>Pagine</div>
               <input type="number" min="1" className={fieldClass} value={form.pages || ""} onChange={e => set("pages", e.target.value)} placeholder="es. 320" />
             </label>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
             <label className="min-w-0">
               <div className={labelClass}>Data inizio</div>
               <input type="date" className={`${fieldClass} max-w-full`} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
