@@ -60,14 +60,12 @@ class EmailService:
             return
         try:
             subject = f"Presenza confermata: {event_title}"
-            gcal_url = self._google_cal_url(event_title, event_date, event_time, event_location)
             html_body = self._get_event_confirmation_template(
                 name=name,
                 event_title=event_title,
                 event_date=event_date,
                 event_time=event_time,
                 event_location=event_location,
-                gcal_url=gcal_url,
             )
             ics_content = self._generate_ics(event_title, event_date, event_time, event_location)
             await self._send_smtp(email, subject, html_body, ics_content=ics_content)
@@ -350,12 +348,9 @@ class EmailService:
         </html>"""
 
     def _get_event_confirmation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str, gcal_url: str | None = None) -> str:
-        gcal_button = ""
-        if gcal_url:
-            gcal_button = f"""
-                    <div style="text-align:center;margin:20px 0 0;">
-                        <a href="{gcal_url}" style="display:inline-block;background:#4285F4;color:white;padding:11px 22px;border-radius:99px;text-decoration:none;font-weight:800;font-size:14px;">📆 Aggiungi a Google Calendar</a>
-                        <p style="margin:8px 0 0;font-size:12px;color:#888;">Oppure apri il file .ics allegato a questa email per aggiungerlo al tuo calendario preferito.</p>
+        gcal_button = """
+                    <div style="margin:20px 0 0;padding:12px 16px;background:#f0f7f0;border-radius:12px;text-align:center;">
+                        <p style="margin:0;font-size:13px;color:#4a5568;">📎 Abbiamo allegato un file <strong>.ics</strong> — aprilo per aggiungere l'evento a <strong>Apple Calendar</strong>, <strong>Google Calendar</strong>, <strong>Outlook</strong> o qualsiasi altro calendario.</p>
                     </div>"""
         return f"""<!DOCTYPE html>
         <html>

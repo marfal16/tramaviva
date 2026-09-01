@@ -194,15 +194,19 @@ export const Eventi = () => {
                 )}
                 {doneEvent.location && <div className="flex items-start gap-2"><span>📍</span><span>{doneEvent.location}</span></div>}
               </div>
-              <p className="mt-4 text-xs opacity-70">Vuoi salvare l'evento nel calendario?</p>
-              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <p className="mt-4 text-xs opacity-70">Aggiungi al calendario:</p>
+              <div className="mt-2 flex flex-wrap justify-center gap-2">
                 <a href={icsUrl(doneEvent)} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
-                  📅 Salva nel calendario
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-xs transition-colors">
+                  🍎 Apple
                 </a>
                 <a href={googleCalendarUrl(doneEvent)} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
-                  📆 Google Calendar
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-xs transition-colors">
+                  G&nbsp; Google
+                </a>
+                <a href={icsUrl(doneEvent)} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-xs transition-colors">
+                  📧 Outlook
                 </a>
               </div>
               <button onClick={() => { setSelected(null); setDoneEvent(null); }}
