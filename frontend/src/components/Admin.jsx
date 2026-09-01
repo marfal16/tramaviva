@@ -691,14 +691,14 @@ const BookEditor = ({ book, events, onSave, onClose, token }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
             <label className="min-w-0">
               <div className={labelClass}>Data inizio</div>
-              <div className="overflow-hidden rounded-2xl">
-                <input type="date" className={`${fieldClass} max-w-full`} value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
+              <div className="w-full overflow-hidden rounded-2xl" style={{ clipPath: "inset(0)" }}>
+                <input type="date" className="w-full px-2 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={form.start_date || ""} onChange={e => set("start_date", e.target.value)} />
               </div>
             </label>
             <label className="min-w-0">
               <div className={labelClass}>Data fine</div>
-              <div className="overflow-hidden rounded-2xl">
-                <input type="date" className={`${fieldClass} max-w-full`} value={form.end_date || ""} onChange={e => set("end_date", e.target.value)} />
+              <div className="w-full overflow-hidden rounded-2xl" style={{ clipPath: "inset(0)" }}>
+                <input type="date" className="w-full px-2 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={form.end_date || ""} onChange={e => set("end_date", e.target.value)} />
               </div>
             </label>
           </div>
