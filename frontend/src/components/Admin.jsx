@@ -359,6 +359,31 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
   const [sortField, setSortField] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
 
+  const exportRegistrations = (rows) => {
+    const statusLabel = (s, isMember) => {
+      if (isMember || s === "approved") return "Approvato";
+      if (s === "archived") return "Archiviato";
+      return "In attesa";
+    };
+    const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
+    const data = rows.map(r => ({
+      "Data richiesta": fmtDate(r.created_at),
+      "Nome": r.first_name || "",
+      "Cognome": r.last_name || "",
+      "Email": r.email || "",
+      "Telefono": r.phone || "",
+      "Stato": statusLabel(r.status, r.is_member),
+      "N° Tessera": r.tessera_number || "",
+      "Pagamento": r.payment_received ? "Sì" : "No",
+      "Motivazione": r.motivation || "",
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = Object.keys(data[0] || {}).map(k => ({ wch: Math.min(Math.max(k.length, ...data.map(r => String(r[k] ?? "").length)) + 2, 50) }));
+    XLSX.utils.book_append_sheet(wb, ws, "Richieste iscrizione");
+    XLSX.writeFile(wb, `iscrizioni-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   const counts = useMemo(() => ({
     pending: list.filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length,
     approved: list.filter(r => r.is_member || r.status === "approved").length,
@@ -426,6 +451,10 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
             + Cartaceo
           </button>
         )}
+        <button onClick={() => exportRegistrations(filteredList)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap">
+          ⬇ Esporta XLSX
+        </button>
       </div>
       {filteredList.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
@@ -5010,6 +5039,24 @@ const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
     return [...num, ...fnd];
   }, [members, sortField, memberSearch]);
 
+  const exportMembers = () => {
+    const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
+    const rows = sorted.map(m => ({
+      "N° Tessera": m.tessera_number || "Fondatore",
+      "Nome": m.first_name || "",
+      "Cognome": m.last_name || "",
+      "Email": m.email || "",
+      "Telefono": m.phone || "",
+      "Data iscrizione": fmtDate(m.joined_at),
+      "Note": m.notes || "",
+    }));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = Object.keys(rows[0] || {}).map(k => ({ wch: Math.min(Math.max(k.length, ...rows.map(r => String(r[k] ?? "").length)) + 2, 40) }));
+    XLSX.utils.book_append_sheet(wb, ws, "Soci tesserati");
+    XLSX.writeFile(wb, `soci-tesserati-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   const tessereNumeri = numbered.map(m => parseInt(m.tessera_number)).filter(n => !isNaN(n));
   const regRiservate = (registrations || [])
     .filter(r => r.tessera_number && r.status !== "approved")
@@ -5053,6 +5100,10 @@ const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
             </button>
           ))}
         </div>
+        <button onClick={exportMembers}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap">
+          ⬇ Esporta XLSX
+        </button>
       </div>
 
       {members.length > 0 && (
