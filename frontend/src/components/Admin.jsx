@@ -2789,7 +2789,11 @@ const Dashboard = ({ token, onLogout }) => {
 
             return (
               <React.Fragment key={groupKey}>
-                {!sidebarOpen && <div className="border-t border-tv-cream/10 my-1" />}
+                {!sidebarOpen && (
+                  <div className="flex items-center justify-center py-1 opacity-25">
+                    <GroupIcon size={11} />
+                  </div>
+                )}
                 {sidebarOpen && (
                   <button
                     onClick={() => toggleGroup(groupKey)}
@@ -4625,12 +4629,13 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
   return (
     <div className="flex flex-col gap-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { label: "Totali", value: donations.length, cls: "text-tv-green-deep" },
           { label: "In attesa", value: donations.filter(d => d.status === "pending").length, cls: "text-tv-orange" },
           { label: "Completate", value: donations.filter(d => d.status === "completed").length, cls: "text-tv-green" },
-          { label: "Raccolte", value: `${total.toFixed(0)} €`, cls: "text-tv-bordeaux" },
+          { label: "Da eventi", value: `${totalEventi.toFixed(0)} €`, cls: "text-tv-bordeaux" },
+          { label: "Totale raccolto", value: `${(total + totalEventi).toFixed(0)} €`, cls: "text-tv-bordeaux" },
         ].map(({ label, value, cls }) => (
           <div key={label} className="bg-white rounded-2xl p-4 border border-tv-green-deep/8 text-center">
             <div className={`font-black text-2xl ${cls}`}>{value}</div>
