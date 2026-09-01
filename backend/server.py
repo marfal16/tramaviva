@@ -686,6 +686,42 @@ async def get_event_signups_count(event_id: str):
     count = result[0]["total"] if result else 0
     return {"count": count}
 
+@api_router.get("/events/{event_id}/calendar.ics")
+async def get_event_ics(event_id: str):
+    from fastapi.responses import Response
+    from datetime import datetime, timedelta
+    from urllib.parse import quote
+    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    try:
+        y, m, d = [int(x) for x in doc.get("date", "").split('-')]
+        h, mi = [int(x) for x in (doc.get("time") or "19:00").split(':')]
+        start = datetime(y, m, d, h, mi, 0)
+        end = start + timedelta(hours=2)
+        fmt = lambda dt: dt.strftime('%Y%m%dT%H%M%S')
+        def esc(s):
+            return (s or '').replace('\\', '\\\\').replace(',', '\\,').replace(';', '\\;').replace('\n', '\\n')
+        lines = [
+            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Trama Viva APS//IT',
+            'METHOD:PUBLISH', 'BEGIN:VEVENT',
+            f'DTSTART:{fmt(start)}', f'DTEND:{fmt(end)}',
+            f'SUMMARY:{esc(doc.get("title",""))}',
+            f'LOCATION:{esc(doc.get("location",""))}',
+            f'DESCRIPTION:{esc(doc.get("description",""))}',
+            f'UID:{doc.get("id", event_id)}-tramaviva@tramavivaaps.com',
+            'END:VEVENT', 'END:VCALENDAR',
+        ]
+        content = '\r\n'.join(lines)
+        filename = (doc.get("title") or "evento").replace(" ", "_")
+        return Response(
+            content=content.encode("utf-8"),
+            media_type="text/calendar; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{filename}.ics"'},
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Errore generazione ICS")
+
 # ========== ROUTES: EVENT SIGNUPS & MEMBERSHIPS ==========
 @api_router.post("/event-signup", response_model=EventSignup)
 async def create_event_signup(payload: EventSignupCreate):
@@ -1762,18 +1798,20 @@ async def confirm_event_signup(signup_id: str):
         {"$set": {"confirmed": True}}
     )
 
+    to_email = signup.get("email", "")
     try:
         email_svc = EmailService()
         await email_svc.send_event_confirmation(
-            email=signup.get("email", ""),
+            email=to_email,
             name=signup.get("name", ""),
             event_title=event.get("title", signup.get("event_title", "")),
             event_date=event.get("date", ""),
             event_time=event.get("time", ""),
             event_location=event.get("location", ""),
         )
+        logger.info(f"Email conferma evento inviata a {to_email}")
     except Exception as e:
-        logger.warning(f"Email conferma evento non inviata: {e}")
+        logger.error(f"Email conferma evento NON inviata a {to_email}: {e}", exc_info=True)
 
     return {"ok": True, "spots_remaining": event["spots"] - 1}
 

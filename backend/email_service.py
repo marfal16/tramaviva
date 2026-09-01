@@ -239,22 +239,17 @@ class EmailService:
         if not HAS_SMTP:
             logger.warning("aiosmtplib non disponibile")
             return
+        msg = MIMEMultipart("mixed")
+        msg["Subject"] = subject
+        msg["From"] = f"{self.from_name} <{self.from_email}>"
+        msg["To"] = to_email
+        body_part = MIMEMultipart("alternative")
+        body_part.attach(MIMEText(html_body, "html", "utf-8"))
+        msg.attach(body_part)
         if ics_content:
-            msg = MIMEMultipart("mixed")
-            msg["Subject"] = subject
-            msg["From"] = f"{self.from_name} <{self.from_email}>"
-            msg["To"] = to_email
-            msg.attach(MIMEText(html_body, "html", "utf-8"))
-            ics_part = MIMEBase("text", "calendar", method="PUBLISH", name="evento.ics")
-            ics_part.set_payload(ics_content.encode("utf-8"))
-            ics_part["Content-Disposition"] = 'attachment; filename="evento.ics"'
+            ics_part = MIMEText(ics_content, "calendar", "utf-8")
+            ics_part.add_header("Content-Disposition", "attachment", filename="evento.ics")
             msg.attach(ics_part)
-        else:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{self.from_name} <{self.from_email}>"
-            msg["To"] = to_email
-            msg.attach(MIMEText(html_body, "html", "utf-8"))
         async with aiosmtplib.SMTP(hostname=self.smtp_host, port=self.smtp_port) as smtp:
             await smtp.login(self.smtp_user, self.smtp_password)
             await smtp.sendmail(self.from_email, to_email, msg.as_string())

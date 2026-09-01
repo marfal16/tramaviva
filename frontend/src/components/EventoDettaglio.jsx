@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import { toast } from "sonner";
-import { downloadICS, googleCalendarUrl } from "../utils/calendarUtils";
+import { icsUrl, googleCalendarUrl } from "../utils/calendarUtils";
 import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send, Copy, MessageCircle, BookOpen, ArrowRight } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
@@ -465,10 +465,10 @@ export const EventoDettaglio = () => {
                   </p>
                   <p className="mt-4 text-xs opacity-70">Vuoi salvare l'evento nel calendario?</p>
                   <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button onClick={() => downloadICS(event)}
+                    <a href={icsUrl(event)} target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
                       📅 Salva nel calendario
-                    </button>
+                    </a>
                     <a href={googleCalendarUrl(event)} target="_blank" rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
                       📆 Google Calendar

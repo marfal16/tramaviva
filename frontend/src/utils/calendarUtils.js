@@ -1,3 +1,5 @@
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || '';
+
 const pad = n => String(n).padStart(2, '0');
 
 const parseEventDateTime = (event) => {
@@ -15,6 +17,14 @@ const fmtICS = dt =>
 const escICS = s =>
   (s || '').replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
 
+// URL diretto al backend — funziona su iOS Safari (data: URI non funziona su iOS)
+export const icsUrl = (event) => {
+  const id = event.id || event.slug;
+  if (!id) return null;
+  return `${BACKEND_URL}/api/events/${id}/calendar.ics`;
+};
+
+// Fallback client-side per ambienti senza backend o event_id mancante
 export const downloadICS = (event) => {
   const times = parseEventDateTime(event);
   if (!times) return;

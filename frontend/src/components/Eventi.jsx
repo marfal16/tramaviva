@@ -6,7 +6,7 @@ import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGr
 import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
 import { it } from "date-fns/locale";
-import { downloadICS, googleCalendarUrl } from "../utils/calendarUtils";
+import { icsUrl, googleCalendarUrl } from "../utils/calendarUtils";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -196,10 +196,10 @@ export const Eventi = () => {
               </div>
               <p className="mt-4 text-xs opacity-70">Vuoi salvare l'evento nel calendario?</p>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button onClick={() => downloadICS(doneEvent)}
+                <a href={icsUrl(doneEvent)} target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
                   📅 Salva nel calendario
-                </button>
+                </a>
                 <a href={googleCalendarUrl(doneEvent)} target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-sm transition-colors">
                   📆 Google Calendar
