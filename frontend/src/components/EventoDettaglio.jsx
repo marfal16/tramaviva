@@ -678,9 +678,9 @@ export const EventoDettaglio = () => {
                     return (
                       <div className="pt-3 border-t border-tv-green-deep/10 space-y-3">
                         {inLoco ? (
-                          <div className="p-4 rounded-2xl bg-tv-orange/15 border border-tv-orange/30">
-                            <div className="text-xl font-black text-tv-green-deep">💶 {event.contributo}€</div>
-                            <div className="text-sm font-semibold text-tv-green-deep/80 mt-0.5">da versare direttamente alla struttura</div>
+                          <div className="flex items-center gap-2 text-sm text-tv-green-deep/70">
+                            <span className="font-black text-tv-green-deep">💶 {event.contributo}€</span>
+                            <span>· da versare direttamente alla struttura</span>
                           </div>
                         ) : event.contributo_note ? (
                           <p className="text-xs text-tv-green-deep/70 italic">📝 {event.contributo_note}</p>
