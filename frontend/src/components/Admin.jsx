@@ -595,7 +595,8 @@ const STATUS_LABELS = {
 };
 
 const BOOK_GENRES = [
-  "Romanzo", "Romanzo storico", "Romanzo contemporaneo", "Romanzo rosa",
+  "Romanzo", "Romanzo storico", "Romanzo contemporaneo", "Romanzo rosa", "Romanzo di formazione",
+  "Distopico",
   "Giallo", "Thriller", "Mystery", "Horror",
   "Fantasy", "Fantascienza", "Avventura",
   "Classico", "Letteratura italiana", "Letteratura straniera",
