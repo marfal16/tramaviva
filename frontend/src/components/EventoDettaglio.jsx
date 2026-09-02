@@ -677,9 +677,14 @@ export const EventoDettaglio = () => {
                     const inLoco = event.contributo_note === "Da versare direttamente alla struttura";
                     return (
                       <div className="pt-3 border-t border-tv-green-deep/10 space-y-3">
-                        {event.contributo_note && (
+                        {inLoco ? (
+                          <div className="p-4 rounded-2xl bg-tv-orange/15 border border-tv-orange/30">
+                            <div className="text-xl font-black text-tv-green-deep">💶 {event.contributo}€</div>
+                            <div className="text-sm font-semibold text-tv-green-deep/80 mt-0.5">da versare direttamente alla struttura</div>
+                          </div>
+                        ) : event.contributo_note ? (
                           <p className="text-xs text-tv-green-deep/70 italic">📝 {event.contributo_note}</p>
-                        )}
+                        ) : null}
                         {event.non_rimborsabile && (
                           <div className="p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/40 text-xs text-tv-green-deep font-semibold">
                             ⚠️ Il contributo di {event.contributo}€ <strong>non è rimborsabile</strong>.
