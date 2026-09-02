@@ -501,11 +501,6 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
             )}
           </div>
         )}
-        {!compact && ev.contributo > 0 && (
-          <div className="flex items-center gap-2 font-semibold">
-            💶 Contributo: {ev.contributo}€
-          </div>
-        )}
       </div>
       <div className="mt-auto pt-5">
         {soldOut ? (

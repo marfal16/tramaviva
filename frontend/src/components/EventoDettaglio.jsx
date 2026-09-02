@@ -95,7 +95,8 @@ export const EventoDettaglio = () => {
       toast.error("Nome ed email sono obbligatori.");
       return;
     }
-    const needsPayment = event.contributo > 0 || (event.contributo_volontario && parseFloat(donazioneVolontaria) > 0);
+    const pagaInLoco = event.contributo_note === "Da versare direttamente alla struttura";
+    const needsPayment = (event.contributo > 0 && !pagaInLoco) || (event.contributo_volontario && parseFloat(donazioneVolontaria) > 0);
     if (needsPayment && !form.metodo_pagamento) {
       toast.error("Seleziona il metodo di pagamento.");
       return;
@@ -672,72 +673,77 @@ export const EventoDettaglio = () => {
                     </div>
                   )}
 
-                  {event.contributo > 0 && (
-                    <div className="pt-3 border-t border-tv-green-deep/10 space-y-3">
-                      {event.contributo_note && (
-                        <p className="text-xs text-tv-green-deep/70 italic">📝 {event.contributo_note}</p>
-                      )}
-                      {event.non_rimborsabile && (
-                        <div className="p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/40 text-xs text-tv-green-deep font-semibold">
-                          ⚠️ Il contributo di {event.contributo}€ <strong>non è rimborsabile</strong>.
-                        </div>
-                      )}
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
-                          Metodo di pagamento *
-                        </div>
-                        <div className="flex gap-2">
-                          {[
-                            { v: "contanti", label: "💵 Contanti" },
-                            { v: "bonifico", label: "🏦 Bonifico" },
-                            { v: "elettronico", label: "💳 Carta" },
-                          ].map(({ v, label }) => (
-                            <button
-                              key={v}
-                              type="button"
-                              onClick={() => setForm({ ...form, metodo_pagamento: v })}
-                              className={`flex-1 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
-                                form.metodo_pagamento === v
-                                  ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
-                                  : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/60 hover:border-tv-green-deep/30"
-                              }`}
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
+                  {event.contributo > 0 && (() => {
+                    const inLoco = event.contributo_note === "Da versare direttamente alla struttura";
+                    return (
+                      <div className="pt-3 border-t border-tv-green-deep/10 space-y-3">
+                        {event.contributo_note && (
+                          <p className="text-xs text-tv-green-deep/70 italic">📝 {event.contributo_note}</p>
+                        )}
+                        {event.non_rimborsabile && (
+                          <div className="p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/40 text-xs text-tv-green-deep font-semibold">
+                            ⚠️ Il contributo di {event.contributo}€ <strong>non è rimborsabile</strong>.
+                          </div>
+                        )}
+                        {!inLoco && (
+                          <div>
+                            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                              Metodo di pagamento *
+                            </div>
+                            <div className="flex gap-2">
+                              {[
+                                { v: "contanti", label: "💵 Contanti" },
+                                { v: "bonifico", label: "🏦 Bonifico" },
+                                { v: "elettronico", label: "💳 Carta" },
+                              ].map(({ v, label }) => (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  onClick={() => setForm({ ...form, metodo_pagamento: v })}
+                                  className={`flex-1 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                                    form.metodo_pagamento === v
+                                      ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
+                                      : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/60 hover:border-tv-green-deep/30"
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {form.metodo_pagamento === "bonifico" && (
+                          <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
+                            <div className="text-xs font-bold text-tv-green-deep/60 mb-1">IBAN Trama Viva APS</div>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs font-mono text-tv-green-deep font-bold flex-1 break-all">
+                                IT48E3688801600100000059432
+                              </code>
+                              <button
+                                type="button"
+                                onClick={copyIban}
+                                className="flex-shrink-0 p-1.5 rounded-xl bg-tv-green-deep/10 hover:bg-tv-green-deep/20 text-tv-green-deep transition-colors"
+                                title="Copia IBAN"
+                              >
+                                <Copy size={13} />
+                              </button>
+                            </div>
+                            <div className="text-xs text-tv-green-deep/50 mt-1">
+                              Causale: {event.contributo_note || event.title}{form.name ? ` — ${form.name}` : ""}
+                            </div>
+                          </div>
+                        )}
+                        {form.metodo_pagamento === "elettronico" && (
+                          <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
+                            <div className="text-xs font-bold text-tv-green-deep/60 mb-1">Pagamento sicuro via SumUp</div>
+                            <div className="text-xs text-tv-green-deep/70">
+                              Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {form.metodo_pagamento === "bonifico" && (
-                        <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
-                          <div className="text-xs font-bold text-tv-green-deep/60 mb-1">IBAN Trama Viva APS</div>
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs font-mono text-tv-green-deep font-bold flex-1 break-all">
-                              IT48E3688801600100000059432
-                            </code>
-                            <button
-                              type="button"
-                              onClick={copyIban}
-                              className="flex-shrink-0 p-1.5 rounded-xl bg-tv-green-deep/10 hover:bg-tv-green-deep/20 text-tv-green-deep transition-colors"
-                              title="Copia IBAN"
-                            >
-                              <Copy size={13} />
-                            </button>
-                          </div>
-                          <div className="text-xs text-tv-green-deep/50 mt-1">
-                            Causale: {event.contributo_note || event.title}{form.name ? ` — ${form.name}` : ""}
-                          </div>
-                        </div>
-                      )}
-                      {form.metodo_pagamento === "elettronico" && (
-                        <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
-                          <div className="text-xs font-bold text-tv-green-deep/60 mb-1">Pagamento sicuro via SumUp</div>
-                          <div className="text-xs text-tv-green-deep/70">
-                            Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })()}
                   <button
                     type="submit"
                     disabled={submitting}

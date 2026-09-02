@@ -4461,6 +4461,19 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
           <label className="block sm:col-span-2">
             <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Nota contributo</div>
             <input type="text" value={form.contributo_note ?? ""} onChange={change("contributo_note")} placeholder="Es. per prenotazione tavolo pic-nic" className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none" />
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {["Da versare direttamente alla struttura"].map(preset => (
+                <button key={preset} type="button"
+                  onClick={() => setForm(f => ({ ...f, contributo_note: f.contributo_note === preset ? "" : preset }))}
+                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                    form.contributo_note === preset
+                      ? "bg-tv-green-deep text-tv-cream border-tv-green-deep"
+                      : "border-tv-green-deep/20 text-tv-green-deep/60 hover:border-tv-green-deep/40 hover:text-tv-green-deep"
+                  }`}>
+                  📍 {preset}
+                </button>
+              ))}
+            </div>
           </label>
         </div>
         <label className="block mt-4">
@@ -4599,8 +4612,6 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
   const [filter, setFilter] = useState("all");
   const [editNote, setEditNote] = useState({});
 
-  const filtered = filter === "all" ? donations : donations.filter(d => d.status === filter);
-
   const setStatus = async (id, status) => {
     await axios.put(`${API}/admin/donations/${id}`, { status }, authHeader);
     toast.success("Aggiornato");
@@ -4623,19 +4634,36 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
 
   const copy = (text) => { navigator.clipboard.writeText(text); toast.success("Copiato!"); };
 
-  const total = donations.filter(d => d.status === "completed").reduce((s, d) => s + (d.amount || 0), 0);
-  const totalEventi = eventSignups.reduce((s, d) => s + (d.donazione_volontaria || 0), 0);
+  // Normalizza le donazioni da eventi nel formato comune
+  const evDonations = eventSignups.map(s => ({
+    _id: s.id,
+    _type: "evento",
+    _eventTitle: s.event_title || "",
+    first_name: (s.name || "").split(" ")[0] || "",
+    last_name: (s.name || "").split(" ").slice(1).join(" ") || "",
+    email: s.email || "",
+    amount: s.donazione_volontaria || 0,
+    status: s.confirmed ? "completed" : "pending",
+    created_at: s.created_at,
+  }));
+
+  const allDonations = [
+    ...donations.map(d => ({ ...d, _id: d.id, _type: "spontanea" })),
+    ...evDonations,
+  ].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  const filtered = filter === "all" ? allDonations : allDonations.filter(d => d.status === filter);
+  const totalRaccolto = allDonations.filter(d => d.status === "completed").reduce((s, d) => s + (d.amount || 0), 0);
 
   return (
     <div className="flex flex-col gap-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Totali", value: donations.length, cls: "text-tv-green-deep" },
-          { label: "In attesa", value: donations.filter(d => d.status === "pending").length, cls: "text-tv-orange" },
-          { label: "Completate", value: donations.filter(d => d.status === "completed").length, cls: "text-tv-green" },
-          { label: "Da eventi", value: `${totalEventi.toFixed(0)} €`, cls: "text-tv-bordeaux" },
-          { label: "Totale raccolto", value: `${(total + totalEventi).toFixed(0)} €`, cls: "text-tv-bordeaux" },
+          { label: "Totali", value: allDonations.length, cls: "text-tv-green-deep" },
+          { label: "In attesa", value: allDonations.filter(d => d.status === "pending").length, cls: "text-tv-orange" },
+          { label: "Completate", value: allDonations.filter(d => d.status === "completed").length, cls: "text-tv-green" },
+          { label: "Totale raccolto", value: `${totalRaccolto.toFixed(0)} €`, cls: "text-tv-bordeaux" },
         ].map(({ label, value, cls }) => (
           <div key={label} className="bg-white rounded-2xl p-4 border border-tv-green-deep/8 text-center">
             <div className={`font-black text-2xl ${cls}`}>{value}</div>
@@ -4654,7 +4682,7 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
         ))}
       </div>
 
-      {/* Lista */}
+      {/* Lista unificata */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/30">
           <Heart size={32} className="mx-auto mb-2 opacity-30" />
@@ -4663,136 +4691,86 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
       ) : (
         <div className="flex flex-col gap-3">
           {filtered.map(d => {
+            const isEvento = d._type === "evento";
             const st = DONATION_STATUS_LABELS[d.status] || DONATION_STATUS_LABELS.pending;
-            const noteOpen = editNote[d.id + "_open"];
+            const noteOpen = editNote[d._id + "_open"];
             return (
-              <div key={d.id} className="bg-white rounded-2xl border border-tv-green-deep/8 p-4 md:p-5">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  {/* Info donatore */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="font-black text-tv-green-deep">{d.first_name} {d.last_name}</span>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
-                      {d.metodo_pagamento === "bonifico"
-                        ? <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-sky/40 text-tv-green-deep">Bonifico</span>
-                        : <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-mint/30 text-tv-green">SumUp</span>
-                      }
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-tv-green-deep/60 mb-2">
-                      <a href={`mailto:${d.email}`} className="hover:text-tv-green-deep">{d.email}</a>
-                      {d.phone && <span>{d.phone}</span>}
-                      <span>{new Date(d.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}</span>
-                    </div>
-                    {d.amount && (
-                      <div className="text-lg font-black text-tv-bordeaux">{d.amount} €</div>
-                    )}
-                    {d.message && (
-                      <p className="mt-2 text-sm text-tv-green-deep/50 italic bg-tv-cream rounded-xl px-3 py-2">"{d.message}"</p>
-                    )}
-                    {d.note && !noteOpen && (
-                      <p className="mt-2 text-xs text-tv-green-deep/40 bg-tv-green-deep/5 rounded-xl px-3 py-2">📝 {d.note}</p>
-                    )}
-                    {noteOpen && (
-                      <div className="mt-2 flex gap-2">
-                        <input value={editNote[d.id] ?? d.note ?? ""} onChange={e => setEditNote(p => ({ ...p, [d.id]: e.target.value }))}
-                          placeholder="Aggiungi una nota…"
-                          className="flex-1 px-3 py-1.5 rounded-xl border border-tv-green-deep/15 text-sm text-tv-green-deep focus:outline-none focus:border-tv-green" />
-                        <button onClick={() => saveNote(d.id)} className="px-3 py-1.5 bg-tv-green-deep text-tv-cream text-xs font-bold rounded-xl">Salva</button>
-                      </div>
-                    )}
-                    {/* IBAN reminder per bonifico */}
-                    {d.status === "pending" && d.metodo_pagamento === "bonifico" && (
-                      <div className="mt-3 flex items-center gap-2 text-xs text-tv-green-deep/40">
-                        <span>IBAN: <span className="font-mono font-bold">IT48E3688801600100000059432</span></span>
-                        <button onClick={() => copy("IT48E3688801600100000059432")} className="p-0.5 hover:text-tv-green-deep">
-                          <Copy size={11} />
-                        </button>
-                      </div>
-                    )}
+              <div key={d._id} className="bg-white rounded-2xl border border-tv-green-deep/8 p-4">
+                {/* Header: nome + badge */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-black text-tv-green-deep">{d.first_name} {d.last_name}</span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                    {isEvento
+                      ? <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux">Da evento</span>
+                      : (d.metodo_pagamento === "bonifico"
+                          ? <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-sky/40 text-tv-green-deep">Bonifico</span>
+                          : <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-mint/30 text-tv-green">SumUp</span>)
+                    }
                   </div>
+                  <div className="text-lg font-black text-tv-bordeaux shrink-0">{(d.amount || 0).toFixed(0)} €</div>
+                </div>
 
-                  {/* Azioni */}
-                  <div className="flex sm:flex-col gap-2 shrink-0">
+                {/* Sottotitolo */}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-tv-green-deep/50 mb-2">
+                  <a href={`mailto:${d.email}`} className="hover:text-tv-green-deep">{d.email}</a>
+                  {d.phone && <span>{d.phone}</span>}
+                  {d.created_at && <span>{new Date(d.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}</span>}
+                  {isEvento && d._eventTitle && <span className="font-medium text-tv-green-deep/70">· {d._eventTitle}</span>}
+                </div>
+
+                {/* Messaggio / note (solo donazioni spontanee) */}
+                {!isEvento && d.message && (
+                  <p className="mt-1 text-sm text-tv-green-deep/50 italic bg-tv-cream rounded-xl px-3 py-2">"{d.message}"</p>
+                )}
+                {!isEvento && d.note && !noteOpen && (
+                  <p className="mt-1 text-xs text-tv-green-deep/40 bg-tv-green-deep/5 rounded-xl px-3 py-2">📝 {d.note}</p>
+                )}
+                {!isEvento && noteOpen && (
+                  <div className="mt-2 flex gap-2">
+                    <input value={editNote[d._id] ?? d.note ?? ""} onChange={e => setEditNote(p => ({ ...p, [d._id]: e.target.value }))}
+                      placeholder="Aggiungi una nota…"
+                      className="flex-1 px-3 py-1.5 rounded-xl border border-tv-green-deep/15 text-sm text-tv-green-deep focus:outline-none focus:border-tv-green" />
+                    <button onClick={() => saveNote(d._id)} className="px-3 py-1.5 bg-tv-green-deep text-tv-cream text-xs font-bold rounded-xl">Salva</button>
+                  </div>
+                )}
+                {!isEvento && d.status === "pending" && d.metodo_pagamento === "bonifico" && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-tv-green-deep/40">
+                    <span>IBAN: <span className="font-mono font-bold">IT48E3688801600100000059432</span></span>
+                    <button onClick={() => copy("IT48E3688801600100000059432")} className="p-0.5 hover:text-tv-green-deep"><Copy size={11} /></button>
+                  </div>
+                )}
+
+                {/* Azioni (solo donazioni spontanee) */}
+                {!isEvento && (
+                  <div className="flex flex-wrap gap-2 mt-3">
                     {d.status !== "completed" && (
-                      <button onClick={() => setStatus(d.id, "completed")}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-mint/30 text-tv-green text-xs font-bold rounded-full hover:bg-tv-mint/50 transition-colors">
+                      <button onClick={() => setStatus(d._id, "completed")}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-tv-mint/30 text-tv-green text-xs font-bold rounded-full hover:bg-tv-mint/50 transition-colors">
                         <Check size={12} /> Confermata
                       </button>
                     )}
                     {d.status === "completed" && (
-                      <button onClick={() => setStatus(d.id, "pending")}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-green-deep/5 text-tv-green-deep/50 text-xs font-bold rounded-full hover:bg-tv-green-deep/10 transition-colors">
+                      <button onClick={() => setStatus(d._id, "pending")}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-tv-green-deep/5 text-tv-green-deep/50 text-xs font-bold rounded-full hover:bg-tv-green-deep/10 transition-colors">
                         In attesa
                       </button>
                     )}
-                    <button onClick={() => setEditNote(p => ({ ...p, [d.id + "_open"]: !p[d.id + "_open"], [d.id]: p[d.id] ?? d.note ?? "" }))}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-sky/30 text-tv-green-deep text-xs font-bold rounded-full hover:bg-tv-sky/50 transition-colors">
+                    <button onClick={() => setEditNote(p => ({ ...p, [d._id + "_open"]: !p[d._id + "_open"], [d._id]: p[d._id] ?? d.note ?? "" }))}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-tv-sky/30 text-tv-green-deep text-xs font-bold rounded-full hover:bg-tv-sky/50 transition-colors">
                       📝 Nota
                     </button>
-                    <button onClick={() => del(d.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-tv-bordeaux/8 text-tv-bordeaux text-xs font-bold rounded-full hover:bg-tv-bordeaux/15 transition-colors">
+                    <button onClick={() => del(d._id)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-tv-bordeaux/8 text-tv-bordeaux text-xs font-bold rounded-full hover:bg-tv-bordeaux/15 transition-colors">
                       <Trash2 size={12} /> Elimina
                     </button>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
-      {/* Donazioni da eventi */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-display font-black text-lg text-tv-green-deep">Donazioni da eventi</h3>
-          {totalEventi > 0 && (
-            <span className="text-sm font-bold text-tv-bordeaux bg-tv-bordeaux/8 px-3 py-1 rounded-full">
-              Totale: {totalEventi.toFixed(2)} €
-            </span>
-          )}
-        </div>
-        {eventSignups.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-tv-green-deep/8 p-8 text-center text-tv-green-deep/40 text-sm">
-            Nessuna donazione volontaria registrata agli eventi.
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-tv-green-deep/8 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-tv-green-deep/8 text-xs text-tv-green-deep/40 uppercase tracking-wider">
-                    <th className="text-left px-4 py-3 font-bold">Evento</th>
-                    <th className="text-left px-4 py-3 font-bold">Nome</th>
-                    <th className="text-left px-4 py-3 font-bold">Email</th>
-                    <th className="text-left px-4 py-3 font-bold">Importo</th>
-                    <th className="text-left px-4 py-3 font-bold">Data</th>
-                    <th className="text-left px-4 py-3 font-bold">Confermato</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-tv-green-deep/5">
-                  {[...eventSignups].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).map(s => (
-                    <tr key={s.id} className="hover:bg-tv-cream/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-tv-green-deep max-w-[180px] truncate">{s.event_title || '—'}</td>
-                      <td className="px-4 py-3 text-tv-green-deep/80">{s.name || '—'}</td>
-                      <td className="px-4 py-3 text-tv-green-deep/60">
-                        <a href={`mailto:${s.email}`} className="hover:text-tv-green-deep">{s.email || '—'}</a>
-                      </td>
-                      <td className="px-4 py-3 font-black text-tv-bordeaux">{(s.donazione_volontaria || 0).toFixed(2)} €</td>
-                      <td className="px-4 py-3 text-tv-green-deep/50 whitespace-nowrap">
-                        {s.created_at ? new Date(s.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }) : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${s.confirmed ? 'bg-tv-green/20 text-tv-green-deep' : 'bg-tv-orange/15 text-tv-orange'}`}>
-                          {s.confirmed ? 'Sì' : 'No'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
