@@ -577,11 +577,11 @@ const ProposalsSection = () => {
       .then((r) => r.json())
       .then((d) => {
         const months = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month))].sort().reverse();
-        const next = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
-        if (!months.includes(next)) months.unshift(next);
         setAllMonths(months);
+        // se il mese selezionato non ha proposte, usa il più recente che ne ha
+        if (months.length > 0) setSelectedMonth(prev => months.includes(prev) ? prev : months[0]);
       })
-      .catch(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); setAllMonths([d.toISOString().slice(0, 7)]); });
+      .catch(() => {});
   }, []);
   useEffect(() => { loadAllMonths(); }, [loadAllMonths]);
 
@@ -622,9 +622,15 @@ const ProposalsSection = () => {
     setProposals((prev) => prev.map((p) => (p.id === id ? updated : p)).sort((a, b) => b.votes - a.votes));
   };
 
-  const nextMonthLabel = getNextMonthTitle();
-  const nextMonthPrep = nextMonthLabel && /^[aeiouAEIOU]/.test(nextMonthLabel) ? "ad" : "a";
-  const sectionTitle = nextMonthLabel ? `Cosa leggiamo ${nextMonthPrep} ${nextMonthLabel}` : "Cosa leggiamo dopo?";
+  const sectionTitle = (() => {
+    const ym = selectedMonth;
+    if (!ym) return "Cosa leggiamo dopo?";
+    try {
+      const mese = new Date(ym + "-01").toLocaleDateString("it-IT", { month: "long" });
+      const prep = /^[aeiouAEIOU]/.test(mese) ? "ad" : "a";
+      return `Cosa leggiamo ${prep} ${mese}`;
+    } catch { return "Cosa leggiamo dopo?"; }
+  })();
 
   return (
     <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
