@@ -5,7 +5,7 @@ const values = [
   {
     icon: Users,
     title: "Persone prima di tutto",
-    body: "Oltre le etichette: solo la tua voglia di fare rete.",
+    body: "Oltre le etichette: un gruppo di amici con la voglia di unire passioni e competenze per rendere possibili incontri e attività sul territorio Vesuviano (e non solo).",
     color: "bg-tv-bordeaux",
     text: "text-tv-cream",
   },
@@ -25,7 +25,7 @@ const values = [
   {
     icon: Zap,
     title: "Seri ma non seriosi",
-    body: "Siamo un’APS, ma prima di tutto uno spazio umano e accogliente: con la leggerezza di una chiacchierata tra amici e sempre un buon motivo per ritrovarsi.",
+    body: "Siamo un’Associazione di Promozione Sociale (\"APS\"), ma prima di tutto uno spazio umano e accogliente: con la leggerezza di una chiacchierata tra amici e sempre un buon motivo per ritrovarsi.",
     color: "bg-tv-sky",
     text: "text-tv-cream",
   },
