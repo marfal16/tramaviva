@@ -387,18 +387,18 @@ const FeaturedCard = ({ ev, onParticipate }) => (
         <div className="flex items-center gap-2"><CalendarIcon size={15} /> {fmtDate(ev.date)}</div>
         <div className="flex items-center gap-2"><Clock size={15} /> {ev.time}</div>
         <div className="flex items-center gap-2"><MapPin size={15} /> {ev.location}</div>
-        <div className="flex items-center gap-2">
-          <Users size={15} />
-          {ev.spots <= 0 ? (
-            <span className="opacity-50">Posti esauriti</span>
-          ) : ev.spots === 1 ? (
-            <span className="font-bold text-tv-orange">⚡ Ultimo posto disponibile!</span>
-          ) : ev.spots <= 5 ? (
-            <span className="font-bold text-tv-orange">⚡ Ultimi {ev.spots} posti!</span>
-          ) : (
-            <>{ev.spots} posti disponibili</>
-          )}
-        </div>
+        {ev.spots <= 5 && (
+          <div className="flex items-center gap-2">
+            <Users size={15} />
+            {ev.spots <= 0 ? (
+              <span className="opacity-50">Posti esauriti</span>
+            ) : ev.spots === 1 ? (
+              <span className="font-bold text-tv-orange">⚡ Ultimo posto disponibile!</span>
+            ) : (
+              <span className="font-bold text-tv-orange">⚡ Ultimi {ev.spots} posti!</span>
+            )}
+          </div>
+        )}
       </div>
       {ev.contributo > 0 && (
         <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
@@ -487,17 +487,15 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
         <div className="flex items-center gap-2">
           <MapPin size={14} /> {ev.location}
         </div>
-        {!compact && !past && (
+        {!compact && !past && ev.spots <= 5 && (
           <div className="flex items-center gap-2">
             <Users size={14} />
             {ev.spots <= 0 ? (
               <span className="text-tv-bordeaux/60">Posti esauriti</span>
             ) : ev.spots === 1 ? (
               <span className="text-orange-500 font-bold">⚡ Ultimo posto disponibile!</span>
-            ) : ev.spots <= 5 ? (
-              <span className="text-orange-500 font-bold">⚡ Ultimi {ev.spots} posti!</span>
             ) : (
-              <>{ev.spots} posti disponibili</>
+              <span className="text-orange-500 font-bold">⚡ Ultimi {ev.spots} posti!</span>
             )}
           </div>
         )}

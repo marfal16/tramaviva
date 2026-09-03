@@ -3921,7 +3921,18 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                   <div className={`h-1 rounded-full mb-1.5 ${isSelected ? "bg-white/20" : isPastEv ? "bg-gray-300/50" : "bg-tv-green-deep/10"}`}>
                     <div className={`h-1 rounded-full transition-all ${isPastEv ? (isSelected ? "bg-white/50" : "bg-gray-400/60") : pct === 100 ? "bg-tv-green" : isSelected ? "bg-tv-orange/80" : "bg-tv-orange"}`} style={{ width: `${pct}%` }}/>
                   </div>
-                  <div className={`text-[10px] font-bold ${isSelected ? "text-white/60" : isPastEv ? "text-gray-400/70" : "text-tv-green-deep/45"}`}>{confirmedPpl}/{totalPeople} conf.</div>
+                  <div className="flex items-center justify-between gap-1">
+                    <div className={`text-[10px] font-bold ${isSelected ? "text-white/60" : isPastEv ? "text-gray-400/70" : "text-tv-green-deep/45"}`}>{confirmedPpl}/{totalPeople} conf.</div>
+                    {!isPastEv && (
+                      <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        ev.spots <= 0 ? (isSelected ? "bg-white/20 text-white/70" : "bg-tv-bordeaux/15 text-tv-bordeaux")
+                        : ev.spots <= 5 ? (isSelected ? "bg-tv-orange/40 text-white" : "bg-tv-orange/20 text-tv-orange")
+                        : (isSelected ? "bg-white/15 text-white/60" : "bg-tv-green-deep/8 text-tv-green-deep/50")
+                      }`}>
+                        {ev.spots <= 0 ? "esauriti" : `${ev.spots} liberi`}
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             };
