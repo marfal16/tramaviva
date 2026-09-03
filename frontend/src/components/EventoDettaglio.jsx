@@ -344,18 +344,18 @@ export const EventoDettaglio = () => {
                   <div className="flex items-center gap-2">
                     <MapPin size={15} /> {event.location}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users size={15} />
-                    {event.spots <= 0 ? (
-                      <span className="font-bold text-tv-bordeaux">🔴 SOLD OUT</span>
-                    ) : event.spots === 1 ? (
-                      <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
-                    ) : event.spots <= 5 ? (
-                      <span className="font-bold text-orange-300">⚡ Ultimi {event.spots} posti!</span>
-                    ) : (
-                      <>{event.spots} posti disponibili</>
-                    )}
-                  </div>
+                  {event.spots <= 5 && (
+                    <div className="flex items-center gap-2">
+                      <Users size={15} />
+                      {event.spots <= 0 ? (
+                        <span className="font-bold text-tv-bordeaux">🔴 SOLD OUT</span>
+                      ) : event.spots === 1 ? (
+                        <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
+                      ) : (
+                        <span className="font-bold text-orange-300">⚡ Ultimi {event.spots} posti!</span>
+                      )}
+                    </div>
+                  )}
                   
                   {event.contributo > 0 ? (
                     <div className="flex items-center gap-2">
@@ -385,7 +385,7 @@ export const EventoDettaglio = () => {
                       ))}
                     </div>
                     <div className="text-sm font-semibold leading-tight">
-                      <span className="text-tv-orange font-black">{signupCount}</span> {signupCount === 1 ? "persona ha già" : "persone hanno già"} chiesto di esserci
+                      Altre persone hanno già chiesto di esserci
                     </div>
                   </div>
                 )}
