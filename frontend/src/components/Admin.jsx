@@ -2236,7 +2236,6 @@ const VisitorChart = ({ visitorStats, activeUsers }) => {
             </span>
           </div>
         )}
-        <span className="text-xs text-tv-green-deep/40 font-bold uppercase tracking-wider">Visitatori unici</span>
         <div className="ml-auto flex items-center gap-1">
           {[7, 30, 90].map(w => (
             <button key={w} onClick={() => setView(w)}
@@ -2324,15 +2323,15 @@ const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats }) => {
                 <button
                   key={sec.key}
                   onClick={() => onNavigate(sec.key)}
-                  className={`bg-white rounded-xl p-3 border text-left transition-all hover:shadow-sm hover:-translate-y-0.5 flex items-center gap-3 ${sec.alert ? "border-tv-orange/40" : "border-tv-green-deep/10"}`}
+                  className={`bg-white rounded-xl p-2 border text-left transition-all hover:shadow-sm hover:-translate-y-0.5 flex items-center gap-2 ${sec.alert ? "border-tv-orange/40" : "border-tv-green-deep/10"}`}
                 >
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${sec.iconBg}`}>
-                    <sec.icon size={16} className={sec.iconColor} />
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${sec.iconBg}`}>
+                    <sec.icon size={14} className={sec.iconColor} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-xs text-tv-green-deep leading-tight truncate">{sec.label}</div>
+                    <div className="font-bold text-[13px] text-tv-green-deep leading-tight truncate">{sec.label}</div>
                     {sec.badge !== undefined && (
-                      <div className={`font-display font-black text-lg leading-none ${sec.alert ? "text-tv-orange" : "text-tv-green-deep/80"}`}>
+                      <div className={`font-display font-black text-base leading-none ${sec.alert ? "text-tv-orange" : "text-tv-green-deep/80"}`}>
                         {sec.badge}
                         {sec.badgeLabel && <span className="text-[9px] font-bold text-tv-green-deep/30 ml-0.5">{sec.badgeLabel}</span>}
                       </div>
@@ -2344,13 +2343,13 @@ const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats }) => {
               {group.groupKey === "clubs" && (
                 <button
                   onClick={() => onNavigate("donations")}
-                  className="bg-white rounded-xl p-3 border border-tv-green-deep/10 text-left transition-all hover:shadow-sm hover:-translate-y-0.5 flex items-center gap-3"
+                  className="bg-white rounded-xl p-2 border border-tv-green-deep/10 text-left transition-all hover:shadow-sm hover:-translate-y-0.5 flex items-center gap-2"
                   style={{ gridColumn: "span 1" }}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-tv-bordeaux/10 flex items-center justify-center flex-shrink-0">
-                    <Heart size={16} className="text-tv-bordeaux" />
+                  <div className="w-7 h-7 rounded-lg bg-tv-bordeaux/10 flex items-center justify-center flex-shrink-0">
+                    <Heart size={14} className="text-tv-bordeaux" />
                   </div>
-                  <div className="font-bold text-xs text-tv-green-deep leading-tight">Donazioni</div>
+                  <div className="font-bold text-[13px] text-tv-green-deep leading-tight">Donazioni</div>
                 </button>
               )}
             </div>
@@ -2760,8 +2759,8 @@ const Dashboard = ({ token, onLogout }) => {
             onClick={() => { setTab("home"); setMobileMenuOpen(false); setNavDropdown(null); }}
             className="flex items-center gap-3 flex-shrink-0 hover:opacity-80 transition-opacity"
           >
-            <Logo variant="inline" size={36} />
-            <span className="hidden sm:block text-[9px] font-bold text-tv-cream/50 uppercase tracking-widest">Amministrazione</span>
+            <Logo variant="inline" size={28} textColor="#e8d5a3" />
+            <span className="hidden sm:block text-[8px] font-bold text-tv-cream/40 uppercase tracking-[0.2em]">Amm.</span>
           </button>
 
           <div className="hidden md:block w-px h-6 bg-tv-cream/15 mx-2 flex-shrink-0" />
