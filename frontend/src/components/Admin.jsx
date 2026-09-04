@@ -1736,8 +1736,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <h2 className="font-display font-black text-2xl text-tv-green-deep">Club del Libro</h2>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         {subTab === "catalogo" && (
           <button
             onClick={() => setEditor(BOOK_EMPTY)}
@@ -2023,8 +2022,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <h2 className="font-display font-black text-2xl text-tv-green-deep">Cineforum</h2>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         {subTab === "catalogo" && (
           <button
             onClick={() => setEditor(FILM_EMPTY)}
@@ -2221,7 +2219,61 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   );
 };
 
-const DashboardHome = ({ data, onNavigate, activeUsers }) => {
+const VisitorChart = ({ visitorStats, activeUsers }) => {
+  const [view, setView] = useState(30);
+  const shown = (visitorStats || []).slice(-view);
+  const shownMax = Math.max(...shown.map(d => d.visitors), 1);
+  const totalShown = shown.reduce((s, d) => s + d.visitors, 0);
+  const avgShown = shown.length > 0 ? Math.round(totalShown / shown.length) : 0;
+  return (
+    <div className="mb-6 bg-white rounded-2xl border border-tv-green-deep/10 p-4">
+      <div className="flex items-center gap-3 mb-3 flex-wrap">
+        {activeUsers !== null && (
+          <div className="inline-flex items-center gap-2 bg-tv-green/10 rounded-xl px-3 py-1.5">
+            <span className="w-2 h-2 rounded-full bg-tv-green animate-pulse flex-shrink-0" />
+            <span className="text-sm font-bold text-tv-green-deep">
+              {activeUsers === 0 ? "Nessun visitatore ora" : activeUsers === 1 ? "1 visitatore ora" : `${activeUsers} visitatori ora`}
+            </span>
+          </div>
+        )}
+        <span className="text-xs text-tv-green-deep/40 font-bold uppercase tracking-wider">Visitatori unici</span>
+        <div className="ml-auto flex items-center gap-1">
+          {[7, 30, 90].map(w => (
+            <button key={w} onClick={() => setView(w)}
+              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors ${view === w ? "bg-tv-green-deep text-tv-cream" : "text-tv-green-deep/40 hover:text-tv-green-deep"}`}>
+              {w}g
+            </button>
+          ))}
+        </div>
+      </div>
+      {shown.length > 0 ? (
+        <>
+          <div className="text-xs text-tv-green-deep/40 mb-2">{totalShown} totali · media {avgShown}/giorno</div>
+          <div className="flex items-end gap-0.5 h-16">
+            {shown.map(d => {
+              const h = Math.max(2, Math.round((d.visitors / shownMax) * 60));
+              const label = new Date(d.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+              return (
+                <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative">
+                  <div className="absolute bottom-full mb-1 bg-tv-green-deep text-tv-cream text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
+                    {label}: {d.visitors}
+                  </div>
+                  <div style={{ height: `${h}px` }} className="w-full rounded-sm bg-tv-green/60 hover:bg-tv-green transition-colors cursor-default" />
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="text-xs text-tv-green-deep/30 text-center py-4">
+          I dati storici si accumulano dai prossimi accessi al sito
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const upcomingEventIds = new Set(data.events.filter(e => !isPast(e.date)).map(e => e.id));
   const regEmails = new Set((data.registrations || []).map(r => (r.email || "").toLowerCase()));
@@ -2260,15 +2312,7 @@ const DashboardHome = ({ data, onNavigate, activeUsers }) => {
 
   return (
     <div>
-      {/* Live visitors widget */}
-      {activeUsers !== null && (
-        <div className="mb-5 inline-flex items-center gap-2 bg-tv-green-deep/5 border border-tv-green-deep/10 rounded-2xl px-4 py-2.5">
-          <span className="w-2 h-2 rounded-full bg-tv-green animate-pulse flex-shrink-0" />
-          <span className="text-sm font-bold text-tv-green-deep">
-            {activeUsers === 0 ? "Nessun visitatore attivo" : activeUsers === 1 ? "1 visitatore sul sito ora" : `${activeUsers} visitatori sul sito ora`}
-          </span>
-        </div>
-      )}
+      <VisitorChart activeUsers={activeUsers} visitorStats={visitorStats} />
 
       {/* Section navigation cards — compact */}
       <div className="space-y-4 mb-6">
@@ -2400,6 +2444,7 @@ const Dashboard = ({ token, onLogout }) => {
   const [manualForm, setManualForm] = useState({ first_name: "", last_name: "", email: "", phone: "", tessera_number: "", data_nascita: "", codice_fiscale: "", indirizzo: "", comune: "", cap: "" });
   const [manualLoading, setManualLoading] = useState(false);
   const [activeUsers, setActiveUsers] = useState(null);
+  const [visitorStats, setVisitorStats] = useState(null);
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
@@ -2413,6 +2458,13 @@ const Dashboard = ({ token, onLogout }) => {
     fetchActive();
     const id = setInterval(fetchActive, 30000);
     return () => clearInterval(id);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    axios.get(`${API}/admin/visitor-stats`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => setVisitorStats(r.data))
+      .catch(() => {});
   }, [token]);
 
   const loadAll = async (silent = false) => {
@@ -2888,7 +2940,7 @@ const Dashboard = ({ token, onLogout }) => {
       <main>
         <div className="p-4 md:p-8">
           {tab === "home" ? (
-            <DashboardHome data={data} onNavigate={setTab} activeUsers={activeUsers} />
+            <DashboardHome data={data} onNavigate={setTab} activeUsers={activeUsers} visitorStats={visitorStats} />
           ) : loading ? (
             <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
               <Loader2 className="animate-spin" size={18} /> Caricamento in corso...

@@ -2408,12 +2408,22 @@ async def admin_delete_film(film_id: str):
 async def heartbeat(request: Request):
     body = await request.json()
     session_id = body.get("session_id", "")
-    if session_id:
-        await db.active_sessions.update_one(
-            {"session_id": session_id},
-            {"$set": {"session_id": session_id, "last_seen": datetime.now(timezone.utc)}},
-            upsert=True,
-        )
+    if not session_id:
+        return {"ok": True}
+    now = datetime.now(timezone.utc)
+    # Aggiorna lo stato corrente (per il contatore live)
+    await db.active_sessions.update_one(
+        {"session_id": session_id},
+        {"$set": {"session_id": session_id, "last_seen": now}},
+        upsert=True,
+    )
+    # Log giornaliero: upsert per (session_id, day) per non duplicare
+    day_key = now.strftime("%Y-%m-%d")
+    await db.visitor_log.update_one(
+        {"session_id": session_id, "day": day_key},
+        {"$set": {"session_id": session_id, "day": day_key, "last_seen": now}},
+        upsert=True,
+    )
     return {"ok": True}
 
 @api_router.get("/admin/active-users", dependencies=[Depends(require_admin)])
@@ -2421,6 +2431,20 @@ async def get_active_users():
     threshold = datetime.now(timezone.utc) - timedelta(seconds=90)
     count = await db.active_sessions.count_documents({"last_seen": {"$gte": threshold}})
     return {"count": count}
+
+@api_router.get("/admin/visitor-stats", dependencies=[Depends(require_admin)])
+async def get_visitor_stats():
+    # Restituisce visitatori unici per giorno degli ultimi 90 giorni
+    since = datetime.now(timezone.utc) - timedelta(days=90)
+    since_str = since.strftime("%Y-%m-%d")
+    pipeline = [
+        {"$match": {"day": {"$gte": since_str}}},
+        {"$group": {"_id": "$day", "visitors": {"$sum": 1}}},
+        {"$sort": {"_id": 1}},
+        {"$project": {"_id": 0, "date": "$_id", "visitors": 1}},
+    ]
+    docs = await db.visitor_log.aggregate(pipeline).to_list(90)
+    return docs
 
 app.include_router(api_router)
 
