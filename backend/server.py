@@ -2404,6 +2404,33 @@ async def admin_delete_film(film_id: str):
         raise HTTPException(status_code=404, detail="Film non trovato")
     return {"ok": True}
 
+def _get_client_ip(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+async def _fetch_geo(ip: str) -> dict:
+    if not ip or ip in ("127.0.0.1", "::1", "localhost"):
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            r = await client.get(
+                f"http://ip-api.com/json/{ip}",
+                params={"fields": "status,country,countryCode,regionName,city", "lang": "it"},
+            )
+            d = r.json()
+            if d.get("status") == "success":
+                return {
+                    "country": d.get("country", ""),
+                    "country_code": d.get("countryCode", ""),
+                    "region": d.get("regionName", ""),
+                    "city": d.get("city", ""),
+                }
+    except Exception:
+        pass
+    return {}
+
 @api_router.post("/heartbeat")
 async def heartbeat(request: Request):
     body = await request.json()
@@ -2411,19 +2438,30 @@ async def heartbeat(request: Request):
     if not session_id:
         return {"ok": True}
     now = datetime.now(timezone.utc)
+    ip = _get_client_ip(request)
     # Aggiorna lo stato corrente (per il contatore live)
     await db.active_sessions.update_one(
         {"session_id": session_id},
         {"$set": {"session_id": session_id, "last_seen": now}},
         upsert=True,
     )
-    # Log giornaliero: upsert per (session_id, day) per non duplicare
+    # Log giornaliero: geo solo al primo ping del giorno per questa sessione
     day_key = now.strftime("%Y-%m-%d")
-    await db.visitor_log.update_one(
-        {"session_id": session_id, "day": day_key},
-        {"$set": {"session_id": session_id, "day": day_key, "last_seen": now}},
-        upsert=True,
+    existing = await db.visitor_log.find_one(
+        {"session_id": session_id, "day": day_key}, {"country": 1}
     )
+    if existing is None:
+        geo = await _fetch_geo(ip)
+        await db.visitor_log.update_one(
+            {"session_id": session_id, "day": day_key},
+            {"$set": {"session_id": session_id, "day": day_key, "last_seen": now, **geo}},
+            upsert=True,
+        )
+    else:
+        await db.visitor_log.update_one(
+            {"session_id": session_id, "day": day_key},
+            {"$set": {"last_seen": now}},
+        )
     return {"ok": True}
 
 @api_router.get("/admin/active-users", dependencies=[Depends(require_admin)])
@@ -2434,17 +2472,36 @@ async def get_active_users():
 
 @api_router.get("/admin/visitor-stats", dependencies=[Depends(require_admin)])
 async def get_visitor_stats():
-    # Restituisce visitatori unici per giorno degli ultimi 90 giorni
-    since = datetime.now(timezone.utc) - timedelta(days=90)
-    since_str = since.strftime("%Y-%m-%d")
+    since_str = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
     pipeline = [
         {"$match": {"day": {"$gte": since_str}}},
         {"$group": {"_id": "$day", "visitors": {"$sum": 1}}},
         {"$sort": {"_id": 1}},
         {"$project": {"_id": 0, "date": "$_id", "visitors": 1}},
     ]
-    docs = await db.visitor_log.aggregate(pipeline).to_list(90)
-    return docs
+    return await db.visitor_log.aggregate(pipeline).to_list(90)
+
+@api_router.get("/admin/visitor-geo", dependencies=[Depends(require_admin)])
+async def get_visitor_geo():
+    since_str = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    pipeline = [
+        {"$match": {"day": {"$gte": since_str}, "country": {"$exists": True, "$ne": ""}}},
+        {"$group": {
+            "_id": {"country": "$country", "country_code": "$country_code", "region": "$region", "city": "$city"},
+            "count": {"$sum": 1},
+        }},
+        {"$sort": {"count": -1}},
+        {"$limit": 30},
+        {"$project": {
+            "_id": 0,
+            "country": "$_id.country",
+            "country_code": "$_id.country_code",
+            "region": "$_id.region",
+            "city": "$_id.city",
+            "count": 1,
+        }},
+    ]
+    return await db.visitor_log.aggregate(pipeline).to_list(30)
 
 app.include_router(api_router)
 

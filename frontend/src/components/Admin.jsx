@@ -2219,14 +2219,20 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   );
 };
 
-const VisitorChart = ({ visitorStats, activeUsers }) => {
+const FLAG_URL = (cc) => `https://flagcdn.com/16x12/${(cc || "").toLowerCase()}.png`;
+
+const VisitorChart = ({ visitorStats, activeUsers, visitorGeo }) => {
   const [view, setView] = useState(30);
   const shown = (visitorStats || []).slice(-view);
   const shownMax = Math.max(...shown.map(d => d.visitors), 1);
   const totalShown = shown.reduce((s, d) => s + d.visitors, 0);
   const avgShown = shown.length > 0 ? Math.round(totalShown / shown.length) : 0;
+  const geoRows = (visitorGeo || []).slice(0, 10);
+  const geoMax = geoRows[0]?.count || 1;
+
   return (
     <div className="mb-6 bg-white rounded-2xl border border-tv-green-deep/10 p-4">
+      {/* Header row */}
       <div className="flex items-center gap-3 mb-3 flex-wrap">
         {activeUsers !== null && (
           <div className="inline-flex items-center gap-2 bg-tv-green/10 rounded-xl px-3 py-1.5">
@@ -2245,34 +2251,69 @@ const VisitorChart = ({ visitorStats, activeUsers }) => {
           ))}
         </div>
       </div>
-      {shown.length > 0 ? (
-        <>
-          <div className="text-xs text-tv-green-deep/40 mb-2">{totalShown} totali · media {avgShown}/giorno</div>
-          <div className="flex items-end gap-0.5 h-16">
-            {shown.map(d => {
-              const h = Math.max(2, Math.round((d.visitors / shownMax) * 60));
-              const label = new Date(d.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
-              return (
-                <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative">
-                  <div className="absolute bottom-full mb-1 bg-tv-green-deep text-tv-cream text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
-                    {label}: {d.visitors}
-                  </div>
-                  <div style={{ height: `${h}px` }} className="w-full rounded-sm bg-tv-green/60 hover:bg-tv-green transition-colors cursor-default" />
-                </div>
-              );
-            })}
-          </div>
-        </>
-      ) : (
-        <div className="text-xs text-tv-green-deep/30 text-center py-4">
-          I dati storici si accumulano dai prossimi accessi al sito
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Grafico barre */}
+        <div>
+          {shown.length > 0 ? (
+            <>
+              <div className="text-xs text-tv-green-deep/40 mb-2">{totalShown} sessioni · media {avgShown}/giorno</div>
+              <div className="flex items-end gap-0.5 h-16">
+                {shown.map(d => {
+                  const h = Math.max(2, Math.round((d.visitors / shownMax) * 60));
+                  const label = new Date(d.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+                  return (
+                    <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative">
+                      <div className="absolute bottom-full mb-1 bg-tv-green-deep text-tv-cream text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
+                        {label}: {d.visitors}
+                      </div>
+                      <div style={{ height: `${h}px` }} className="w-full rounded-sm bg-tv-green/60 hover:bg-tv-green transition-colors cursor-default" />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-tv-green-deep/30 text-center py-6">
+              I dati si accumulano dai prossimi accessi al sito
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Tabella geo */}
+        <div>
+          {geoRows.length > 0 ? (
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/30 mb-2">Provenienza · ultimi 30g</div>
+              {geoRows.map((r, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  {r.country_code && (
+                    <img src={FLAG_URL(r.country_code)} alt={r.country} className="w-4 h-3 rounded-sm object-cover flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="relative h-1.5 bg-tv-green-deep/8 rounded-full overflow-hidden">
+                      <div style={{ width: `${Math.round((r.count / geoMax) * 100)}%` }} className="h-full bg-tv-sky/60 rounded-full" />
+                    </div>
+                  </div>
+                  <span className="text-tv-green-deep/60 truncate max-w-[110px]">
+                    {[r.city, r.region].filter(Boolean).join(", ") || r.country}
+                  </span>
+                  <span className="font-bold text-tv-green-deep flex-shrink-0">{r.count}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-tv-green-deep/30 text-center py-6">
+              I dati geografici si accumulano dai prossimi accessi
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
-const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats }) => {
+const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats, visitorGeo }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const upcomingEventIds = new Set(data.events.filter(e => !isPast(e.date)).map(e => e.id));
   const regEmails = new Set((data.registrations || []).map(r => (r.email || "").toLowerCase()));
@@ -2311,7 +2352,7 @@ const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats }) => {
 
   return (
     <div>
-      <VisitorChart activeUsers={activeUsers} visitorStats={visitorStats} />
+      <VisitorChart activeUsers={activeUsers} visitorStats={visitorStats} visitorGeo={visitorGeo} />
 
       {/* Section navigation cards — compact */}
       <div className="space-y-4 mb-6">
@@ -2444,6 +2485,7 @@ const Dashboard = ({ token, onLogout }) => {
   const [manualLoading, setManualLoading] = useState(false);
   const [activeUsers, setActiveUsers] = useState(null);
   const [visitorStats, setVisitorStats] = useState(null);
+  const [visitorGeo, setVisitorGeo] = useState(null);
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
 
@@ -2463,6 +2505,9 @@ const Dashboard = ({ token, onLogout }) => {
     if (!token) return;
     axios.get(`${API}/admin/visitor-stats`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => setVisitorStats(r.data))
+      .catch(() => {});
+    axios.get(`${API}/admin/visitor-geo`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => setVisitorGeo(r.data))
       .catch(() => {});
   }, [token]);
 
@@ -2939,7 +2984,7 @@ const Dashboard = ({ token, onLogout }) => {
       <main>
         <div className="p-4 md:p-8">
           {tab === "home" ? (
-            <DashboardHome data={data} onNavigate={setTab} activeUsers={activeUsers} visitorStats={visitorStats} />
+            <DashboardHome data={data} onNavigate={setTab} activeUsers={activeUsers} visitorStats={visitorStats} visitorGeo={visitorGeo} />
           ) : loading ? (
             <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
               <Loader2 className="animate-spin" size={18} /> Caricamento in corso...
