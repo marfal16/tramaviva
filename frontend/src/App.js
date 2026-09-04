@@ -74,8 +74,6 @@ const Home = () => {
   );
 };
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-
 // Rileva il ritorno da SumUp (?paid=<registration_id>) e conferma il pagamento
 const PaymentReturnHandler = () => {
   useEffect(() => {
@@ -139,7 +137,30 @@ const LibroDettaglioPageWrapper = () => {
   );
 };
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
+function useHeartbeat() {
+  useEffect(() => {
+    let sessionId = localStorage.getItem("tv_session_id");
+    if (!sessionId) {
+      sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem("tv_session_id", sessionId);
+    }
+    const send = () => {
+      fetch(`${BACKEND_URL}/api/heartbeat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId }),
+      }).catch(() => {});
+    };
+    send();
+    const id = setInterval(send, 30000);
+    return () => clearInterval(id);
+  }, []);
+}
+
 function App() {
+  useHeartbeat();
   return (
     <BrowserRouter>
       <AuthProvider>

@@ -2404,6 +2404,24 @@ async def admin_delete_film(film_id: str):
         raise HTTPException(status_code=404, detail="Film non trovato")
     return {"ok": True}
 
+@api_router.post("/heartbeat")
+async def heartbeat(request: Request):
+    body = await request.json()
+    session_id = body.get("session_id", "")
+    if session_id:
+        await db.active_sessions.update_one(
+            {"session_id": session_id},
+            {"$set": {"session_id": session_id, "last_seen": datetime.now(timezone.utc)}},
+            upsert=True,
+        )
+    return {"ok": True}
+
+@api_router.get("/admin/active-users", dependencies=[Depends(require_admin)])
+async def get_active_users():
+    threshold = datetime.now(timezone.utc) - timedelta(seconds=90)
+    count = await db.active_sessions.count_documents({"last_seen": {"$gte": threshold}})
+    return {"count": count}
+
 app.include_router(api_router)
 
 # CORS Middleware

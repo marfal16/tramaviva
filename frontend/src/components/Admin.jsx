@@ -99,8 +99,22 @@ const Login = ({ onLogin }) => {
 };
 
 const NAV_GROUPS = [
-  { single: true, key: "home",   label: "Dashboard", icon: LayoutDashboard },
-  { single: true, key: "events", label: "Eventi",     icon: CalendarPlus },
+  { single: true, key: "home", label: "Dashboard", icon: LayoutDashboard },
+  {
+    group: true, groupKey: "events", label: "Eventi", icon: CalendarPlus,
+    items: [
+      { key: "events",       label: "Gestione eventi",  icon: CalendarPlus },
+      { key: "event-signups", label: "Richieste eventi", icon: Calendar },
+    ],
+  },
+  {
+    group: true, groupKey: "community", label: "Community", icon: Users,
+    items: [
+      { key: "libro-soci", label: "Libro dei Soci", icon: IdCard },
+      { key: "contacts",   label: "Messaggi",       icon: MessageSquare },
+      { key: "missions",   label: "Missioni",        icon: Trophy },
+    ],
+  },
   {
     group: true, groupKey: "clubs", label: "Club", icon: BookOpen,
     items: [
@@ -108,22 +122,7 @@ const NAV_GROUPS = [
       { key: "cineforum", label: "Cineforum",      icon: Film },
     ],
   },
-  {
-    group: true, groupKey: "community", label: "Community", icon: Users,
-    items: [
-      { key: "members",       label: "Soci tesserati",       icon: IdCard },
-      { key: "registrations", label: "Richieste iscrizione", icon: Users },
-      { key: "event-signups", label: "Richieste eventi",     icon: Calendar },
-    ],
-  },
-  {
-    group: true, groupKey: "gestione", label: "Gestione", icon: Heart,
-    items: [
-      { key: "missions", label: "Missioni",  icon: Trophy },
-      { key: "contacts", label: "Messaggi", icon: MessageSquare },
-      { key: "donations", label: "Donazioni", icon: Heart },
-    ],
-  },
+  { single: true, key: "donations", label: "Donazioni", icon: Heart },
 ];
 // flat list for compatibility (badge logic, etc.)
 const NAV = NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, icon: g.icon }] : (g.items || []));
@@ -2201,15 +2200,11 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   );
 };
 
-const DashboardHome = ({ data, onNavigate }) => {
+const DashboardHome = ({ data, onNavigate, activeUsers }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
-  const confirmedPeople = data["event-signups"].filter(s => s.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
   const upcomingEventIds = new Set(data.events.filter(e => !isPast(e.date)).map(e => e.id));
-  const toConfirmPeople = data["event-signups"].filter(s => !s.confirmed && upcomingEventIds.has(s.event_id)).reduce((s, r) => s + (r.num_persone || 1), 0);
-  const pendingRegistrations = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
   const numberedMembers = data.members.filter(m => m.tessera_number).length;
   const unreadContacts = data.contacts.length;
-
   const pendingRegBadge = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
   const futureEventIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
   const toConfirmBadge = (data["event-signups"] || []).filter(s => !s.confirmed && futureEventIds.has(s.event_id)).length;
@@ -2218,168 +2213,119 @@ const DashboardHome = ({ data, onNavigate }) => {
     {
       groupKey: "eventi", label: "Eventi",
       sections: [
-        { key: "events", label: "Gestione eventi", icon: CalendarPlus, badge: upcomingEvents, badgeLabel: "in programma", iconBg: "bg-tv-bordeaux/10", iconColor: "text-tv-bordeaux" },
-      ],
-    },
-    {
-      groupKey: "clubs", label: "Club",
-      sections: [
-        { key: "books",     label: "Club del Libro", icon: BookOpen, iconBg: "bg-tv-green/15",  iconColor: "text-tv-green-deep" },
-        { key: "cineforum", label: "Cineforum",       icon: Film,     iconBg: "bg-tv-sky/20",    iconColor: "text-tv-green-deep" },
+        { key: "events",        label: "Gestione eventi",  icon: CalendarPlus,  badge: upcomingEvents,  badgeLabel: "in programma",   iconBg: "bg-tv-bordeaux/10", iconColor: "text-tv-bordeaux" },
+        { key: "event-signups", label: "Richieste eventi", icon: Calendar,      badge: toConfirmBadge, badgeLabel: "da confermare",  iconBg: "bg-tv-sky/30",      iconColor: "text-tv-sky",      alert: toConfirmBadge > 0 },
       ],
     },
     {
       groupKey: "community", label: "Community",
       sections: [
-        { key: "members",       label: "Soci tesserati",       icon: IdCard,        badge: numberedMembers,  badgeLabel: "tesserati",      iconBg: "bg-tv-green/20",    iconColor: "text-tv-green",    alert: false },
-        { key: "registrations", label: "Richieste iscrizione", icon: Users,         badge: pendingRegBadge, badgeLabel: "in attesa",      iconBg: "bg-tv-orange/20",   iconColor: "text-tv-orange",   alert: pendingRegBadge > 0 },
-        { key: "event-signups", label: "Richieste eventi",     icon: Calendar,      badge: toConfirmBadge,  badgeLabel: "da confermare",  iconBg: "bg-tv-sky/30",      iconColor: "text-tv-sky",      alert: toConfirmBadge > 0 },
+        { key: "libro-soci", label: "Libro dei Soci", icon: IdCard,        badge: numberedMembers,  badgeLabel: "soci",      iconBg: "bg-tv-green/20",    iconColor: "text-tv-green",    alert: pendingRegBadge > 0 },
+        { key: "contacts",   label: "Messaggi",       icon: MessageSquare, badge: unreadContacts,   badgeLabel: "ricevuti",  iconBg: "bg-amber-100",      iconColor: "text-amber-600",   alert: unreadContacts > 0 },
+        { key: "missions",   label: "Missioni",        icon: Trophy,                                                         iconBg: "bg-amber-100",      iconColor: "text-amber-600" },
       ],
     },
     {
-      groupKey: "gestione", label: "Gestione",
+      groupKey: "clubs", label: "Club",
       sections: [
-        { key: "missions",  label: "Missioni",  icon: Trophy,        iconBg: "bg-amber-100",      iconColor: "text-amber-600" },
-        { key: "contacts",  label: "Messaggi",  icon: MessageSquare, badge: unreadContacts, badgeLabel: "ricevuti", iconBg: "bg-amber-100", iconColor: "text-amber-600", alert: unreadContacts > 0 },
-        { key: "donations", label: "Donazioni", icon: Heart,         iconBg: "bg-tv-bordeaux/10", iconColor: "text-tv-bordeaux" },
+        { key: "books",     label: "Club del Libro", icon: BookOpen, iconBg: "bg-tv-green/15", iconColor: "text-tv-green-deep" },
+        { key: "cineforum", label: "Cineforum",       icon: Film,     iconBg: "bg-tv-sky/20",   iconColor: "text-tv-green-deep" },
       ],
     },
   ];
 
   return (
     <div>
-      {/* Section navigation cards */}
-      <div className="space-y-6 mb-8">
+      {/* Live visitors widget */}
+      {activeUsers !== null && (
+        <div className="mb-5 inline-flex items-center gap-2 bg-tv-green-deep/5 border border-tv-green-deep/10 rounded-2xl px-4 py-2.5">
+          <span className="w-2 h-2 rounded-full bg-tv-green animate-pulse flex-shrink-0" />
+          <span className="text-sm font-bold text-tv-green-deep">
+            {activeUsers === 0 ? "Nessun visitatore attivo" : activeUsers === 1 ? "1 visitatore sul sito ora" : `${activeUsers} visitatori sul sito ora`}
+          </span>
+        </div>
+      )}
+
+      {/* Section navigation cards — compact */}
+      <div className="space-y-4 mb-6">
         {sectionGroups.map(group => (
           <div key={group.groupKey}>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40 mb-3">{group.label}</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40 mb-2">{group.label}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
               {group.sections.map(sec => (
                 <button
                   key={sec.key}
                   onClick={() => onNavigate(sec.key)}
-                  className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-md hover:-translate-y-0.5 flex items-center gap-4 ${sec.alert ? "border-tv-orange/40" : "border-tv-green-deep/10"}`}
+                  className={`bg-white rounded-xl p-3 border text-left transition-all hover:shadow-sm hover:-translate-y-0.5 flex items-center gap-3 ${sec.alert ? "border-tv-orange/40" : "border-tv-green-deep/10"}`}
                 >
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${sec.iconBg}`}>
-                    <sec.icon size={20} className={sec.iconColor} />
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${sec.iconBg}`}>
+                    <sec.icon size={16} className={sec.iconColor} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-sm text-tv-green-deep leading-tight">{sec.label}</div>
+                    <div className="font-bold text-xs text-tv-green-deep leading-tight truncate">{sec.label}</div>
                     {sec.badge !== undefined && (
-                      <div className={`mt-0.5 font-display font-black text-2xl leading-none ${sec.alert ? "text-tv-orange" : "text-tv-green-deep"}`}>
+                      <div className={`font-display font-black text-lg leading-none ${sec.alert ? "text-tv-orange" : "text-tv-green-deep/80"}`}>
                         {sec.badge}
-                        <span className="text-[10px] font-bold text-tv-green-deep/40 ml-1 normal-case">{sec.badgeLabel}</span>
+                        {sec.badgeLabel && <span className="text-[9px] font-bold text-tv-green-deep/30 ml-0.5">{sec.badgeLabel}</span>}
                       </div>
                     )}
                   </div>
-                  <span className="text-tv-green-deep/20">→</span>
                 </button>
               ))}
+              {/* Donazioni standalone card */}
+              {group.groupKey === "clubs" && (
+                <button
+                  onClick={() => onNavigate("donations")}
+                  className="bg-white rounded-xl p-3 border border-tv-green-deep/10 text-left transition-all hover:shadow-sm hover:-translate-y-0.5 flex items-center gap-3"
+                  style={{ gridColumn: "span 1" }}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-tv-bordeaux/10 flex items-center justify-center flex-shrink-0">
+                    <Heart size={16} className="text-tv-bordeaux" />
+                  </div>
+                  <div className="font-bold text-xs text-tv-green-deep leading-tight">Donazioni</div>
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Middle section — 3 columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      {/* Panels — 2 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Prossimi eventi */}
         <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
-          <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
-            <h3 className="font-display font-black text-lg text-tv-green-deep">Prossimi eventi</h3>
+          <div className="p-4 border-b border-tv-green-deep/10 flex items-center justify-between">
+            <h3 className="font-display font-black text-base text-tv-green-deep">Prossimi eventi</h3>
             <button onClick={() => onNavigate("events")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Gestisci →</button>
           </div>
           <div className="divide-y divide-tv-green-deep/5">
-            {data.events.filter(e => !isPast(e.date)).slice(0, 5).map(ev => {
-              const signupsForEvent = data["event-signups"].filter(s => s.event_id === ev.id);
-              const totalBooked = signupsForEvent.reduce((s, r) => s + (r.num_persone || 1), 0);
+            {data.events.filter(e => !isPast(e.date)).slice(0, 4).map(ev => {
+              const totalBooked = data["event-signups"].filter(s => s.event_id === ev.id).reduce((s, r) => s + (r.num_persone || 1), 0);
               const fillPct = ev.spots > 0 ? Math.max(0, Math.min(100, (totalBooked / (totalBooked + ev.spots)) * 100)) : 100;
               return (
-                <div key={ev.id} className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <div className="font-bold text-sm text-tv-green-deep leading-tight">{ev.title}</div>
-                      <div className="text-xs text-tv-green-deep/50 mt-0.5">
-                        {new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" })} · {ev.time}
-                      </div>
+                <div key={ev.id} className="p-3">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="min-w-0">
+                      <div className="font-bold text-sm text-tv-green-deep leading-tight truncate">{ev.title}</div>
+                      <div className="text-xs text-tv-green-deep/50">{new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" })} · {ev.time}</div>
                     </div>
-                    <span className="text-xs font-bold text-tv-green-deep/60 shrink-0">{ev.max_participants ?? ev.spots} posti</span>
+                    <span className="text-xs font-bold text-tv-green-deep/50 shrink-0">{ev.spots} liberi</span>
                   </div>
-                  <div className="h-1.5 bg-tv-green-deep/10 rounded-full overflow-hidden">
-                    <div style={{ width: `${fillPct}%` }} className={`h-full rounded-full transition-all ${fillPct >= 90 ? "bg-tv-bordeaux" : fillPct >= 60 ? "bg-tv-orange" : "bg-tv-green"}`} />
+                  <div className="h-1 bg-tv-green-deep/10 rounded-full overflow-hidden">
+                    <div style={{ width: `${fillPct}%` }} className={`h-full rounded-full ${fillPct >= 90 ? "bg-tv-bordeaux" : fillPct >= 60 ? "bg-tv-orange" : "bg-tv-green"}`} />
                   </div>
                 </div>
               );
             })}
             {data.events.filter(e => !isPast(e.date)).length === 0 && (
-              <div className="p-8 text-center text-tv-green-deep/40 text-sm">Nessun evento in programma</div>
+              <div className="p-6 text-center text-tv-green-deep/40 text-sm">Nessun evento in programma</div>
             )}
           </div>
         </div>
 
-        {/* Ultime richieste eventi */}
-        <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
-          <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
-            <h3 className="font-display font-black text-lg text-tv-green-deep">Ultime richieste eventi</h3>
-            <button onClick={() => onNavigate("event-signups")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Vedi tutte →</button>
-          </div>
-          <div className="divide-y divide-tv-green-deep/5">
-            {[...data["event-signups"]].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 6).map(s => (
-              <div key={s.id} className="px-5 py-3 flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${s.confirmed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-orange"}`}>
-                  {s.confirmed ? "✓" : "…"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-tv-green-deep truncate">{s.name}</div>
-                  <div className="text-xs text-tv-green-deep/50 truncate">{s.event_title}</div>
-                </div>
-                {(s.num_persone || 1) > 1 && (
-                  <span className="text-xs font-bold text-tv-sky bg-tv-sky/20 px-2 py-0.5 rounded-full shrink-0">×{s.num_persone}</span>
-                )}
-              </div>
-            ))}
-            {data["event-signups"].length === 0 && (
-              <div className="p-8 text-center text-tv-green-deep/40 text-sm">Nessuna richiesta</div>
-            )}
-          </div>
-        </div>
-
-        {/* Iscrizioni in attesa */}
-        <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
-          <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
-            <h3 className="font-display font-black text-lg text-tv-green-deep">Iscrizioni in attesa</h3>
-            <button onClick={() => onNavigate("registrations")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Gestisci →</button>
-          </div>
-          <div className="divide-y divide-tv-green-deep/5">
-            {data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").slice(0, 6).map(r => (
-              <div key={r.id} className="px-5 py-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-tv-orange/10 flex items-center justify-center shrink-0">
-                  <Users size={14} className="text-tv-orange" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm text-tv-green-deep truncate">{r.first_name} {r.last_name}</div>
-                  <div className="text-xs text-tv-green-deep/50">
-                    {new Date(r.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
-                    {r.document_downloaded && " · 📥 PDF"}
-                    {r.tessera_number && ` · 🎫 #${r.tessera_number}`}
-                  </div>
-                </div>
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${r.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-orange"}`}>
-                  {r.payment_completed ? "Pagato" : r.metodo_pagamento || "In attesa"}
-                </span>
-              </div>
-            ))}
-            {data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length === 0 && (
-              <div className="p-8 text-center text-tv-green-deep/40 text-sm">Nessuna iscrizione in attesa 🎉</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom section — charts + activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Partecipazione per evento */}
-        <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-6">
-          <h3 className="font-display font-black text-lg text-tv-green-deep mb-5">Partecipazione per evento</h3>
+        {/* Partecipazione per evento */}
+        <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-4">
+          <h3 className="font-display font-black text-base text-tv-green-deep mb-4">Partecipazione per evento</h3>
           {(() => {
             const eventTitleById = Object.fromEntries(data.events.map(e => [e.id, e.title]));
             const byEvent = {};
@@ -2387,85 +2333,26 @@ const DashboardHome = ({ data, onNavigate }) => {
               const k = eventTitleById[s.event_id];
               byEvent[k] = (byEvent[k] || 0) + (s.num_persone || 1);
             });
-            const sorted = Object.entries(byEvent).sort((a, b) => b[1] - a[1]).slice(0, 6);
+            const sorted = Object.entries(byEvent).sort((a, b) => b[1] - a[1]).slice(0, 5);
             const max = sorted[0]?.[1] || 1;
             return sorted.length === 0 ? (
-              <div className="text-tv-green-deep/40 text-sm text-center py-8">Nessun dato disponibile</div>
+              <div className="text-tv-green-deep/40 text-sm text-center py-6">Nessun dato disponibile</div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {sorted.map(([title, count]) => (
                   <div key={title}>
-                    <div className="flex items-center justify-between text-sm mb-1.5">
-                      <span className="text-tv-green-deep font-semibold truncate flex-1 mr-3" title={title}>
-                        {title.length > 30 ? title.slice(0, 30) + "…" : title}
-                      </span>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-tv-green-deep font-semibold truncate flex-1 mr-3" title={title}>{title.length > 28 ? title.slice(0, 28) + "…" : title}</span>
                       <span className="font-black text-tv-green-deep shrink-0">{count}</span>
                     </div>
-                    <div className="h-2.5 bg-tv-green-deep/10 rounded-full overflow-hidden">
-                      <div
-                        style={{ width: `${(count / max) * 100}%` }}
-                        className="h-full bg-tv-green rounded-full transition-all duration-700"
-                      />
+                    <div className="h-2 bg-tv-green-deep/10 rounded-full overflow-hidden">
+                      <div style={{ width: `${(count / max) * 100}%` }} className="h-full bg-tv-green rounded-full transition-all duration-700" />
                     </div>
                   </div>
                 ))}
               </div>
             );
           })()}
-        </div>
-
-        {/* Right: Composizione soci + Messaggi recenti */}
-        <div className="space-y-6">
-          {/* Composizione soci */}
-          <div className="bg-white rounded-2xl border border-tv-green-deep/10 p-6">
-            <h3 className="font-display font-black text-lg text-tv-green-deep mb-4">Composizione soci</h3>
-            {(() => {
-              const tesserati = data.members.filter(m => m.tessera_number).length;
-              const fondatori = data.members.filter(m => !m.tessera_number).length;
-              const inAttesa = data.registrations.filter(r => r.status !== "approved" && r.status !== "archived").length;
-              const total = tesserati + fondatori + inAttesa || 1;
-              const bars = [
-                { label: "Soci tesserati", count: tesserati, color: "bg-tv-green" },
-                { label: "Soci fondatori", count: fondatori, color: "bg-amber-400" },
-                { label: "In attesa",      count: inAttesa,  color: "bg-tv-orange" },
-              ];
-              return (
-                <div className="space-y-3">
-                  {bars.map(b => (
-                    <div key={b.label} className="flex items-center gap-3">
-                      <div className="w-28 text-xs font-bold text-tv-green-deep/60 shrink-0">{b.label}</div>
-                      <div className="flex-1 h-3 bg-tv-green-deep/10 rounded-full overflow-hidden">
-                        <div style={{ width: `${(b.count / total) * 100}%` }} className={`h-full ${b.color} rounded-full`} />
-                      </div>
-                      <div className="w-6 text-xs font-black text-tv-green-deep text-right">{b.count}</div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Messaggi recenti */}
-          <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
-            <div className="p-5 border-b border-tv-green-deep/10 flex items-center justify-between">
-              <h3 className="font-display font-black text-lg text-tv-green-deep">Messaggi recenti</h3>
-              <button onClick={() => onNavigate("contacts")} className="text-xs font-bold text-tv-green-deep/40 hover:text-tv-green-deep">Vedi tutti →</button>
-            </div>
-            <div className="divide-y divide-tv-green-deep/5">
-              {data.contacts.slice(0, 3).map(c => (
-                <div key={c.id} className="px-5 py-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-sm text-tv-green-deep">{c.name || c.first_name || "—"}</span>
-                    <span className="text-[10px] text-tv-green-deep/40">{new Date(c.created_at).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}</span>
-                  </div>
-                  <p className="text-xs text-tv-green-deep/60 line-clamp-2">{c.message || c.body || "—"}</p>
-                </div>
-              ))}
-              {data.contacts.length === 0 && (
-                <div className="p-6 text-center text-tv-green-deep/40 text-sm">Nessun messaggio</div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -2488,8 +2375,21 @@ const Dashboard = ({ token, onLogout }) => {
   const [manualModal, setManualModal] = useState(false);
   const [manualForm, setManualForm] = useState({ first_name: "", last_name: "", email: "", phone: "", tessera_number: "", data_nascita: "", codice_fiscale: "", indirizzo: "", comune: "", cap: "" });
   const [manualLoading, setManualLoading] = useState(false);
+  const [activeUsers, setActiveUsers] = useState(null);
 
   const authHeader = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchActive = () => {
+      axios.get(`${API}/admin/active-users`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => setActiveUsers(r.data.count))
+        .catch(() => {});
+    };
+    fetchActive();
+    const id = setInterval(fetchActive, 30000);
+    return () => clearInterval(id);
+  }, [token]);
 
   const loadAll = async (silent = false) => {
     if (!token) {
@@ -2785,10 +2685,7 @@ const Dashboard = ({ token, onLogout }) => {
             className="flex items-center gap-3 flex-shrink-0 hover:opacity-80 transition-opacity"
           >
             <Logo variant="inline" size={36} />
-            <div className="hidden sm:block">
-              <div className="font-display font-black text-sm leading-tight">Trama Viva</div>
-              <div className="text-[9px] text-tv-cream/50 uppercase tracking-widest">Amministrazione</div>
-            </div>
+            <span className="hidden sm:block text-[9px] font-bold text-tv-cream/50 uppercase tracking-widest">Amministrazione</span>
           </button>
 
           <div className="hidden md:block w-px h-6 bg-tv-cream/15 mx-2 flex-shrink-0" />
@@ -2830,7 +2727,7 @@ const Dashboard = ({ token, onLogout }) => {
                       {items.map(item => {
                         const isActive = tab === item.key;
                         let dot = 0;
-                        if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+                        if (item.key === "libro-soci") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
                         else if (item.key === "event-signups") {
                           const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
                           dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
@@ -2967,7 +2864,7 @@ const Dashboard = ({ token, onLogout }) => {
       <main>
         <div className="p-4 md:p-8">
           {tab === "home" ? (
-            <DashboardHome data={data} onNavigate={setTab} />
+            <DashboardHome data={data} onNavigate={setTab} activeUsers={activeUsers} />
           ) : loading ? (
             <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
               <Loader2 className="animate-spin" size={18} /> Caricamento in corso...
@@ -3011,16 +2908,9 @@ const Dashboard = ({ token, onLogout }) => {
               token={token}
               onReload={loadAll}
             />
-          ) : tab === "members" ? (
-            <MembersManager
-              members={data.members}
-              registrations={data.registrations}
-              onEdit={(m) => setMemberEditor(m)}
-              onDelete={(id) => remove("members", id)}
-            />
-          ) : tab === "registrations" ? (
+          ) : tab === "libro-soci" ? (
             <RegistrationsManager
-              list={list}
+              list={data.registrations || []}
               onPdf={openTesseraModal}
               pdfLoadingId={pdfLoadingId}
               onTogglePayment={togglePayment}
