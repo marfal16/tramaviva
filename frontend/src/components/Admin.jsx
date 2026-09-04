@@ -2210,31 +2210,72 @@ const DashboardHome = ({ data, onNavigate }) => {
   const numberedMembers = data.members.filter(m => m.tessera_number).length;
   const unreadContacts = data.contacts.length;
 
-  const kpis = [
-    { label: "Soci tesserati",       value: numberedMembers,    icon: IdCard,        iconBg: "bg-tv-green/20",    iconColor: "text-tv-green",      targetTab: "members" },
-    { label: "Iscrizioni in attesa", value: pendingRegistrations, icon: Users,       iconBg: "bg-tv-orange/20",   iconColor: "text-tv-orange",     targetTab: "registrations" },
-    { label: "Da confermare",        value: toConfirmPeople,    icon: Calendar,      iconBg: "bg-tv-sky/30",      iconColor: "text-tv-sky",        targetTab: "event-signups" },
-    { label: "Presenze confermate",  value: confirmedPeople,    icon: UserCheck,     iconBg: "bg-tv-mint/50",     iconColor: "text-tv-green-deep", targetTab: "event-signups" },
-    { label: "Eventi in programma",  value: upcomingEvents,     icon: CalendarPlus,  iconBg: "bg-tv-bordeaux/10", iconColor: "text-tv-bordeaux",   targetTab: "events" },
-    { label: "Messaggi ricevuti",    value: unreadContacts,     icon: MessageSquare, iconBg: "bg-amber-100",      iconColor: "text-amber-600",     targetTab: "contacts" },
+  const pendingRegBadge = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+  const futureEventIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
+  const toConfirmBadge = (data["event-signups"] || []).filter(s => !s.confirmed && futureEventIds.has(s.event_id)).length;
+
+  const sectionGroups = [
+    {
+      groupKey: "eventi", label: "Eventi",
+      sections: [
+        { key: "events", label: "Gestione eventi", icon: CalendarPlus, badge: upcomingEvents, badgeLabel: "in programma", iconBg: "bg-tv-bordeaux/10", iconColor: "text-tv-bordeaux" },
+      ],
+    },
+    {
+      groupKey: "clubs", label: "Club",
+      sections: [
+        { key: "books",     label: "Club del Libro", icon: BookOpen, iconBg: "bg-tv-green/15",  iconColor: "text-tv-green-deep" },
+        { key: "cineforum", label: "Cineforum",       icon: Film,     iconBg: "bg-tv-sky/20",    iconColor: "text-tv-green-deep" },
+      ],
+    },
+    {
+      groupKey: "community", label: "Community",
+      sections: [
+        { key: "members",       label: "Soci tesserati",       icon: IdCard,        badge: numberedMembers,  badgeLabel: "tesserati",      iconBg: "bg-tv-green/20",    iconColor: "text-tv-green",    alert: false },
+        { key: "registrations", label: "Richieste iscrizione", icon: Users,         badge: pendingRegBadge, badgeLabel: "in attesa",      iconBg: "bg-tv-orange/20",   iconColor: "text-tv-orange",   alert: pendingRegBadge > 0 },
+        { key: "event-signups", label: "Richieste eventi",     icon: Calendar,      badge: toConfirmBadge,  badgeLabel: "da confermare",  iconBg: "bg-tv-sky/30",      iconColor: "text-tv-sky",      alert: toConfirmBadge > 0 },
+      ],
+    },
+    {
+      groupKey: "gestione", label: "Gestione",
+      sections: [
+        { key: "missions",  label: "Missioni",  icon: Trophy,        iconBg: "bg-amber-100",      iconColor: "text-amber-600" },
+        { key: "contacts",  label: "Messaggi",  icon: MessageSquare, badge: unreadContacts, badgeLabel: "ricevuti", iconBg: "bg-amber-100", iconColor: "text-amber-600", alert: unreadContacts > 0 },
+        { key: "donations", label: "Donazioni", icon: Heart,         iconBg: "bg-tv-bordeaux/10", iconColor: "text-tv-bordeaux" },
+      ],
+    },
   ];
 
   return (
     <div>
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-2xl p-5 border border-tv-green-deep/10 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50">{kpi.label}</span>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${kpi.iconBg}`}>
-                <kpi.icon size={18} className={kpi.iconColor} />
-              </div>
+      {/* Section navigation cards */}
+      <div className="space-y-6 mb-8">
+        {sectionGroups.map(group => (
+          <div key={group.groupKey}>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-tv-green-deep/40 mb-3">{group.label}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {group.sections.map(sec => (
+                <button
+                  key={sec.key}
+                  onClick={() => onNavigate(sec.key)}
+                  className={`bg-white rounded-2xl p-5 border text-left transition-all hover:shadow-md hover:-translate-y-0.5 flex items-center gap-4 ${sec.alert ? "border-tv-orange/40" : "border-tv-green-deep/10"}`}
+                >
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${sec.iconBg}`}>
+                    <sec.icon size={20} className={sec.iconColor} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm text-tv-green-deep leading-tight">{sec.label}</div>
+                    {sec.badge !== undefined && (
+                      <div className={`mt-0.5 font-display font-black text-2xl leading-none ${sec.alert ? "text-tv-orange" : "text-tv-green-deep"}`}>
+                        {sec.badge}
+                        <span className="text-[10px] font-bold text-tv-green-deep/40 ml-1 normal-case">{sec.badgeLabel}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-tv-green-deep/20">→</span>
+                </button>
+              ))}
             </div>
-            <div className="font-display font-black text-3xl text-tv-green-deep">{kpi.value}</div>
-            <button onClick={() => onNavigate(kpi.targetTab)} className="text-xs text-tv-green-deep/40 hover:text-tv-green-deep font-bold text-left transition-colors">
-              Vedi dettagli →
-            </button>
           </div>
         ))}
       </div>
@@ -2729,190 +2770,202 @@ const Dashboard = ({ token, onLogout }) => {
     }
   };
     
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [openGroups, setOpenGroups] = useState({ clubs: true, community: true, gestione: true });
-  const toggleGroup = (key) => setOpenGroups(o => ({ ...o, [key]: !o[key] }));
+  const [navDropdown, setNavDropdown] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const list = data[tab] || [];
 
   return (
-    <div className="flex min-h-screen bg-tv-cream">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-screen bg-tv-green-deep text-tv-cream flex flex-col z-40 shadow-2xl transition-all duration-300 ease-in-out
-        ${sidebarOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full md:-translate-x-0 md:w-16"}
-      `}>
-        {/* Logo area */}
-        <div className={`border-b border-tv-cream/10 flex items-center ${sidebarOpen ? "p-6 gap-3" : "p-3 justify-center"}`}>
-          <div className="w-10 h-10 rounded-2xl bg-tv-green flex items-center justify-center text-xl flex-shrink-0">🧵</div>
-          {sidebarOpen && (
-            <div className="overflow-hidden">
-              <div className="font-display font-black text-lg leading-tight whitespace-nowrap">Trama Viva</div>
-              <div className="text-[10px] text-tv-cream/50 uppercase tracking-widest">APS · Admin</div>
+    <div className="min-h-screen bg-tv-cream" onClick={() => setNavDropdown(null)}>
+      {/* Top navbar */}
+      <header className="sticky top-0 z-40 bg-tv-green-deep text-tv-cream shadow-lg">
+        <div className="flex items-center h-16 px-4 md:px-6 gap-2">
+          {/* Logo + Amministrazione */}
+          <button
+            onClick={() => { setTab("home"); setMobileMenuOpen(false); setNavDropdown(null); }}
+            className="flex items-center gap-3 flex-shrink-0 hover:opacity-80 transition-opacity"
+          >
+            <Logo variant="inline" size={36} />
+            <div className="hidden sm:block">
+              <div className="font-display font-black text-sm leading-tight">Trama Viva</div>
+              <div className="text-[9px] text-tv-cream/50 uppercase tracking-widest">Amministrazione</div>
             </div>
-          )}
-        </div>
+          </button>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {NAV_GROUPS.map((entry) => {
-            if (entry.single) {
-              const item = entry;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => { setTab(item.key); setSidebarOpen(false); }}
-                  data-testid={`admin-tab-${item.key}`}
-                  title={!sidebarOpen ? item.label : undefined}
-                  className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
-                    ${sidebarOpen ? "gap-3 px-4 py-3" : "justify-center p-3"}
-                    ${tab === item.key
-                      ? "bg-tv-cream/15 text-tv-cream"
-                      : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
-                    }`}
-                >
-                  <item.icon size={18} />
-                  {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
-                </button>
-              );
-            }
+          <div className="hidden md:block w-px h-6 bg-tv-cream/15 mx-2 flex-shrink-0" />
 
-            // Group entry
-            const { groupKey, label, icon: GroupIcon, items } = entry;
-            const isOpen = openGroups[groupKey];
-            const hasActiveMember = items.some(i => i.key === tab);
-
-            return (
-              <React.Fragment key={groupKey}>
-                {!sidebarOpen && (
-                  <div className="flex items-center justify-center py-1 opacity-25">
-                    <GroupIcon size={11} />
-                  </div>
-                )}
-                {sidebarOpen && (
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-0.5 flex-1">
+            {NAV_GROUPS.map((entry) => {
+              if (entry.single) {
+                if (entry.key === "home") return null;
+                return (
                   <button
-                    onClick={() => toggleGroup(groupKey)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
-                      ${hasActiveMember ? "text-tv-cream" : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"}`}
+                    key={entry.key}
+                    onClick={() => setTab(entry.key)}
+                    data-testid={`admin-tab-${entry.key}`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all
+                      ${tab === entry.key ? "bg-tv-cream/15 text-tv-cream" : "text-tv-cream/60 hover:text-tv-cream hover:bg-tv-cream/10"}`}
                   >
-                    <GroupIcon size={18} />
-                    <span className="flex-1 text-left">{label}</span>
-                    <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                    <entry.icon size={15} />
+                    {entry.label}
                   </button>
-                )}
-                {items.map(item => {
-                  const isActive = tab === item.key;
-                  const visible = !sidebarOpen || isOpen;
-                  let dot = 0;
-                  if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
-                  else if (item.key === "event-signups") {
-                    const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
-                    dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
-                  }
-                  else if (item.key === "contacts") dot = (data.contacts || []).length;
-                  return (
-                    <div
-                      key={item.key}
-                      className={`overflow-hidden transition-all duration-200 ${visible ? "max-h-20 opacity-100" : "max-h-0 opacity-0"}`}
-                    >
-                      <button
-                        onClick={() => { setTab(item.key); setSidebarOpen(false); }}
-                        data-testid={`admin-tab-${item.key}`}
-                        title={!sidebarOpen ? item.label : undefined}
-                        className={`w-full flex items-center rounded-2xl text-sm font-bold transition-all
-                          ${sidebarOpen ? "gap-3 pl-8 pr-4 py-2.5" : "justify-center p-3"}
-                          ${isActive
-                            ? "bg-tv-cream/15 text-tv-cream"
-                            : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"
-                          }`}
-                      >
-                        <span className="relative flex-shrink-0">
-                          <item.icon size={16} />
-                          {dot > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux border border-tv-green-deep" />}
-                        </span>
-                        {sidebarOpen && <span className="flex-1 text-left">{item.label}</span>}
-                        {sidebarOpen && data[item.key] && (
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                            isActive ? "bg-tv-cream/20 text-tv-cream" : "bg-tv-cream/10 text-tv-cream/60"
-                          }`}>
-                            {data[item.key]?.length ?? 0}
-                          </span>
-                        )}
-                      </button>
+                );
+              }
+              const { groupKey, label, icon: GroupIcon, items } = entry;
+              const isOpen = navDropdown === groupKey;
+              const hasActive = items.some(i => i.key === tab);
+              return (
+                <div key={groupKey} className="relative" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => setNavDropdown(d => d === groupKey ? null : groupKey)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all
+                      ${hasActive || isOpen ? "bg-tv-cream/15 text-tv-cream" : "text-tv-cream/60 hover:text-tv-cream hover:bg-tv-cream/10"}`}
+                  >
+                    <GroupIcon size={15} />
+                    {label}
+                    <ChevronDown size={12} className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {isOpen && (
+                    <div className="absolute top-full left-0 mt-1.5 bg-tv-green-deep border border-tv-cream/10 rounded-2xl shadow-2xl py-2 min-w-[200px] z-50">
+                      {items.map(item => {
+                        const isActive = tab === item.key;
+                        let dot = 0;
+                        if (item.key === "registrations") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+                        else if (item.key === "event-signups") {
+                          const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
+                          dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
+                        }
+                        else if (item.key === "contacts") dot = (data.contacts || []).length;
+                        return (
+                          <button
+                            key={item.key}
+                            onClick={() => { setTab(item.key); setNavDropdown(null); }}
+                            data-testid={`admin-tab-${item.key}`}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold transition-colors
+                              ${isActive ? "bg-tv-cream/10 text-tv-cream" : "text-tv-cream/60 hover:text-tv-cream hover:bg-tv-cream/10"}`}
+                          >
+                            <span className="relative flex-shrink-0">
+                              <item.icon size={15} />
+                              {dot > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-tv-bordeaux" />}
+                            </span>
+                            <span className="flex-1 text-left">{item.label}</span>
+                            {data[item.key] && (
+                              <span className="text-[10px] font-black text-tv-cream/40 bg-tv-cream/10 px-2 py-0.5 rounded-full">
+                                {data[item.key]?.length ?? 0}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </React.Fragment>
-            );
-          })}
-        </nav>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
 
-        {/* Bottom actions */}
-        <div className={`border-t border-tv-cream/10 space-y-2 ${sidebarOpen ? "p-4" : "p-3"}`}>
-          <button
-            onClick={exportXlsx}
-            data-testid="admin-export-xlsx"
-            title={!sidebarOpen ? "Esporta XLSX" : undefined}
-            className={`w-full flex items-center rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-cream/10 hover:text-tv-cream transition-all
-              ${sidebarOpen ? "gap-2 px-3 py-2" : "justify-center p-3"}`}
-          >
-            <Download size={15} />
-            {sidebarOpen && "Esporta tutto XLSX"}
-          </button>
-          <button
-            onClick={onLogout}
-            data-testid="admin-logout"
-            title={!sidebarOpen ? "Esci" : undefined}
-            className={`w-full flex items-center rounded-xl text-xs font-bold text-tv-cream/70 hover:bg-tv-bordeaux/30 hover:text-tv-cream transition-all
-              ${sidebarOpen ? "gap-2 px-3 py-2" : "justify-center p-3"}`}
-          >
-            <LogOut size={15} />
-            {sidebarOpen && "Esci"}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <main className={`flex-1 min-h-screen transition-all duration-300 ease-in-out ${sidebarOpen ? "md:ml-64" : "md:ml-16"}`}>
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-tv-cream/90 backdrop-blur-sm border-b border-tv-green-deep/10 px-4 md:px-8 py-4 flex items-center gap-3">
-          {/* Toggle sidebar button */}
-          <button
-            onClick={() => setSidebarOpen(o => !o)}
-            className="p-2 rounded-xl hover:bg-tv-green-deep/10 text-tv-green-deep/50 hover:text-tv-green-deep transition-colors flex-shrink-0"
-            title={sidebarOpen ? "Chiudi menu" : "Apri menu"}
-          >
-            {sidebarOpen ? <PanelLeftClose size={18} /> : <Menu size={18} />}
-          </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="font-display font-black text-xl md:text-2xl text-tv-green-deep truncate">
-              {NAV.find(n => n.key === tab)?.label ?? "Dashboard"}
-            </h1>
-            <p className="text-xs text-tv-green-deep/50 mt-0.5 hidden sm:block">
-              {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {loading && <Loader2 size={18} className="animate-spin text-tv-green-deep/40" />}
+          {/* Right actions */}
+          <div className="ml-auto flex items-center gap-1 flex-shrink-0">
+            {loading && <Loader2 size={16} className="animate-spin text-tv-cream/40" />}
             <button
               onClick={loadAll}
-              className="p-2 rounded-xl hover:bg-tv-green-deep/10 text-tv-green-deep/50 hover:text-tv-green-deep transition-colors"
+              className="p-2 rounded-xl text-tv-cream/60 hover:text-tv-cream hover:bg-tv-cream/10 transition-colors"
               title="Aggiorna dati"
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={15} />
             </button>
-            <div className="w-9 h-9 rounded-2xl bg-tv-green-deep flex items-center justify-center text-tv-cream font-black text-sm">A</div>
+            <button
+              onClick={exportXlsx}
+              data-testid="admin-export-xlsx"
+              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-tv-cream/60 hover:text-tv-cream hover:bg-tv-cream/10 transition-colors text-xs font-bold"
+            >
+              <Download size={14} /> Esporta
+            </button>
+            <button
+              onClick={onLogout}
+              data-testid="admin-logout"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-tv-cream/60 hover:text-tv-bordeaux/80 hover:bg-tv-bordeaux/20 transition-colors text-xs font-bold"
+            >
+              <LogOut size={14} />
+              <span className="hidden sm:inline">Esci</span>
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(o => !o)}
+              className="md:hidden p-2 rounded-xl text-tv-cream/60 hover:text-tv-cream hover:bg-tv-cream/10 transition-colors"
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
-        </header>
+        </div>
 
-        {/* Page content */}
-        <div className="p-6 md:p-8">
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-tv-cream/10 bg-tv-green-deep">
+            <div className="px-4 py-3 space-y-1">
+              {NAV_GROUPS.map(entry => {
+                if (entry.single) {
+                  return (
+                    <button
+                      key={entry.key}
+                      onClick={() => { setTab(entry.key); setMobileMenuOpen(false); }}
+                      data-testid={`admin-tab-${entry.key}`}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all
+                        ${tab === entry.key ? "bg-tv-cream/15 text-tv-cream" : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"}`}
+                    >
+                      <entry.icon size={16} />
+                      {entry.label}
+                    </button>
+                  );
+                }
+                const { groupKey, label, icon: GroupIcon, items } = entry;
+                return (
+                  <React.Fragment key={groupKey}>
+                    <div className="px-4 pt-3 pb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-tv-cream/30">
+                      <GroupIcon size={10} />{label}
+                    </div>
+                    {items.map(item => (
+                      <button
+                        key={item.key}
+                        onClick={() => { setTab(item.key); setMobileMenuOpen(false); }}
+                        data-testid={`admin-tab-${item.key}`}
+                        className={`w-full flex items-center gap-3 pl-7 pr-4 py-2.5 rounded-2xl text-sm font-bold transition-all
+                          ${tab === item.key ? "bg-tv-cream/15 text-tv-cream" : "text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream"}`}
+                      >
+                        <item.icon size={15} />
+                        {item.label}
+                      </button>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
+              <div className="border-t border-tv-cream/10 pt-2 mt-2">
+                <button
+                  onClick={() => { exportXlsx(); setMobileMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-tv-cream/60 hover:bg-tv-cream/10 hover:text-tv-cream transition-all"
+                >
+                  <Download size={15} /> Esporta XLSX
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Page title bar (shown on non-home pages) */}
+      {tab !== "home" && (
+        <div className="border-b border-tv-green-deep/10 bg-tv-cream px-4 md:px-8 py-4">
+          <h1 className="font-display font-black text-xl md:text-2xl text-tv-green-deep">
+            {NAV.find(n => n.key === tab)?.label ?? ""}
+          </h1>
+          <p className="text-xs text-tv-green-deep/50 mt-0.5">
+            {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        </div>
+      )}
+
+      {/* Main content */}
+      <main>
+        <div className="p-4 md:p-8">
           {tab === "home" ? (
             <DashboardHome data={data} onNavigate={setTab} />
           ) : loading ? (
