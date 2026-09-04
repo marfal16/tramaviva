@@ -287,15 +287,22 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
   const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
   return (
     <tr className={`group border-b border-tv-green-deep/5 transition-colors ${
-      isArchived ? "opacity-40 hover:opacity-60" : isApproved ? "hover:bg-tv-cream/50" : "bg-amber-50/40 hover:bg-amber-50/70"
+      isArchived ? "opacity-40 hover:opacity-60"
+      : row.is_fondatore ? "bg-amber-50/60 hover:bg-amber-50"
+      : isApproved ? "hover:bg-tv-cream/50"
+      : "bg-amber-50/40 hover:bg-amber-50/70"
     }`} data-testid={`admin-row-${row.id}`}>
       <td className="py-3 pl-4 pr-4 min-w-[160px]">
         <div className="flex items-center gap-2.5">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm flex-shrink-0 ${
-            isApproved ? "bg-tv-green text-tv-cream" : isArchived ? "bg-gray-200 text-gray-500" : "bg-tv-green-deep text-tv-cream"
+            row.is_fondatore ? "bg-amber-400 text-white"
+            : isApproved ? "bg-tv-green text-tv-cream"
+            : isArchived ? "bg-gray-200 text-gray-500"
+            : "bg-tv-green-deep text-tv-cream"
           }`}>{(name[0] || "?").toUpperCase()}</div>
           <div className="min-w-0">
             <div className="font-semibold text-sm text-tv-green-deep">{name}</div>
+            {row.is_fondatore && <span className="text-[9px] font-bold text-amber-600">★ Fondatore</span>}
             {row.is_minorenne && <span className="text-[9px] font-bold text-tv-bordeaux">👶 Minorenne</span>}
           </div>
         </div>
@@ -423,9 +430,16 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
       (r.email || "").toLowerCase().includes(q)
     );
     items.sort((a, b) => {
-      const v = sortField === "name"
-        ? (`${a.first_name || ""} ${a.last_name || ""}`).localeCompare(`${b.first_name || ""} ${b.last_name || ""}`, "it")
-        : new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      let v = 0;
+      if (sortField === "name") {
+        v = (`${a.first_name || ""} ${a.last_name || ""}`).localeCompare(`${b.first_name || ""} ${b.last_name || ""}`, "it");
+      } else if (sortField === "tessera_number") {
+        const ta = parseInt(a.tessera_number || "0", 10) || 0;
+        const tb = parseInt(b.tessera_number || "0", 10) || 0;
+        v = ta - tb;
+      } else {
+        v = new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      }
       return sortDir === "asc" ? v : -v;
     });
     return items;
@@ -494,7 +508,9 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
                   <th className="py-2.5 pr-4 text-left hidden lg:table-cell">
                     <button onClick={() => toggleSort("created_at")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Data <SortArrow field="created_at"/></button>
                   </th>
-                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Tessera</th>
+                  <th className="py-2.5 pr-4 text-left">
+                    <button onClick={() => toggleSort("tessera_number")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Tessera <SortArrow field="tessera_number"/></button>
+                  </th>
                   <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">PDF</th>
                   <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
                   <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
@@ -520,15 +536,20 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
               return (
                 <div key={row.id} className={`rounded-2xl border p-3 ${
                   isArchived ? "opacity-50 bg-gray-50 border-gray-200"
+                  : row.is_fondatore ? "bg-amber-50 border-amber-200"
                   : isApproved ? "bg-white border-tv-green/25"
                   : "bg-amber-50 border-tv-orange/20"
                 }`}>
                   <div className="flex items-start gap-2.5 mb-2.5">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
-                      isApproved ? "bg-tv-green text-tv-cream" : isArchived ? "bg-gray-200 text-gray-500" : "bg-tv-green-deep text-tv-cream"
+                      row.is_fondatore ? "bg-amber-400 text-white"
+                      : isApproved ? "bg-tv-green text-tv-cream"
+                      : isArchived ? "bg-gray-200 text-gray-500"
+                      : "bg-tv-green-deep text-tv-cream"
                     }`}>{(name[0] || "?").toUpperCase()}</div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm text-tv-green-deep">{name}</div>
+                      {row.is_fondatore && <div className="text-[9px] font-bold text-amber-600">★ Fondatore</div>}
                       {row.email && <div className="text-[11px] text-tv-green-deep/50 truncate">{row.email}</div>}
                       {(row.cellulare || row.phone) && <div className="text-[11px] text-tv-green-deep/40">📞 {row.cellulare || row.phone}</div>}
                     </div>
