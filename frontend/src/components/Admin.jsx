@@ -110,7 +110,7 @@ const NAV_GROUPS = [
   {
     group: true, groupKey: "community", label: "Community", icon: Users,
     items: [
-      { key: "libro-soci", label: "Libro dei Soci", icon: IdCard },
+      { key: "libro-soci", label: "Registro Soci", icon: IdCard },
       { key: "contacts",   label: "Messaggi",       icon: MessageSquare },
       { key: "missions",   label: "Missioni",        icon: Trophy },
     ],
@@ -2203,7 +2203,10 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
 const DashboardHome = ({ data, onNavigate, activeUsers }) => {
   const upcomingEvents = data.events.filter(e => !isPast(e.date)).length;
   const upcomingEventIds = new Set(data.events.filter(e => !isPast(e.date)).map(e => e.id));
-  const numberedMembers = data.members.filter(m => m.tessera_number).length;
+  const regEmails = new Set((data.registrations || []).map(r => (r.email || "").toLowerCase()));
+  const membersOnlyCount = (data.members || []).filter(m => !regEmails.has((m.email || "").toLowerCase())).length;
+  const approvedRegsCount = (data.registrations || []).filter(r => r.is_member || r.status === "approved").length;
+  const numberedMembers = approvedRegsCount + membersOnlyCount;
   const unreadContacts = data.contacts.length;
   const pendingRegBadge = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
   const futureEventIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
@@ -2220,7 +2223,7 @@ const DashboardHome = ({ data, onNavigate, activeUsers }) => {
     {
       groupKey: "community", label: "Community",
       sections: [
-        { key: "libro-soci", label: "Libro dei Soci", icon: IdCard,        badge: numberedMembers,  badgeLabel: "soci",      iconBg: "bg-tv-green/20",    iconColor: "text-tv-green",    alert: pendingRegBadge > 0 },
+        { key: "libro-soci", label: "Registro Soci", icon: IdCard,        badge: numberedMembers,  badgeLabel: "soci",      iconBg: "bg-tv-green/20",    iconColor: "text-tv-green",    alert: pendingRegBadge > 0 },
         { key: "contacts",   label: "Messaggi",       icon: MessageSquare, badge: unreadContacts,   badgeLabel: "ricevuti",  iconBg: "bg-amber-100",      iconColor: "text-amber-600",   alert: unreadContacts > 0 },
         { key: "missions",   label: "Missioni",        icon: Trophy,                                                         iconBg: "bg-amber-100",      iconColor: "text-amber-600" },
       ],
@@ -2909,17 +2912,36 @@ const Dashboard = ({ token, onLogout }) => {
               onReload={loadAll}
             />
           ) : tab === "libro-soci" ? (
-            <RegistrationsManager
-              list={data.registrations || []}
-              onPdf={openTesseraModal}
-              pdfLoadingId={pdfLoadingId}
-              onTogglePayment={togglePayment}
-              onApprove={promoteToMember}
-              onCleanup={cleanupRegistration}
-              onResend={resendEmail}
-              onDelete={(id) => remove("registrations", id)}
-              onAddManual={() => setManualModal(true)}
-            />
+            (() => {
+              const regEmails = new Set((data.registrations || []).map(r => (r.email || "").toLowerCase()));
+              const membersOnly = (data.members || [])
+                .filter(m => !regEmails.has((m.email || "").toLowerCase()))
+                .map(m => ({
+                  ...m,
+                  is_member: true,
+                  status: "approved",
+                  created_at: m.joined_at || m.created_at,
+                  payment_completed: true,
+                  _from_members: true,
+                }));
+              const mergedList = [...(data.registrations || []), ...membersOnly];
+              return (
+                <RegistrationsManager
+                  list={mergedList}
+                  onPdf={openTesseraModal}
+                  pdfLoadingId={pdfLoadingId}
+                  onTogglePayment={togglePayment}
+                  onApprove={promoteToMember}
+                  onCleanup={cleanupRegistration}
+                  onResend={resendEmail}
+                  onDelete={(id) => {
+                    const rec = mergedList.find(r => r.id === id);
+                    remove(rec?._from_members ? "members" : "registrations", id);
+                  }}
+                  onAddManual={() => setManualModal(true)}
+                />
+              );
+            })()
           ) : tab === "event-signups" ? (
             <EventSignupsManager
               signups={data["event-signups"]}
