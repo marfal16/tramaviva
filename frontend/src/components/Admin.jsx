@@ -3332,6 +3332,7 @@ const Dashboard = ({ token, onLogout }) => {
           ) : tab === "libro-soci" ? (
             (() => {
               const regEmails = new Set((data.registrations || []).map(r => (r.email || "").toLowerCase()));
+              const membersByEmail = new Map((data.members || []).map(m => [(m.email || "").toLowerCase(), m]));
               const membersOnly = (data.members || [])
                 .filter(m => !regEmails.has((m.email || "").toLowerCase()))
                 .map(m => ({
@@ -3342,7 +3343,12 @@ const Dashboard = ({ token, onLogout }) => {
                   payment_completed: true,
                   _from_members: true,
                 }));
-              const mergedList = [...(data.registrations || []), ...membersOnly];
+              // Arricchisce le registrazioni con is_fondatore dal record membro (se presente)
+              const enrichedRegs = (data.registrations || []).map(reg => {
+                const member = membersByEmail.get((reg.email || "").toLowerCase());
+                return member ? { ...reg, is_fondatore: member.is_fondatore ?? false } : reg;
+              });
+              const mergedList = [...enrichedRegs, ...membersOnly];
               return (
                 <RegistrationsManager
                   list={mergedList}
@@ -3357,16 +3363,16 @@ const Dashboard = ({ token, onLogout }) => {
                     remove(rec?._from_members ? "members" : "registrations", id);
                   }}
                   onToggleFondatore={async (rec) => {
-                    // Per _from_members usiamo l'id diretto; per registrazioni approvate cerchiamo il member per email
                     let memberId = rec._from_members ? rec.id : null;
-                    if (!memberId && rec.is_member) {
+                    let currentIsFondatore = rec.is_fondatore ?? false;
+                    if (!memberId) {
                       const m = (data.members || []).find(m => (m.email || "").toLowerCase() === (rec.email || "").toLowerCase());
-                      memberId = m?.id;
+                      if (m) { memberId = m.id; currentIsFondatore = m.is_fondatore ?? false; }
                     }
                     if (!memberId) { toast.error("Membro non trovato."); return; }
                     try {
-                      await axios.put(`${API}/admin/members/${memberId}`, { is_fondatore: !rec.is_fondatore }, { headers: { Authorization: `Bearer ${token}` } });
-                      toast.success(rec.is_fondatore ? "Badge fondatore rimosso." : "Badge fondatore assegnato.");
+                      await axios.put(`${API}/admin/members/${memberId}`, { is_fondatore: !currentIsFondatore }, { headers: { Authorization: `Bearer ${token}` } });
+                      toast.success(currentIsFondatore ? "Badge fondatore rimosso." : "Badge fondatore assegnato.");
                       loadAll(true);
                     } catch { toast.error("Errore nell'aggiornamento."); }
                   }}
