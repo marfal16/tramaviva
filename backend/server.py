@@ -2467,6 +2467,26 @@ def _get_client_ip(request: Request) -> str:
         return xff.split(",")[0].strip()
     return request.client.host if request.client else ""
 
+_BOT_UA_KEYWORDS = [
+    "bot", "crawler", "spider", "scraper", "lighthouse", "pagespeed",
+    "gtmetrix", "pingdom", "uptimerobot", "monitoring", "check_http",
+    "python-requests", "curl/", "wget/", "java/", "go-http", "headless",
+    "prerender", "selenium", "phantomjs", "puppeteer", "playwright",
+]
+_BOT_ORG_KEYWORDS = [
+    "google llc", "googlebot", "amazon", "microsoft", "digitalocean",
+    "linode", "hetzner", "ovh", "cloudflare", "vultr", "oracle cloud",
+    "alibaba", "tencent", "datacenter", "hosting", "server",
+]
+
+def _is_bot_ua(ua: str) -> bool:
+    ua_l = ua.lower()
+    return any(kw in ua_l for kw in _BOT_UA_KEYWORDS)
+
+def _is_bot_org(org: str) -> bool:
+    org_l = org.lower()
+    return any(kw in org_l for kw in _BOT_ORG_KEYWORDS)
+
 async def _fetch_geo(ip: str) -> dict:
     if not ip or ip in ("127.0.0.1", "::1", "localhost"):
         return {}
@@ -2474,7 +2494,7 @@ async def _fetch_geo(ip: str) -> dict:
         async with httpx.AsyncClient(timeout=3.0) as client:
             r = await client.get(
                 f"http://ip-api.com/json/{ip}",
-                params={"fields": "status,country,countryCode,regionName,city", "lang": "it"},
+                params={"fields": "status,country,countryCode,regionName,city,org", "lang": "it"},
             )
             d = r.json()
             if d.get("status") == "success":
@@ -2483,6 +2503,7 @@ async def _fetch_geo(ip: str) -> dict:
                     "country_code": d.get("countryCode", ""),
                     "region": d.get("regionName", ""),
                     "city": d.get("city", ""),
+                    "org": d.get("org", ""),
                 }
     except Exception:
         pass
@@ -2799,6 +2820,10 @@ async def heartbeat(request: Request):
     session_id = body.get("session_id", "")
     if not session_id:
         return {"ok": True}
+    # Filtra bot da User-Agent
+    ua = request.headers.get("user-agent", "")
+    if _is_bot_ua(ua):
+        return {"ok": True}
     now = datetime.now(timezone.utc)
     ip = _get_client_ip(request)
     # Aggiorna lo stato corrente (per il contatore live)
@@ -2814,6 +2839,9 @@ async def heartbeat(request: Request):
     )
     if existing is None:
         geo = await _fetch_geo(ip)
+        # Filtra bot da org (datacenter/cloud provider)
+        if _is_bot_org(geo.get("org", "")):
+            return {"ok": True}
         await db.visitor_log.update_one(
             {"session_id": session_id, "day": day_key},
             {"$set": {"session_id": session_id, "day": day_key, "last_seen": now, **geo}},
