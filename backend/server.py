@@ -273,6 +273,7 @@ class BookProposal(BaseModel):
     rush_excluded: bool = False
     pre_rush_votes: Optional[int] = None
     pre_rush_voters: List[dict] = Field(default_factory=list)
+    is_winner: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class BookProposalCreate(BaseModel):
@@ -379,6 +380,10 @@ class FilmProposal(BaseModel):
     cognome: Optional[str] = None
     in_community_whatsapp: Optional[bool] = None
     voters: List[dict] = Field(default_factory=list)
+    rush_excluded: bool = False
+    pre_rush_votes: Optional[int] = None
+    pre_rush_voters: List[dict] = Field(default_factory=list)
+    is_winner: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class FilmProposalCreate(BaseModel):
@@ -2525,6 +2530,222 @@ async def deactivate_rush_finale(month: str):
         {"$set": {"rush_finale_active": False}},
     )
     return {"ok": True}
+
+@api_router.post("/book-club-config/{month}/proclaim-winner")
+async def proclaim_book_winner(month: str):
+    """Idempotente: trova il libro con più voti, lo marca winner e lo aggiunge al catalogo."""
+    config = await db.book_club_config.find_one({"month": month})
+    if config and config.get("winner_proclaimed"):
+        return {"ok": True, "already_proclaimed": True}
+
+    rush_active = config.get("rush_finale_active", False) if config else False
+    query = {"proposed_month": month}
+    if rush_active:
+        query["rush_excluded"] = {"$ne": True}
+
+    proposals = await db.proposals.find(query, {"_id": 0}).sort("votes", -1).to_list(1000)
+    if not proposals:
+        raise HTTPException(status_code=404, detail="Nessuna proposta per questo mese")
+
+    max_votes = proposals[0].get("votes", 0)
+    if max_votes == 0:
+        raise HTTPException(status_code=400, detail="Nessun voto ancora registrato")
+
+    winners = [p for p in proposals if p.get("votes", 0) == max_votes]
+    winner_ids = [w["id"] for w in winners]
+
+    # Marca i vincitori
+    await db.proposals.update_many(
+        {"id": {"$in": winner_ids}},
+        {"$set": {"is_winner": True}}
+    )
+
+    # Aggiunge al catalogo libri (uno per ogni vincitore, idempotente via from_proposal_id)
+    created_titles = []
+    for w in winners:
+        existing = await db.books.find_one({"from_proposal_id": w["id"]})
+        if not existing:
+            new_book = {
+                "id": str(uuid.uuid4()),
+                "title": w["title"],
+                "author": w["author"],
+                "cover_url": w.get("cover_url"),
+                "genre": w.get("genre"),
+                "status": "in_lettura",
+                "reading_month": month,
+                "description": w.get("description"),
+                "from_proposal_id": w["id"],
+                "linked_event_ids": [],
+                "in_biblioteca": False,
+                "is_lent": False,
+                "is_library_book": False,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.books.insert_one(new_book)
+            created_titles.append(w["title"])
+
+    await db.book_club_config.update_one(
+        {"month": month},
+        {"$set": {"month": month, "winner_proclaimed": True, "winner_ids": winner_ids}},
+        upsert=True,
+    )
+
+    return {"ok": True, "winners": [w["title"] for w in winners], "created_in_catalog": created_titles}
+
+
+# ── Cineforum config ─────────────────────────────────────────────────────────
+
+@api_router.get("/cineforum-config/{month}")
+async def get_cineforum_config_public(month: str):
+    doc = await db.cineforum_config.find_one({"month": month}, {"_id": 0})
+    if not doc:
+        return {"month": month, "voting_ends_at": None, "rush_finale_active": False, "winner_proclaimed": False}
+    return doc
+
+@api_router.get("/admin/cineforum-config/{month}", dependencies=[Depends(require_admin)])
+async def get_cineforum_config_admin(month: str):
+    doc = await db.cineforum_config.find_one({"month": month}, {"_id": 0})
+    if not doc:
+        return {"month": month, "voting_ends_at": None, "rush_finale_active": False, "winner_proclaimed": False}
+    return doc
+
+@api_router.put("/admin/cineforum-config/{month}", dependencies=[Depends(require_admin)])
+async def put_cineforum_config(month: str, body: BookClubConfigUpdate):
+    update = {"month": month}
+    if body.voting_ends_at is not None:
+        update["voting_ends_at"] = body.voting_ends_at
+    await db.cineforum_config.update_one({"month": month}, {"$set": update}, upsert=True)
+    doc = await db.cineforum_config.find_one({"month": month}, {"_id": 0})
+    return doc
+
+@api_router.post("/admin/cineforum-config/{month}/rush-finale", dependencies=[Depends(require_admin)])
+async def activate_cineforum_rush_finale(month: str):
+    proposals = await db.film_proposals.find(
+        {"proposed_month": month}, {"_id": 0}
+    ).sort("votes", -1).to_list(1000)
+    if not proposals:
+        raise HTTPException(status_code=404, detail="Nessuna proposta per questo mese")
+    if len(proposals) <= 3:
+        cutoff_votes = -1
+    else:
+        cutoff_votes = proposals[2].get("votes", 0)
+    rush_ids = {p["id"] for p in proposals if p.get("votes", 0) >= cutoff_votes}
+    now_str = datetime.now(timezone.utc).isoformat()
+    in_rush = 0
+    excluded = 0
+    for p in proposals:
+        if p["id"] in rush_ids:
+            await db.film_proposals.update_one(
+                {"id": p["id"]},
+                {"$set": {
+                    "rush_excluded": False,
+                    "pre_rush_votes": p.get("votes", 0),
+                    "pre_rush_voters": p.get("voters", []),
+                    "votes": 0,
+                    "voters": [],
+                }}
+            )
+            in_rush += 1
+        else:
+            await db.film_proposals.update_one(
+                {"id": p["id"]},
+                {"$set": {"rush_excluded": True}}
+            )
+            excluded += 1
+    await db.cineforum_config.update_one(
+        {"month": month},
+        {"$set": {"month": month, "rush_finale_active": True, "rush_finale_activated_at": now_str}},
+        upsert=True,
+    )
+    return {"ok": True, "rush_count": in_rush, "excluded_count": excluded}
+
+@api_router.delete("/admin/cineforum-config/{month}/rush-finale", dependencies=[Depends(require_admin)])
+async def deactivate_cineforum_rush_finale(month: str):
+    proposals = await db.film_proposals.find(
+        {"proposed_month": month}, {"_id": 0}
+    ).to_list(1000)
+    for p in proposals:
+        if p.get("pre_rush_votes") is not None:
+            await db.film_proposals.update_one(
+                {"id": p["id"]},
+                {"$set": {
+                    "votes": p["pre_rush_votes"],
+                    "voters": p.get("pre_rush_voters", []),
+                    "rush_excluded": False,
+                    "pre_rush_votes": None,
+                    "pre_rush_voters": [],
+                }}
+            )
+        else:
+            await db.film_proposals.update_one(
+                {"id": p["id"]},
+                {"$set": {"rush_excluded": False}}
+            )
+    await db.cineforum_config.update_one(
+        {"month": month},
+        {"$set": {"rush_finale_active": False}},
+    )
+    return {"ok": True}
+
+@api_router.post("/cineforum-config/{month}/proclaim-winner")
+async def proclaim_film_winner(month: str):
+    """Idempotente: trova il film con più voti, lo marca winner e lo aggiunge al catalogo."""
+    config = await db.cineforum_config.find_one({"month": month})
+    if config and config.get("winner_proclaimed"):
+        return {"ok": True, "already_proclaimed": True}
+
+    rush_active = config.get("rush_finale_active", False) if config else False
+    query = {"proposed_month": month}
+    if rush_active:
+        query["rush_excluded"] = {"$ne": True}
+
+    proposals = await db.film_proposals.find(query, {"_id": 0}).sort("votes", -1).to_list(1000)
+    if not proposals:
+        raise HTTPException(status_code=404, detail="Nessuna proposta per questo mese")
+
+    max_votes = proposals[0].get("votes", 0)
+    if max_votes == 0:
+        raise HTTPException(status_code=400, detail="Nessun voto ancora registrato")
+
+    winners = [p for p in proposals if p.get("votes", 0) == max_votes]
+    winner_ids = [w["id"] for w in winners]
+
+    await db.film_proposals.update_many(
+        {"id": {"$in": winner_ids}},
+        {"$set": {"is_winner": True}}
+    )
+
+    created_titles = []
+    for w in winners:
+        existing = await db.films.find_one({"from_proposal_id": w["id"]})
+        if not existing:
+            new_film = {
+                "id": str(uuid.uuid4()),
+                "title": w["title"],
+                "director": w["director"],
+                "cover_url": w.get("cover_url"),
+                "genre": w.get("genre"),
+                "status": "in_visione",
+                "screening_month": month,
+                "description": w.get("description"),
+                "trailer_url": w.get("trailer_url"),
+                "discussion_topics": w.get("discussion_topics"),
+                "external_reviews": w.get("external_reviews", []),
+                "from_proposal_id": w["id"],
+                "linked_event_ids": [],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.films.insert_one(new_film)
+            created_titles.append(w["title"])
+
+    await db.cineforum_config.update_one(
+        {"month": month},
+        {"$set": {"month": month, "winner_proclaimed": True, "winner_ids": winner_ids}},
+        upsert=True,
+    )
+
+    return {"ok": True, "winners": [w["title"] for w in winners], "created_in_catalog": created_titles}
+
 
 @api_router.post("/heartbeat")
 async def heartbeat(request: Request):

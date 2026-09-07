@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, MessageCircle, Play, ExternalLink, Send } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
@@ -902,16 +902,60 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
   );
 };
 
+// ── Countdown fine votazioni Cineforum ───────────────────────────────────────
+const VotingCountdown = ({ endsAt, onExpire }) => {
+  const [now, setNow] = useState(() => new Date());
+  const expiredRef = useRef(false);
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const msLeft = Math.max(0, new Date(endsAt) - now);
+  useEffect(() => {
+    if (msLeft === 0 && !expiredRef.current && onExpire) {
+      expiredRef.current = true;
+      onExpire();
+    }
+  }, [msLeft, onExpire]);
+  if (msLeft === 0) return null;
+  const days = Math.floor(msLeft / 86400000);
+  const hours = Math.floor((msLeft % 86400000) / 3600000);
+  const minutes = Math.floor((msLeft % 3600000) / 60000);
+  const seconds = Math.floor((msLeft % 60000) / 1000);
+  const units = days === 0
+    ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
+    : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
+  return (
+    <div className="flex flex-wrap items-center gap-3 mb-6 bg-tv-orange/8 border border-tv-orange/20 rounded-2xl px-5 py-3">
+      <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50">⏱ Fine votazioni</span>
+      <div className="flex gap-1.5">
+        {units.map(({ v, l }) => (
+          <div key={l} className="text-center bg-tv-green-deep/10 rounded-xl px-2.5 py-2 min-w-[44px]">
+            <div className="font-display font-black text-xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
+            <div className="text-[9px] uppercase text-tv-green-deep/45 mt-0.5">{l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ── Card proposta film nella griglia ─────────────────────────────────────────
-const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
+const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
 
   return (
     <>
-      <div className="flex flex-col rounded-[2rem] bg-white border border-tv-green-deep/8 overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] transition-shadow cursor-pointer group"
-           onClick={() => setShowDetail(true)}>
+      <div className={`flex flex-col rounded-[2rem] overflow-hidden transition-shadow border-2 ${proposal.is_winner ? "border-amber-400 shadow-[0_0_20px_-4px_rgba(251,191,36,0.5)]" : disabled ? "border-tv-green-deep/5 opacity-50 grayscale" : "border-tv-green-deep/8 hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] cursor-pointer group"} bg-white`}
+           onClick={() => !disabled && setShowDetail(true)}>
+        {/* Corona vincitore */}
+        {proposal.is_winner && (
+          <div className="bg-amber-400 text-amber-900 text-[11px] font-black uppercase tracking-widest text-center py-1.5 flex items-center justify-center gap-1.5">
+            🏆 Vincitore del mese
+          </div>
+        )}
         {/* Cover */}
         <div className="relative bg-tv-green-deep/5">
           {proposal.cover_url ? (
@@ -948,8 +992,9 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
             ) : <span />}
             {onReproponi && (
               <button
-                onClick={(e) => { e.stopPropagation(); onReproponi(proposal); }}
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); onReproponi(proposal); }}
                 className="shrink-0 text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
+                style={disabled ? { pointerEvents: "auto", opacity: 1, filter: "none" } : {}}
               >
                 ↩ Riproponi
               </button>
@@ -984,6 +1029,7 @@ const FilmProposalsSection = () => {
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
+  const [cineforumConfig, setCineforumConfig] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -1008,6 +1054,15 @@ const FilmProposalsSection = () => {
   useEffect(() => { loadAllMonths(); }, [loadAllMonths]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!selectedMonth) return;
+    setCineforumConfig(null);
+    fetch(`${BACKEND_URL}/api/cineforum-config/${selectedMonth}`)
+      .then(r => r.json())
+      .then(d => setCineforumConfig(d))
+      .catch(() => {});
+  }, [selectedMonth]);
 
   const handleVote = async (id, voterInfo, force = false) => {
     const url = `${BACKEND_URL}/api/film-proposals/${id}/vote${force ? "?force=true" : ""}`;
@@ -1089,6 +1144,44 @@ const FilmProposalsSection = () => {
           </div>
         )}
 
+        {/* Countdown fine votazioni */}
+        {cineforumConfig?.voting_ends_at && !cineforumConfig?.winner_proclaimed && (
+          <VotingCountdown
+            endsAt={cineforumConfig.voting_ends_at}
+            onExpire={() => {
+              fetch(`${BACKEND_URL}/api/cineforum-config/${selectedMonth}/proclaim-winner`, { method: "POST" })
+                .then(() => {
+                  load();
+                  fetch(`${BACKEND_URL}/api/cineforum-config/${selectedMonth}`)
+                    .then(r => r.json()).then(d => setCineforumConfig(d)).catch(() => {});
+                })
+                .catch(() => {});
+            }}
+          />
+        )}
+
+        {/* Banner vincitore */}
+        {cineforumConfig?.winner_proclaimed && (
+          <div className="flex items-center gap-3 mb-6 bg-amber-50 border-2 border-amber-400 rounded-2xl px-5 py-3">
+            <span className="text-xl">🏆</span>
+            <div>
+              <div className="font-black text-sm text-amber-800">Votazioni chiuse — Vincitore proclamato!</div>
+              <div className="text-xs text-amber-700/70">Il film vincitore è stato aggiunto al catalogo in stato "In visione".</div>
+            </div>
+          </div>
+        )}
+
+        {/* Banner Rush Finale */}
+        {cineforumConfig?.rush_finale_active && !cineforumConfig?.winner_proclaimed && (
+          <div className="flex items-center gap-3 mb-6 bg-tv-bordeaux/8 border border-tv-bordeaux/20 rounded-2xl px-5 py-3">
+            <span className="text-lg">🏁</span>
+            <div>
+              <div className="font-black text-sm text-tv-bordeaux">Rush Finale in corso</div>
+              <div className="text-xs text-tv-green-deep/50">I voti sono stati azzerati. Rivota solo tra i film finalisti!</div>
+            </div>
+          </div>
+        )}
+
         {/* Griglia proposte */}
         {loading ? (
           <div className="text-tv-green-deep/30 text-sm py-8 text-center">Caricamento…</div>
@@ -1103,9 +1196,10 @@ const FilmProposalsSection = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {proposals.map((p) => (
+            {[...proposals].sort((a, b) => (a.rush_excluded ? 1 : 0) - (b.rush_excluded ? 1 : 0)).map((p) => (
               <FilmProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote}
-                onReproponi={(p) => { setReproponiData(p); setShowForm(true); }} />
+                disabled={!!p.rush_excluded}
+                onReproponi={(prop) => { setReproponiData(prop); setShowForm(true); }} />
             ))}
           </div>
         )}

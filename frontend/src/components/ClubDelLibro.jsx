@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, MessageCircle } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
@@ -477,18 +477,21 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 
 // ── Card proposta nella griglia ──────────────────────────────────────────────
 // ── Countdown fine votazioni ─────────────────────────────────────────────────
-const VotingCountdown = ({ endsAt }) => {
+const VotingCountdown = ({ endsAt, onExpire }) => {
   const [now, setNow] = useState(() => new Date());
+  const expiredRef = useRef(false);
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
   const msLeft = Math.max(0, new Date(endsAt) - now);
-  if (msLeft === 0) return (
-    <div className="inline-flex items-center gap-2 bg-tv-bordeaux/10 border border-tv-bordeaux/20 rounded-2xl px-4 py-2.5 mb-6">
-      <span className="font-display font-black text-tv-bordeaux">⏰ Votazioni chiuse!</span>
-    </div>
-  );
+  useEffect(() => {
+    if (msLeft === 0 && !expiredRef.current && onExpire) {
+      expiredRef.current = true;
+      onExpire();
+    }
+  }, [msLeft, onExpire]);
+  if (msLeft === 0) return null;
   const days = Math.floor(msLeft / 86400000);
   const hours = Math.floor((msLeft % 86400000) / 3600000);
   const minutes = Math.floor((msLeft % 3600000) / 60000);
@@ -518,8 +521,14 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled }) => 
 
   return (
     <>
-      <div className={`flex flex-col rounded-[2rem] bg-white border overflow-hidden transition-shadow ${disabled ? "border-tv-green-deep/5 opacity-50 grayscale" : "border-tv-green-deep/8 hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] cursor-pointer group"}`}
+      <div className={`flex flex-col rounded-[2rem] overflow-hidden transition-shadow border-2 ${proposal.is_winner ? "border-amber-400 shadow-[0_0_20px_-4px_rgba(251,191,36,0.5)]" : disabled ? "border-tv-green-deep/5 opacity-50 grayscale" : "border-tv-green-deep/8 hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] cursor-pointer group"} bg-white`}
            onClick={() => !disabled && setShowDetail(true)}>
+        {/* Corona vincitore */}
+        {proposal.is_winner && (
+          <div className="bg-amber-400 text-amber-900 text-[11px] font-black uppercase tracking-widest text-center py-1.5 flex items-center justify-center gap-1.5">
+            🏆 Vincitore del mese
+          </div>
+        )}
         {/* Cover */}
         <div className="relative bg-tv-green-deep/5">
           {proposal.cover_url ? (
@@ -714,12 +723,34 @@ const ProposalsSection = () => {
         )}
 
         {/* Countdown fine votazioni */}
-        {clubConfig?.voting_ends_at && (
-          <VotingCountdown endsAt={clubConfig.voting_ends_at} />
+        {clubConfig?.voting_ends_at && !clubConfig?.winner_proclaimed && (
+          <VotingCountdown
+            endsAt={clubConfig.voting_ends_at}
+            onExpire={() => {
+              fetch(`${BACKEND_URL}/api/book-club-config/${selectedMonth}/proclaim-winner`, { method: "POST" })
+                .then(() => {
+                  load();
+                  fetch(`${BACKEND_URL}/api/book-club-config/${selectedMonth}`)
+                    .then(r => r.json()).then(d => setClubConfig(d)).catch(() => {});
+                })
+                .catch(() => {});
+            }}
+          />
+        )}
+
+        {/* Banner vincitore */}
+        {clubConfig?.winner_proclaimed && (
+          <div className="flex items-center gap-3 mb-6 bg-amber-50 border-2 border-amber-400 rounded-2xl px-5 py-3">
+            <span className="text-xl">🏆</span>
+            <div>
+              <div className="font-black text-sm text-amber-800">Votazioni chiuse — Vincitore proclamato!</div>
+              <div className="text-xs text-amber-700/70">Il libro vincitore è stato aggiunto al catalogo in stato "In lettura".</div>
+            </div>
+          </div>
         )}
 
         {/* Banner Rush Finale */}
-        {clubConfig?.rush_finale_active && (
+        {clubConfig?.rush_finale_active && !clubConfig?.winner_proclaimed && (
           <div className="flex items-center gap-3 mb-6 bg-tv-bordeaux/8 border border-tv-bordeaux/20 rounded-2xl px-5 py-3">
             <span className="text-lg">🏁</span>
             <div>

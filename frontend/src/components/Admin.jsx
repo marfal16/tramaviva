@@ -2087,6 +2087,63 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   const [proposalForm, setProposalForm] = useState({ title: "", director: "", genre: "", cover_url: "", description: "", trailer_url: "", discussion_topics: "", external_reviews: [], proposed_month: defaultFilmProposalMonth });
   const [savingProposal, setSavingProposal] = useState(false);
 
+  // Config Cineforum
+  const [cfConfigMonth, setCfConfigMonth] = useState(() => { const d = new Date(); return d.toISOString().slice(0, 7); });
+  const [cfConfig, setCfConfig] = useState(null);
+  const [cfConfigForm, setCfConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false });
+  const [savingCfConfig, setSavingCfConfig] = useState(false);
+  const [cfRushActivating, setCfRushActivating] = useState(false);
+
+  useEffect(() => {
+    if (subTab !== "configurazione") return;
+    setCfConfig(null);
+    fetch(`${API}/admin/cineforum-config/${cfConfigMonth}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        setCfConfig(d);
+        setCfConfigForm({
+          countdown_enabled: !!(d.voting_ends_at),
+          voting_ends_at: d.voting_ends_at ? d.voting_ends_at.slice(0, 16) : "",
+        });
+      })
+      .catch(() => { setCfConfig({}); setCfConfigForm({ countdown_enabled: false, voting_ends_at: "" }); });
+  }, [cfConfigMonth, subTab, token]);
+
+  const saveCfConfig = async () => {
+    setSavingCfConfig(true);
+    try {
+      const body = { voting_ends_at: cfConfigForm.countdown_enabled && cfConfigForm.voting_ends_at ? new Date(cfConfigForm.voting_ends_at).toISOString() : null };
+      await axios.put(`${API}/admin/cineforum-config/${cfConfigMonth}`, body, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Configurazione salvata.");
+      setCfConfig(prev => ({ ...prev, ...body }));
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSavingCfConfig(false); }
+  };
+
+  const activateCfRush = async () => {
+    if (!window.confirm(`Attivare il Rush Finale per ${cfConfigMonth}? I voti verranno azzerati e i film fuori dal podio ingrigiti.`)) return;
+    setCfRushActivating(true);
+    try {
+      const res = await axios.post(`${API}/admin/cineforum-config/${cfConfigMonth}/rush-finale`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(`Rush Finale attivato! ${res.data.rush_count} film in gara, ${res.data.excluded_count} esclusi.`);
+      setCfConfig(prev => ({ ...prev, rush_finale_active: true }));
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Errore nell'attivazione.");
+    }
+    finally { setCfRushActivating(false); }
+  };
+
+  const deactivateCfRush = async () => {
+    if (!window.confirm("Disattivare il Rush Finale e ripristinare i voti precedenti?")) return;
+    setCfRushActivating(true);
+    try {
+      await axios.delete(`${API}/admin/cineforum-config/${cfConfigMonth}/rush-finale`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Rush Finale disattivato. Voti ripristinati.");
+      setCfConfig(prev => ({ ...prev, rush_finale_active: false }));
+    } catch { toast.error("Errore nella disattivazione."); }
+    finally { setCfRushActivating(false); }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Eliminare questo film?")) return;
     try {
@@ -2181,6 +2238,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
       <div className="flex gap-1 mb-6 p-1 bg-tv-sky/5 rounded-2xl w-fit flex-wrap">
         {tabBtn("catalogo", "Catalogo film", 0)}
         {tabBtn("proposte", "Proposte", filmProposals?.length || 0)}
+        {tabBtn("configurazione", "⚙ Configurazione", 0)}
       </div>
 
       {/* ── Catalogo ── */}
@@ -2347,6 +2405,89 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
               proposals={filmProposals}
               renderCard={(p) => <FilmProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />}
             />
+          )}
+        </div>
+      )}
+
+      {/* ── Configurazione Cineforum ── */}
+      {subTab === "configurazione" && (
+        <div className="max-w-lg flex flex-col gap-6">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5">Mese di riferimento</label>
+            <input
+              type="month"
+              className="px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+              value={cfConfigMonth}
+              onChange={e => setCfConfigMonth(e.target.value)}
+            />
+          </div>
+
+          {cfConfig === null ? (
+            <div className="text-tv-green-deep/30 text-sm">Caricamento…</div>
+          ) : (
+            <>
+              <div className="bg-white rounded-3xl border border-tv-green-deep/10 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-black text-tv-green-deep text-sm">Countdown fine votazioni</div>
+                    <div className="text-xs text-tv-green-deep/50 mt-0.5">Mostra il conto alla rovescia nella sezione proposte del mese</div>
+                  </div>
+                  <button
+                    onClick={() => setCfConfigForm(f => ({ ...f, countdown_enabled: !f.countdown_enabled }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${cfConfigForm.countdown_enabled ? "bg-tv-green" : "bg-tv-green-deep/20"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${cfConfigForm.countdown_enabled ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
+                {cfConfigForm.countdown_enabled && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Data e ora fine votazioni</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+                      value={cfConfigForm.voting_ends_at}
+                      onChange={e => setCfConfigForm(f => ({ ...f, voting_ends_at: e.target.value }))}
+                    />
+                  </div>
+                )}
+                <button
+                  onClick={saveCfConfig}
+                  disabled={savingCfConfig}
+                  className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60 hover:bg-tv-green transition-colors"
+                >
+                  {savingCfConfig ? "Salvo…" : "Salva configurazione"}
+                </button>
+              </div>
+
+              <div className={`rounded-3xl border p-5 flex flex-col gap-4 ${cfConfig.rush_finale_active ? "bg-tv-bordeaux/5 border-tv-bordeaux/20" : "bg-white border-tv-green-deep/10"}`}>
+                <div>
+                  <div className="font-black text-tv-green-deep text-sm flex items-center gap-2">
+                    🏁 Rush Finale
+                    {cfConfig.rush_finale_active && <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-bordeaux/15 text-tv-bordeaux">Attivo</span>}
+                  </div>
+                  <div className="text-xs text-tv-green-deep/50 mt-0.5 leading-relaxed">
+                    Azzera i voti e lascia in gara solo i film nei primi 3 posti (pari merito inclusi). Gli altri vengono ingrigiti ma restano visibili.
+                  </div>
+                </div>
+                {cfConfig.rush_finale_active ? (
+                  <button
+                    onClick={deactivateCfRush}
+                    disabled={cfRushActivating}
+                    className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-tv-bordeaux/30 text-tv-bordeaux font-bold text-sm disabled:opacity-60 hover:bg-tv-bordeaux/5 transition-colors"
+                  >
+                    {cfRushActivating ? "Attendere…" : "Disattiva Rush Finale"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={activateCfRush}
+                    disabled={cfRushActivating}
+                    className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-bordeaux text-white font-bold text-sm disabled:opacity-60 hover:bg-tv-bordeaux/80 transition-colors"
+                  >
+                    {cfRushActivating ? "Attivazione…" : "🏁 Attiva Rush Finale"}
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       )}
