@@ -44,6 +44,7 @@ class GuestInfo(BaseModel):
     cognome: str
     phone: Optional[str] = None
     email: Optional[str] = None
+    opzione_scelta: Optional[str] = None
 
 class EventSignupCreate(BaseModel):
     event_id: str
@@ -1825,6 +1826,27 @@ async def confirm_event_signup(signup_id: str):
         logger.error(f"Email conferma evento NON inviata a {to_email}: {e}", exc_info=True)
 
     return {"ok": True, "spots_remaining": event["spots"] - 1}
+
+@api_router.patch("/admin/event-signups/{signup_id}/remove-guest", dependencies=[Depends(require_admin)])
+async def remove_event_signup_guest(signup_id: str, body: dict):
+    """Rimuove un accompagnatore dalla prenotazione per indice (0-based nell'array ospiti)."""
+    guest_index = body.get("guest_index")
+    if guest_index is None:
+        raise HTTPException(status_code=400, detail="guest_index richiesto")
+    signup = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Prenotazione non trovata")
+    ospiti = signup.get("ospiti", [])
+    if guest_index < 0 or guest_index >= len(ospiti):
+        raise HTTPException(status_code=400, detail="Indice ospite non valido")
+    ospiti.pop(guest_index)
+    new_num = max(1, (signup.get("num_persone", 1) - 1))
+    await db.event_signups.update_one(
+        {"id": signup_id},
+        {"$set": {"ospiti": ospiti, "num_persone": new_num}}
+    )
+    doc = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+    return doc
 
 @api_router.post("/admin/events/{event_id}/send-reminder", dependencies=[Depends(require_admin)])
 async def send_event_reminder(event_id: str):

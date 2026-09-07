@@ -54,7 +54,7 @@ export const EventoDettaglio = () => {
 
   const handleNumPersone = (n) => {
     setNumPersone(n);
-    setOspiti(prev => Array.from({ length: n - 1 }, (_, i) => prev[i] || { nome: "", cognome: "", phone: "", email: "" }));
+    setOspiti(prev => Array.from({ length: n - 1 }, (_, i) => prev[i] || { nome: "", cognome: "", phone: "", email: "", opzione_scelta: "" }));
   };
 
   const updateOspite = (i, field, val) => {
@@ -107,6 +107,10 @@ export const EventoDettaglio = () => {
     }
     if (numPersone > 1 && ospiti.some(g => !g.nome || !g.cognome)) {
       toast.error("Inserisci nome e cognome per ogni persona.");
+      return;
+    }
+    if (event.opzioni_custom && numPersone > 1 && ospiti.some(g => !g.opzione_scelta)) {
+      toast.error("Seleziona l'opzione per ogni accompagnatore.");
       return;
     }
     setSubmitting(true);
@@ -578,6 +582,26 @@ export const EventoDettaglio = () => {
                         </div>
                         <input placeholder="Email (opzionale)" type="email" value={g.email} onChange={e => updateOspite(i, "email", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                         <input placeholder="Telefono (opzionale)" value={g.phone} onChange={e => updateOspite(i, "phone", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                        {event.opzioni_custom && (
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5">
+                              {event.opzioni_label || "Opzione"} — Persona {i + 2} *
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              {event.opzioni_custom.split(",").map(opt => opt.trim()).filter(Boolean).map(opt => (
+                                <button key={opt} type="button"
+                                  onClick={() => updateOspite(i, "opzione_scelta", opt)}
+                                  className={`px-3 py-2 rounded-xl border-2 text-sm text-left transition-all ${
+                                    g.opzione_scelta === opt
+                                      ? "border-tv-green bg-tv-green/10 text-tv-green-deep font-bold"
+                                      : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/70 hover:border-tv-green-deep/30"
+                                  }`}>
+                                  {g.opzione_scelta === opt ? "✓ " : ""}{opt}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

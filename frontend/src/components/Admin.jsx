@@ -281,7 +281,7 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
 
 // ─── Registrations — tabella + filtri ────────────────────────────────────────
 
-const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete }) => {
+const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore }) => {
   const isArchived = row.status === "archived";
   const isApproved = row.is_member || row.status === "approved";
   const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
@@ -362,6 +362,15 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
             className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors">
             <Sparkles size={13}/>
           </button>}
+          {isApproved && onToggleFondatore && (
+            <button
+              onClick={() => onToggleFondatore(row)}
+              title={row.is_fondatore ? "Rimuovi badge Fondatore" : "Assegna badge Fondatore"}
+              className={`p-1.5 rounded-lg transition-colors text-sm leading-none ${row.is_fondatore ? "bg-amber-400/30 text-amber-700 hover:bg-amber-500 hover:text-white" : "bg-amber-100/50 text-amber-400/70 hover:bg-amber-400/30 hover:text-amber-700"}`}
+            >
+              ★
+            </button>
+          )}
           {!isArchived && <button onClick={() => onCleanup(row)} title="Cancella dati"
             className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux/20 transition-colors">
             <ShieldOff size={13}/>
@@ -376,7 +385,7 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
   );
 };
 
-const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onAddManual }) => {
+const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore, onAddManual }) => {
   const [activeFilter, setActiveFilter] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState("created_at");
@@ -521,7 +530,7 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
                 {filteredList.map(row => (
                   <RegistrationRow key={row.id} row={row} onPdf={onPdf} pdfLoadingId={pdfLoadingId}
                     onTogglePayment={onTogglePayment} onApprove={onApprove} onCleanup={onCleanup}
-                    onResend={onResend} onDelete={onDelete}/>
+                    onResend={onResend} onDelete={onDelete} onToggleFondatore={onToggleFondatore}/>
                 ))}
               </tbody>
             </table>
@@ -585,6 +594,12 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
                       <button onClick={() => onApprove(row)}
                         className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-green text-tv-cream text-[11px] font-bold rounded-full hover:bg-tv-green-deep transition-colors">
                         <Sparkles size={11}/> Approva
+                      </button>
+                    )}
+                    {isApproved && onToggleFondatore && (
+                      <button onClick={() => onToggleFondatore(row)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-full transition-colors ${row.is_fondatore ? "bg-amber-400/30 text-amber-700 hover:bg-amber-500 hover:text-white" : "bg-amber-100/50 text-amber-400/70 hover:bg-amber-300/50 hover:text-amber-700"}`}>
+                        ★ {row.is_fondatore ? "Fondatore" : "Fondatore?"}
                       </button>
                     )}
                     {!isArchived && (
@@ -3341,6 +3356,20 @@ const Dashboard = ({ token, onLogout }) => {
                     const rec = mergedList.find(r => r.id === id);
                     remove(rec?._from_members ? "members" : "registrations", id);
                   }}
+                  onToggleFondatore={async (rec) => {
+                    // Per _from_members usiamo l'id diretto; per registrazioni approvate cerchiamo il member per email
+                    let memberId = rec._from_members ? rec.id : null;
+                    if (!memberId && rec.is_member) {
+                      const m = (data.members || []).find(m => (m.email || "").toLowerCase() === (rec.email || "").toLowerCase());
+                      memberId = m?.id;
+                    }
+                    if (!memberId) { toast.error("Membro non trovato."); return; }
+                    try {
+                      await axios.put(`${API}/admin/members/${memberId}`, { is_fondatore: !rec.is_fondatore }, { headers: { Authorization: `Bearer ${token}` } });
+                      toast.success(rec.is_fondatore ? "Badge fondatore rimosso." : "Badge fondatore assegnato.");
+                      loadAll(true);
+                    } catch { toast.error("Errore nell'aggiornamento."); }
+                  }}
                   onAddManual={() => setManualModal(true)}
                 />
               );
@@ -3949,10 +3978,22 @@ const BulkNotifyModal = ({ signupIds, allItems, event, token, onClose }) => {
 
 // ─── Event signups — master-detail con tabella compatta ──────────────────────
 
-const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onTogglePayment, onDelete, onNotify, isPastEvent }) => {
+const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onTogglePayment, onDelete, onNotify, isPastEvent, token, onReload }) => {
   const [showGuests, setShowGuests] = useState(false);
+  const [removingGuest, setRemovingGuest] = useState(null);
   const hasGuests = (row.ospiti || []).length > 0;
   const isFounder = row.is_member && founderEmails.has((row.email || "").toLowerCase());
+
+  const handleRemoveGuest = async (guestIndex) => {
+    if (!window.confirm("Rimuovere questo accompagnatore dalla prenotazione?")) return;
+    setRemovingGuest(guestIndex);
+    try {
+      await axios.patch(`${API}/admin/event-signups/${row.id}/remove-guest`, { guest_index: guestIndex }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Accompagnatore rimosso.");
+      onReload();
+    } catch { toast.error("Errore nella rimozione."); }
+    finally { setRemovingGuest(null); }
+  };
 
   return (
     <>
@@ -4050,18 +4091,37 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
       {showGuests && hasGuests && row.ospiti.map((g, i) => (
         <tr key={i} className="bg-tv-cream/50 border-b border-tv-green-deep/5">
           <td className="pl-4 pr-2"/>
-          <td className="py-2 pr-4" colSpan={1}>
+          <td className="py-2 pr-4">
             <div className="flex items-center gap-2 pl-8">
               <div className="w-6 h-6 rounded-md bg-tv-green-deep/15 text-tv-green-deep flex items-center justify-center font-bold text-[10px]">
                 {(g.nome?.[0] || "?").toUpperCase()}
               </div>
-              <span className="text-xs text-tv-green-deep/70">{g.nome} {g.cognome}</span>
+              <div>
+                <span className="text-xs text-tv-green-deep/70">{g.nome} {g.cognome}</span>
+                {g.email && <div className="text-[11px] text-tv-green-deep/40">{g.email}</div>}
+              </div>
             </div>
           </td>
           <td className="py-2 pr-4 hidden md:table-cell">
-            <span className="text-xs text-tv-green-deep/50">{g.email || "—"}</span>
+            <span className="text-xs text-tv-green-deep/50">{g.phone || "—"}</span>
           </td>
-          <td colSpan={5} className="py-2 pr-4 text-[11px] text-tv-green-deep/35">ospite</td>
+          <td className="py-2 pr-4 text-center">
+            <span className="text-[11px] text-tv-green-deep/35">—</span>
+          </td>
+          <td className="py-2 pr-4">
+            <span className="text-xs text-tv-green-deep/60">{g.opzione_scelta || <span className="text-tv-green-deep/25">—</span>}</span>
+          </td>
+          <td colSpan={2} className="py-2 pr-4 text-[11px] text-tv-green-deep/35">accompagnatore</td>
+          <td className="py-2 pr-4 text-right">
+            <button
+              onClick={() => handleRemoveGuest(i)}
+              disabled={removingGuest === i}
+              title="Rimuovi accompagnatore"
+              className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-white transition-colors disabled:opacity-40"
+            >
+              <Trash2 size={12}/>
+            </button>
+          </td>
         </tr>
       ))}
     </>
@@ -4510,6 +4570,8 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                               onDelete={onDelete}
                               onNotify={(row) => setNotifyTarget({ signup: row, event: selectedGroup.ev })}
                               isPastEvent={isPastEvent}
+                              token={token}
+                              onReload={onReload}
                             />
                           ))}
                         </tbody>
