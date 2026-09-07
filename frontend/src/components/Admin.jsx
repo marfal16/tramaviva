@@ -4205,7 +4205,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
   });
 
-  const selectAll = () => setSelectedIds(new Set(filteredItems.filter(r => !r.confirmed).map(r => r.id)));
+  const selectAll = () => setSelectedIds(new Set(filteredItems.map(r => r.id)));
 
   const exportGroup = (group) => {
     const rows = group.items.flatMap(s => {
@@ -4540,11 +4540,10 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                           <tr className="text-left border-b border-tv-green-deep/10">
                             <th className="py-2.5 pl-4 pr-2 w-8">
                               <input type="checkbox"
-                                checked={filteredItems.filter(r=>!r.confirmed).length > 0 && filteredItems.filter(r=>!r.confirmed).every(r=>selectedIds.has(r.id))}
+                                checked={filteredItems.length > 0 && filteredItems.every(r=>selectedIds.has(r.id))}
                                 onChange={() => {
-                                  const pending = filteredItems.filter(r=>!r.confirmed);
-                                  if (pending.every(r=>selectedIds.has(r.id))) setSelectedIds(new Set());
-                                  else setSelectedIds(new Set(pending.map(r=>r.id)));
+                                  if (filteredItems.every(r=>selectedIds.has(r.id))) setSelectedIds(new Set());
+                                  else setSelectedIds(new Set(filteredItems.map(r=>r.id)));
                                 }}
                                 className="w-4 h-4 accent-tv-green cursor-pointer"
                               />
@@ -4553,7 +4552,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                             <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center w-12">N.</th>
                             <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Opzione</th>
                             <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Pagamento</th>
-                            <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 w-8"/>
+                            <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 w-8 text-center">Stato</th>
                             <th className="py-2.5 pr-3 w-24"/>
                           </tr>
                         </thead>

@@ -390,27 +390,30 @@ export const EventoDettaglio = () => {
                   )}
                   
                 </div>
-                {typeof signupCount === "number" && signupCount >= 3 && (
-                  <div
-                    data-testid="event-social-proof"
-                    className="mt-5 pt-5 border-t border-tv-cream/15 flex items-center gap-3"
-                  >
-                    <div className="flex -space-x-2">
-                      {[0,1,2].map((i) => (
-                        <div
-                          key={i}
-                          className="w-8 h-8 rounded-full border-2 border-tv-green-deep flex items-center justify-center text-xs font-bold"
-                          style={{ background: ["#5CB176","#92C8B9","#F59E0B"][i], color: "#052F17" }}
-                        >
-                          {["A","B","C"][i]}
-                        </div>
-                      ))}
+                {typeof signupCount === "number" && signupCount >= 3 && (() => {
+                  const pool = ["M","F","G","A","R","L","S","C","E","P","V","D","N","B","T","I","O","U"];
+                  const colors = ["#5CB176","#92C8B9","#F59E0B","#E07B54","#7B9DD4","#D4A7B0","#6BAF8C","#C47F4E"];
+                  const s = signupCount;
+                  const avatars = [0,1,2].map(i => ({
+                    letter: pool[(s * (i + 2) + i * 5 + 3) % pool.length],
+                    bg: colors[(s + i * 3 + 1) % colors.length],
+                  }));
+                  return (
+                    <div data-testid="event-social-proof" className="mt-5 pt-5 border-t border-tv-cream/15 flex items-center gap-3">
+                      <div className="flex -space-x-2">
+                        {avatars.map((av, i) => (
+                          <div key={i} className="w-8 h-8 rounded-full border-2 border-tv-green-deep flex items-center justify-center text-xs font-bold"
+                            style={{ background: av.bg, color: "#052F17" }}>
+                            {av.letter}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-sm font-semibold leading-tight">
+                        {signupCount} {signupCount === 1 ? "persona ha" : "persone hanno"} già chiesto di esserci
+                      </div>
                     </div>
-                    <div className="text-sm font-semibold leading-tight">
-                      Altre persone hanno già chiesto di esserci
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {typeof signupCount === "number" && signupCount > 0 && signupCount < 3 && (
                   <div
                     data-testid="event-social-proof-early"
