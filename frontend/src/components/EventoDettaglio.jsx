@@ -550,6 +550,31 @@ export const EventoDettaglio = () => {
                     />
                   </div>
 
+                  {/* Opzione personalizzata evento — persona principale */}
+                  {event.opzioni_custom && (
+                    <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
+                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                        {form.name ? `${form.name} — ` : ""}{event.opzioni_label || "Seleziona un'opzione"} *
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {event.opzioni_custom.split(",").map(opt => opt.trim()).filter(Boolean).map(opt => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setOpzioneScelta(opt)}
+                            className={`px-4 py-3 rounded-2xl border-2 text-sm text-left transition-all ${
+                              opzioneScelta === opt
+                                ? "border-tv-green bg-tv-green/10 text-tv-green-deep font-bold"
+                                : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/70 hover:border-tv-green-deep/30"
+                            }`}
+                          >
+                            {opzioneScelta === opt ? "✓ " : ""}{opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Quante persone */}
                   <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
                     <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Quante persone partecipano?</div>
@@ -573,7 +598,7 @@ export const EventoDettaglio = () => {
                   {ospiti.map((g, i) => (
                     <div key={i} className="mt-4 pt-4 border-t border-tv-green-deep/10">
                       <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
-                        Persona {i + 2}
+                        {(g.nome || g.cognome) ? `${g.nome} ${g.cognome}`.trim() : `Persona ${i + 2}`}
                       </div>
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
@@ -585,7 +610,7 @@ export const EventoDettaglio = () => {
                         {event.opzioni_custom && (
                           <div>
                             <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5">
-                              {event.opzioni_label || "Opzione"} — Persona {i + 2} *
+                              {(g.nome || g.cognome) ? `${g.nome} ${g.cognome}`.trim() : `Persona ${i + 2}`} — {event.opzioni_label || "Opzione"} *
                             </div>
                             <div className="flex flex-col gap-1.5">
                               {event.opzioni_custom.split(",").map(opt => opt.trim()).filter(Boolean).map(opt => (
@@ -605,31 +630,6 @@ export const EventoDettaglio = () => {
                       </div>
                     </div>
                   ))}
-
-                  {/* Opzione personalizzata evento */}
-                  {event.opzioni_custom && (
-                    <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
-                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
-                        {event.opzioni_label || "Seleziona un'opzione"} *
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {event.opzioni_custom.split(",").map(opt => opt.trim()).filter(Boolean).map(opt => (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setOpzioneScelta(opt)}
-                            className={`px-4 py-3 rounded-2xl border-2 text-sm text-left transition-all ${
-                              opzioneScelta === opt
-                                ? "border-tv-green bg-tv-green/10 text-tv-green-deep font-bold"
-                                : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/70 hover:border-tv-green-deep/30"
-                            }`}
-                          >
-                            {opzioneScelta === opt ? "✓ " : ""}{opt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Contributo volontario */}
                   {event.contributo_volontario && (

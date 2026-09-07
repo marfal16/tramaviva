@@ -4172,7 +4172,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
   const isPastEvent = selectedGroup ? isPast(selectedGroup.ev.date) : false;
 
   const founderEmails = useMemo(() =>
-    new Set((members || []).filter(m => !m.tessera_number).map(m => (m.email || "").toLowerCase())),
+    new Set((members || []).filter(m => m.is_fondatore).map(m => (m.email || "").toLowerCase())),
     [members]
   );
 
