@@ -476,15 +476,50 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 };
 
 // ── Card proposta nella griglia ──────────────────────────────────────────────
-const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
+// ── Countdown fine votazioni ─────────────────────────────────────────────────
+const VotingCountdown = ({ endsAt }) => {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const msLeft = Math.max(0, new Date(endsAt) - now);
+  if (msLeft === 0) return (
+    <div className="inline-flex items-center gap-2 bg-tv-bordeaux/10 border border-tv-bordeaux/20 rounded-2xl px-4 py-2.5 mb-6">
+      <span className="font-display font-black text-tv-bordeaux">⏰ Votazioni chiuse!</span>
+    </div>
+  );
+  const days = Math.floor(msLeft / 86400000);
+  const hours = Math.floor((msLeft % 86400000) / 3600000);
+  const minutes = Math.floor((msLeft % 3600000) / 60000);
+  const seconds = Math.floor((msLeft % 60000) / 1000);
+  const units = days === 0
+    ? [{ v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }]
+    : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
+  return (
+    <div className="flex flex-wrap items-center gap-3 mb-6 bg-tv-orange/8 border border-tv-orange/20 rounded-2xl px-5 py-3">
+      <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50">⏱ Fine votazioni</span>
+      <div className="flex gap-1.5">
+        {units.map(({ v, l }) => (
+          <div key={l} className="text-center bg-tv-green-deep/10 rounded-xl px-2.5 py-2 min-w-[44px]">
+            <div className="font-display font-black text-xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
+            <div className="text-[9px] uppercase text-tv-green-deep/45 mt-0.5">{l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
 
   return (
     <>
-      <div className="flex flex-col rounded-[2rem] bg-white border border-tv-green-deep/8 overflow-hidden hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] transition-shadow cursor-pointer group"
-           onClick={() => setShowDetail(true)}>
+      <div className={`flex flex-col rounded-[2rem] bg-white border overflow-hidden transition-shadow ${disabled ? "border-tv-green-deep/5 opacity-50 grayscale" : "border-tv-green-deep/8 hover:shadow-[0_8px_30px_-10px_rgba(5,47,23,0.12)] cursor-pointer group"}`}
+           onClick={() => !disabled && setShowDetail(true)}>
         {/* Cover */}
         <div className="relative bg-tv-green-deep/5">
           {proposal.cover_url ? (
@@ -521,8 +556,9 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi }) => {
             ) : <span />}
             {onReproponi && (
               <button
-                onClick={(e) => { e.stopPropagation(); onReproponi(proposal); }}
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); onReproponi(proposal); }}
                 className="shrink-0 text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
+                style={disabled ? { pointerEvents: "auto", opacity: 1, filter: "none" } : {}}
               >
                 ↩ Riproponi
               </button>
@@ -561,6 +597,7 @@ const ProposalsSection = () => {
   });
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
+  const [clubConfig, setClubConfig] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -586,6 +623,15 @@ const ProposalsSection = () => {
   useEffect(() => { loadAllMonths(); }, [loadAllMonths]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!selectedMonth) return;
+    setClubConfig(null);
+    fetch(`${BACKEND_URL}/api/book-club-config/${selectedMonth}`)
+      .then(r => r.json())
+      .then(d => setClubConfig(d))
+      .catch(() => {});
+  }, [selectedMonth]);
 
   const handleVote = async (id, voterInfo, force = false) => {
     const url = `${BACKEND_URL}/api/proposals/${id}/vote${force ? "?force=true" : ""}`;
@@ -667,6 +713,22 @@ const ProposalsSection = () => {
           </div>
         )}
 
+        {/* Countdown fine votazioni */}
+        {clubConfig?.voting_ends_at && (
+          <VotingCountdown endsAt={clubConfig.voting_ends_at} />
+        )}
+
+        {/* Banner Rush Finale */}
+        {clubConfig?.rush_finale_active && (
+          <div className="flex items-center gap-3 mb-6 bg-tv-bordeaux/8 border border-tv-bordeaux/20 rounded-2xl px-5 py-3">
+            <span className="text-lg">🏁</span>
+            <div>
+              <div className="font-black text-sm text-tv-bordeaux">Rush Finale in corso</div>
+              <div className="text-xs text-tv-green-deep/50">I voti sono stati azzerati. Rivota solo tra i libri finalisti!</div>
+            </div>
+          </div>
+        )}
+
         {/* Griglia proposte */}
         {loading ? (
           <div className="text-tv-green-deep/30 text-sm py-8 text-center">Caricamento…</div>
@@ -683,7 +745,8 @@ const ProposalsSection = () => {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {proposals.map((p) => (
               <ProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote}
-                onReproponi={(p) => { setReproponiData(p); setShowForm(true); }} />
+                disabled={!!p.rush_excluded}
+                onReproponi={(prop) => { setReproponiData(prop); setShowForm(true); }} />
             ))}
           </div>
         )}

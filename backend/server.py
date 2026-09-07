@@ -270,6 +270,9 @@ class BookProposal(BaseModel):
     cognome: Optional[str] = None
     in_community_whatsapp: Optional[bool] = None
     voters: List[dict] = Field(default_factory=list)
+    rush_excluded: bool = False
+    pre_rush_votes: Optional[int] = None
+    pre_rush_voters: List[dict] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class BookProposalCreate(BaseModel):
@@ -287,6 +290,9 @@ class VoterCreate(BaseModel):
     nome: Optional[str] = None
     cognome: Optional[str] = None
     in_community_whatsapp: Optional[bool] = None
+
+class BookClubConfigUpdate(BaseModel):
+    voting_ends_at: Optional[str] = None
 
 class Review(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -2430,6 +2436,91 @@ async def _fetch_geo(ip: str) -> dict:
     except Exception:
         pass
     return {}
+
+# ========== BOOK CLUB CONFIG ==========
+@api_router.get("/book-club-config/{month}")
+async def get_book_club_config_public(month: str):
+    doc = await db.book_club_config.find_one({"month": month}, {"_id": 0})
+    if not doc:
+        return {"month": month, "voting_ends_at": None, "rush_finale_active": False}
+    return doc
+
+@api_router.get("/admin/book-club-config/{month}", dependencies=[Depends(require_admin)])
+async def get_book_club_config_admin(month: str):
+    doc = await db.book_club_config.find_one({"month": month}, {"_id": 0})
+    if not doc:
+        return {"month": month, "voting_ends_at": None, "rush_finale_active": False}
+    return doc
+
+@api_router.put("/admin/book-club-config/{month}", dependencies=[Depends(require_admin)])
+async def update_book_club_config(month: str, payload: BookClubConfigUpdate):
+    await db.book_club_config.update_one(
+        {"month": month},
+        {"$set": {"month": month, "voting_ends_at": payload.voting_ends_at}},
+        upsert=True,
+    )
+    doc = await db.book_club_config.find_one({"month": month}, {"_id": 0})
+    return doc
+
+@api_router.post("/admin/book-club-config/{month}/rush-finale", dependencies=[Depends(require_admin)])
+async def activate_rush_finale(month: str):
+    proposals = await db.proposals.find(
+        {"proposed_month": month}, {"_id": 0}
+    ).sort("votes", -1).to_list(1000)
+    if not proposals:
+        raise HTTPException(status_code=404, detail="Nessuna proposta per questo mese")
+    distinct_votes = sorted(set(p.get("votes", 0) for p in proposals), reverse=True)
+    top3_counts = set(distinct_votes[:3])
+    now_str = datetime.now(timezone.utc).isoformat()
+    in_rush = 0
+    excluded = 0
+    for p in proposals:
+        if p.get("votes", 0) in top3_counts:
+            await db.proposals.update_one(
+                {"id": p["id"]},
+                {"$set": {
+                    "rush_excluded": False,
+                    "pre_rush_votes": p.get("votes", 0),
+                    "pre_rush_voters": p.get("voters", []),
+                    "votes": 0,
+                    "voters": [],
+                }}
+            )
+            in_rush += 1
+        else:
+            await db.proposals.update_one(
+                {"id": p["id"]},
+                {"$set": {"rush_excluded": True}}
+            )
+            excluded += 1
+    await db.book_club_config.update_one(
+        {"month": month},
+        {"$set": {"month": month, "rush_finale_active": True, "rush_finale_activated_at": now_str}},
+        upsert=True,
+    )
+    return {"ok": True, "in_rush": in_rush, "excluded": excluded}
+
+@api_router.delete("/admin/book-club-config/{month}/rush-finale", dependencies=[Depends(require_admin)])
+async def deactivate_rush_finale(month: str):
+    proposals = await db.proposals.find(
+        {"proposed_month": month}, {"_id": 0}
+    ).to_list(1000)
+    for p in proposals:
+        if p.get("rush_excluded"):
+            await db.proposals.update_one({"id": p["id"]}, {"$unset": {"rush_excluded": ""}})
+        elif p.get("pre_rush_votes") is not None:
+            await db.proposals.update_one(
+                {"id": p["id"]},
+                {
+                    "$set": {"votes": p.get("pre_rush_votes", 0), "voters": p.get("pre_rush_voters", []), "rush_excluded": False},
+                    "$unset": {"pre_rush_votes": "", "pre_rush_voters": ""},
+                }
+            )
+    await db.book_club_config.update_one(
+        {"month": month},
+        {"$set": {"rush_finale_active": False}},
+    )
+    return {"ok": True}
 
 @api_router.post("/heartbeat")
 async def heartbeat(request: Request):

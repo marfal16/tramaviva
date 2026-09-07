@@ -1651,6 +1651,64 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   const [proposalForm, setProposalForm] = useState({ title: "", author: "", genre: "", cover_url: "", description: "", proposed_month: defaultProposalMonth });
   const [savingProposal, setSavingProposal] = useState(false);
 
+  // Config Club del Libro
+  const [configMonth, setConfigMonth] = useState(() => { const d = new Date(); return d.toISOString().slice(0, 7); });
+  const [clubConfig, setClubConfig] = useState(null);
+  const [configForm, setConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false });
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [rushActivating, setRushActivating] = useState(false);
+
+  useEffect(() => {
+    if (subTab !== "configurazione") return;
+    setClubConfig(null);
+    fetch(`${API}/admin/book-club-config/${configMonth}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        setClubConfig(d);
+        setConfigForm({
+          countdown_enabled: !!(d.voting_ends_at),
+          voting_ends_at: d.voting_ends_at ? d.voting_ends_at.slice(0, 16) : "",
+        });
+      })
+      .catch(() => { setClubConfig({}); setConfigForm({ countdown_enabled: false, voting_ends_at: "" }); });
+  }, [configMonth, subTab, token]);
+
+  const saveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      const body = { voting_ends_at: configForm.countdown_enabled && configForm.voting_ends_at ? new Date(configForm.voting_ends_at).toISOString() : null };
+      await axios.put(`${API}/admin/book-club-config/${configMonth}`, body, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Configurazione salvata.");
+      setClubConfig(prev => ({ ...prev, ...body }));
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setSavingConfig(false); }
+  };
+
+  const activateRush = async () => {
+    if (!window.confirm(`Attivare il Rush Finale per ${configMonth}? I voti verranno azzerati e i libri fuori dal podio ingrigiti.`)) return;
+    setRushActivating(true);
+    try {
+      const res = await axios.post(`${API}/admin/book-club-config/${configMonth}/rush-finale`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(`Rush Finale attivato! ${res.data.rush_count} libri in gara, ${res.data.excluded_count} esclusi.`);
+      setClubConfig(prev => ({ ...prev, rush_finale_active: true }));
+    } catch (err) {
+      const detail = err?.response?.data?.detail || "Errore nell'attivazione.";
+      toast.error(detail);
+    }
+    finally { setRushActivating(false); }
+  };
+
+  const deactivateRush = async () => {
+    if (!window.confirm("Disattivare il Rush Finale e ripristinare i voti precedenti?")) return;
+    setRushActivating(true);
+    try {
+      await axios.delete(`${API}/admin/book-club-config/${configMonth}/rush-finale`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Rush Finale disattivato. Voti ripristinati.");
+      setClubConfig(prev => ({ ...prev, rush_finale_active: false }));
+    } catch { toast.error("Errore nella disattivazione."); }
+    finally { setRushActivating(false); }
+  };
+
   const handleSave = () => onReload();
 
   const handleDelete = async (id) => {
@@ -1752,6 +1810,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
         {tabBtn("catalogo", "Catalogo libri", 0)}
         {tabBtn("prestiti", "Prestiti", lentCount)}
         {tabBtn("proposte", "Proposte", proposalCount)}
+        {tabBtn("configurazione", "⚙ Configurazione", 0)}
       </div>
 
       {/* ── Catalogo ── */}
@@ -1915,6 +1974,92 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
               proposals={proposals}
               renderCard={(p) => <ProposalAdminCard key={p.id} p={p} onDelete={handleDeleteProposal} onReload={onReload} token={token} />}
             />
+          )}
+        </div>
+      )}
+
+      {/* ── Configurazione ── */}
+      {subTab === "configurazione" && (
+        <div className="max-w-lg flex flex-col gap-6">
+          {/* Selettore mese */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5">Mese di riferimento</label>
+            <input
+              type="month"
+              className="px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+              value={configMonth}
+              onChange={e => setConfigMonth(e.target.value)}
+            />
+          </div>
+
+          {clubConfig === null ? (
+            <div className="text-tv-green-deep/30 text-sm">Caricamento…</div>
+          ) : (
+            <>
+              {/* Countdown fine votazioni */}
+              <div className="bg-white rounded-3xl border border-tv-green-deep/10 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-black text-tv-green-deep text-sm">Countdown fine votazioni</div>
+                    <div className="text-xs text-tv-green-deep/50 mt-0.5">Mostra il conto alla rovescia nella sezione proposte del mese</div>
+                  </div>
+                  <button
+                    onClick={() => setConfigForm(f => ({ ...f, countdown_enabled: !f.countdown_enabled }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${configForm.countdown_enabled ? "bg-tv-green" : "bg-tv-green-deep/20"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${configForm.countdown_enabled ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
+                {configForm.countdown_enabled && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Data e ora fine votazioni</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+                      value={configForm.voting_ends_at}
+                      onChange={e => setConfigForm(f => ({ ...f, voting_ends_at: e.target.value }))}
+                    />
+                  </div>
+                )}
+                <button
+                  onClick={saveConfig}
+                  disabled={savingConfig}
+                  className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60 hover:bg-tv-green transition-colors"
+                >
+                  {savingConfig ? "Salvo…" : "Salva configurazione"}
+                </button>
+              </div>
+
+              {/* Rush Finale */}
+              <div className={`rounded-3xl border p-5 flex flex-col gap-4 ${clubConfig.rush_finale_active ? "bg-tv-bordeaux/5 border-tv-bordeaux/20" : "bg-white border-tv-green-deep/10"}`}>
+                <div>
+                  <div className="font-black text-tv-green-deep text-sm flex items-center gap-2">
+                    🏁 Rush Finale
+                    {clubConfig.rush_finale_active && <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-bordeaux/15 text-tv-bordeaux">Attivo</span>}
+                  </div>
+                  <div className="text-xs text-tv-green-deep/50 mt-0.5 leading-relaxed">
+                    Azzera i voti e lascia in gara solo i libri nei primi 3 posti (pari merito inclusi). Gli altri vengono ingrigiti ma restano visibili.
+                  </div>
+                </div>
+                {clubConfig.rush_finale_active ? (
+                  <button
+                    onClick={deactivateRush}
+                    disabled={rushActivating}
+                    className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-tv-bordeaux/30 text-tv-bordeaux font-bold text-sm disabled:opacity-60 hover:bg-tv-bordeaux/5 transition-colors"
+                  >
+                    {rushActivating ? "Attendere…" : "Disattiva Rush Finale"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={activateRush}
+                    disabled={rushActivating}
+                    className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-bordeaux text-white font-bold text-sm disabled:opacity-60 hover:bg-tv-bordeaux/80 transition-colors"
+                  >
+                    {rushActivating ? "Attivazione…" : "🏁 Attiva Rush Finale"}
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </div>
       )}
