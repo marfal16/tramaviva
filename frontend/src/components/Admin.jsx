@@ -4012,28 +4012,23 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
           <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(row.id)}
             className="w-4 h-4 accent-tv-green cursor-pointer" />
         </td>
-        <td className="py-3 pr-4 min-w-[160px]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-tv-green-deep text-tv-cream flex items-center justify-center font-black text-sm flex-shrink-0">
+        <td className="py-3 pr-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-tv-green-deep text-tv-cream flex items-center justify-center font-black text-xs flex-shrink-0">
               {(row.name?.[0] || "?").toUpperCase()}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-semibold text-sm text-tv-green-deep">{row.name}</span>
-                {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fondatore</span>}
+                <span className="font-semibold text-sm text-tv-green-deep truncate">{row.name}</span>
+                {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fond.</span>}
                 {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
               </div>
-              {row.message && <p className="text-[11px] text-tv-green-deep/40 italic truncate max-w-[180px]">"{row.message}"</p>}
+              {row.email && <a href={`mailto:${row.email}`} className="text-[11px] text-tv-green-deep/50 hover:text-tv-bordeaux truncate block max-w-[180px]">{row.email}</a>}
+              {row.phone && <span className="text-[11px] text-tv-green-deep/40">{row.phone}</span>}
             </div>
           </div>
         </td>
-        <td className="py-3 pr-4">
-          <div className="text-xs text-tv-green-deep/60 space-y-0.5">
-            {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux truncate max-w-[180px]"><Mail size={10}/>{row.email}</a>}
-            {row.phone && <div className="text-tv-green-deep/40">📞 {row.phone}</div>}
-          </div>
-        </td>
-        <td className="py-3 pr-4 text-center">
+        <td className="py-3 pr-3 text-center w-12">
           {row.num_persone > 1 ? (
             <button onClick={() => setShowGuests(v => !v)}
               className="inline-flex items-center gap-1 text-xs font-bold bg-tv-sky/30 text-tv-green-deep px-2 py-1 rounded-full hover:bg-tv-sky/50 transition-colors">
@@ -4041,10 +4036,10 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             </button>
           ) : <span className="text-sm text-tv-green-deep/40">1</span>}
         </td>
-        <td className="py-3 pr-4">
+        <td className="py-3 pr-3">
           <span className="text-xs text-tv-green-deep/70">{row.opzione_scelta || <span className="text-tv-green-deep/25">—</span>}</span>
         </td>
-        <td className="py-3 pr-4">
+        <td className="py-3 pr-3">
           <div className="space-y-1">
             {row.donazione_volontaria > 0 && (
               <span className="block text-[10px] font-bold bg-tv-green/15 text-tv-green-deep px-2 py-0.5 rounded-full">💚 {row.donazione_volontaria}€</span>
@@ -4056,10 +4051,10 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             ) : <span className="text-tv-green-deep/25 text-xs">—</span>}
           </div>
         </td>
-        <td className="py-3 pr-2">
+        <td className="py-3 pr-3 w-8 text-center">
           {row.confirmed
-            ? <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-1 rounded-full whitespace-nowrap">✓ Confermato</span>
-            : <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-1 rounded-full whitespace-nowrap">⏳ In attesa</span>}
+            ? <span title="Confermato" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-tv-green/20 text-tv-green-deep text-xs font-bold">✓</span>
+            : <span title="In attesa" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-tv-orange/15 text-tv-bordeaux text-xs">⏳</span>}
         </td>
         <td className="py-3 pr-4 text-right">
           <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
@@ -4539,7 +4534,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                 ) : (
                   <>
                     {/* Desktop: tabella */}
-                    <div className="hidden md:block overflow-x-auto">
+                    <div className="hidden md:block">
                       <table className="w-full">
                         <thead className="sticky top-0 bg-tv-cream/95 backdrop-blur-sm z-10">
                           <tr className="text-left border-b border-tv-green-deep/10">
@@ -4554,13 +4549,12 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                                 className="w-4 h-4 accent-tv-green cursor-pointer"
                               />
                             </th>
-                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Partecipante</th>
-                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Contatti</th>
-                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center">Persone</th>
-                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Opzione</th>
-                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Pagamento</th>
-                            <th className="py-2.5 pr-4 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
-                            <th className="py-2.5 pr-4 w-24"/>
+                            <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Partecipante</th>
+                            <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 text-center w-12">N.</th>
+                            <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Opzione</th>
+                            <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Pagamento</th>
+                            <th className="py-2.5 pr-3 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 w-8"/>
+                            <th className="py-2.5 pr-3 w-24"/>
                           </tr>
                         </thead>
                         <tbody>
