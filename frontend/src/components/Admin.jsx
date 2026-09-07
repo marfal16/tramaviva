@@ -4765,24 +4765,27 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
     <article
       key={ev.id}
       data-testid={`admin-event-row-${ev.id}`}
-      className="bg-white rounded-2xl border border-tv-green-deep/10 flex flex-row items-center gap-3 p-3
-        md:flex-col md:aspect-square md:items-start md:justify-between md:p-3 md:overflow-hidden"
+      className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden
+        flex items-center gap-3 p-3
+        md:flex-col md:p-0 md:gap-0"
     >
-      <div className="text-xl flex-shrink-0">{ev.has_image
-        ? <img src={`${API}/events/${ev.id}/image`} alt="" className="w-8 h-8 rounded-lg object-cover" />
-        : ev.emoji}
+      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 md:w-full md:h-20 md:rounded-none">
+        {ev.has_image
+          ? <img src={`${API}/events/${ev.id}/image`} alt="" className="w-full h-full object-cover" />
+          : <div className="w-full h-full bg-gradient-to-br from-tv-green/20 to-tv-sky/20 flex items-center justify-center text-2xl">{ev.emoji}</div>
+        }
       </div>
-      <div className="flex-1 min-w-0 md:flex-none">
-        <h3 className="font-display font-black text-sm text-tv-green-deep leading-tight line-clamp-2">{ev.title}</h3>
-        <div className="text-[11px] text-tv-green-deep/50">{fmtDay(ev.date)}</div>
-      </div>
-      <div className="flex gap-1.5 flex-shrink-0 md:self-end">
-        <button onClick={() => onEdit(ev)} className="p-1.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors" aria-label="Modifica">
-          <Pencil size={12} />
-        </button>
-        <button onClick={() => onDelete(ev.id)} className="p-1.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors" aria-label="Elimina">
-          <Trash2 size={12} />
-        </button>
+      <div className="flex-1 min-w-0 md:p-2 md:w-full">
+        <h3 className="font-display font-black text-xs text-tv-green-deep leading-tight line-clamp-2">{ev.title}</h3>
+        <div className="text-[10px] text-tv-green-deep/50 mt-0.5">{fmtDay(ev.date)}</div>
+        <div className="flex gap-1 mt-1.5 justify-end">
+          <button onClick={() => onEdit(ev)} className="p-1 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors" aria-label="Modifica">
+            <Pencil size={10} />
+          </button>
+          <button onClick={() => onDelete(ev.id)} className="p-1 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors" aria-label="Elimina">
+            <Trash2 size={10} />
+          </button>
+        </div>
       </div>
     </article>
   );
