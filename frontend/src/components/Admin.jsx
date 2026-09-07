@@ -4721,54 +4721,69 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
   const upcoming = events.filter((ev) => !isPast(ev.date));
   const past = events.filter((ev) => isPast(ev.date));
 
-  const renderEventRow = (ev) => (
+  const renderEventCard = (ev) => (
     <article
       key={ev.id}
       data-testid={`admin-event-row-${ev.id}`}
-      className="bg-white rounded-3xl p-5 md:p-6 border border-tv-green-deep/10 flex flex-col md:flex-row md:items-center gap-4 justify-between"
+      className="bg-white rounded-3xl border border-tv-green-deep/10 flex flex-col
+        p-5 gap-3
+        md:aspect-square md:p-5 md:justify-between md:overflow-hidden"
     >
-      <div className="flex items-start gap-4 flex-1">
-        {ev.has_image ? (
-          <img src={`${API}/events/${ev.id}/image`} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
-        ) : (
-          <span className="text-3xl">{ev.emoji}</span>
-        )}
-        <div className="flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
+      {/* Mobile: riga orizzontale; Desktop: blocco verticale */}
+      <div className="flex items-start gap-4 flex-1 md:flex-col md:gap-2 md:flex-none">
+        <div className="text-3xl md:text-4xl flex-shrink-0">{ev.has_image
+          ? <img src={`${API}/events/${ev.id}/image`} alt="" className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover" />
+          : ev.emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full">
               {ev.category}
             </span>
-            <span className="text-xs text-tv-green-deep/60">
-              {fmtDay(ev.date)} · {ev.time}
-            </span>
+            {ev.featured && <span className="text-[10px] font-bold uppercase bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">⭐</span>}
           </div>
-          <h3 className="mt-1 font-display font-black text-lg text-tv-green-deep flex items-center gap-2">
-            {ev.title}
-            {ev.featured && (
-              <span className="text-xs font-bold uppercase tracking-wider bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">
-                ⭐ In Evidenza
-              </span>
-            )}
-          </h3>
-          <div className="text-sm text-tv-green-deep/70">📍 {ev.location} · 👥 {ev.max_participants ?? ev.spots} posti · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratuito"}</div>
+          <h3 className="mt-1 font-display font-black text-base text-tv-green-deep leading-tight line-clamp-2">{ev.title}</h3>
+          <div className="text-xs text-tv-green-deep/60 mt-0.5">{fmtDay(ev.date)} · {ev.time}</div>
+          <div className="text-xs text-tv-green-deep/50 truncate">📍 {ev.location}</div>
         </div>
       </div>
-      <div className="flex items-center gap-2 self-end md:self-center">
-        <button
-          onClick={() => onEdit(ev)}
-          data-testid={`admin-event-edit-${ev.id}`}
-          className="p-2.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors"
-          aria-label="Modifica"
-        >
-          <Pencil size={16} />
+      <div className="flex items-center gap-2 justify-end md:justify-between md:items-end">
+        <span className="hidden md:block text-xs text-tv-green-deep/50">👥 {ev.max_participants ?? ev.spots} · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratis"}</span>
+        <div className="flex gap-2">
+          <button onClick={() => onEdit(ev)} data-testid={`admin-event-edit-${ev.id}`}
+            className="p-2 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors" aria-label="Modifica">
+            <Pencil size={14} />
+          </button>
+          <button onClick={() => onDelete(ev.id)} data-testid={`admin-event-delete-${ev.id}`}
+            className="p-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors" aria-label="Elimina">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+
+  const renderEventCardPast = (ev) => (
+    <article
+      key={ev.id}
+      data-testid={`admin-event-row-${ev.id}`}
+      className="bg-white rounded-2xl border border-tv-green-deep/10 flex flex-row items-center gap-3 p-3
+        md:flex-col md:aspect-square md:items-start md:justify-between md:p-3 md:overflow-hidden"
+    >
+      <div className="text-xl flex-shrink-0">{ev.has_image
+        ? <img src={`${API}/events/${ev.id}/image`} alt="" className="w-8 h-8 rounded-lg object-cover" />
+        : ev.emoji}
+      </div>
+      <div className="flex-1 min-w-0 md:flex-none">
+        <h3 className="font-display font-black text-sm text-tv-green-deep leading-tight line-clamp-2">{ev.title}</h3>
+        <div className="text-[11px] text-tv-green-deep/50">{fmtDay(ev.date)}</div>
+      </div>
+      <div className="flex gap-1.5 flex-shrink-0 md:self-end">
+        <button onClick={() => onEdit(ev)} className="p-1.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors" aria-label="Modifica">
+          <Pencil size={12} />
         </button>
-        <button
-          onClick={() => onDelete(ev.id)}
-          data-testid={`admin-event-delete-${ev.id}`}
-          className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-          aria-label="Elimina"
-        >
-          <Trash2 size={16} />
+        <button onClick={() => onDelete(ev.id)} className="p-1.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors" aria-label="Elimina">
+          <Trash2 size={12} />
         </button>
       </div>
     </article>
@@ -4794,14 +4809,20 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
               Nessun evento in programma. Crea un nuovo evento o controlla lo storico qui sotto.
             </div>
           )}
-          {upcoming.length > 0 && <div className="grid gap-3">{upcoming.map(renderEventRow)}</div>}
+          {upcoming.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {upcoming.map(renderEventCard)}
+            </div>
+          )}
           {past.length > 0 && (
             <>
               <div className="flex items-center gap-3 my-8">
                 <span className="text-xs font-bold uppercase tracking-[0.25em] text-tv-green-deep/40">📁 Storico eventi</span>
                 <div className="flex-1 border-t border-tv-green-deep/10" />
               </div>
-              <div className="grid gap-3 opacity-60">{past.map(renderEventRow)}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 opacity-60">
+                {past.map(renderEventCardPast)}
+              </div>
             </>
           )}
         </>
