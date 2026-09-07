@@ -113,7 +113,23 @@ export const EventoDettaglio = () => {
       toast.error("Seleziona l'opzione per ogni accompagnatore.");
       return;
     }
+    // Verifica iscrizione duplicata
     setSubmitting(true);
+    try {
+      const emailsToCheck = [form.email, ...ospiti.map(g => g.email).filter(Boolean)].join(",");
+      const dupCheck = await axios.get(`${API}/events/${event.id}/check-signup?emails=${encodeURIComponent(emailsToCheck)}`);
+      if (dupCheck.data.duplicates?.length > 0) {
+        const dupes = dupCheck.data.duplicates;
+        const isMain = dupes.some(e => e === form.email.toLowerCase());
+        toast.error(isMain
+          ? "Sei già iscritto a questo evento con questa email."
+          : `L'email ${dupes[0]} è già registrata per questo evento.`,
+          { duration: 6000 }
+        );
+        setSubmitting(false);
+        return;
+      }
+    } catch { /* ignora errori di rete sul check, procedi comunque */ }
     try {
       const res = await axios.post(`${API}/event-signup`, {
         event_id: event.id,
@@ -348,15 +364,17 @@ export const EventoDettaglio = () => {
                   <div className="flex items-center gap-2">
                     <MapPin size={15} /> {event.location}
                   </div>
-                  {event.spots <= 5 && (
+                  {event.spots != null && (
                     <div className="flex items-center gap-2">
                       <Users size={15} />
                       {event.spots <= 0 ? (
                         <span className="font-bold text-tv-bordeaux">🔴 SOLD OUT</span>
                       ) : event.spots === 1 ? (
                         <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
-                      ) : (
+                      ) : event.spots <= 5 ? (
                         <span className="font-bold text-orange-300">⚡ Ultimi {event.spots} posti!</span>
+                      ) : (
+                        <span className="opacity-80">{event.spots} posti disponibili</span>
                       )}
                     </div>
                   )}

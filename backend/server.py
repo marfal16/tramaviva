@@ -698,6 +698,30 @@ async def get_event_signups_count(event_id: str):
     count = result[0]["total"] if result else 0
     return {"count": count}
 
+@api_router.get("/events/{event_id}/check-signup")
+async def check_event_signup(event_id: str, emails: str = ""):
+    """Controlla se una o più email (separate da virgola) sono già iscritte all'evento."""
+    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"id": 1})
+    if not doc:
+        return {"duplicates": []}
+    real_id = doc["id"]
+    email_list = [e.strip().lower() for e in emails.split(",") if e.strip()]
+    if not email_list:
+        return {"duplicates": []}
+    duplicates = []
+    for email in email_list:
+        pattern = re.compile(f"^{re.escape(email)}$", re.IGNORECASE)
+        existing = await db.event_signups.find_one({
+            "event_id": real_id,
+            "$or": [
+                {"email": pattern},
+                {"ospiti": {"$elemMatch": {"email": pattern}}}
+            ]
+        })
+        if existing:
+            duplicates.append(email)
+    return {"duplicates": duplicates}
+
 @api_router.get("/events/{event_id}/calendar.ics")
 async def get_event_ics(event_id: str):
     from fastapi.responses import Response
