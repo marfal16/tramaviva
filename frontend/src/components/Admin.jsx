@@ -4725,39 +4725,37 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
     <article
       key={ev.id}
       data-testid={`admin-event-row-${ev.id}`}
-      className="bg-white rounded-3xl border border-tv-green-deep/10 flex flex-col
-        p-5 gap-3
-        md:aspect-square md:p-5 md:justify-between md:overflow-hidden"
+      className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden
+        flex items-center gap-3 p-3
+        md:flex-col md:p-0 md:gap-0"
     >
-      {/* Mobile: riga orizzontale; Desktop: blocco verticale */}
-      <div className="flex items-start gap-4 flex-1 md:flex-col md:gap-2 md:flex-none">
-        <div className="text-3xl md:text-4xl flex-shrink-0">{ev.has_image
-          ? <img src={`${API}/events/${ev.id}/image`} alt="" className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover" />
-          : ev.emoji}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full">
-              {ev.category}
-            </span>
-            {ev.featured && <span className="text-[10px] font-bold uppercase bg-tv-orange text-tv-green-deep px-2 py-0.5 rounded-full">⭐</span>}
-          </div>
-          <h3 className="mt-1 font-display font-black text-base text-tv-green-deep leading-tight line-clamp-2">{ev.title}</h3>
-          <div className="text-xs text-tv-green-deep/60 mt-0.5">{fmtDay(ev.date)} · {ev.time}</div>
-          <div className="text-xs text-tv-green-deep/50 truncate">📍 {ev.location}</div>
-        </div>
+      {/* Cover — mobile: piccola, desktop: full-width in cima */}
+      <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 md:w-full md:h-32 md:rounded-none">
+        {ev.has_image
+          ? <img src={`${API}/events/${ev.id}/image`} alt="" className="w-full h-full object-cover" />
+          : <div className="w-full h-full bg-gradient-to-br from-tv-green/20 to-tv-sky/20 flex items-center justify-center text-3xl md:text-5xl">{ev.emoji}</div>
+        }
       </div>
-      <div className="flex items-center gap-2 justify-end md:justify-between md:items-end">
-        <span className="hidden md:block text-xs text-tv-green-deep/50">👥 {ev.max_participants ?? ev.spots} · 💶 {ev.contributo > 0 ? `${ev.contributo}€` : "Gratis"}</span>
-        <div className="flex gap-2">
-          <button onClick={() => onEdit(ev)} data-testid={`admin-event-edit-${ev.id}`}
-            className="p-2 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors" aria-label="Modifica">
-            <Pencil size={14} />
-          </button>
-          <button onClick={() => onDelete(ev.id)} data-testid={`admin-event-delete-${ev.id}`}
-            className="p-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors" aria-label="Elimina">
-            <Trash2 size={14} />
-          </button>
+      {/* Info */}
+      <div className="flex-1 min-w-0 md:p-3 md:w-full">
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[9px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-1.5 py-0.5 rounded-full">{ev.category}</span>
+          {ev.featured && <span className="text-[9px] font-bold uppercase bg-tv-orange text-tv-green-deep px-1.5 py-0.5 rounded-full">⭐</span>}
+        </div>
+        <h3 className="mt-0.5 font-display font-black text-sm text-tv-green-deep leading-tight line-clamp-2">{ev.title}</h3>
+        <div className="text-[11px] text-tv-green-deep/50 mt-0.5">{fmtDay(ev.date)} · {ev.time}</div>
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-[10px] text-tv-green-deep/40 truncate">👥 {ev.max_participants ?? ev.spots} · {ev.contributo > 0 ? `${ev.contributo}€` : "Gratis"}</span>
+          <div className="flex gap-1 flex-shrink-0">
+            <button onClick={() => onEdit(ev)} data-testid={`admin-event-edit-${ev.id}`}
+              className="p-1.5 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors" aria-label="Modifica">
+              <Pencil size={12} />
+            </button>
+            <button onClick={() => onDelete(ev.id)} data-testid={`admin-event-delete-${ev.id}`}
+              className="p-1.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors" aria-label="Elimina">
+              <Trash2 size={12} />
+            </button>
+          </div>
         </div>
       </div>
     </article>
@@ -4810,7 +4808,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
             </div>
           )}
           {upcoming.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {upcoming.map(renderEventCard)}
             </div>
           )}
