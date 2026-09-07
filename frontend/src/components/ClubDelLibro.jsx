@@ -743,7 +743,7 @@ const ProposalsSection = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {proposals.map((p) => (
+            {[...proposals].sort((a, b) => (a.rush_excluded ? 1 : 0) - (b.rush_excluded ? 1 : 0)).map((p) => (
               <ProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote}
                 disabled={!!p.rush_excluded}
                 onReproponi={(prop) => { setReproponiData(prop); setShowForm(true); }} />

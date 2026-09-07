@@ -2469,13 +2469,17 @@ async def activate_rush_finale(month: str):
     ).sort("votes", -1).to_list(1000)
     if not proposals:
         raise HTTPException(status_code=404, detail="Nessuna proposta per questo mese")
-    distinct_votes = sorted(set(p.get("votes", 0) for p in proposals), reverse=True)
-    top3_counts = set(distinct_votes[:3])
+    # top 3 libri fisici; se il 3° e il 4° hanno gli stessi voti, espandi (pari merito al confine)
+    if len(proposals) <= 3:
+        cutoff_votes = -1
+    else:
+        cutoff_votes = proposals[2].get("votes", 0)
+    rush_ids = {p["id"] for p in proposals if p.get("votes", 0) >= cutoff_votes}
     now_str = datetime.now(timezone.utc).isoformat()
     in_rush = 0
     excluded = 0
     for p in proposals:
-        if p.get("votes", 0) in top3_counts:
+        if p["id"] in rush_ids:
             await db.proposals.update_one(
                 {"id": p["id"]},
                 {"$set": {
@@ -2498,7 +2502,7 @@ async def activate_rush_finale(month: str):
         {"$set": {"month": month, "rush_finale_active": True, "rush_finale_activated_at": now_str}},
         upsert=True,
     )
-    return {"ok": True, "in_rush": in_rush, "excluded": excluded}
+    return {"ok": True, "rush_count": in_rush, "excluded_count": excluded}
 
 @api_router.delete("/admin/book-club-config/{month}/rush-finale", dependencies=[Depends(require_admin)])
 async def deactivate_rush_finale(month: str):
