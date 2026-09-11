@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, Lock, RotateCcw } from "lucide-react";
+import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, Lock, RotateCcw, MessageCircle } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;

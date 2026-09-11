@@ -2944,7 +2944,7 @@ const CalendarManager = ({ token, onReload }) => {
                             <button
                               key={j}
                               onClick={e => openEdit(ev, e)}
-                              className={`text-left text-[7px] md:text-[8px] font-bold px-1 py-0.5 rounded truncate w-full ${cat.bg} ${cat.text} ${isDraft ? "opacity-50" : ""}`}
+                              className={`text-left text-[9px] md:text-[10px] font-bold px-1 py-0.5 rounded truncate w-full ${cat.bg} ${cat.text} ${isDraft ? "border border-dashed border-current opacity-70" : ""}`}
                               title={label}
                             >
                               {label}
