@@ -2938,12 +2938,13 @@ const CalendarManager = ({ token, onReload }) => {
                       <div className="flex flex-col gap-0.5">
                         {dayEvs.map((ev, j) => {
                           const cat = CAL_CATS[ev.category] || CAL_CATS.altro;
-                          const label = `${ev.title}${ev.organizer ? ` @${ev.organizer}` : ""}${ev.status === "tentative" ? " (???)" : ""}`;
+                          const isDraft = ev.status === "tentative";
+                          const label = `${ev.title}${ev.organizer ? ` @${ev.organizer}` : ""}${isDraft ? " (???)" : ""}`;
                           return (
                             <button
                               key={j}
                               onClick={e => openEdit(ev, e)}
-                              className={`text-left text-[7px] md:text-[8px] font-bold px-1 py-0.5 rounded truncate w-full ${cat.bg} ${cat.text}`}
+                              className={`text-left text-[7px] md:text-[8px] font-bold px-1 py-0.5 rounded truncate w-full ${cat.bg} ${cat.text} ${isDraft ? "opacity-50" : ""}`}
                               title={label}
                             >
                               {label}
