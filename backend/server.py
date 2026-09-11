@@ -119,7 +119,7 @@ class Event(BaseModel):
     id: str
     slug: str
     title: str
-    category: str
+    category: str = ""
     date: str
     time: str
     location: str
@@ -660,7 +660,7 @@ async def root():
 @api_router.get("/events", response_model=List[Event])
 async def get_events():
     try:
-        docs = await db.events.find({}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
+        docs = await db.events.find({"is_draft": {"$ne": True}}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
         return docs or []
     except Exception as e:
         logger.error(f"Errore nel caricamento eventi: {e}")
@@ -2022,7 +2022,7 @@ async def admin_update_event_signup_payment(signup_id: str, payload: PaymentStat
 # ========== ADMIN: EVENTS ==========
 @api_router.get("/admin/events", dependencies=[Depends(require_admin)])
 async def admin_get_events():
-    docs = await db.events.find({}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
+    docs = await db.events.find({"is_draft": {"$ne": True}}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
     return docs
 
 @api_router.post("/admin/events/{event_id}/image", dependencies=[Depends(require_admin)])
@@ -2814,6 +2814,7 @@ async def create_calendar_event(body: CalendarEventIn):
         "calendar_organizer": body.organizer or None,
         "calendar_notes": body.notes or None,
         "calendar_status": body.status,
+        "is_draft": body.status != "confirmed",
         "description": "",
         "time": "19:00",
         "location": "",
@@ -2841,7 +2842,9 @@ async def update_calendar_event(event_id: str, body: CalendarEventUpdate):
     if body.category is not None: update["calendar_category"] = body.category
     if body.organizer is not None: update["calendar_organizer"] = body.organizer or None
     if body.notes is not None: update["calendar_notes"] = body.notes or None
-    if body.status is not None: update["calendar_status"] = body.status
+    if body.status is not None:
+        update["calendar_status"] = body.status
+        update["is_draft"] = body.status != "confirmed"
     if not update:
         raise HTTPException(400, "Nessun campo da aggiornare")
     await db.events.update_one({"id": event_id}, {"$set": update})
