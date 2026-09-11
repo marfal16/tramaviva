@@ -123,14 +123,19 @@ h1, h2, h3, h4, h5, h6, .font-display {
 .btn-tv {
     transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
-.btn-tv:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 30px -10px rgba(92, 177, 118, 0.6);
-}
 
-/* Custom cursor hint on nav links */
+/* Mobile: eliminate tap delay and prevent scroll-tap confusion */
 a, button {
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Hover lift only on devices that support true hover (not touch) */
+@media (hover: hover) {
+    .btn-tv:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px -10px rgba(92, 177, 118, 0.6);
+    }
 }
 
 /* Hide scrollbar on marquee */

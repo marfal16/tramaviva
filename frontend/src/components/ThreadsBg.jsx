@@ -9,6 +9,7 @@ export const ThreadsBg = ({ className = "", opacity = 0.22 }) => (
     xmlns="http://www.w3.org/2000/svg"
     preserveAspectRatio="none"
     aria-hidden="true"
+    style={{ pointerEvents: "none" }}
   >
     <g stroke="#052F17" strokeWidth="1.2" opacity={opacity} fill="none">
       <path className="thread-path" d="M-50 120 C 200 60, 400 240, 700 140 S 1100 40, 1260 180" />
