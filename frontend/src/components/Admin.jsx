@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film, Grid3x3, ChevronLeft, ChevronRight } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -123,6 +123,7 @@ const NAV_GROUPS = [
     ],
   },
   { single: true, key: "donations", label: "Donazioni", icon: Heart },
+  { single: true, key: "calendario", label: "Calendario", icon: Grid3x3 },
 ];
 // flat list for compatibility (badge logic, etc.)
 const NAV = NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, icon: g.icon }] : (g.items || []));
@@ -1669,7 +1670,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   // Config Club del Libro
   const [configMonth, setConfigMonth] = useState(() => { const d = new Date(); return d.toISOString().slice(0, 7); });
   const [clubConfig, setClubConfig] = useState(null);
-  const [configForm, setConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false });
+  const [configForm, setConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false, community_password: "" });
   const [savingConfig, setSavingConfig] = useState(false);
   const [rushActivating, setRushActivating] = useState(false);
 
@@ -1683,6 +1684,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
         setConfigForm({
           countdown_enabled: !!(d.voting_ends_at),
           voting_ends_at: d.voting_ends_at ? d.voting_ends_at.slice(0, 16) : "",
+          community_password: d.community_password || "",
         });
       })
       .catch(() => { setClubConfig({}); setConfigForm({ countdown_enabled: false, voting_ends_at: "" }); });
@@ -1691,7 +1693,10 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   const saveConfig = async () => {
     setSavingConfig(true);
     try {
-      const body = { voting_ends_at: configForm.countdown_enabled && configForm.voting_ends_at ? new Date(configForm.voting_ends_at).toISOString() : null };
+      const body = {
+        voting_ends_at: configForm.countdown_enabled && configForm.voting_ends_at ? new Date(configForm.voting_ends_at).toISOString() : null,
+        community_password: configForm.community_password || null,
+      };
       await axios.put(`${API}/admin/book-club-config/${configMonth}`, body, { headers: { Authorization: `Bearer ${token}` } });
       toast.success("Configurazione salvata.");
       setClubConfig(prev => ({ ...prev, ...body }));
@@ -2036,6 +2041,17 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
                     />
                   </div>
                 )}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Password community (biblioteca + proposte + voti)</label>
+                  <input
+                    type="text"
+                    placeholder="es. librotrama"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+                    value={configForm.community_password}
+                    onChange={e => setConfigForm(f => ({ ...f, community_password: e.target.value }))}
+                  />
+                  <p className="text-[11px] text-tv-green-deep/40 mt-1">Da condividere nel gruppo WhatsApp. Lascia vuoto per disabilitare.</p>
+                </div>
                 <button
                   onClick={saveConfig}
                   disabled={savingConfig}
@@ -2105,7 +2121,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   // Config Cineforum
   const [cfConfigMonth, setCfConfigMonth] = useState(() => { const d = new Date(); return d.toISOString().slice(0, 7); });
   const [cfConfig, setCfConfig] = useState(null);
-  const [cfConfigForm, setCfConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false });
+  const [cfConfigForm, setCfConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false, community_password: "" });
   const [savingCfConfig, setSavingCfConfig] = useState(false);
   const [cfRushActivating, setCfRushActivating] = useState(false);
 
@@ -2119,6 +2135,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
         setCfConfigForm({
           countdown_enabled: !!(d.voting_ends_at),
           voting_ends_at: d.voting_ends_at ? d.voting_ends_at.slice(0, 16) : "",
+          community_password: d.community_password || "",
         });
       })
       .catch(() => { setCfConfig({}); setCfConfigForm({ countdown_enabled: false, voting_ends_at: "" }); });
@@ -2127,7 +2144,10 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   const saveCfConfig = async () => {
     setSavingCfConfig(true);
     try {
-      const body = { voting_ends_at: cfConfigForm.countdown_enabled && cfConfigForm.voting_ends_at ? new Date(cfConfigForm.voting_ends_at).toISOString() : null };
+      const body = {
+        voting_ends_at: cfConfigForm.countdown_enabled && cfConfigForm.voting_ends_at ? new Date(cfConfigForm.voting_ends_at).toISOString() : null,
+        community_password: cfConfigForm.community_password || null,
+      };
       await axios.put(`${API}/admin/cineforum-config/${cfConfigMonth}`, body, { headers: { Authorization: `Bearer ${token}` } });
       toast.success("Configurazione salvata.");
       setCfConfig(prev => ({ ...prev, ...body }));
@@ -2465,6 +2485,17 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
                     />
                   </div>
                 )}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Password community (proposte + voti)</label>
+                  <input
+                    type="text"
+                    placeholder="es. cineclub"
+                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+                    value={cfConfigForm.community_password}
+                    onChange={e => setCfConfigForm(f => ({ ...f, community_password: e.target.value }))}
+                  />
+                  <p className="text-[11px] text-tv-green-deep/40 mt-1">Da condividere nel gruppo WhatsApp. Lascia vuoto per disabilitare.</p>
+                </div>
                 <button
                   onClick={saveCfConfig}
                   disabled={savingCfConfig}
@@ -2532,84 +2563,63 @@ const VisitorChart = ({ visitorStats, activeUsers, visitorGeo }) => {
   const geoMax = geoRows[0]?.count || 1;
 
   return (
-    <div className="mb-6 bg-white rounded-2xl border border-tv-green-deep/10 p-4">
-      {/* Header row */}
-      <div className="flex items-center gap-3 mb-3 flex-wrap">
+    <div className="mb-4 bg-white rounded-xl border border-tv-green-deep/10 px-3 py-2">
+      {/* Riga unica: badge + sparkline + stats + periodo */}
+      <div className="flex items-center gap-2 flex-wrap">
         {activeUsers !== null && (
-          <div className="inline-flex items-center gap-2 bg-tv-green/10 rounded-xl px-3 py-1.5">
-            <span className="w-2 h-2 rounded-full bg-tv-green animate-pulse flex-shrink-0" />
-            <span className="text-sm font-bold text-tv-green-deep">
-              {activeUsers === 0 ? "Nessun visitatore ora" : activeUsers === 1 ? "1 visitatore ora" : `${activeUsers} visitatori ora`}
+          <div className="inline-flex items-center gap-1.5 bg-tv-green/10 rounded-lg px-2 py-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-tv-green animate-pulse flex-shrink-0" />
+            <span className="text-[11px] font-bold text-tv-green-deep">
+              {activeUsers === 0 ? "Nessun visitatore ora" : activeUsers === 1 ? "1 ora" : `${activeUsers} ora`}
             </span>
           </div>
         )}
-        <div className="ml-auto flex items-center gap-1">
+        {shown.length > 0 && (
+          <>
+            <span className="text-[10px] text-tv-green-deep/40">{totalShown} sessioni · {avgShown}/g</span>
+            {/* Sparkline inline */}
+            <div className="flex items-end gap-px h-5 flex-1 min-w-0 max-w-[180px]">
+              {shown.map(d => {
+                const h = Math.max(1, Math.round((d.visitors / shownMax) * 18));
+                const label = new Date(d.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+                return (
+                  <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative">
+                    <div className="absolute bottom-full mb-1 bg-tv-green-deep text-tv-cream text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
+                      {label}: {d.visitors}
+                    </div>
+                    <div style={{ height: `${h}px` }} className="w-full rounded-sm bg-tv-green/50 hover:bg-tv-green transition-colors cursor-default" />
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        <div className="ml-auto flex items-center gap-0.5">
           {[7, 30, 90].map(w => (
             <button key={w} onClick={() => setView(w)}
-              className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors ${view === w ? "bg-tv-green-deep text-tv-cream" : "text-tv-green-deep/40 hover:text-tv-green-deep"}`}>
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold transition-colors ${view === w ? "bg-tv-green-deep text-tv-cream" : "text-tv-green-deep/40 hover:text-tv-green-deep"}`}>
               {w}g
             </button>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Grafico barre */}
-        <div>
-          {shown.length > 0 ? (
-            <>
-              <div className="text-xs text-tv-green-deep/40 mb-2">{totalShown} sessioni · media {avgShown}/giorno</div>
-              <div className="flex items-end gap-0.5 h-16">
-                {shown.map(d => {
-                  const h = Math.max(2, Math.round((d.visitors / shownMax) * 60));
-                  const label = new Date(d.date).toLocaleDateString("it-IT", { day: "numeric", month: "short" });
-                  return (
-                    <div key={d.date} className="flex-1 flex flex-col items-center justify-end group relative">
-                      <div className="absolute bottom-full mb-1 bg-tv-green-deep text-tv-cream text-[9px] font-bold px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10">
-                        {label}: {d.visitors}
-                      </div>
-                      <div style={{ height: `${h}px` }} className="w-full rounded-sm bg-tv-green/60 hover:bg-tv-green transition-colors cursor-default" />
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="text-xs text-tv-green-deep/30 text-center py-6">
-              I dati si accumulano dai prossimi accessi al sito
+      {/* Geo: 2 colonne compatte */}
+      {geoRows.length > 0 && (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1.5">
+          {geoRows.slice(0, 6).map((r, i) => (
+            <div key={i} className="flex items-center gap-1 text-[10px]">
+              {r.country_code && (
+                <img src={FLAG_URL(r.country_code)} alt={r.country} className="w-3 h-2 rounded-sm object-cover flex-shrink-0" />
+              )}
+              <span className="text-tv-green-deep/60 truncate flex-1">
+                {[r.city, r.region].filter(Boolean).join(", ") || r.country}
+              </span>
+              <span className="font-bold text-tv-green-deep flex-shrink-0">{r.count}</span>
             </div>
-          )}
+          ))}
         </div>
-
-        {/* Tabella geo */}
-        <div>
-          {geoRows.length > 0 ? (
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/30 mb-2">Provenienza · ultimi 30g</div>
-              {geoRows.map((r, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  {r.country_code && (
-                    <img src={FLAG_URL(r.country_code)} alt={r.country} className="w-4 h-3 rounded-sm object-cover flex-shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="relative h-1.5 bg-tv-green-deep/8 rounded-full overflow-hidden">
-                      <div style={{ width: `${Math.round((r.count / geoMax) * 100)}%` }} className="h-full bg-tv-sky/60 rounded-full" />
-                    </div>
-                  </div>
-                  <span className="text-tv-green-deep/60 truncate max-w-[110px]">
-                    {[r.city, r.region].filter(Boolean).join(", ") || r.country}
-                  </span>
-                  <span className="font-bold text-tv-green-deep flex-shrink-0">{r.count}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-xs text-tv-green-deep/30 text-center py-6">
-              I dati geografici si accumulano dai prossimi accessi
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -2764,6 +2774,312 @@ const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats, visitorGeo
           })()}
         </div>
       </div>
+    </div>
+  );
+};
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+
+const CAL_CATS = {
+  sede_rareca:  { label: "Sede Rareca Terzigno", bg: "bg-orange-400",   text: "text-white" },
+  salute:       { label: "Eventi Salute",         bg: "bg-sky-200",      text: "text-sky-900" },
+  lab_creativi: { label: "Lab Creativi",          bg: "bg-amber-700",    text: "text-white" },
+  natura:       { label: "Natura / Passeggiate",  bg: "bg-green-500",    text: "text-white" },
+  club:         { label: "Club (ricorrente)",      bg: "bg-white",        text: "text-tv-green-deep", border: true },
+  altro:        { label: "Altro",                  bg: "bg-gray-200",     text: "text-gray-700" },
+};
+
+const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const DAYS_SHORT = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+
+const CalendarManager = ({ token }) => {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [calEvents, setCalEvents] = useState([]);
+  const [formalEvents, setFormalEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await axios.get(`${API}/admin/calendar-events?year=${year}&month=${month}`, auth);
+      setCalEvents(r.data.calendar_events || []);
+      setFormalEvents(r.data.formal_events || []);
+    } catch { toast.error("Errore caricamento calendario"); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [year, month]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const prevMonth = () => month === 1 ? (setYear(y => y - 1), setMonth(12)) : setMonth(m => m - 1);
+  const nextMonth = () => month === 12 ? (setYear(y => y + 1), setMonth(1)) : setMonth(m => m + 1);
+
+  const firstDow = (new Date(year, month - 1, 1).getDay() + 6) % 7; // Mon=0
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+
+  const byDate = {};
+  calEvents.forEach(ev => { (byDate[ev.date] = byDate[ev.date] || []).push({ ...ev, _cal: true }); });
+  formalEvents.forEach(ev => { (byDate[ev.date] = byDate[ev.date] || []).push({ ...ev, _formal: true }); });
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const openAdd = (dateStr) => {
+    setForm({ title: "", date: dateStr, category: "sede_rareca", organizer: "", notes: "", status: "confirmed" });
+    setModal({ mode: "add" });
+  };
+
+  const openEdit = (ev, e) => {
+    e.stopPropagation();
+    setForm({ ...ev });
+    setModal({ mode: "edit", event: ev });
+  };
+
+  const save = async () => {
+    if (!form.title?.trim() || !form.date) { toast.error("Titolo e data obbligatori"); return; }
+    setSaving(true);
+    try {
+      if (modal.mode === "add") {
+        await axios.post(`${API}/admin/calendar-events`, form, auth);
+        toast.success("Evento aggiunto");
+      } else {
+        await axios.put(`${API}/admin/calendar-events/${modal.event.id}`, form, auth);
+        toast.success("Evento aggiornato");
+      }
+      setModal(null);
+      load();
+    } catch { toast.error("Errore nel salvataggio"); }
+    finally { setSaving(false); }
+  };
+
+  const del = async () => {
+    if (!window.confirm(`Eliminare "${modal.event.title}"?`)) return;
+    try {
+      await axios.delete(`${API}/admin/calendar-events/${modal.event.id}`, auth);
+      toast.success("Eliminato");
+      setModal(null);
+      load();
+    } catch { toast.error("Errore nell'eliminazione"); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between bg-white rounded-2xl border border-tv-green-deep/10 px-4 py-3">
+        <button onClick={prevMonth} className="p-1.5 rounded-xl hover:bg-tv-green-deep/10 transition-colors">
+          <ChevronLeft size={18} className="text-tv-green-deep" />
+        </button>
+        <div className="text-center">
+          <div className="font-display font-black text-xl text-tv-green-deep uppercase tracking-wider">
+            {MONTHS_IT[month - 1]}
+          </div>
+          <div className="text-xs text-tv-green-deep/50 font-bold">{year}</div>
+        </div>
+        <button onClick={nextMonth} className="p-1.5 rounded-xl hover:bg-tv-green-deep/10 transition-colors">
+          <ChevronRight size={18} className="text-tv-green-deep" />
+        </button>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-1.5 items-center">
+        {Object.entries(CAL_CATS).map(([key, cat]) => (
+          <span key={key} className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${cat.bg} ${cat.text} ${cat.border ? "border border-tv-green-deep/20" : ""}`}>
+            {cat.label}
+          </span>
+        ))}
+        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-tv-green-deep/10 text-tv-green-deep border border-dashed border-tv-green-deep/30">
+          ↗ Evento con iscrizioni
+        </span>
+      </div>
+
+      {/* Grid */}
+      {loading ? (
+        <div className="flex items-center gap-2 text-tv-green-deep/60 font-bold py-8">
+          <Loader2 size={18} className="animate-spin" /> Caricamento...
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
+          <div className="grid grid-cols-7 border-b border-tv-green-deep/10">
+            {DAYS_SHORT.map(d => (
+              <div key={d} className="py-2 text-center text-[9px] font-black uppercase tracking-widest text-tv-green-deep/40">
+                {d}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {Array.from({ length: totalCells }).map((_, i) => {
+              const dayNum = i - firstDow + 1;
+              const valid = dayNum >= 1 && dayNum <= daysInMonth;
+              const dateStr = valid ? `${year}-${String(month).padStart(2,"0")}-${String(dayNum).padStart(2,"0")}` : null;
+              const dayEvs = dateStr ? (byDate[dateStr] || []) : [];
+              const isToday = dateStr === todayStr;
+              const isLastCol = i % 7 === 6;
+              const isLastRow = i >= totalCells - 7;
+              return (
+                <div
+                  key={i}
+                  onClick={() => valid && openAdd(dateStr)}
+                  className={`min-h-[80px] p-1 border-tv-green-deep/5
+                    ${!isLastCol ? "border-r" : ""}
+                    ${!isLastRow ? "border-b" : ""}
+                    ${valid ? "cursor-pointer hover:bg-tv-green-deep/[0.02]" : "bg-tv-green-deep/[0.015]"}
+                  `}
+                >
+                  {valid && (
+                    <>
+                      <div className={`text-[10px] font-black mb-0.5 w-5 h-5 flex items-center justify-center rounded-full
+                        ${isToday ? "bg-tv-bordeaux text-white" : "text-tv-green-deep/50"}`}>
+                        {dayNum}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        {dayEvs.map((ev, j) => {
+                          if (ev._formal) {
+                            return (
+                              <div
+                                key={`f${j}`}
+                                onClick={e => e.stopPropagation()}
+                                className="text-[8px] font-bold px-1 py-px rounded bg-tv-green-deep/10 text-tv-green-deep border border-dashed border-tv-green-deep/20 truncate"
+                                title={ev.title}
+                              >
+                                ↗ {ev.title}
+                              </div>
+                            );
+                          }
+                          const cat = CAL_CATS[ev.category] || CAL_CATS.altro;
+                          const label = `${ev.title}${ev.organizer ? ` @${ev.organizer}` : ""}${ev.status === "tentative" ? " (???)" : ""}`;
+                          return (
+                            <button
+                              key={`c${j}`}
+                              onClick={e => openEdit(ev, e)}
+                              className={`text-left text-[8px] font-bold px-1 py-px rounded truncate w-full ${cat.bg} ${cat.text} ${cat.border ? "border border-tv-green-deep/25" : ""}`}
+                              title={label}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Tip */}
+      <p className="text-xs text-tv-green-deep/40 text-center">Clicca su un giorno per aggiungere un evento · Clicca su un evento per modificarlo</p>
+
+      {/* Modal */}
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setModal(null)}>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-display font-black text-lg text-tv-green-deep">
+                {modal.mode === "add" ? "Aggiungi evento" : "Modifica evento"}
+              </h3>
+              <button onClick={() => setModal(null)} className="p-1.5 rounded-xl hover:bg-tv-green-deep/10">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Titolo *</label>
+                <input
+                  value={form.title || ""}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
+                  placeholder="Es. Lab Cucito Tote Bag"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Data *</label>
+                  <input
+                    type="date"
+                    value={form.date || ""}
+                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Categoria</label>
+                  <select
+                    value={form.category || "sede_rareca"}
+                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
+                  >
+                    {Object.entries(CAL_CATS).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Organizzatore</label>
+                <input
+                  value={form.organizer || ""}
+                  onChange={e => setForm(f => ({ ...f, organizer: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
+                  placeholder="@marilena (opzionale)"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Note</label>
+                <input
+                  value={form.notes || ""}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
+                  placeholder="(opzionale)"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Stato</label>
+                <div className="flex gap-2">
+                  {[{ value: "confirmed", label: "✓ Confermato" }, { value: "tentative", label: "⚠ In modifica" }].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setForm(f => ({ ...f, status: opt.value }))}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors
+                        ${form.status === opt.value ? "bg-tv-green-deep text-tv-cream" : "bg-tv-green-deep/10 text-tv-green-deep"}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              {modal.mode === "edit" && (
+                <button onClick={del} className="px-4 py-2.5 rounded-2xl bg-tv-bordeaux/10 text-tv-bordeaux text-sm font-bold hover:bg-tv-bordeaux/20 transition-colors">
+                  Elimina
+                </button>
+              )}
+              <button
+                onClick={save}
+                disabled={saving}
+                className="flex-1 px-4 py-2.5 rounded-2xl bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-60"
+              >
+                {saving ? "Salvataggio…" : modal.mode === "add" ? "Aggiungi" : "Salva modifiche"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -3286,6 +3602,8 @@ const Dashboard = ({ token, onLogout }) => {
         <div className="p-4 md:p-8">
           {tab === "home" ? (
             <DashboardHome data={data} onNavigate={setTab} activeUsers={activeUsers} visitorStats={visitorStats} visitorGeo={visitorGeo} />
+          ) : tab === "calendario" ? (
+            <CalendarManager token={token} />
           ) : loading ? (
             <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
               <Loader2 className="animate-spin" size={18} /> Caricamento in corso...

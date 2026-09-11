@@ -295,6 +295,7 @@ class VoterCreate(BaseModel):
 
 class BookClubConfigUpdate(BaseModel):
     voting_ends_at: Optional[str] = None
+    community_password: Optional[str] = None
 
 class Review(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -741,7 +742,7 @@ async def get_event_ics(event_id: str):
         lines = [
             'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Trama Viva APS//IT',
             'METHOD:PUBLISH', 'BEGIN:VEVENT',
-            f'DTSTART:{fmt(start)}', f'DTEND:{fmt(end)}',
+            f'DTSTART;TZID=Europe/Rome:{fmt(start)}', f'DTEND;TZID=Europe/Rome:{fmt(end)}',
             f'SUMMARY:{esc(doc.get("title",""))}',
             f'LOCATION:{esc(doc.get("location",""))}',
             f'DESCRIPTION:{esc(doc.get("description",""))}',
@@ -1240,6 +1241,15 @@ async def socio_my_events(user=Depends(require_socio)):
         {"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)},
         {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1}
     ).sort("created_at", -1).to_list(200)
+    event_ids = list({s["event_id"] for s in signups if s.get("event_id")})
+    events_map = {}
+    if event_ids:
+        evs = await db.events.find({"id": {"$in": event_ids}}, {"_id": 0, "id": 1, "date": 1, "slug": 1}).to_list(len(event_ids))
+        events_map = {e["id"]: e for e in evs}
+    for s in signups:
+        ev = events_map.get(s.get("event_id"), {})
+        s["event_date"] = ev.get("date")
+        s["event_slug"] = ev.get("slug")
     return {"is_fondatore": False, "events": [], "signups": signups}
 
 @api_router.get("/auth/me/member-info")
@@ -2526,11 +2536,10 @@ async def get_book_club_config_admin(month: str):
 
 @api_router.put("/admin/book-club-config/{month}", dependencies=[Depends(require_admin)])
 async def update_book_club_config(month: str, payload: BookClubConfigUpdate):
-    await db.book_club_config.update_one(
-        {"month": month},
-        {"$set": {"month": month, "voting_ends_at": payload.voting_ends_at}},
-        upsert=True,
-    )
+    upd = {"month": month, "voting_ends_at": payload.voting_ends_at}
+    if payload.community_password is not None:
+        upd["community_password"] = payload.community_password
+    await db.book_club_config.update_one({"month": month}, {"$set": upd}, upsert=True)
     doc = await db.book_club_config.find_one({"month": month}, {"_id": 0})
     return doc
 
@@ -2660,6 +2669,177 @@ async def proclaim_book_winner(month: str):
     return {"ok": True, "winners": [w["title"] for w in winners], "created_in_catalog": created_titles}
 
 
+# ── Community library (libri condivisi club) ─────────────────────────────────
+
+@api_router.post("/community-library/check-password")
+async def check_community_password(body: dict):
+    club = body.get("club", "club-del-libro")
+    password = body.get("password", "")
+    collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+    doc = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+    if not doc:
+        return {"ok": False, "error": "Nessuna password configurata"}
+    stored = doc.get("community_password", "")
+    return {"ok": stored == password}
+
+@api_router.get("/community-library")
+async def get_community_books():
+    books = await db.community_library.find({}, {"_id": 0}).sort("added_at", -1).to_list(500)
+    return books
+
+@api_router.post("/community-library")
+async def add_community_book(body: dict):
+    club = body.get("club", "club-del-libro")
+    password = body.get("password", "")
+    collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+    doc = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+    if not doc or doc.get("community_password") != password:
+        raise HTTPException(status_code=403, detail="Password errata")
+    book = {
+        "id": str(uuid.uuid4()),
+        "club": club,
+        "title": (body.get("title") or "").strip(),
+        "author": (body.get("author") or "").strip(),
+        "added_by": (body.get("added_by") or "").strip(),
+        "added_at": datetime.utcnow().isoformat(),
+        "status": "available",
+        "lent_to_name": None,
+        "lent_to_surname": None,
+        "lent_date": None,
+        "returned_date": None,
+    }
+    if not book["title"]:
+        raise HTTPException(status_code=400, detail="Titolo obbligatorio")
+    await db.community_library.insert_one(book)
+    book.pop("_id", None)
+    return book
+
+@api_router.post("/community-library/{book_id}/take")
+async def take_community_book(book_id: str, body: dict):
+    password = body.get("password", "")
+    doc = await db.community_library.find_one({"id": book_id}, {"_id": 0, "club": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    club = doc.get("club", "club-del-libro")
+    collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+    cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+    if not cfg or cfg.get("community_password") != password:
+        raise HTTPException(status_code=403, detail="Password errata")
+    await db.community_library.update_one({"id": book_id}, {"$set": {
+        "status": "lent",
+        "lent_to_name": (body.get("lent_to_name") or "").strip(),
+        "lent_to_surname": (body.get("lent_to_surname") or "").strip(),
+        "lent_date": body.get("lent_date") or datetime.utcnow().strftime("%Y-%m-%d"),
+        "returned_date": None,
+    }})
+    book = await db.community_library.find_one({"id": book_id}, {"_id": 0})
+    return book
+
+@api_router.post("/community-library/{book_id}/return")
+async def return_community_book(book_id: str, body: dict):
+    password = body.get("password", "")
+    doc = await db.community_library.find_one({"id": book_id}, {"_id": 0, "club": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Libro non trovato")
+    club = doc.get("club", "club-del-libro")
+    collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+    cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+    if not cfg or cfg.get("community_password") != password:
+        raise HTTPException(status_code=403, detail="Password errata")
+    returned_date = body.get("returned_date") or datetime.utcnow().strftime("%Y-%m-%d")
+    await db.community_library.update_one({"id": book_id}, {"$set": {
+        "status": "available",
+        "returned_date": returned_date,
+        "lent_to_name": None,
+        "lent_to_surname": None,
+        "lent_date": None,
+    }})
+    book = await db.community_library.find_one({"id": book_id}, {"_id": 0})
+    return book
+
+
+# ── Admin Calendar Events ─────────────────────────────────────────────────────
+
+class CalendarEventIn(BaseModel):
+    title: str
+    date: str  # "YYYY-MM-DD"
+    category: str = "sede_rareca"
+    organizer: Optional[str] = None
+    notes: Optional[str] = None
+    status: str = "confirmed"  # "confirmed" | "tentative"
+
+class CalendarEventUpdate(BaseModel):
+    title: Optional[str] = None
+    date: Optional[str] = None
+    category: Optional[str] = None
+    organizer: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+
+@api_router.get("/admin/calendar-events", dependencies=[Depends(require_admin)])
+async def get_admin_calendar_events(year: int, month: int):
+    month_prefix = f"{year}-{month:02d}"
+    cal_events = await db.calendar_events.find(
+        {"date": {"$regex": f"^{month_prefix}"}}, {"_id": 0}
+    ).sort("date", 1).to_list(500)
+
+    # Formal events for this month
+    if month == 12:
+        next_y, next_m = year + 1, 1
+    else:
+        next_y, next_m = year, month + 1
+    month_start_str = f"{year}-{month:02d}-01"
+    month_end_str = f"{next_y}-{next_m:02d}-01"
+
+    formal = await db.events.find(
+        {"date": {"$gte": month_start_str, "$lt": month_end_str}},
+        {"_id": 0, "id": 1, "title": 1, "date": 1, "slug": 1}
+    ).sort("date", 1).to_list(200)
+
+    formal_events = []
+    for ev in formal:
+        raw_date = ev.get("date", "")
+        date_str = raw_date[:10] if len(raw_date) >= 10 else raw_date
+        formal_events.append({
+            "id": ev.get("id", ""),
+            "title": ev.get("title", ""),
+            "date": date_str,
+            "slug": ev.get("slug", ""),
+        })
+
+    return {"calendar_events": cal_events, "formal_events": formal_events}
+
+@api_router.post("/admin/calendar-events", dependencies=[Depends(require_admin)])
+async def create_calendar_event(body: CalendarEventIn):
+    event = {
+        "id": str(uuid.uuid4()),
+        "title": body.title,
+        "date": body.date,
+        "category": body.category,
+        "organizer": body.organizer or None,
+        "notes": body.notes or None,
+        "status": body.status,
+        "created_at": datetime.utcnow().isoformat(),
+    }
+    await db.calendar_events.insert_one(event)
+    event.pop("_id", None)
+    return event
+
+@api_router.put("/admin/calendar-events/{event_id}", dependencies=[Depends(require_admin)])
+async def update_calendar_event(event_id: str, body: CalendarEventUpdate):
+    update = {k: v for k, v in body.dict(exclude_unset=True).items()}
+    if not update:
+        raise HTTPException(400, "Nessun campo da aggiornare")
+    await db.calendar_events.update_one({"id": event_id}, {"$set": update})
+    doc = await db.calendar_events.find_one({"id": event_id}, {"_id": 0})
+    return doc
+
+@api_router.delete("/admin/calendar-events/{event_id}", dependencies=[Depends(require_admin)])
+async def delete_calendar_event(event_id: str):
+    await db.calendar_events.delete_one({"id": event_id})
+    return {"ok": True}
+
+
 # ── Cineforum config ─────────────────────────────────────────────────────────
 
 @api_router.get("/cineforum-config/{month}")
@@ -2681,6 +2861,8 @@ async def put_cineforum_config(month: str, body: BookClubConfigUpdate):
     update = {"month": month}
     if body.voting_ends_at is not None:
         update["voting_ends_at"] = body.voting_ends_at
+    if body.community_password is not None:
+        update["community_password"] = body.community_password
     await db.cineforum_config.update_one({"month": month}, {"$set": update}, upsert=True)
     doc = await db.cineforum_config.find_one({"month": month}, {"_id": 0})
     return doc

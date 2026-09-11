@@ -207,7 +207,7 @@ class EmailService:
             lines = [
                 'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Trama Viva APS//IT',
                 'METHOD:PUBLISH', 'BEGIN:VEVENT',
-                f'DTSTART:{fmt(start)}', f'DTEND:{fmt(end)}',
+                f'DTSTART;TZID=Europe/Rome:{fmt(start)}', f'DTEND;TZID=Europe/Rome:{fmt(end)}',
                 f'SUMMARY:{esc(event_title)}', f'LOCATION:{esc(event_location)}',
                 f'UID:{event_date}-tramaviva@tramavivaaps.com',
                 'END:VEVENT', 'END:VCALENDAR',
@@ -228,6 +228,7 @@ class EmailService:
             params = urlencode({
                 'action': 'TEMPLATE', 'text': event_title or '',
                 'dates': f'{fmt(start)}/{fmt(end)}', 'location': event_location or '',
+                'ctz': 'Europe/Rome',
             })
             return f'https://calendar.google.com/calendar/render?{params}'
         except Exception:

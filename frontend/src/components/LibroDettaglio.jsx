@@ -190,7 +190,7 @@ export const LibroDettaglio = () => {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [bookId]);
+  }, [bookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const evMap = useMemo(() => Object.fromEntries(events.map((e) => [e.id, e])), [events]);
   const linkedEvents = useMemo(

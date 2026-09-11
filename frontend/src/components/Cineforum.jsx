@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, MessageCircle, Play, ExternalLink, Send } from "lucide-react";
+import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, Lock, Play, ExternalLink, Send } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -452,7 +452,6 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
     proposed_month: defaultMonth,
     nome: initialData?.nome || "",
     cognome: initialData?.cognome || "",
-    in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
   const [pastProposals, setPastProposals] = useState(null);
@@ -509,7 +508,6 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
           proposed_month: form.proposed_month || currentMonth,
           nome: form.nome.trim() || null,
           cognome: form.cognome.trim() || null,
-          in_community_whatsapp: form.in_community_whatsapp,
         }),
       });
       if (!res.ok) throw new Error();
@@ -541,35 +539,6 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
               <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="es. Rossi" required />
             </label>
           </div>
-          <div>
-            <div className={labelClass}>Sei nella community WhatsApp del Cineforum? *</div>
-            <div className="flex gap-3">
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === true ? "bg-tv-sky/15 border-tv-sky text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                <input type="radio" name="whatsapp" className="hidden" onChange={() => set("in_community_whatsapp", true)} />
-                ✅ Sì
-              </label>
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                <input type="radio" name="whatsapp" className="hidden" onChange={() => set("in_community_whatsapp", false)} />
-                ❌ No
-              </label>
-            </div>
-          </div>
-          {form.in_community_whatsapp === false && (
-            <div className="rounded-2xl bg-tv-bordeaux/10 border border-tv-bordeaux/25 p-4 grid gap-3">
-              <p className="text-sm font-bold text-tv-green-deep">
-                🔒 Solo i membri della community WhatsApp possono proporre film.
-              </p>
-              <p className="text-xs text-tv-green-deep/60">Unisciti al gruppo e poi torna qui per fare la tua proposta!</p>
-              <a
-                href={WHATSAPP_CINEFORUM}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-sm hover:bg-[#25D366]/80 transition-colors self-start"
-              >
-                <MessageCircle size={15} /> Unisciti alla community
-              </a>
-            </div>
-          )}
           {/* Riproponi da precedenti */}
           <div>
             <button type="button" onClick={loadPastProposals}
@@ -657,7 +626,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
           </label>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
-            <button type="submit" disabled={sending || form.in_community_whatsapp === false} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
+            <button type="submit" disabled={sending} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
               {sending ? "Invio…" : "Proponi"}
             </button>
           </div>
@@ -749,17 +718,6 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
                   <div className={labelClass}>Cognome *</div>
                   <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="Rossi" required />
                 </label>
-              </div>
-              <div>
-                <div className={labelClass}>Sei nella community WhatsApp?</div>
-                <div className="flex gap-2">
-                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === true ? "bg-tv-sky/15 border-tv-sky text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                    <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", true)} /> ✅ Sì
-                  </label>
-                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                    <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", false)} /> ❌ No
-                  </label>
-                </div>
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
@@ -941,10 +899,11 @@ const VotingCountdown = ({ endsAt, onExpire }) => {
 };
 
 // ── Card proposta film nella griglia ─────────────────────────────────────────
-const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled }) => {
+const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, onVoteRequest }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
+  const openVote = () => onVoteRequest ? onVoteRequest(() => setShowVoteModal(true)) : setShowVoteModal(true);
 
   return (
     <>
@@ -1006,7 +965,7 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled })
       {showDetail && !showVoteModal && (
         <FilmProposalDetailModal
           proposal={proposal}
-          onVoteRequest={() => { setShowDetail(false); setShowVoteModal(true); }}
+          onVoteRequest={() => { setShowDetail(false); openVote(); }}
           onClose={() => setShowDetail(false)}
         />
       )}
@@ -1022,6 +981,51 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled })
   );
 };
 
+const CINEFORUM_PWD_KEY = "tv_cineforum_pwd";
+
+const CineforumPasswordModal = ({ onSuccess, onClose }) => {
+  const [pwd, setPwd] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!pwd.trim()) return;
+    setLoading(true); setError("");
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/community-library/check-password`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ club: "cineforum", password: pwd.trim() }),
+      });
+      const d = await res.json();
+      if (d.ok) { localStorage.setItem(CINEFORUM_PWD_KEY, pwd.trim()); onSuccess(pwd.trim()); }
+      else setError("Password errata. Controllala nel gruppo WhatsApp.");
+    } catch { setError("Errore di connessione. Riprova."); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+        <div className="text-center mb-5">
+          <Lock size={28} className="mx-auto mb-2 text-tv-green-deep/40" />
+          <h2 className="font-display font-black text-xl text-tv-green-deep">Area community</h2>
+          <p className="text-sm text-tv-green-deep/50 mt-1">Inserisci la password condivisa nel gruppo WhatsApp.</p>
+        </div>
+        <form onSubmit={submit} className="grid gap-3">
+          <input type="text" autoFocus placeholder="Password…" value={pwd} onChange={e => setPwd(e.target.value)}
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+          {error && <p className="text-xs text-tv-bordeaux">{error}</p>}
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
+            <button type="submit" disabled={loading || !pwd.trim()} className="flex-1 px-4 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
+              {loading ? "…" : "Accedi"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 // ── Sezione proposte film ─────────────────────────────────────────────────────
 const FilmProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
@@ -1030,6 +1034,9 @@ const FilmProposalsSection = () => {
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
   const [cineforumConfig, setCineforumConfig] = useState(null);
+  const [communityPwd, setCommunityPwd] = useState(() => localStorage.getItem(CINEFORUM_PWD_KEY) || "");
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -1120,7 +1127,11 @@ const FilmProposalsSection = () => {
             sub="Proponi un film e vota i tuoi preferiti. I più votati diventano le prossime visioni."
           />
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              const needsPwd = cineforumConfig?.community_password;
+              if (needsPwd && !communityPwd) { setPendingAction("form"); setShowPwdModal(true); }
+              else setShowForm(true);
+            }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors shrink-0"
           >
             <Plus size={15} /> Proponi un film
@@ -1166,7 +1177,6 @@ const FilmProposalsSection = () => {
             <span className="text-xl">🏆</span>
             <div>
               <div className="font-black text-sm text-amber-800">Votazioni chiuse — Vincitore proclamato!</div>
-              <div className="text-xs text-amber-700/70">Il film vincitore è stato aggiunto al catalogo in stato "In visione".</div>
             </div>
           </div>
         )}
@@ -1199,7 +1209,12 @@ const FilmProposalsSection = () => {
             {[...proposals].sort((a, b) => (a.rush_excluded ? 1 : 0) - (b.rush_excluded ? 1 : 0)).map((p) => (
               <FilmProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote}
                 disabled={!!p.rush_excluded}
-                onReproponi={(prop) => { setReproponiData(prop); setShowForm(true); }} />
+                onReproponi={(prop) => { setReproponiData(prop); setShowForm(true); }}
+                onVoteRequest={(proceed) => {
+                  if (cineforumConfig?.community_password && !communityPwd) {
+                    setPendingAction(() => proceed); setShowPwdModal(true);
+                  } else { proceed(); }
+                }} />
             ))}
           </div>
         )}
@@ -1209,6 +1224,15 @@ const FilmProposalsSection = () => {
         <ProposalForm currentMonth={selectedMonth} onSubmit={() => { loadAllMonths(); load(); }}
           onClose={() => { setShowForm(false); setReproponiData(null); }}
           initialData={reproponiData} />
+      )}
+      {showPwdModal && (
+        <CineforumPasswordModal onClose={() => { setShowPwdModal(false); setPendingAction(null); }}
+          onSuccess={(pwd) => {
+            setCommunityPwd(pwd); setShowPwdModal(false);
+            if (pendingAction === "form") setShowForm(true);
+            else if (typeof pendingAction === "function") pendingAction();
+            setPendingAction(null);
+          }} />
       )}
     </section>
   );

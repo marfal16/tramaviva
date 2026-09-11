@@ -723,7 +723,7 @@ export const AreaSoci = () => {
         fetch(`${API}/api/auth/me/film-votes`, { headers: h }).then(r => r.ok ? r.json() : []),
       ]).then(([rev, vot]) => { setFilmReviews(rev); setFilmVotes(vot); setFilmClubLoaded(true); setLoadingTab(false); });
     }
-  }, [tab, activeClub, token]);
+  }, [tab, activeClub, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPosts = useCallback(async (skip = 0) => {
     setLoadingPosts(true);
@@ -895,15 +895,19 @@ export const AreaSoci = () => {
             ) : (
               <div className="flex flex-col divide-y divide-tv-green-deep/8">
                 {eventsData.signups.map(ev => (
-                  <div key={ev.id} className="flex items-center gap-4 py-3.5">
+                  <Link key={ev.id} to={`/eventi/${ev.event_slug || ev.event_id}`}
+                    className="flex items-center gap-4 py-3.5 -mx-2 px-2 rounded-xl hover:bg-tv-mint/20 transition-colors">
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-tv-green-deep truncate">{ev.event_title}</p>
-                      <p className="text-xs text-tv-green-deep/40 mt-0.5">Iscrizione: {fmtDate(ev.created_at)}</p>
+                      <p className="text-xs text-tv-green-deep/40 mt-0.5">
+                        {ev.event_date && <span className="mr-2">📅 {fmtDate(ev.event_date)}</span>}
+                        <span>Iscrizione: {fmtDate(ev.created_at)}</span>
+                      </p>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${ev.confirmed ? "bg-tv-green/15 text-tv-green-deep" : "bg-tv-orange/15 text-tv-orange"}`}>
                       {ev.confirmed ? "Confermato" : "In attesa"}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

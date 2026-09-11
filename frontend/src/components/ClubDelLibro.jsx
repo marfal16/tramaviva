@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, MessageCircle } from "lucide-react";
+import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, Lock, RotateCcw } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -130,6 +130,51 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
 };
 
 // ── Form proposta libro ──────────────────────────────────────────────────────
+const CLUB_PWD_KEY = "tv_club_pwd";
+
+const PasswordModal = ({ club, onSuccess, onClose }) => {
+  const [pwd, setPwd] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!pwd.trim()) return;
+    setLoading(true); setError("");
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/community-library/check-password`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ club, password: pwd.trim() }),
+      });
+      const d = await res.json();
+      if (d.ok) { localStorage.setItem(CLUB_PWD_KEY, pwd.trim()); onSuccess(pwd.trim()); }
+      else setError("Password errata. Controllala nel gruppo WhatsApp.");
+    } catch { setError("Errore di connessione. Riprova."); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
+      <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl p-6" onClick={e => e.stopPropagation()}>
+        <div className="text-center mb-5">
+          <Lock size={28} className="mx-auto mb-2 text-tv-green-deep/40" />
+          <h2 className="font-display font-black text-xl text-tv-green-deep">Area community</h2>
+          <p className="text-sm text-tv-green-deep/50 mt-1">Inserisci la password condivisa nel gruppo WhatsApp.</p>
+        </div>
+        <form onSubmit={submit} className="grid gap-3">
+          <input type="text" autoFocus placeholder="Password…" value={pwd} onChange={e => setPwd(e.target.value)}
+            className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+          {error && <p className="text-xs text-tv-bordeaux">{error}</p>}
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
+            <button type="submit" disabled={loading || !pwd.trim()} className="flex-1 px-4 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
+              {loading ? "…" : "Accedi"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
   const defaultMonth = (() => {
     const d = new Date();
@@ -146,7 +191,6 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
     proposed_month: defaultMonth,
     nome: initialData?.nome || "",
     cognome: initialData?.cognome || "",
-    in_community_whatsapp: null,
   });
   const [sending, setSending] = useState(false);
   const [pastProposals, setPastProposals] = useState(null);
@@ -191,7 +235,6 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
           proposed_month: form.proposed_month || currentMonth,
           nome: form.nome.trim() || null,
           cognome: form.cognome.trim() || null,
-          in_community_whatsapp: form.in_community_whatsapp,
         }),
       });
       if (!res.ok) throw new Error();
@@ -243,35 +286,6 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
               <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="es. Rossi" required />
             </label>
           </div>
-          <div>
-            <div className={labelClass}>Sei nella community WhatsApp del Club del Libro? *</div>
-            <div className="flex gap-3">
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                <input type="radio" name="whatsapp" className="hidden" onChange={() => set("in_community_whatsapp", true)} />
-                ✅ Sì
-              </label>
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border cursor-pointer transition-colors text-sm font-bold ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                <input type="radio" name="whatsapp" className="hidden" onChange={() => set("in_community_whatsapp", false)} />
-                ❌ No
-              </label>
-            </div>
-          </div>
-          {form.in_community_whatsapp === false && (
-            <div className="rounded-2xl bg-tv-bordeaux/10 border border-tv-bordeaux/25 p-4 grid gap-3">
-              <p className="text-sm font-bold text-tv-green-deep">
-                🔒 Solo i membri della community WhatsApp possono proporre libri.
-              </p>
-              <p className="text-xs text-tv-green-deep/60">Unisciti al gruppo e poi torna qui per fare la tua proposta!</p>
-              <a
-                href={WHATSAPP_COMMUNITY}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-sm hover:bg-[#25D366]/80 transition-colors self-start"
-              >
-                <MessageCircle size={15} /> Unisciti alla community
-              </a>
-            </div>
-          )}
           <div className="grid sm:grid-cols-2 gap-4">
             <label>
               <div className={labelClass}>Titolo libro *</div>
@@ -307,7 +321,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
           </label>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
-            <button type="submit" disabled={sending || form.in_community_whatsapp === false} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
+            <button type="submit" disabled={sending} className="flex-1 px-4 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60">
               {sending ? "Invio…" : "Proponi"}
             </button>
           </div>
@@ -319,7 +333,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
 
 // ── Modal voto (raccoglie nome/cognome/whatsapp) ──────────────────────────────
 const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
-  const [form, setForm] = useState({ nome: "", cognome: "", in_community_whatsapp: null });
+  const [form, setForm] = useState({ nome: "", cognome: "" });
   const [sending, setSending] = useState(false);
   const [duplicateOf, setDuplicateOf] = useState(null);
   const [unvoteError, setUnvoteError] = useState(null);
@@ -339,7 +353,7 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
   const vote = async (force = false) => {
     setSending(true);
     try {
-      await onVote(proposal.id, { nome: form.nome.trim(), cognome: form.cognome.trim(), in_community_whatsapp: form.in_community_whatsapp }, force);
+      await onVote(proposal.id, { nome: form.nome.trim(), cognome: form.cognome.trim() }, force);
       onClose();
     } catch (err) {
       if (err?.isDuplicate) setDuplicateOf(err.duplicateName);
@@ -398,17 +412,6 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
                   <div className={labelClass}>Cognome *</div>
                   <input className={fieldClass} value={form.cognome} onChange={(e) => set("cognome", e.target.value)} placeholder="Rossi" required />
                 </label>
-              </div>
-              <div>
-                <div className={labelClass}>Sei nella community WhatsApp?</div>
-                <div className="flex gap-2">
-                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === true ? "bg-tv-green/15 border-tv-green text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                    <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", true)} /> ✅ Sì
-                  </label>
-                  <label className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer text-xs font-bold transition-colors ${form.in_community_whatsapp === false ? "bg-tv-bordeaux/10 border-tv-bordeaux/30 text-tv-bordeaux" : "bg-white border-tv-green-deep/15 text-tv-green-deep/50"}`}>
-                    <input type="radio" name="wv" className="hidden" onChange={() => set("in_community_whatsapp", false)} /> ❌ No
-                  </label>
-                </div>
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-full border border-tv-green-deep/20 text-tv-green-deep font-bold text-sm">Annulla</button>
@@ -514,9 +517,10 @@ const VotingCountdown = ({ endsAt, onExpire }) => {
   );
 };
 
-const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled }) => {
+const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, onVoteRequest }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showVoteModal, setShowVoteModal] = useState(false);
+  const openVote = () => onVoteRequest ? onVoteRequest(() => setShowVoteModal(true)) : setShowVoteModal(true);
   const initials = [proposal.nome?.[0], proposal.cognome?.[0]].filter(Boolean).join("").toUpperCase();
 
   return (
@@ -579,7 +583,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled }) => 
       {showDetail && !showVoteModal && (
         <ProposalDetailModal
           proposal={proposal}
-          onVoteRequest={() => { setShowDetail(false); setShowVoteModal(true); }}
+          onVoteRequest={() => { setShowDetail(false); openVote(); }}
           onClose={() => setShowDetail(false)}
         />
       )}
@@ -607,6 +611,9 @@ const ProposalsSection = () => {
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
   const [clubConfig, setClubConfig] = useState(null);
+  const [communityPwd, setCommunityPwd] = useState(() => localStorage.getItem(CLUB_PWD_KEY) || "");
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -698,7 +705,11 @@ const ProposalsSection = () => {
             sub="Proponi un libro e vota i tuoi preferiti. I più votati diventano le prossime letture."
           />
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              const needsPwd = clubConfig?.community_password;
+              if (needsPwd && !communityPwd) { setPendingAction("form"); setShowPwdModal(true); }
+              else setShowForm(true);
+            }}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors shrink-0"
           >
             <Plus size={15} /> Proponi un libro
@@ -744,7 +755,6 @@ const ProposalsSection = () => {
             <span className="text-xl">🏆</span>
             <div>
               <div className="font-black text-sm text-amber-800">Votazioni chiuse — Vincitore proclamato!</div>
-              <div className="text-xs text-amber-700/70">Il libro vincitore è stato aggiunto al catalogo in stato "In lettura".</div>
             </div>
           </div>
         )}
@@ -777,7 +787,13 @@ const ProposalsSection = () => {
             {[...proposals].sort((a, b) => (a.rush_excluded ? 1 : 0) - (b.rush_excluded ? 1 : 0)).map((p) => (
               <ProposalCard key={p.id} proposal={p} onVote={handleVote} onUnvote={handleUnvote}
                 disabled={!!p.rush_excluded}
-                onReproponi={(prop) => { setReproponiData(prop); setShowForm(true); }} />
+                onReproponi={(prop) => { setReproponiData(prop); setShowForm(true); }}
+                onVoteRequest={(proceed) => {
+                  if (clubConfig?.community_password && !communityPwd) {
+                    setPendingAction(() => proceed);
+                    setShowPwdModal(true);
+                  } else { proceed(); }
+                }} />
             ))}
           </div>
         )}
@@ -788,11 +804,263 @@ const ProposalsSection = () => {
           onClose={() => { setShowForm(false); setReproponiData(null); }}
           initialData={reproponiData} />
       )}
+      {showPwdModal && (
+        <PasswordModal club="club-del-libro" onClose={() => { setShowPwdModal(false); setPendingAction(null); }}
+          onSuccess={(pwd) => {
+            setCommunityPwd(pwd); setShowPwdModal(false);
+            if (pendingAction === "form") setShowForm(true);
+            else if (typeof pendingAction === "function") pendingAction();
+            setPendingAction(null);
+          }} />
+      )}
     </section>
   );
 };
 
 // ── Pagina principale ────────────────────────────────────────────────────────
+const today = () => new Date().toISOString().slice(0, 10);
+
+const CommunityLibrary = () => {
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [communityPwd, setCommunityPwd] = useState(() => localStorage.getItem(CLUB_PWD_KEY) || "");
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  // modali
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [takeTarget, setTakeTarget] = useState(null);
+  const [returnTarget, setReturnTarget] = useState(null);
+
+  // form aggiungi
+  const [addForm, setAddForm] = useState({ title: "", author: "", added_by: "" });
+  const [addSaving, setAddSaving] = useState(false);
+
+  // form prendi
+  const [takeForm, setTakeForm] = useState({ lent_to_name: "", lent_to_surname: "", lent_date: today() });
+  const [takeSaving, setTakeSaving] = useState(false);
+
+  // form restituisci
+  const [returnForm, setReturnForm] = useState({ returned_date: today() });
+  const [returnSaving, setReturnSaving] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    fetch(`${BACKEND_URL}/api/community-library`)
+      .then(r => r.json()).then(d => setBooks(Array.isArray(d) ? d : [])).catch(() => {})
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const withPwd = (action) => {
+    if (!communityPwd) { setPendingAction(() => action); setShowPwdModal(true); }
+    else action();
+  };
+
+  const doAdd = async () => {
+    if (!addForm.title.trim()) return;
+    setAddSaving(true);
+    try {
+      await fetch(`${BACKEND_URL}/api/community-library`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...addForm, club: "club-del-libro", password: communityPwd }),
+      });
+      setAddForm({ title: "", author: "", added_by: "" });
+      setShowAddForm(false); load();
+    } catch { alert("Errore. Riprova."); }
+    finally { setAddSaving(false); }
+  };
+
+  const doTake = async () => {
+    if (!takeForm.lent_to_name.trim() || !takeForm.lent_to_surname.trim()) return;
+    setTakeSaving(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/community-library/${takeTarget.id}/take`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...takeForm, password: communityPwd }),
+      });
+      if (res.status === 403) { setCommunityPwd(""); localStorage.removeItem(CLUB_PWD_KEY); alert("Password non valida."); return; }
+      setTakeTarget(null); load();
+    } catch { alert("Errore. Riprova."); }
+    finally { setTakeSaving(false); }
+  };
+
+  const doReturn = async () => {
+    setReturnSaving(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/community-library/${returnTarget.id}/return`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...returnForm, password: communityPwd }),
+      });
+      if (res.status === 403) { setCommunityPwd(""); localStorage.removeItem(CLUB_PWD_KEY); alert("Password non valida."); return; }
+      setReturnTarget(null); load();
+    } catch { alert("Errore. Riprova."); }
+    finally { setReturnSaving(false); }
+  };
+
+  const fieldClass = "w-full px-3 py-2.5 rounded-xl bg-tv-green-deep/20 border border-tv-cream/10 focus:border-tv-cream/30 outline-none text-tv-cream text-sm placeholder:text-tv-cream/30";
+  const labelClass = "block text-[10px] font-bold uppercase tracking-wider text-tv-cream/40 mb-1";
+  const available = books.filter(b => b.status === "available");
+  const lent = books.filter(b => b.status === "lent");
+
+  return (
+    <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep text-tv-cream">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Library size={18} className="text-tv-orange" />
+              <span className="text-xs font-black uppercase tracking-widest text-tv-cream/50">Biblioteca condivisa</span>
+            </div>
+            <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">Scambio libri community</h2>
+            <p className="mt-2 text-tv-cream/55 max-w-xl">Libri messi a disposizione da chi partecipa al Club. Prendili di persona agli incontri e segnali qui quando li prendi o restituisci.</p>
+          </div>
+          <button onClick={() => withPwd(() => { setAddForm({ title: "", author: "", added_by: "" }); setShowAddForm(true); })}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors shrink-0">
+            <Plus size={15} /> Aggiungi un libro
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-tv-cream/30 text-sm">Caricamento…</div>
+        ) : books.length === 0 ? (
+          <div className="rounded-[2rem] bg-tv-cream/10 border border-tv-cream/10 p-10 text-center text-tv-cream/40">
+            <Library size={36} className="mx-auto mb-3 opacity-30" />
+            <p className="font-bold">Nessun libro ancora disponibile.</p>
+            <p className="text-sm mt-1 opacity-70">Sii il primo ad aggiungere un libro!</p>
+          </div>
+        ) : (
+          <div className="grid gap-8">
+            {available.length > 0 && (
+              <div>
+                <div className="text-xs font-black uppercase tracking-widest text-tv-green/70 mb-4">✅ Disponibili ({available.length})</div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {available.map(b => (
+                    <div key={b.id} className="flex gap-3 items-start rounded-2xl bg-tv-cream/8 border border-tv-cream/8 p-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-tv-cream leading-tight">{b.title}</div>
+                        {b.author && <div className="text-sm text-tv-cream/55">{b.author}</div>}
+                        {b.added_by && <div className="text-xs text-tv-cream/35 mt-1">Aggiunto da {b.added_by}</div>}
+                      </div>
+                      <button onClick={() => withPwd(() => { setTakeForm({ lent_to_name: "", lent_to_surname: "", lent_date: today() }); setTakeTarget(b); })}
+                        className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-tv-orange/20 text-tv-orange hover:bg-tv-orange/30 transition-colors">
+                        Prendo io
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {lent.length > 0 && (
+              <div>
+                <div className="text-xs font-black uppercase tracking-widest text-tv-orange/70 mb-4">📤 In giro ({lent.length})</div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {lent.map(b => (
+                    <div key={b.id} className="flex gap-3 items-start rounded-2xl bg-tv-orange/8 border border-tv-orange/15 p-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-tv-cream leading-tight">{b.title}</div>
+                        {b.author && <div className="text-sm text-tv-cream/55">{b.author}</div>}
+                        <div className="text-xs text-tv-orange/70 mt-1 font-bold">
+                          {b.lent_to_name} {b.lent_to_surname}
+                          {b.lent_date && <span className="font-normal text-tv-cream/35"> · dal {b.lent_date}</span>}
+                        </div>
+                      </div>
+                      <button onClick={() => withPwd(() => { setReturnForm({ returned_date: today() }); setReturnTarget(b); })}
+                        className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-tv-cream/10 text-tv-cream/60 hover:bg-tv-cream/20 transition-colors flex items-center gap-1">
+                        <RotateCcw size={11} /> Restituito
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal aggiungi libro */}
+      {showAddForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/70 p-4" onClick={() => setShowAddForm(false)}>
+          <div className="bg-tv-green-deep border border-tv-cream/15 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-black text-lg text-tv-cream">Aggiungi un libro</h3>
+              <button onClick={() => setShowAddForm(false)} className="p-1.5 rounded-full hover:bg-tv-cream/10"><X size={16} className="text-tv-cream/60" /></button>
+            </div>
+            <div className="grid gap-3">
+              <label><div className={labelClass}>Titolo *</div><input className={fieldClass} value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))} placeholder="es. Il nome della rosa" /></label>
+              <label><div className={labelClass}>Autore</div><input className={fieldClass} value={addForm.author} onChange={e => setAddForm(f => ({ ...f, author: e.target.value }))} placeholder="es. Umberto Eco" /></label>
+              <label><div className={labelClass}>Chi lo porta</div><input className={fieldClass} value={addForm.added_by} onChange={e => setAddForm(f => ({ ...f, added_by: e.target.value }))} placeholder="es. Maria R." /></label>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowAddForm(false)} className="flex-1 px-4 py-2.5 rounded-full border border-tv-cream/20 text-tv-cream font-bold text-sm">Annulla</button>
+                <button onClick={doAdd} disabled={addSaving || !addForm.title.trim()} className="flex-1 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60">
+                  {addSaving ? "…" : "Aggiungi"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal prendi libro */}
+      {takeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/70 p-4" onClick={() => setTakeTarget(null)}>
+          <div className="bg-tv-green-deep border border-tv-cream/15 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-display font-black text-lg text-tv-cream">Prendo «{takeTarget.title}»</h3>
+              <button onClick={() => setTakeTarget(null)} className="p-1.5 rounded-full hover:bg-tv-cream/10"><X size={16} className="text-tv-cream/60" /></button>
+            </div>
+            <p className="text-xs text-tv-cream/40 mb-4">Inserisci il tuo nome per segnare che hai preso il libro.</p>
+            <div className="grid gap-3">
+              <div className="grid grid-cols-2 gap-2">
+                <label><div className={labelClass}>Nome *</div><input className={fieldClass} value={takeForm.lent_to_name} onChange={e => setTakeForm(f => ({ ...f, lent_to_name: e.target.value }))} placeholder="Maria" /></label>
+                <label><div className={labelClass}>Cognome *</div><input className={fieldClass} value={takeForm.lent_to_surname} onChange={e => setTakeForm(f => ({ ...f, lent_to_surname: e.target.value }))} placeholder="Rossi" /></label>
+              </div>
+              <label><div className={labelClass}>Data di presa</div><input type="date" className={fieldClass} value={takeForm.lent_date} onChange={e => setTakeForm(f => ({ ...f, lent_date: e.target.value }))} /></label>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setTakeTarget(null)} className="flex-1 px-4 py-2.5 rounded-full border border-tv-cream/20 text-tv-cream font-bold text-sm">Annulla</button>
+                <button onClick={doTake} disabled={takeSaving || !takeForm.lent_to_name.trim() || !takeForm.lent_to_surname.trim()} className="flex-1 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60">
+                  {takeSaving ? "…" : "Confermo"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal restituisci */}
+      {returnTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/70 p-4" onClick={() => setReturnTarget(null)}>
+          <div className="bg-tv-green-deep border border-tv-cream/15 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-display font-black text-lg text-tv-cream">Restituisco «{returnTarget.title}»</h3>
+              <button onClick={() => setReturnTarget(null)} className="p-1.5 rounded-full hover:bg-tv-cream/10"><X size={16} className="text-tv-cream/60" /></button>
+            </div>
+            <p className="text-xs text-tv-cream/40 mb-4">Questo libro tornerà disponibile per tutti.</p>
+            <div className="grid gap-3">
+              <label><div className={labelClass}>Data di restituzione</div><input type="date" className={fieldClass} value={returnForm.returned_date} onChange={e => setReturnForm(f => ({ ...f, returned_date: e.target.value }))} /></label>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setReturnTarget(null)} className="flex-1 px-4 py-2.5 rounded-full border border-tv-cream/20 text-tv-cream font-bold text-sm">Annulla</button>
+                <button onClick={doReturn} disabled={returnSaving} className="flex-1 px-4 py-2.5 rounded-full bg-tv-cream text-tv-green-deep font-bold text-sm disabled:opacity-60">
+                  {returnSaving ? "…" : "Restituito ✓"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPwdModal && (
+        <PasswordModal club="club-del-libro" onClose={() => { setShowPwdModal(false); setPendingAction(null); }}
+          onSuccess={(pwd) => {
+            setCommunityPwd(pwd); setShowPwdModal(false);
+            if (typeof pendingAction === "function") pendingAction();
+            setPendingAction(null);
+          }} />
+      )}
+    </section>
+  );
+};
+
 export const ClubDelLibro = () => {
   const [books, setBooks] = useState([]);
   const [events, setEvents] = useState([]);
@@ -908,68 +1176,8 @@ export const ClubDelLibro = () => {
             </section>
           )}
 
-          {/* Biblioteca — sempre visibile */}
-          <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep text-tv-cream">
-            <div className="mx-auto max-w-5xl">
-              <div className="mb-8">
-                <div className="flex items-center gap-2 mb-3">
-                  <Library size={18} className="text-tv-orange" />
-                  <span className="text-xs font-black uppercase tracking-widest text-tv-cream/50">Biblioteca condivisa</span>
-                </div>
-                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">«Il libro sospeso»</h2>
-                <p className="mt-2 text-tv-cream/55">Libri messi a disposizione dalla nostra community. Puoi prenderli in prestito e restituirli al prossimo incontro — contattaci per sapere come.</p>
-              </div>
-
-              {disponibili.length === 0 && inPrestito.length === 0 && daReperire.length === 0 ? (
-                <div className="rounded-[2rem] bg-tv-cream/10 border border-tv-cream/10 p-10 text-center text-tv-cream/40">
-                  <Library size={36} className="mx-auto mb-3 opacity-30" />
-                  <p className="font-bold">Nessun libro disponibile al momento.</p>
-                  <p className="text-sm mt-1 opacity-70">Torna presto — la nostra biblioteca condivisa è in continua crescita.</p>
-                </div>
-              ) : (
-                <div className="grid gap-8">
-                  {(disponibili.length > 0 || inPrestito.length > 0) && (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {[...disponibili, ...inPrestito].map((b) => (
-                        <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-cream/10 border border-tv-cream/10 p-4">
-                          {b.cover_url ? <img src={b.cover_url} alt={b.title} className={`w-12 h-16 object-cover rounded-xl shrink-0${b.is_lent ? " opacity-70" : ""}`} /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                          <div className="min-w-0 flex-1">
-                            <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
-                            <div className="text-sm text-tv-cream/55">{b.author}</div>
-                            {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
-                            <div className="mt-1 text-xs font-bold">
-                              {b.is_lent
-                                ? <span className="text-tv-orange/70">📤 In prestito{b.lent_date ? <span className="font-normal text-tv-cream/40"> · dal {fmtDay(b.lent_date)}</span> : ""}</span>
-                                : <span className="text-tv-green/70">✅ Disponibile{(b.quantity || 1) > 1 ? <span className="font-normal text-tv-cream/40"> · {b.quantity} cop.</span> : ""}</span>
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {daReperire.length > 0 && (
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-widest text-tv-sky/80 mb-4">🔍 Da reperire in autonomia ({daReperire.length})</div>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        {daReperire.map((b) => (
-                          <div key={b.id} className="flex gap-4 items-center rounded-2xl bg-tv-sky/10 border border-tv-sky/20 p-4">
-                            {b.cover_url ? <img src={b.cover_url} alt={b.title} className="w-12 h-16 object-cover rounded-xl shrink-0 opacity-70" /> : <div className="w-12 h-16 rounded-xl bg-tv-cream/10 flex items-center justify-center shrink-0"><BookOpen size={18} className="text-tv-cream/30" /></div>}
-                            <div className="min-w-0">
-                              <div className="font-bold text-tv-cream leading-tight truncate">{b.title}</div>
-                              <div className="text-sm text-tv-cream/55">{b.author}</div>
-                              {b.genre && <div className="text-xs text-tv-cream/35 italic mt-0.5">{b.genre}</div>}
-                              <div className="text-xs text-tv-sky/70 mt-1">Acquistalo o cercalo in biblioteca</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
+          {/* Biblioteca condivisa community */}
+          <CommunityLibrary />
         </>
       )}
     </div>
