@@ -2784,7 +2784,7 @@ const CAL_CATS = {
   salute:       { label: "Eventi Salute",          bg: "bg-sky-200",      text: "text-sky-900" },
   lab_creativi: { label: "Lab Creativi",           bg: "bg-amber-700",    text: "text-white" },
   natura:       { label: "Natura / Passeggiate",   bg: "bg-green-500",    text: "text-white" },
-  club:         { label: "Club",                   bg: "bg-white",        text: "text-tv-green-deep", border: true },
+  club:         { label: "Club",                   bg: "bg-tv-green-deep", text: "text-tv-cream" },
   altro:        { label: "Altro",                  bg: "bg-gray-200",     text: "text-gray-700" },
 };
 
@@ -2863,7 +2863,10 @@ const CalendarManager = ({ token, onReload }) => {
       setModal(null);
       load();
       if (onReload) onReload(true);
-    } catch { toast.error("Errore nell'eliminazione"); }
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || "Errore sconosciuto";
+      toast.error(`Errore eliminazione: ${msg}`);
+    }
   };
 
   return (
@@ -2920,7 +2923,7 @@ const CalendarManager = ({ token, onReload }) => {
                 <div
                   key={i}
                   onClick={() => valid && openAdd(dateStr)}
-                  className={`min-h-[80px] p-1 border-tv-green-deep/5
+                  className={`min-h-[55px] md:min-h-[80px] p-0.5 md:p-1 border-tv-green-deep/5
                     ${!isLastCol ? "border-r" : ""}
                     ${!isLastRow ? "border-b" : ""}
                     ${valid ? "cursor-pointer hover:bg-tv-green-deep/[0.02]" : "bg-tv-green-deep/[0.015]"}
@@ -2928,7 +2931,7 @@ const CalendarManager = ({ token, onReload }) => {
                 >
                   {valid && (
                     <>
-                      <div className={`text-[10px] font-black mb-0.5 w-5 h-5 flex items-center justify-center rounded-full
+                      <div className={`text-[9px] md:text-[10px] font-black mb-0.5 w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-full
                         ${isToday ? "bg-tv-bordeaux text-white" : "text-tv-green-deep/50"}`}>
                         {dayNum}
                       </div>
@@ -2940,7 +2943,7 @@ const CalendarManager = ({ token, onReload }) => {
                             <button
                               key={j}
                               onClick={e => openEdit(ev, e)}
-                              className={`text-left text-[8px] font-bold px-1 py-px rounded truncate w-full ${cat.bg} ${cat.text} ${cat.border ? "border border-tv-green-deep/25" : ""}`}
+                              className={`text-left text-[7px] md:text-[8px] font-bold px-1 py-0.5 rounded truncate w-full ${cat.bg} ${cat.text}`}
                               title={label}
                             >
                               {label}
@@ -2958,22 +2961,22 @@ const CalendarManager = ({ token, onReload }) => {
       )}
 
       {/* Tip */}
-      <p className="text-xs text-tv-green-deep/40 text-center">Clicca su un giorno per aggiungere un evento · Clicca su un evento per modificarlo</p>
+      <p className="hidden md:block text-xs text-tv-green-deep/40 text-center">Clicca su un giorno per aggiungere · Clicca su un evento per modificarlo</p>
 
       {/* Modal */}
       {modal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setModal(null)}>
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-display font-black text-lg text-tv-green-deep">
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setModal(null)}>
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 w-full sm:max-w-sm shadow-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-black text-base text-tv-green-deep">
                 {modal.mode === "add" ? "Aggiungi evento" : "Modifica evento"}
               </h3>
               <button onClick={() => setModal(null)} className="p-1.5 rounded-xl hover:bg-tv-green-deep/10">
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Titolo *</label>
                 <input
@@ -2985,28 +2988,27 @@ const CalendarManager = ({ token, onReload }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Data *</label>
-                  <input
-                    type="date"
-                    value={form.date || ""}
-                    onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Categoria</label>
-                  <select
-                    value={form.category || "sede_rareca"}
-                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
-                  >
-                    {Object.entries(CAL_CATS).map(([k, v]) => (
-                      <option key={k} value={k}>{v.label}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Data *</label>
+                <input
+                  type="date"
+                  value={form.date || ""}
+                  onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block">Categoria</label>
+                <select
+                  value={form.category || "sede_rareca"}
+                  onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 text-sm focus:border-tv-green outline-none"
+                >
+                  {Object.entries(CAL_CATS).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -3036,7 +3038,7 @@ const CalendarManager = ({ token, onReload }) => {
                     <button
                       key={opt.value}
                       onClick={() => setForm(f => ({ ...f, status: opt.value }))}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-colors
                         ${form.status === opt.value ? "bg-tv-green-deep text-tv-cream" : "bg-tv-green-deep/10 text-tv-green-deep"}`}
                     >
                       {opt.label}
@@ -3046,16 +3048,16 @@ const CalendarManager = ({ token, onReload }) => {
               </div>
             </div>
 
-            <div className="flex gap-2 mt-5">
+            <div className="flex gap-2 mt-4">
               {modal.mode === "edit" && (
-                <button onClick={del} className="px-4 py-2.5 rounded-2xl bg-tv-bordeaux/10 text-tv-bordeaux text-sm font-bold hover:bg-tv-bordeaux/20 transition-colors">
+                <button onClick={del} className="px-3 py-2 rounded-2xl bg-tv-bordeaux/10 text-tv-bordeaux text-sm font-bold hover:bg-tv-bordeaux/20 transition-colors">
                   Elimina
                 </button>
               )}
               <button
                 onClick={save}
                 disabled={saving}
-                className="flex-1 px-4 py-2.5 rounded-2xl bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-60"
+                className="flex-1 px-4 py-2 rounded-2xl bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-60"
               >
                 {saving ? "Salvataggio…" : modal.mode === "add" ? "Aggiungi" : "Salva modifiche"}
               </button>
@@ -5102,10 +5104,10 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) 
             <button
               key={v.k}
               onClick={() => setView(v.k)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all
                 ${view === v.k ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/60 hover:text-tv-green-deep"}`}
             >
-              <v.icon size={13} /> {v.label}
+              <v.icon size={14} /> {v.label}
             </button>
           ))}
         </div>
@@ -5113,7 +5115,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) 
           <button
             onClick={onCreate}
             data-testid="admin-event-new"
-            className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold"
+            className="btn-tv inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold"
           >
             <Plus size={16} /> Crea evento
           </button>

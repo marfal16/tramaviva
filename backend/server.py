@@ -1724,6 +1724,7 @@ async def admin_delete(collection: str, doc_id: str):
         "memberships": "memberships",
         "contacts": "contacts",
         "events": "events",
+        "calendar-events": "events",
         "members": "members",
         "registrations": "registrations",
         "reviews": "reviews",
