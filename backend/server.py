@@ -2779,64 +2779,85 @@ class CalendarEventUpdate(BaseModel):
 @api_router.get("/admin/calendar-events", dependencies=[Depends(require_admin)])
 async def get_admin_calendar_events(year: int, month: int):
     month_prefix = f"{year}-{month:02d}"
-    cal_events = await db.calendar_events.find(
-        {"date": {"$regex": f"^{month_prefix}"}}, {"_id": 0}
+    raw = await db.events.find(
+        {"date": {"$regex": f"^{month_prefix}"}},
+        {"_id": 0, "id": 1, "title": 1, "date": 1, "slug": 1,
+         "calendar_category": 1, "calendar_organizer": 1, "calendar_notes": 1, "calendar_status": 1}
     ).sort("date", 1).to_list(500)
 
-    # Formal events for this month
-    if month == 12:
-        next_y, next_m = year + 1, 1
-    else:
-        next_y, next_m = year, month + 1
-    month_start_str = f"{year}-{month:02d}-01"
-    month_end_str = f"{next_y}-{next_m:02d}-01"
-
-    formal = await db.events.find(
-        {"date": {"$gte": month_start_str, "$lt": month_end_str}},
-        {"_id": 0, "id": 1, "title": 1, "date": 1, "slug": 1}
-    ).sort("date", 1).to_list(200)
-
-    formal_events = []
-    for ev in formal:
+    result = []
+    for ev in raw:
         raw_date = ev.get("date", "")
-        date_str = raw_date[:10] if len(raw_date) >= 10 else raw_date
-        formal_events.append({
-            "id": ev.get("id", ""),
-            "title": ev.get("title", ""),
-            "date": date_str,
-            "slug": ev.get("slug", ""),
+        result.append({
+            "id": ev.get("id"),
+            "title": ev.get("title"),
+            "date": raw_date[:10] if len(raw_date) >= 10 else raw_date,
+            "slug": ev.get("slug"),
+            "category": ev.get("calendar_category", "altro"),
+            "organizer": ev.get("calendar_organizer"),
+            "notes": ev.get("calendar_notes"),
+            "status": ev.get("calendar_status", "confirmed"),
         })
-
-    return {"calendar_events": cal_events, "formal_events": formal_events}
+    return result
 
 @api_router.post("/admin/calendar-events", dependencies=[Depends(require_admin)])
 async def create_calendar_event(body: CalendarEventIn):
+    event_id = str(uuid.uuid4())
+    slug = make_slug(body.title) + "-" + event_id[-4:]
     event = {
-        "id": str(uuid.uuid4()),
+        "id": event_id,
         "title": body.title,
         "date": body.date,
-        "category": body.category,
-        "organizer": body.organizer or None,
-        "notes": body.notes or None,
-        "status": body.status,
+        "slug": slug,
+        "calendar_category": body.category,
+        "calendar_organizer": body.organizer or None,
+        "calendar_notes": body.notes or None,
+        "calendar_status": body.status,
+        "description": "",
+        "time": "19:00",
+        "location": "",
+        "emoji": "📅",
+        "spots": 20,
+        "max_participants": 20,
+        "contributo": 0.0,
+        "featured": False,
+        "categories": [],
         "created_at": datetime.utcnow().isoformat(),
     }
-    await db.calendar_events.insert_one(event)
+    await db.events.insert_one(event)
     event.pop("_id", None)
-    return event
+    return {
+        "id": event["id"], "title": event["title"], "date": event["date"],
+        "slug": event["slug"], "category": body.category,
+        "organizer": body.organizer, "notes": body.notes, "status": body.status,
+    }
 
 @api_router.put("/admin/calendar-events/{event_id}", dependencies=[Depends(require_admin)])
 async def update_calendar_event(event_id: str, body: CalendarEventUpdate):
-    update = {k: v for k, v in body.dict(exclude_unset=True).items()}
+    update = {}
+    if body.title is not None: update["title"] = body.title
+    if body.date is not None: update["date"] = body.date
+    if body.category is not None: update["calendar_category"] = body.category
+    if body.organizer is not None: update["calendar_organizer"] = body.organizer or None
+    if body.notes is not None: update["calendar_notes"] = body.notes or None
+    if body.status is not None: update["calendar_status"] = body.status
     if not update:
         raise HTTPException(400, "Nessun campo da aggiornare")
-    await db.calendar_events.update_one({"id": event_id}, {"$set": update})
-    doc = await db.calendar_events.find_one({"id": event_id}, {"_id": 0})
-    return doc
+    await db.events.update_one({"id": event_id}, {"$set": update})
+    doc = await db.events.find_one({"id": event_id}, {"_id": 0, "id": 1, "title": 1, "date": 1, "slug": 1,
+        "calendar_category": 1, "calendar_organizer": 1, "calendar_notes": 1, "calendar_status": 1})
+    raw_date = doc.get("date", "")
+    return {
+        "id": doc.get("id"), "title": doc.get("title"),
+        "date": raw_date[:10] if len(raw_date) >= 10 else raw_date,
+        "slug": doc.get("slug"), "category": doc.get("calendar_category", "altro"),
+        "organizer": doc.get("calendar_organizer"), "notes": doc.get("calendar_notes"),
+        "status": doc.get("calendar_status", "confirmed"),
+    }
 
 @api_router.delete("/admin/calendar-events/{event_id}", dependencies=[Depends(require_admin)])
 async def delete_calendar_event(event_id: str):
-    await db.calendar_events.delete_one({"id": event_id})
+    await db.events.delete_one({"id": event_id})
     return {"ok": True}
 
 

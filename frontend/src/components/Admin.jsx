@@ -123,7 +123,6 @@ const NAV_GROUPS = [
     ],
   },
   { single: true, key: "donations", label: "Donazioni", icon: Heart },
-  { single: true, key: "calendario", label: "Calendario", icon: Grid3x3 },
 ];
 // flat list for compatibility (badge logic, etc.)
 const NAV = NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, icon: g.icon }] : (g.items || []));
@@ -2781,23 +2780,22 @@ const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats, visitorGeo
 // ── Calendar ──────────────────────────────────────────────────────────────────
 
 const CAL_CATS = {
-  sede_rareca:  { label: "Sede Rareca Terzigno", bg: "bg-orange-400",   text: "text-white" },
-  salute:       { label: "Eventi Salute",         bg: "bg-sky-200",      text: "text-sky-900" },
-  lab_creativi: { label: "Lab Creativi",          bg: "bg-amber-700",    text: "text-white" },
-  natura:       { label: "Natura / Passeggiate",  bg: "bg-green-500",    text: "text-white" },
-  club:         { label: "Club (ricorrente)",      bg: "bg-white",        text: "text-tv-green-deep", border: true },
+  sede_rareca:  { label: "Sede",                  bg: "bg-orange-400",   text: "text-white" },
+  salute:       { label: "Eventi Salute",          bg: "bg-sky-200",      text: "text-sky-900" },
+  lab_creativi: { label: "Lab Creativi",           bg: "bg-amber-700",    text: "text-white" },
+  natura:       { label: "Natura / Passeggiate",   bg: "bg-green-500",    text: "text-white" },
+  club:         { label: "Club",                   bg: "bg-white",        text: "text-tv-green-deep", border: true },
   altro:        { label: "Altro",                  bg: "bg-gray-200",     text: "text-gray-700" },
 };
 
 const MONTHS_IT = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
 const DAYS_SHORT = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
 
-const CalendarManager = ({ token }) => {
+const CalendarManager = ({ token, onReload }) => {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [calEvents, setCalEvents] = useState([]);
-  const [formalEvents, setFormalEvents] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
@@ -2809,8 +2807,7 @@ const CalendarManager = ({ token }) => {
     setLoading(true);
     try {
       const r = await axios.get(`${API}/admin/calendar-events?year=${year}&month=${month}`, auth);
-      setCalEvents(r.data.calendar_events || []);
-      setFormalEvents(r.data.formal_events || []);
+      setEvents(Array.isArray(r.data) ? r.data : []);
     } catch { toast.error("Errore caricamento calendario"); }
     finally { setLoading(false); }
   };
@@ -2825,8 +2822,7 @@ const CalendarManager = ({ token }) => {
   const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
 
   const byDate = {};
-  calEvents.forEach(ev => { (byDate[ev.date] = byDate[ev.date] || []).push({ ...ev, _cal: true }); });
-  formalEvents.forEach(ev => { (byDate[ev.date] = byDate[ev.date] || []).push({ ...ev, _formal: true }); });
+  events.forEach(ev => { (byDate[ev.date] = byDate[ev.date] || []).push(ev); });
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -2854,6 +2850,7 @@ const CalendarManager = ({ token }) => {
       }
       setModal(null);
       load();
+      if (onReload) onReload(true);
     } catch { toast.error("Errore nel salvataggio"); }
     finally { setSaving(false); }
   };
@@ -2865,6 +2862,7 @@ const CalendarManager = ({ token }) => {
       toast.success("Eliminato");
       setModal(null);
       load();
+      if (onReload) onReload(true);
     } catch { toast.error("Errore nell'eliminazione"); }
   };
 
@@ -2893,9 +2891,6 @@ const CalendarManager = ({ token }) => {
             {cat.label}
           </span>
         ))}
-        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-tv-green-deep/10 text-tv-green-deep border border-dashed border-tv-green-deep/30">
-          ↗ Evento con iscrizioni
-        </span>
       </div>
 
       {/* Grid */}
@@ -2939,23 +2934,11 @@ const CalendarManager = ({ token }) => {
                       </div>
                       <div className="flex flex-col gap-0.5">
                         {dayEvs.map((ev, j) => {
-                          if (ev._formal) {
-                            return (
-                              <div
-                                key={`f${j}`}
-                                onClick={e => e.stopPropagation()}
-                                className="text-[8px] font-bold px-1 py-px rounded bg-tv-green-deep/10 text-tv-green-deep border border-dashed border-tv-green-deep/20 truncate"
-                                title={ev.title}
-                              >
-                                ↗ {ev.title}
-                              </div>
-                            );
-                          }
                           const cat = CAL_CATS[ev.category] || CAL_CATS.altro;
                           const label = `${ev.title}${ev.organizer ? ` @${ev.organizer}` : ""}${ev.status === "tentative" ? " (???)" : ""}`;
                           return (
                             <button
-                              key={`c${j}`}
+                              key={j}
                               onClick={e => openEdit(ev, e)}
                               className={`text-left text-[8px] font-bold px-1 py-px rounded truncate w-full ${cat.bg} ${cat.text} ${cat.border ? "border border-tv-green-deep/25" : ""}`}
                               title={label}
@@ -3602,8 +3585,6 @@ const Dashboard = ({ token, onLogout }) => {
         <div className="p-4 md:p-8">
           {tab === "home" ? (
             <DashboardHome data={data} onNavigate={setTab} activeUsers={activeUsers} visitorStats={visitorStats} visitorGeo={visitorGeo} />
-          ) : tab === "calendario" ? (
-            <CalendarManager token={token} />
           ) : loading ? (
             <div className="text-tv-green-deep/60 flex items-center gap-2 font-bold" data-testid="admin-loading">
               <Loader2 className="animate-spin" size={18} /> Caricamento in corso...
@@ -3614,6 +3595,8 @@ const Dashboard = ({ token, onLogout }) => {
               onCreate={() => setEventEditor("new")}
               onEdit={(ev) => setEventEditor(ev)}
               onDelete={(id) => remove("events", id)}
+              token={token}
+              onReload={loadAll}
             />
           ) : tab === "books" ? (
             <BookManager
@@ -5030,7 +5013,9 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
 
 // ─── Events manager con storico ───────────────────────────────────────────────
 
-const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
+const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) => {
+  const [view, setView] = useState("lista");
+
   const fmtDay = (d) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
     catch { return d; }
@@ -5110,14 +5095,34 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete }) => {
 
   return (
     <div data-testid="admin-events-manager">
-      <button
-        onClick={onCreate}
-        data-testid="admin-event-new"
-        className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold mb-6"
-      >
-        <Plus size={18} /> Crea nuovo evento
-      </button>
-      {events.length === 0 ? (
+      {/* Toggle view */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center bg-tv-green-deep/10 rounded-2xl p-1 gap-1">
+          {[{ k: "lista", label: "Lista", icon: CalendarPlus }, { k: "calendario", label: "Calendario", icon: Grid3x3 }].map(v => (
+            <button
+              key={v.k}
+              onClick={() => setView(v.k)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all
+                ${view === v.k ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/60 hover:text-tv-green-deep"}`}
+            >
+              <v.icon size={13} /> {v.label}
+            </button>
+          ))}
+        </div>
+        {view === "lista" && (
+          <button
+            onClick={onCreate}
+            data-testid="admin-event-new"
+            className="btn-tv inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold"
+          >
+            <Plus size={16} /> Crea evento
+          </button>
+        )}
+      </div>
+
+      {view === "calendario" ? (
+        <CalendarManager token={token} onReload={onReload} />
+      ) : events.length === 0 ? (
         <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
           Nessun evento ancora. Crea il primo!
         </div>
