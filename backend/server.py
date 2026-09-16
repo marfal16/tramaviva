@@ -1235,7 +1235,11 @@ async def socio_my_events(user=Depends(require_socio)):
     member = await db.members.find_one({"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)})
     is_fondatore = (member.get("is_fondatore", False) or not member.get("tessera_number")) if member else False
     if is_fondatore:
-        events = await db.events.find({}, {"_id": 0, "id": 1, "title": 1, "date": 1, "location": 1, "category": 1, "emoji": 1, "slug": 1}).sort("date", -1).to_list(500)
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        events = await db.events.find(
+            {"is_draft": {"$ne": True}, "date": {"$lte": today}},
+            {"_id": 0, "id": 1, "title": 1, "date": 1, "location": 1, "category": 1, "emoji": 1, "slug": 1}
+        ).sort("date", -1).to_list(500)
         return {"is_fondatore": True, "events": events, "signups": []}
     signups = await db.event_signups.find(
         {"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)},
