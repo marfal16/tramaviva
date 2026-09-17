@@ -7,8 +7,31 @@ function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+const STATIC_PAGES = {
+  '/Cineforum': {
+    title: 'Cineforum — Trama Viva APS',
+    description: 'Proponi e vota i film del mese con la community di Trama Viva. Ogni mese un nuovo titolo scelto insieme.',
+    image: `${SITE}/og-cineforum.jpg`,
+  },
+  '/cineforum': {
+    title: 'Cineforum — Trama Viva APS',
+    description: 'Proponi e vota i film del mese con la community di Trama Viva. Ogni mese un nuovo titolo scelto insieme.',
+    image: `${SITE}/og-cineforum.jpg`,
+  },
+  '/club-del-libro': {
+    title: 'Club del Libro — Trama Viva APS',
+    description: 'Proponi e vota i libri del mese con la community di Trama Viva. Ogni mese una nuova lettura scelta insieme.',
+    image: `${SITE}/og-clubdellibro.jpg`,
+  },
+  '/ClubDelLibro': {
+    title: 'Club del Libro — Trama Viva APS',
+    description: 'Proponi e vota i libri del mese con la community di Trama Viva. Ogni mese una nuova lettura scelta insieme.',
+    image: `${SITE}/og-clubdellibro.jpg`,
+  },
+};
+
 export const config = {
-  matcher: ['/eventi/:slug*'],
+  matcher: ['/eventi/:slug*', '/Cineforum', '/cineforum', '/club-del-libro', '/ClubDelLibro'],
 };
 
 export default async function middleware(request) {
@@ -16,7 +39,43 @@ export default async function middleware(request) {
   if (!BOT_RE.test(ua)) return; // real user — pass through to SPA
 
   const url = new URL(request.url);
-  const parts = url.pathname.split('/').filter(Boolean);
+  const pathname = url.pathname;
+
+  // Pagine statiche (Cineforum, Club del Libro)
+  if (STATIC_PAGES[pathname]) {
+    const page = STATIC_PAGES[pathname];
+    const imageUrl = page.image;
+    const finalImageUrl = imageUrl.endsWith('/og-cineforum.jpg') || imageUrl.endsWith('/og-clubdellibro.jpg')
+      ? `${SITE}/tramaviva-full.jpg` // fallback se l'immagine dedicata non esiste ancora
+      : imageUrl;
+    const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>${esc(page.title)}</title>
+  <meta name="description" content="${esc(page.description)}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Trama Viva APS">
+  <meta property="og:title" content="${esc(page.title)}">
+  <meta property="og:description" content="${esc(page.description)}">
+  <meta property="og:image" content="${esc(finalImageUrl)}">
+  <meta property="og:url" content="${esc(SITE + pathname)}">
+  <meta property="og:locale" content="it_IT">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${esc(page.title)}">
+  <meta name="twitter:description" content="${esc(page.description)}">
+  <meta name="twitter:image" content="${esc(finalImageUrl)}">
+  <meta http-equiv="refresh" content="0; url=${esc(SITE + pathname)}">
+</head>
+<body></body>
+</html>`;
+    return new Response(html, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' },
+    });
+  }
+
+  // Pagine eventi dinamiche
+  const parts = pathname.split('/').filter(Boolean);
   const slug = parts[1] || '';
   if (!slug) return;
 
