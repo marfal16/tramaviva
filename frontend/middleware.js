@@ -44,10 +44,7 @@ export default async function middleware(request) {
   // Pagine statiche (Cineforum, Club del Libro)
   if (STATIC_PAGES[pathname]) {
     const page = STATIC_PAGES[pathname];
-    const imageUrl = page.image;
-    const finalImageUrl = imageUrl.endsWith('/og-cineforum.jpg') || imageUrl.endsWith('/og-clubdellibro.jpg')
-      ? `${SITE}/tramaviva-full.jpg` // fallback se l'immagine dedicata non esiste ancora
-      : imageUrl;
+    const finalImageUrl = page.image;
     const html = `<!DOCTYPE html>
 <html lang="it">
 <head>
