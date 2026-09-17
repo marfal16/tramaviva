@@ -2070,14 +2070,15 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
                     />
                   </div>
                 )}
-                <button
-                  onClick={saveConfig}
-                  disabled={savingConfig}
-                  className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60 hover:bg-tv-green transition-colors"
-                >
-                  {savingConfig ? "Salvo…" : "Salva configurazione"}
-                </button>
               </div>
+
+              <button
+                onClick={saveConfig}
+                disabled={savingConfig}
+                className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60 hover:bg-tv-green transition-colors"
+              >
+                {savingConfig ? "Salvo…" : "Salva configurazione"}
+              </button>
 
               {/* Rush Finale */}
               <div className={`rounded-3xl border p-5 flex flex-col gap-4 ${clubConfig.rush_finale_active ? "bg-tv-bordeaux/5 border-tv-bordeaux/20" : "bg-white border-tv-green-deep/10"}`}>
@@ -2533,14 +2534,15 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
                     />
                   </div>
                 )}
-                <button
-                  onClick={saveCfConfig}
-                  disabled={savingCfConfig}
-                  className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60 hover:bg-tv-green transition-colors"
-                >
-                  {savingCfConfig ? "Salvo…" : "Salva configurazione"}
-                </button>
               </div>
+
+              <button
+                onClick={saveCfConfig}
+                disabled={savingCfConfig}
+                className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm disabled:opacity-60 hover:bg-tv-green transition-colors"
+              >
+                {savingCfConfig ? "Salvo…" : "Salva configurazione"}
+              </button>
 
               <div className={`rounded-3xl border p-5 flex flex-col gap-4 ${cfConfig.rush_finale_active ? "bg-tv-bordeaux/5 border-tv-bordeaux/20" : "bg-white border-tv-green-deep/10"}`}>
                 <div>
