@@ -2070,17 +2070,6 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
                     />
                   </div>
                 )}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Password community (biblioteca + proposte + voti)</label>
-                  <input
-                    type="text"
-                    placeholder="es. librotrama"
-                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
-                    value={configForm.community_password}
-                    onChange={e => setConfigForm(f => ({ ...f, community_password: e.target.value }))}
-                  />
-                  <p className="text-[11px] text-tv-green-deep/40 mt-1">Da condividere nel gruppo WhatsApp. Lascia vuoto per disabilitare.</p>
-                </div>
                 <button
                   onClick={saveConfig}
                   disabled={savingConfig}
@@ -2544,17 +2533,6 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
                     />
                   </div>
                 )}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Password community (proposte + voti)</label>
-                  <input
-                    type="text"
-                    placeholder="es. cineclub"
-                    className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
-                    value={cfConfigForm.community_password}
-                    onChange={e => setCfConfigForm(f => ({ ...f, community_password: e.target.value }))}
-                  />
-                  <p className="text-[11px] text-tv-green-deep/40 mt-1">Da condividere nel gruppo WhatsApp. Lascia vuoto per disabilitare.</p>
-                </div>
                 <button
                   onClick={saveCfConfig}
                   disabled={savingCfConfig}
