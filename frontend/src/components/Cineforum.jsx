@@ -1119,24 +1119,42 @@ const FilmProposalsSection = () => {
   return (
     <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
       <div className="mx-auto max-w-5xl">
-        <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
-          <SectionHeading
-            dot="bg-tv-orange"
-            label="Proposte del mese"
-            title={sectionTitle}
-            sub="Proponi un film e vota i tuoi preferiti. I più votati diventano le prossime visioni."
-          />
-          <button
-            onClick={() => {
-              const needsPwd = cineforumConfig?.community_password;
-              if (needsPwd && !communityPwd) { setPendingAction("form"); setShowPwdModal(true); }
-              else setShowForm(true);
-            }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors shrink-0"
-          >
-            <Plus size={15} /> Proponi un film
-          </button>
-        </div>
+        {(() => {
+          const proposalsClosed = cineforumConfig?.proposals_ends_at && new Date(cineforumConfig.proposals_ends_at) <= new Date();
+          return (
+            <>
+              <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
+                <SectionHeading
+                  dot="bg-tv-orange"
+                  label="Proposte del mese"
+                  title={sectionTitle}
+                  sub={proposalsClosed ? "Le votazioni sono aperte — scegli il tuo film preferito!" : "Proponi un film e vota i tuoi preferiti. I più votati diventano le prossime visioni."}
+                />
+                {!proposalsClosed && !cineforumConfig?.winner_proclaimed && (
+                  <button
+                    onClick={() => {
+                      const needsPwd = cineforumConfig?.community_password;
+                      if (needsPwd && !communityPwd) { setPendingAction("form"); setShowPwdModal(true); }
+                      else setShowForm(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors shrink-0"
+                  >
+                    <Plus size={15} /> Proponi un film
+                  </button>
+                )}
+              </div>
+              {proposalsClosed && !cineforumConfig?.winner_proclaimed && (
+                <div className="flex items-center gap-3 mb-6 bg-tv-sky/15 border border-tv-sky/40 rounded-2xl px-5 py-3">
+                  <span className="text-lg">🗳️</span>
+                  <div>
+                    <div className="font-black text-sm text-tv-green-deep">Proposte chiuse — ora vota!</div>
+                    <div className="text-xs text-tv-green-deep/50">La raccolta proposte è terminata. Esprimi le tue preferenze tra i film in lista.</div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* Filtro mese */}
         {allMonths.length > 1 && (

@@ -294,6 +294,7 @@ class VoterCreate(BaseModel):
     in_community_whatsapp: Optional[bool] = None
 
 class BookClubConfigUpdate(BaseModel):
+    proposals_ends_at: Optional[str] = None
     voting_ends_at: Optional[str] = None
     community_password: Optional[str] = None
 
@@ -1941,6 +1942,7 @@ async def remove_event_signup_guest(signup_id: str, body: dict):
 
 @api_router.post("/admin/events/{event_id}/send-reminder", dependencies=[Depends(require_admin)])
 async def send_event_reminder(event_id: str):
+    import asyncio as _asyncio
     event = await db.events.find_one({"id": event_id}, {"_id": 0, "image_data": 0})
     if not event:
         raise HTTPException(status_code=404, detail="Evento non trovato")
@@ -1949,11 +1951,10 @@ async def send_event_reminder(event_id: str):
     ).to_list(1000)
     if not signups:
         return {"ok": True, "sent": 0, "message": "Nessun iscritto confermato."}
-    email_svc = EmailService()
-    sent = 0
-    for s in signups:
+
+    async def _send_one(s):
         try:
-            await email_svc.send_event_reminder(
+            await EmailService().send_event_reminder(
                 email=s.get("email", ""),
                 name=s.get("name", ""),
                 event_title=event.get("title", ""),
@@ -1961,10 +1962,13 @@ async def send_event_reminder(event_id: str):
                 event_time=event.get("time", ""),
                 event_location=event.get("location", ""),
             )
-            sent += 1
+            return True
         except Exception as e:
             logger.warning(f"Reminder non inviato a {s.get('email')}: {e}")
-    return {"ok": True, "sent": sent}
+            return False
+
+    results = await _asyncio.gather(*[_send_one(s) for s in signups])
+    return {"ok": True, "sent": sum(results)}
 
 class NotifyParticipantPayload(BaseModel):
     email: str
@@ -1999,41 +2003,41 @@ class BulkNotifyPayload(BaseModel):
 
 @api_router.post("/admin/events/{event_id}/notify-all", dependencies=[Depends(require_admin)])
 async def bulk_notify_participants(event_id: str, payload: BulkNotifyPayload):
+    import asyncio as _asyncio
     event = await db.events.find_one({"id": event_id}, {"_id": 0, "image_data": 0})
     if not event:
         raise HTTPException(status_code=404, detail="Evento non trovato")
-    email_svc = EmailService()
-    sent = 0
-    errors = 0
+
+    # Raccoglie tutti i destinatari (registranti + ospiti con email)
+    signup_docs = []
     for signup_id in payload.signup_ids:
-        signup = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
-        if not signup:
+        s = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+        if not s:
             continue
-        if signup.get("email"):
-            try:
-                await email_svc.send_participant_notification(
-                    email=signup["email"], name=signup.get("name", ""),
-                    subject=payload.subject, body_text=payload.body_text,
-                    notification_type=payload.notification_type, event_title=event.get("title", ""),
-                )
-                sent += 1
-            except Exception as e:
-                logger.warning(f"Notifica non inviata a {signup.get('email')}: {e}")
-                errors += 1
-        for ospite in signup.get("ospiti", []):
+        if s.get("email"):
+            signup_docs.append({"email": s["email"], "name": s.get("name", "")})
+        for ospite in s.get("ospiti", []):
             if ospite.get("email"):
-                try:
-                    await email_svc.send_participant_notification(
-                        email=ospite["email"],
-                        name=f"{ospite.get('nome', '')} {ospite.get('cognome', '')}".strip(),
-                        subject=payload.subject, body_text=payload.body_text,
-                        notification_type=payload.notification_type, event_title=event.get("title", ""),
-                    )
-                    sent += 1
-                except Exception as e:
-                    logger.warning(f"Notifica non inviata a ospite {ospite.get('email')}: {e}")
-                    errors += 1
-    return {"ok": True, "sent": sent, "errors": errors}
+                signup_docs.append({
+                    "email": ospite["email"],
+                    "name": f"{ospite.get('nome', '')} {ospite.get('cognome', '')}".strip(),
+                })
+
+    async def _notify_one(recipient):
+        try:
+            await EmailService().send_participant_notification(
+                email=recipient["email"], name=recipient["name"],
+                subject=payload.subject, body_text=payload.body_text,
+                notification_type=payload.notification_type, event_title=event.get("title", ""),
+            )
+            return True
+        except Exception as e:
+            logger.warning(f"Notifica non inviata a {recipient['email']}: {e}")
+            return False
+
+    results = await _asyncio.gather(*[_notify_one(r) for r in signup_docs])
+    sent = sum(results)
+    return {"ok": True, "sent": sent, "errors": len(results) - sent}
 
 @api_router.post("/admin/event-signups/bulk-confirm", dependencies=[Depends(require_admin)])
 async def bulk_confirm_signups(payload: BulkConfirmPayload):
@@ -2614,7 +2618,7 @@ async def get_book_club_config_admin(month: str):
 
 @api_router.put("/admin/book-club-config/{month}", dependencies=[Depends(require_admin)])
 async def update_book_club_config(month: str, payload: BookClubConfigUpdate):
-    upd = {"month": month, "voting_ends_at": payload.voting_ends_at}
+    upd = {"month": month, "voting_ends_at": payload.voting_ends_at, "proposals_ends_at": payload.proposals_ends_at}
     if payload.community_password is not None:
         upd["community_password"] = payload.community_password
     await db.book_club_config.update_one({"month": month}, {"$set": upd}, upsert=True)
@@ -2963,6 +2967,10 @@ async def put_cineforum_config(month: str, body: BookClubConfigUpdate):
     update = {"month": month}
     if body.voting_ends_at is not None:
         update["voting_ends_at"] = body.voting_ends_at
+    if body.proposals_ends_at is not None:
+        update["proposals_ends_at"] = body.proposals_ends_at
+    else:
+        update["proposals_ends_at"] = None
     if body.community_password is not None:
         update["community_password"] = body.community_password
     await db.cineforum_config.update_one({"month": month}, {"$set": update}, upsert=True)

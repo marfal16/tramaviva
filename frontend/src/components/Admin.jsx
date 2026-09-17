@@ -1669,7 +1669,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   // Config Club del Libro
   const [configMonth, setConfigMonth] = useState(() => { const d = new Date(); return d.toISOString().slice(0, 7); });
   const [clubConfig, setClubConfig] = useState(null);
-  const [configForm, setConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false, community_password: "" });
+  const [configForm, setConfigForm] = useState({ proposals_ends_at: "", proposals_deadline_enabled: false, voting_ends_at: "", countdown_enabled: false, community_password: "" });
   const [savingConfig, setSavingConfig] = useState(false);
   const [rushActivating, setRushActivating] = useState(false);
 
@@ -1681,18 +1681,21 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
       .then(d => {
         setClubConfig(d);
         setConfigForm({
+          proposals_deadline_enabled: !!(d.proposals_ends_at),
+          proposals_ends_at: d.proposals_ends_at ? d.proposals_ends_at.slice(0, 16) : "",
           countdown_enabled: !!(d.voting_ends_at),
           voting_ends_at: d.voting_ends_at ? d.voting_ends_at.slice(0, 16) : "",
           community_password: d.community_password || "",
         });
       })
-      .catch(() => { setClubConfig({}); setConfigForm({ countdown_enabled: false, voting_ends_at: "" }); });
+      .catch(() => { setClubConfig({}); setConfigForm({ proposals_deadline_enabled: false, proposals_ends_at: "", countdown_enabled: false, voting_ends_at: "" }); });
   }, [configMonth, subTab, token]);
 
   const saveConfig = async () => {
     setSavingConfig(true);
     try {
       const body = {
+        proposals_ends_at: configForm.proposals_deadline_enabled && configForm.proposals_ends_at ? new Date(configForm.proposals_ends_at).toISOString() : null,
         voting_ends_at: configForm.countdown_enabled && configForm.voting_ends_at ? new Date(configForm.voting_ends_at).toISOString() : null,
         community_password: configForm.community_password || null,
       };
@@ -2015,6 +2018,33 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
             <div className="text-tv-green-deep/30 text-sm">Caricamento…</div>
           ) : (
             <>
+              {/* Termine raccolta proposte */}
+              <div className="bg-white rounded-3xl border border-tv-green-deep/10 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-black text-tv-green-deep text-sm">Termine raccolta proposte</div>
+                    <div className="text-xs text-tv-green-deep/50 mt-0.5">Dopo questa data il bottone "Proponi" scompare e rimangono solo le votazioni</div>
+                  </div>
+                  <button
+                    onClick={() => setConfigForm(f => ({ ...f, proposals_deadline_enabled: !f.proposals_deadline_enabled }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${configForm.proposals_deadline_enabled ? "bg-tv-green" : "bg-tv-green-deep/20"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${configForm.proposals_deadline_enabled ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
+                {configForm.proposals_deadline_enabled && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Data e ora chiusura proposte</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+                      value={configForm.proposals_ends_at}
+                      onChange={e => setConfigForm(f => ({ ...f, proposals_ends_at: e.target.value }))}
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Countdown fine votazioni */}
               <div className="bg-white rounded-3xl border border-tv-green-deep/10 p-5 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
@@ -2120,7 +2150,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   // Config Cineforum
   const [cfConfigMonth, setCfConfigMonth] = useState(() => { const d = new Date(); return d.toISOString().slice(0, 7); });
   const [cfConfig, setCfConfig] = useState(null);
-  const [cfConfigForm, setCfConfigForm] = useState({ voting_ends_at: "", countdown_enabled: false, community_password: "" });
+  const [cfConfigForm, setCfConfigForm] = useState({ proposals_ends_at: "", proposals_deadline_enabled: false, voting_ends_at: "", countdown_enabled: false, community_password: "" });
   const [savingCfConfig, setSavingCfConfig] = useState(false);
   const [cfRushActivating, setCfRushActivating] = useState(false);
 
@@ -2132,18 +2162,21 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
       .then(d => {
         setCfConfig(d);
         setCfConfigForm({
+          proposals_deadline_enabled: !!(d.proposals_ends_at),
+          proposals_ends_at: d.proposals_ends_at ? d.proposals_ends_at.slice(0, 16) : "",
           countdown_enabled: !!(d.voting_ends_at),
           voting_ends_at: d.voting_ends_at ? d.voting_ends_at.slice(0, 16) : "",
           community_password: d.community_password || "",
         });
       })
-      .catch(() => { setCfConfig({}); setCfConfigForm({ countdown_enabled: false, voting_ends_at: "" }); });
+      .catch(() => { setCfConfig({}); setCfConfigForm({ proposals_deadline_enabled: false, proposals_ends_at: "", countdown_enabled: false, voting_ends_at: "" }); });
   }, [cfConfigMonth, subTab, token]);
 
   const saveCfConfig = async () => {
     setSavingCfConfig(true);
     try {
       const body = {
+        proposals_ends_at: cfConfigForm.proposals_deadline_enabled && cfConfigForm.proposals_ends_at ? new Date(cfConfigForm.proposals_ends_at).toISOString() : null,
         voting_ends_at: cfConfigForm.countdown_enabled && cfConfigForm.voting_ends_at ? new Date(cfConfigForm.voting_ends_at).toISOString() : null,
         community_password: cfConfigForm.community_password || null,
       };
@@ -2460,6 +2493,33 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
             <div className="text-tv-green-deep/30 text-sm">Caricamento…</div>
           ) : (
             <>
+              {/* Termine raccolta proposte */}
+              <div className="bg-white rounded-3xl border border-tv-green-deep/10 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-black text-tv-green-deep text-sm">Termine raccolta proposte</div>
+                    <div className="text-xs text-tv-green-deep/50 mt-0.5">Dopo questa data il bottone "Proponi" scompare e rimangono solo le votazioni</div>
+                  </div>
+                  <button
+                    onClick={() => setCfConfigForm(f => ({ ...f, proposals_deadline_enabled: !f.proposals_deadline_enabled }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${cfConfigForm.proposals_deadline_enabled ? "bg-tv-green" : "bg-tv-green-deep/20"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${cfConfigForm.proposals_deadline_enabled ? "translate-x-5" : ""}`} />
+                  </button>
+                </div>
+                {cfConfigForm.proposals_deadline_enabled && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Data e ora chiusura proposte</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-4 py-2.5 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm"
+                      value={cfConfigForm.proposals_ends_at}
+                      onChange={e => setCfConfigForm(f => ({ ...f, proposals_ends_at: e.target.value }))}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="bg-white rounded-3xl border border-tv-green-deep/10 p-5 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div>
