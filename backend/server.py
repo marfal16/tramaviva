@@ -1241,10 +1241,20 @@ async def socio_my_events(user=Depends(require_socio)):
             {"_id": 0, "id": 1, "title": 1, "date": 1, "location": 1, "category": 1, "emoji": 1, "slug": 1}
         ).sort("date", -1).to_list(500)
         return {"is_fondatore": True, "events": events, "signups": []}
-    signups = await db.event_signups.find(
-        {"email": re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)},
+    email_regex = re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)
+    # Prenotazioni dove l'utente è il registrante principale
+    signups_main = await db.event_signups.find(
+        {"email": email_regex},
         {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1}
     ).sort("created_at", -1).to_list(200)
+    # Prenotazioni dove l'utente è ospite (accompagnatore) di qualcun altro
+    signups_guest = await db.event_signups.find(
+        {"ospiti.email": email_regex},
+        {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1}
+    ).sort("created_at", -1).to_list(200)
+    # Unisce evitando duplicati (stesso signup_id)
+    seen_ids = {s["id"] for s in signups_main}
+    signups = signups_main + [s for s in signups_guest if s["id"] not in seen_ids]
     event_ids = list({s["event_id"] for s in signups if s.get("event_id")})
     events_map = {}
     if event_ids:
@@ -1850,19 +1860,42 @@ async def confirm_event_signup(signup_id: str):
     )
 
     to_email = signup.get("email", "")
+    event_title = event.get("title", signup.get("event_title", ""))
+    event_date = event.get("date", "")
+    event_time = event.get("time", "")
+    event_location = event.get("location", "")
     try:
         email_svc = EmailService()
         await email_svc.send_event_confirmation(
             email=to_email,
             name=signup.get("name", ""),
-            event_title=event.get("title", signup.get("event_title", "")),
-            event_date=event.get("date", ""),
-            event_time=event.get("time", ""),
-            event_location=event.get("location", ""),
+            event_title=event_title,
+            event_date=event_date,
+            event_time=event_time,
+            event_location=event_location,
         )
         logger.info(f"Email conferma evento inviata a {to_email}")
     except Exception as e:
         logger.error(f"Email conferma evento NON inviata a {to_email}: {e}", exc_info=True)
+
+    for ospite in signup.get("ospiti", []):
+        ospite_email = ospite.get("email", "")
+        if not ospite_email:
+            continue
+        ospite_name = f"{ospite.get('nome', '')} {ospite.get('cognome', '')}".strip()
+        try:
+            email_svc = EmailService()
+            await email_svc.send_event_confirmation(
+                email=ospite_email,
+                name=ospite_name,
+                event_title=event_title,
+                event_date=event_date,
+                event_time=event_time,
+                event_location=event_location,
+            )
+            logger.info(f"Email conferma evento inviata a ospite {ospite_email}")
+        except Exception as e:
+            logger.warning(f"Email conferma evento NON inviata a ospite {ospite_email}: {e}")
 
     return {"ok": True, "spots_remaining": event["spots"] - 1}
 
@@ -1998,18 +2031,39 @@ async def bulk_confirm_signups(payload: BulkConfirmPayload):
             continue
         await db.events.update_one({"id": signup["event_id"]}, {"$inc": {"spots": -num_persone}})
         await db.event_signups.update_one({"id": signup_id}, {"$set": {"confirmed": True}})
+        bulk_title = event.get("title", signup.get("event_title", ""))
+        bulk_date = event.get("date", "")
+        bulk_time = event.get("time", "")
+        bulk_location = event.get("location", "")
         try:
             email_svc = EmailService()
             await email_svc.send_event_confirmation(
                 email=signup.get("email", ""),
                 name=signup.get("name", ""),
-                event_title=event.get("title", signup.get("event_title", "")),
-                event_date=event.get("date", ""),
-                event_time=event.get("time", ""),
-                event_location=event.get("location", ""),
+                event_title=bulk_title,
+                event_date=bulk_date,
+                event_time=bulk_time,
+                event_location=bulk_location,
             )
         except Exception as e:
             logger.warning(f"Email conferma non inviata: {e}")
+        for ospite in signup.get("ospiti", []):
+            ospite_email = ospite.get("email", "")
+            if not ospite_email:
+                continue
+            ospite_name = f"{ospite.get('nome', '')} {ospite.get('cognome', '')}".strip()
+            try:
+                email_svc = EmailService()
+                await email_svc.send_event_confirmation(
+                    email=ospite_email,
+                    name=ospite_name,
+                    event_title=bulk_title,
+                    event_date=bulk_date,
+                    event_time=bulk_time,
+                    event_location=bulk_location,
+                )
+            except Exception as e:
+                logger.warning(f"Email conferma non inviata a ospite {ospite_email}: {e}")
         confirmed_count += 1
     return {"ok": True, "confirmed": confirmed_count}
 

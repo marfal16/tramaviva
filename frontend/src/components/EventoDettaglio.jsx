@@ -626,7 +626,12 @@ export const EventoDettaglio = () => {
                           <input required placeholder="Nome *" value={g.nome} onChange={e => updateOspite(i, "nome", e.target.value)} className="px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                           <input required placeholder="Cognome *" value={g.cognome} onChange={e => updateOspite(i, "cognome", e.target.value)} className="px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                         </div>
-                        <input placeholder="Email (opzionale)" type="email" value={g.email} onChange={e => updateOspite(i, "email", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                        <div>
+                          <p className="text-[11px] text-tv-green-deep/45 mb-1.5 leading-snug">
+                            Inserisci l'email dell'accompagnatore — riceverà tutte le informazioni sull'evento e gli aggiornamenti direttamente nella sua casella. Facoltativa, ma consigliata.
+                          </p>
+                          <input placeholder="Email (opzionale)" type="email" value={g.email} onChange={e => updateOspite(i, "email", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                        </div>
                         <input placeholder="Telefono (opzionale)" value={g.phone} onChange={e => updateOspite(i, "phone", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                         {event.opzioni_custom && (
                           <div>
