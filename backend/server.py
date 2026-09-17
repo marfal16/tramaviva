@@ -778,11 +778,30 @@ async def create_event_signup(payload: EventSignupCreate):
     doc["created_at"] = doc["created_at"].isoformat()
     await db.event_signups.insert_one(doc)
     try:
+        event_date_str = ""
+        if event_doc and event_doc.get("date"):
+            try:
+                from datetime import datetime as _dt
+                event_date_str = _dt.strptime(event_doc["date"], "%Y-%m-%d").strftime("%-d %B %Y")
+            except Exception:
+                event_date_str = event_doc.get("date", "")
+        ospiti_str = ""
+        if obj.ospiti:
+            ospiti_str = "; ".join(
+                f"{g.nome} {g.cognome}" + (f" ({g.email})" if g.email else "")
+                for g in obj.ospiti
+            )
+        admin_info = {
+            "Evento": obj.event_title,
+            "Data": event_date_str or "—",
+            "Nome": obj.name,
+            "Email": obj.email,
+            "Telefono": obj.phone or "—",
+        }
+        if ospiti_str:
+            admin_info["Accompagnatori"] = ospiti_str
         email_svc = EmailService()
-        await email_svc.send_admin_notification(
-            subject="Nuova richiesta evento",
-            info={"Evento": obj.event_title, "Nome": obj.name, "Email": obj.email, "Telefono": obj.phone or "—"},
-        )
+        await email_svc.send_admin_notification(subject="Nuova richiesta evento", info=admin_info)
     except Exception as e:
         logger.warning(f"Notifica admin evento non inviata: {e}")
     return obj
