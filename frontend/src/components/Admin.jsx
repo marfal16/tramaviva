@@ -490,6 +490,17 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
           <input type="text" placeholder="Cerca nome o email…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
             className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
         </div>
+        <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1 border border-tv-green-deep/10">
+          <span className="text-[10px] text-tv-green-deep/40 px-2 font-bold uppercase tracking-wider">Ordina</span>
+          {[{ key: "name", label: "Nome" }, { key: "tessera_number", label: "Tessera" }, { key: "created_at", label: "Data" }].map(s => (
+            <button key={s.key} onClick={() => toggleSort(s.key)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-0.5 ${
+                sortField === s.key ? "bg-tv-green-deep text-tv-cream" : "text-tv-green-deep/50 hover:text-tv-green-deep"
+              }`}>
+              {s.label}<SortArrow field={s.key}/>
+            </button>
+          ))}
+        </div>
         {onAddManual && (
           <button onClick={onAddManual}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tv-green-deep text-tv-cream text-xs font-bold hover:bg-tv-green-deep/80 transition-colors whitespace-nowrap">
