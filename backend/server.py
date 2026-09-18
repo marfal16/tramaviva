@@ -1907,7 +1907,8 @@ async def admin_delete(collection: str, doc_id: str):
                     {"id": signup["event_id"]},
                     {"$inc": {"spots": 1}}
                 )
-            if signup.get("email"):
+            # Non inviare email di cancellazione per le voci in lista di attesa
+            if signup.get("email") and not signup.get("is_waitlist"):
                 try:
                     event = await db.events.find_one({"id": signup.get("event_id", "")}, {"_id": 0})
                     email_svc = EmailService()

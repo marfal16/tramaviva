@@ -4906,11 +4906,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                       <Mail size={11}/> Notifica
                     </button>
                   </div>
-                ) : !isPastEvent && filteredItems.some(r => !r.confirmed) && (
-                  <button onClick={selectAll} className="text-xs text-tv-green-deep/50 hover:text-tv-green-deep font-bold whitespace-nowrap">
-                    Seleziona tutti in attesa
-                  </button>
-                )}
+                ) : null}
               </div>
 
               {/* Tabella */}
