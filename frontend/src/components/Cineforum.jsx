@@ -1057,7 +1057,9 @@ const FilmProposalsSection = () => {
         // Includi sempre il mese futuro per permettere nuove proposte
         const months = [...new Set([...existingMonths, nextMonthStr])].sort().reverse();
         setAllMonths(months);
-        setSelectedMonth(prev => months.includes(prev) ? prev : months[0]);
+        // Default: mese più recente con proposte; mese futuro solo se già selezionato
+        const defaultMonth = existingMonths.length > 0 ? [...existingMonths].sort().reverse()[0] : nextMonthStr;
+        setSelectedMonth(prev => months.includes(prev) ? prev : defaultMonth);
       })
       .catch(() => {});
   }, []);

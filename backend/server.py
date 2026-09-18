@@ -776,8 +776,9 @@ async def create_event_signup(payload: EventSignupCreate):
                 status_code=403,
                 detail="Questo evento è riservato ai soci Trama Viva. Per partecipare devi essere socio o avere una richiesta di iscrizione in corso."
             )
-    # Determina se l'evento è sold out → lista di attesa
-    is_waitlist = bool(event_doc and event_doc.get("spots", 1) <= 0)
+    # Determina se i posti sono insufficienti per il gruppo → lista di attesa
+    num_persone_req = payload.num_persone or 1
+    is_waitlist = bool(event_doc and event_doc.get("spots", 1) < num_persone_req)
     obj = EventSignup(**payload.model_dump(), is_waitlist=is_waitlist)
     doc = obj.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()

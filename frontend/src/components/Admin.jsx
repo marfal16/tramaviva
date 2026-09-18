@@ -3443,6 +3443,15 @@ const Dashboard = ({ token, onLogout }) => {
       toast.error(e.response?.data?.detail || "Errore nella promozione");
     }
   };
+
+  const removeFromWaitlist = async (row) => {
+    if (!window.confirm(`Rimuovi ${row.name} dalla lista di attesa?\n\nNessuna email verrà inviata — questa persona era in attesa, non aveva ancora un posto confermato.`)) return;
+    try {
+      await axios.delete(`${API}/admin/event-signups/${row.id}`, authHeader);
+      toast.success("Rimosso dalla lista di attesa.");
+      loadAll(true);
+    } catch { toast.error("Errore nella rimozione."); }
+  };
     
   const [navDropdown, setNavDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -3743,6 +3752,7 @@ const Dashboard = ({ token, onLogout }) => {
               onConfirm={confirmSignup}
               onPromote={promoteFromWaitlist}
               onDelete={(id) => remove("event-signups", id)}
+              onDeleteWaitlist={removeFromWaitlist}
               onTogglePayment={toggleEventPayment}
               token={token}
               onReload={() => loadAll(true)}
@@ -4340,7 +4350,7 @@ const BulkNotifyModal = ({ signupIds, allItems, event, token, onClose }) => {
 
 // ─── Event signups — master-detail con tabella compatta ──────────────────────
 
-const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onPromote, onTogglePayment, onDelete, onNotify, isPastEvent, token, onReload }) => {
+const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onPromote, onTogglePayment, onDelete, onDeleteWaitlist, onNotify, isPastEvent, token, onReload }) => {
   const [showGuests, setShowGuests] = useState(false);
   const [removingGuest, setRemovingGuest] = useState(null);
   const hasGuests = (row.ospiti || []).length > 0;
@@ -4361,6 +4371,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
     <>
       <tr className={`group border-b border-tv-green-deep/5 transition-colors ${
         isSelected ? "bg-tv-green/5"
+        : row.is_waitlist ? "bg-sky-50/70 hover:bg-sky-50"
         : !row.confirmed ? "bg-amber-50/50 hover:bg-amber-50/80"
         : "hover:bg-tv-cream/60"
       }`}>
@@ -4376,6 +4387,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-semibold text-sm text-tv-green-deep truncate">{row.name}</span>
+                {row.is_waitlist && <span className="text-[9px] font-bold uppercase bg-sky-100 text-sky-700 border border-sky-200 px-1.5 py-0.5 rounded-full">Lista attesa</span>}
                 {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fond.</span>}
                 {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
               </div>
@@ -4446,7 +4458,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
                 <Mail size={13}/>
               </button>
             )}
-            <button onClick={() => onDelete(row.id)} title="Elimina"
+            <button onClick={() => row.is_waitlist ? (onDeleteWaitlist && onDeleteWaitlist(row)) : onDelete(row.id)} title={row.is_waitlist ? "Rimuovi da lista attesa" : "Elimina"}
               className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
               <Trash2 size={13}/>
             </button>
@@ -4493,7 +4505,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
   );
 };
 
-const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, onDelete, onTogglePayment, token, onReload }) => {
+const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, onDelete, onDeleteWaitlist, onTogglePayment, token, onReload }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [reminderLoading, setReminderLoading] = useState(null);
@@ -4571,7 +4583,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
   });
 
-  const selectAll = () => setSelectedIds(new Set(filteredItems.map(r => r.id)));
+  const selectAll = () => setSelectedIds(new Set(filteredItems.filter(r => !r.is_waitlist && !r.confirmed).map(r => r.id)));
 
   const exportGroup = (group) => {
     const rows = group.items.flatMap(s => {
@@ -4944,6 +4956,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                               onPromote={onPromote}
                               onTogglePayment={onTogglePayment}
                               onDelete={onDelete}
+                              onDeleteWaitlist={onDeleteWaitlist}
                               onNotify={(row) => setNotifyTarget({ signup: row, event: selectedGroup.ev })}
                               isPastEvent={isPastEvent}
                               token={token}
@@ -4961,6 +4974,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                         return (
                           <div key={row.id} className={`rounded-2xl border p-4 ${
                             selectedIds.has(row.id) ? "border-tv-green/50 bg-tv-green/5"
+                            : row.is_waitlist ? "bg-sky-50/80 border-sky-200"
                             : row.confirmed ? "bg-white border-tv-green-deep/10"
                             : "bg-amber-50/60 border-tv-orange/20"
                           }`}>
@@ -5053,7 +5067,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                                   <Mail size={11}/> Email
                                 </button>
                               )}
-                              <button onClick={() => onDelete(row.id)}
+                              <button onClick={() => row.is_waitlist ? (onDeleteWaitlist && onDeleteWaitlist(row)) : onDelete(row.id)}
                                 className="p-1.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
                                 <Trash2 size={12}/>
                               </button>

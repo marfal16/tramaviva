@@ -603,11 +603,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, onVot
 const ProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1);
-    return d.toISOString().slice(0, 7);
-  });
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
   const [clubConfig, setClubConfig] = useState(null);
@@ -634,8 +630,9 @@ const ProposalsSection = () => {
         // Includi sempre il mese futuro per permettere nuove proposte
         const months = [...new Set([...existingMonths, nextMonthStr])].sort().reverse();
         setAllMonths(months);
-        // Non sovrascrivere se il mese selezionato è già valido o è il mese futuro
-        setSelectedMonth(prev => months.includes(prev) ? prev : months[0]);
+        // Default: mese più recente con proposte; mese futuro solo se già selezionato
+        const defaultMonth = existingMonths.length > 0 ? [...existingMonths].sort().reverse()[0] : nextMonthStr;
+        setSelectedMonth(prev => months.includes(prev) ? prev : defaultMonth);
       })
       .catch(() => {});
   }, []);
