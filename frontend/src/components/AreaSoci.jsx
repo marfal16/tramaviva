@@ -778,21 +778,47 @@ export const AreaSoci = () => {
               </div>
             ) : (
               <div className="flex flex-col divide-y divide-tv-green-deep/8">
-                {eventsData.signups.map(ev => (
-                  <Link key={ev.id} to={`/eventi/${ev.event_slug || ev.event_id}`}
-                    className="flex items-center gap-4 py-3.5 -mx-2 px-2 rounded-xl hover:bg-tv-mint/20 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm text-tv-green-deep truncate">{ev.event_title}</p>
-                      <p className="text-xs text-tv-green-deep/40 mt-0.5">
-                        {ev.event_date && <span className="mr-2">📅 {fmtDate(ev.event_date)}</span>}
-                        <span>Iscrizione: {fmtDate(ev.created_at)}</span>
-                      </p>
+                {eventsData.signups.map(ev => {
+                  const isPastEvent = ev.event_date && new Date(ev.event_date) < new Date(new Date().toDateString());
+                  return (
+                    <div key={ev.id} className="flex items-center gap-3 py-3.5 -mx-2 px-2">
+                      <Link to={`/eventi/${ev.event_slug || ev.event_id}`}
+                        className="flex-1 min-w-0 flex items-center gap-3 hover:bg-tv-mint/20 rounded-xl transition-colors -mx-1 px-1 py-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-tv-green-deep truncate">{ev.event_title}</p>
+                          <p className="text-xs text-tv-green-deep/40 mt-0.5">
+                            {ev.event_date && <span className="mr-2">📅 {fmtDate(ev.event_date)}</span>}
+                            <span>Iscrizione: {fmtDate(ev.created_at)}</span>
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${ev.is_waitlist ? "bg-tv-orange/15 text-tv-orange" : ev.confirmed ? "bg-tv-green/15 text-tv-green-deep" : "bg-tv-orange/15 text-tv-orange"}`}>
+                          {ev.is_waitlist ? "Lista attesa" : ev.confirmed ? "Confermato" : "In attesa"}
+                        </span>
+                      </Link>
+                      {!isPastEvent && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm("Vuoi davvero disdire questa prenotazione?")) return;
+                            try {
+                              await fetch(`${API}/api/auth/me/signups/${ev.id}`, {
+                                method: "DELETE",
+                                headers: { Authorization: `Bearer ${localStorage.getItem("socio_token")}` },
+                              });
+                              toast.success("Prenotazione disdetta.");
+                              window.location.reload();
+                            } catch {
+                              toast.error("Errore nella disdetta. Riprova.");
+                            }
+                          }}
+                          className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full border border-tv-bordeaux/25 text-tv-bordeaux/60 hover:bg-tv-bordeaux/8 hover:text-tv-bordeaux hover:border-tv-bordeaux/50 transition-all"
+                          title="Disdici prenotazione"
+                        >
+                          Disdici
+                        </button>
+                      )}
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${ev.confirmed ? "bg-tv-green/15 text-tv-green-deep" : "bg-tv-orange/15 text-tv-orange"}`}>
-                      {ev.confirmed ? "Confermato" : "In attesa"}
-                    </span>
-                  </Link>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

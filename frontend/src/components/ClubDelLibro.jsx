@@ -626,13 +626,16 @@ const ProposalsSection = () => {
 
   const [allMonths, setAllMonths] = useState([]);
   const loadAllMonths = useCallback(() => {
+    const nextMonthStr = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
     fetch(`${BACKEND_URL}/api/proposals`)
       .then((r) => r.json())
       .then((d) => {
-        const months = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month))].sort().reverse();
+        const existingMonths = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month))];
+        // Includi sempre il mese futuro per permettere nuove proposte
+        const months = [...new Set([...existingMonths, nextMonthStr])].sort().reverse();
         setAllMonths(months);
-        // se il mese selezionato non ha proposte, usa il più recente che ne ha
-        if (months.length > 0) setSelectedMonth(prev => months.includes(prev) ? prev : months[0]);
+        // Non sovrascrivere se il mese selezionato è già valido o è il mese futuro
+        setSelectedMonth(prev => months.includes(prev) ? prev : months[0]);
       })
       .catch(() => {});
   }, []);

@@ -50,6 +50,9 @@ export const EventoDettaglio = () => {
   const [submitting, setSubmitting] = useState(false);
   const [soloSociError, setSoloSociError] = useState(false);
   const [done, setDone] = useState(false);
+  const [doneWaitlist, setDoneWaitlist] = useState(false);
+  const [waitlistForm, setWaitlistForm] = useState({ name: "", email: "", phone: "" });
+  const [submittingWaitlist, setSubmittingWaitlist] = useState(false);
   const [signupCount, setSignupCount] = useState(null);
 
   const handleNumPersone = (n) => {
@@ -176,6 +179,32 @@ export const EventoDettaglio = () => {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitWaitlist = async (e) => {
+    e.preventDefault();
+    if (!waitlistForm.name || !waitlistForm.email) {
+      toast.error("Nome ed email sono obbligatori.");
+      return;
+    }
+    setSubmittingWaitlist(true);
+    try {
+      await axios.post(`${API}/event-signup`, {
+        event_id: event.id,
+        event_title: event.title,
+        name: waitlistForm.name,
+        email: waitlistForm.email,
+        phone: waitlistForm.phone || null,
+        num_persone: 1,
+        ospiti: [],
+      });
+      setDoneWaitlist(true);
+      toast.success("Iscritto alla lista di attesa!");
+    } catch {
+      toast.error("Errore nell'iscrizione. Riprova.");
+    } finally {
+      setSubmittingWaitlist(false);
     }
   };
 
@@ -439,18 +468,59 @@ export const EventoDettaglio = () => {
                   </Link>
                 </div>
               ) : event.spots <= 0 ? (
-                <div className="bg-tv-bordeaux/5 border border-tv-bordeaux/20 rounded-[2rem] p-7 text-center" data-testid="event-detail-soldout">
-                  <div className="text-4xl mb-3">🎟️</div>
-                  <div className="font-display font-black text-2xl text-tv-bordeaux tracking-wider">🔴 SOLD OUT</div>
-                  <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
-                    Tutti i posti per questo evento sono stati prenotati. Tieni d'occhio i prossimi appuntamenti!
-                  </p>
-                  <Link
-                    to="/#eventi"
-                    className="btn-tv mt-5 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm"
-                  >
-                    Vedi i prossimi eventi
-                  </Link>
+                <div data-testid="event-detail-soldout" className="flex flex-col gap-4">
+                  {/* Sold out badge */}
+                  <div className="bg-tv-bordeaux/5 border border-tv-bordeaux/20 rounded-[2rem] p-6 text-center">
+                    <div className="text-4xl mb-2">🎟️</div>
+                    <div className="font-display font-black text-2xl text-tv-bordeaux tracking-wider">🔴 SOLD OUT</div>
+                    <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
+                      Tutti i posti sono stati prenotati. Puoi comunque iscriverti alla lista di attesa.
+                    </p>
+                  </div>
+                  {/* Waitlist form */}
+                  <div className="bg-white border border-tv-green-deep/10 rounded-[2rem] p-6">
+                    {doneWaitlist ? (
+                      <div className="text-center py-4">
+                        <div className="text-3xl mb-3">⏳</div>
+                        <div className="font-display font-black text-lg text-tv-green-deep">Sei in lista di attesa!</div>
+                        <p className="mt-2 text-sm text-tv-green-deep/60">Ti contatteremo appena si libera un posto.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className="text-lg">⏳</span>
+                          <span className="font-display font-black text-base text-tv-green-deep">Lista di attesa</span>
+                        </div>
+                        <p className="text-sm text-tv-green-deep/55 mb-4 leading-relaxed">
+                          Iscriviti alla lista di attesa: se si libera un posto, sarai tra i primi ad essere contattato.
+                        </p>
+                        <form onSubmit={submitWaitlist} className="flex flex-col gap-3">
+                          <input
+                            type="text" required placeholder="Nome e cognome *"
+                            value={waitlistForm.name}
+                            onChange={e => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm focus:outline-none focus:border-tv-green-deep/40"
+                          />
+                          <input
+                            type="email" required placeholder="Email *"
+                            value={waitlistForm.email}
+                            onChange={e => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm focus:outline-none focus:border-tv-green-deep/40"
+                          />
+                          <input
+                            type="tel" placeholder="Telefono (opzionale)"
+                            value={waitlistForm.phone}
+                            onChange={e => setWaitlistForm(f => ({ ...f, phone: e.target.value }))}
+                            className="w-full px-4 py-3 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm focus:outline-none focus:border-tv-green-deep/40"
+                          />
+                          <button type="submit" disabled={submittingWaitlist}
+                            className="w-full py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm flex items-center justify-center gap-2 hover:bg-tv-green-deep/90 transition-colors disabled:opacity-50">
+                            {submittingWaitlist ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-tv-cream/40 border-t-tv-cream rounded-full" /> Iscrizione...</> : "Iscriviti alla lista di attesa"}
+                          </button>
+                        </form>
+                      </>
+                    )}
+                  </div>
                 </div>
               ) : done ? (
                 <div className="bg-tv-green text-tv-cream rounded-[2rem] p-7" data-testid="event-detail-success">

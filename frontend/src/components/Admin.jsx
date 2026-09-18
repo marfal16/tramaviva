@@ -3432,6 +3432,17 @@ const Dashboard = ({ token, onLogout }) => {
       toast.error(e.response?.data?.detail || "Errore nella conferma");
     }
   };
+
+  const promoteFromWaitlist = async (row) => {
+    if (!window.confirm(`Promuovi ${row.name} dalla lista di attesa? Verrà confermato e scalato un posto.`)) return;
+    try {
+      await axios.post(`${API}/admin/event-signups/${row.id}/promote-from-waitlist`, {}, authHeader);
+      toast.success("Promosso dalla lista di attesa! Email di conferma inviata.");
+      loadAll(true);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nella promozione");
+    }
+  };
     
   const [navDropdown, setNavDropdown] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -3730,6 +3741,7 @@ const Dashboard = ({ token, onLogout }) => {
               members={data.members}
               events={data.events}
               onConfirm={confirmSignup}
+              onPromote={promoteFromWaitlist}
               onDelete={(id) => remove("event-signups", id)}
               onTogglePayment={toggleEventPayment}
               token={token}
@@ -4328,7 +4340,7 @@ const BulkNotifyModal = ({ signupIds, allItems, event, token, onClose }) => {
 
 // ─── Event signups — master-detail con tabella compatta ──────────────────────
 
-const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onTogglePayment, onDelete, onNotify, isPastEvent, token, onReload }) => {
+const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onPromote, onTogglePayment, onDelete, onNotify, isPastEvent, token, onReload }) => {
   const [showGuests, setShowGuests] = useState(false);
   const [removingGuest, setRemovingGuest] = useState(null);
   const hasGuests = (row.ospiti || []).length > 0;
@@ -4398,11 +4410,19 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
         <td className="py-3 pr-3 w-8 text-center">
           {row.confirmed
             ? <span title="Confermato" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-tv-green/20 text-tv-green-deep text-xs font-bold">✓</span>
+            : row.is_waitlist
+            ? <span title="Lista di attesa" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-tv-sky/20 text-tv-sky text-xs">⏳</span>
             : <span title="In attesa" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-tv-orange/15 text-tv-bordeaux text-xs">⏳</span>}
         </td>
         <td className="py-3 pr-4 text-right">
           <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
-            {!row.confirmed && !isPastEvent && (
+            {row.is_waitlist && !isPastEvent && (
+              <button onClick={() => onPromote && onPromote(row)} title="Promuovi dalla lista di attesa"
+                className="p-1.5 rounded-lg bg-tv-sky/20 text-tv-sky hover:bg-tv-sky hover:text-tv-cream transition-colors text-[10px] font-bold px-2">
+                Promuovi
+              </button>
+            )}
+            {!row.confirmed && !row.is_waitlist && !isPastEvent && (
               <button onClick={() => onConfirm(row)} title="Conferma"
                 className="p-1.5 rounded-lg bg-tv-orange/20 text-tv-orange hover:bg-tv-orange hover:text-tv-cream transition-colors">
                 <UserCheck size={13}/>
@@ -4473,7 +4493,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
   );
 };
 
-const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, onTogglePayment, token, onReload }) => {
+const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, onDelete, onTogglePayment, token, onReload }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [reminderLoading, setReminderLoading] = useState(null);
@@ -4528,9 +4548,11 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
       ? selectedGroup.items.filter(r => r.confirmed)
       : selectedGroup.items;
     const afterFilter = activeFilter === "pending"
-      ? base.filter(r => !r.confirmed)
+      ? base.filter(r => !r.confirmed && !r.is_waitlist)
       : activeFilter === "confirmed"
       ? base.filter(r => r.confirmed)
+      : activeFilter === "waitlist"
+      ? base.filter(r => r.is_waitlist)
       : base;
     const q = searchQuery.trim().toLowerCase();
     const result = q
@@ -4726,12 +4748,15 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
       <div className="md:flex-1 md:min-w-0 md:flex md:flex-col md:overflow-hidden">
         {selectedGroup ? (() => {
           const allItems = selectedGroup.items;
-          const totalPeople = allItems.reduce((s, r) => s + (r.num_persone || 1), 0);
-          const confirmedPpl = allItems.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
+          const allItemsNotWaitlist = allItems.filter(r => !r.is_waitlist);
+          const waitlistItems = allItems.filter(r => r.is_waitlist);
+          const waitlistPpl = waitlistItems.length;
+          const totalPeople = allItemsNotWaitlist.reduce((s, r) => s + (r.num_persone || 1), 0);
+          const confirmedPpl = allItemsNotWaitlist.filter(r => r.confirmed).reduce((s, r) => s + (r.num_persone || 1), 0);
           const pendingPpl = totalPeople - confirmedPpl;
-          const paidCount = allItems.filter(r => r.payment_completed).length;
-          const unpaidCount = allItems.filter(r => r.metodo_pagamento && !r.payment_completed).length;
-          const pendingCount = allItems.filter(r => !r.confirmed).length;
+          const paidCount = allItemsNotWaitlist.filter(r => r.payment_completed).length;
+          const unpaidCount = allItemsNotWaitlist.filter(r => r.metodo_pagamento && !r.payment_completed).length;
+          const pendingCount = allItemsNotWaitlist.filter(r => !r.confirmed).length;
           return (
             <>
               {/* Header */}
@@ -4783,6 +4808,11 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                       ⏳ {pendingPpl} in attesa
                     </span>
                   )}
+                  {!isPastEvent && waitlistPpl > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-sky/20 text-tv-sky px-2.5 py-1 rounded-full">
+                      ⏳ {waitlistPpl} lista attesa
+                    </span>
+                  )}
                   {paidCount > 0 && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-tv-mint/50 text-tv-green-deep px-2.5 py-1 rounded-full">
                       💸 {paidCount} pagati
@@ -4822,6 +4852,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                     <option value="all">Tutti ({isPastEvent ? confirmedPpl : totalPeople})</option>
                     {!isPastEvent && <option value="pending">In attesa ({pendingPpl})</option>}
                     <option value="confirmed">Confermati ({confirmedPpl})</option>
+                    {!isPastEvent && waitlistPpl > 0 && <option value="waitlist">Lista attesa ({waitlistPpl})</option>}
                   </select>
                   <div className="relative flex-1">
                     <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
@@ -4836,6 +4867,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                       { key: "all", label: `Tutti (${isPastEvent ? confirmedPpl : totalPeople})` },
                       ...(!isPastEvent ? [{ key: "pending", label: `In attesa (${pendingPpl})` }] : []),
                       { key: "confirmed", label: `Confermati (${confirmedPpl})` },
+                      ...(!isPastEvent && waitlistPpl > 0 ? [{ key: "waitlist", label: `Lista attesa (${waitlistPpl})` }] : []),
                     ].map(f => (
                       <button key={f.key} onClick={() => setActiveFilter(f.key)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
@@ -4909,6 +4941,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                               isSelected={selectedIds.has(row.id)}
                               onToggleSelect={toggleSelect}
                               onConfirm={onConfirm}
+                              onPromote={onPromote}
                               onTogglePayment={onTogglePayment}
                               onDelete={onDelete}
                               onNotify={(row) => setNotifyTarget({ signup: row, event: selectedGroup.ev })}
@@ -4956,6 +4989,8 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                               <div className="shrink-0">
                                 {row.confirmed
                                   ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full whitespace-nowrap">✓ Conf.</span>
+                                  : row.is_waitlist
+                                  ? <span className="text-[10px] font-bold bg-tv-sky/20 text-tv-sky px-2 py-0.5 rounded-full whitespace-nowrap">⏳ Lista att.</span>
                                   : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full whitespace-nowrap">⏳ Attesa</span>}
                               </div>
                             </div>
@@ -4988,7 +5023,13 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onDelete, on
                             </div>
                             {/* Azioni */}
                             <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-tv-green-deep/8">
-                              {!row.confirmed && !isPastEvent && (
+                              {row.is_waitlist && !isPastEvent && (
+                                <button onClick={() => onPromote && onPromote(row)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-sky/20 text-tv-sky text-[11px] font-bold rounded-full hover:bg-tv-sky hover:text-tv-cream transition-colors">
+                                  ⬆ Promuovi
+                                </button>
+                              )}
+                              {!row.confirmed && !row.is_waitlist && !isPastEvent && (
                                 <button onClick={() => onConfirm(row)}
                                   className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-orange/20 text-tv-orange text-[11px] font-bold rounded-full hover:bg-tv-orange hover:text-tv-cream transition-colors">
                                   <UserCheck size={11}/> Conferma

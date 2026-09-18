@@ -72,6 +72,8 @@ class EventSignup(BaseModel):
     referral: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     confirmed: bool = False
+    is_waitlist: bool = False
+    cancel_token: str = Field(default_factory=lambda: str(uuid.uuid4()))
     metodo_pagamento: Optional[str] = None
     payment_completed: bool = False
     num_persone: int = 1
@@ -774,7 +776,9 @@ async def create_event_signup(payload: EventSignupCreate):
                 status_code=403,
                 detail="Questo evento è riservato ai soci Trama Viva. Per partecipare devi essere socio o avere una richiesta di iscrizione in corso."
             )
-    obj = EventSignup(**payload.model_dump())
+    # Determina se l'evento è sold out → lista di attesa
+    is_waitlist = bool(event_doc and event_doc.get("spots", 1) <= 0)
+    obj = EventSignup(**payload.model_dump(), is_waitlist=is_waitlist)
     doc = obj.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
     await db.event_signups.insert_one(doc)
@@ -792,6 +796,7 @@ async def create_event_signup(payload: EventSignupCreate):
                 f"{g.nome} {g.cognome}" + (f" ({g.email})" if g.email else "")
                 for g in obj.ospiti
             )
+        admin_subject = "Lista di attesa evento" if is_waitlist else "Nuova richiesta evento"
         admin_info = {
             "Evento": obj.event_title,
             "Data": event_date_str or "—",
@@ -799,13 +804,56 @@ async def create_event_signup(payload: EventSignupCreate):
             "Email": obj.email,
             "Telefono": obj.phone or "—",
         }
+        if is_waitlist:
+            admin_info["Stato"] = "⏳ Lista di attesa"
         if ospiti_str:
             admin_info["Accompagnatori"] = ospiti_str
         email_svc = EmailService()
-        await email_svc.send_admin_notification(subject="Nuova richiesta evento", info=admin_info)
+        await email_svc.send_admin_notification(subject=admin_subject, info=admin_info)
     except Exception as e:
         logger.warning(f"Notifica admin evento non inviata: {e}")
     return obj
+
+@api_router.get("/cancel-signup/{token}")
+async def get_cancel_signup_info(token: str):
+    signup = await db.event_signups.find_one({"cancel_token": token}, {"_id": 0, "id": 1, "name": 1, "email": 1, "event_title": 1, "event_id": 1, "confirmed": 1, "is_waitlist": 1})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Prenotazione non trovata o link non valido")
+    event_doc = await db.events.find_one({"id": signup["event_id"]}, {"_id": 0, "date": 1, "time": 1, "location": 1})
+    return {
+        "name": signup.get("name", ""),
+        "event_title": signup.get("event_title", ""),
+        "event_date": event_doc.get("date", "") if event_doc else "",
+        "event_time": event_doc.get("time", "") if event_doc else "",
+        "event_location": event_doc.get("location", "") if event_doc else "",
+        "confirmed": signup.get("confirmed", False),
+        "is_waitlist": signup.get("is_waitlist", False),
+    }
+
+@api_router.post("/cancel-signup/{token}")
+async def perform_cancel_signup(token: str):
+    signup = await db.event_signups.find_one({"cancel_token": token}, {"_id": 0})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Prenotazione non trovata o link non valido")
+    # Se era confermata, rimette i posti
+    if signup.get("confirmed"):
+        num_persone = signup.get("num_persone", 1)
+        await db.events.update_one({"id": signup["event_id"]}, {"$inc": {"spots": num_persone}})
+    await db.event_signups.delete_one({"cancel_token": token})
+    # Conta quanti in lista di attesa per notifica admin
+    waitlist_count = await db.event_signups.count_documents({"event_id": signup["event_id"], "is_waitlist": True})
+    try:
+        admin_info = {
+            "Evento": signup.get("event_title", ""),
+            "Nome": signup.get("name", ""),
+            "Email": signup.get("email", ""),
+        }
+        if waitlist_count > 0:
+            admin_info["Lista di attesa"] = f"{waitlist_count} person{'a' if waitlist_count == 1 else 'e'}"
+        await EmailService().send_admin_notification(subject="Cancellazione prenotazione evento", info=admin_info)
+    except Exception as e:
+        logger.warning(f"Notifica admin cancellazione non inviata: {e}")
+    return {"ok": True}
 
 @api_router.post("/membership", response_model=Membership)
 async def create_membership(payload: MembershipCreate):
@@ -1265,12 +1313,12 @@ async def socio_my_events(user=Depends(require_socio)):
     # Prenotazioni dove l'utente è il registrante principale
     signups_main = await db.event_signups.find(
         {"email": email_regex},
-        {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1}
+        {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1, "is_waitlist": 1, "cancel_token": 1}
     ).sort("created_at", -1).to_list(200)
     # Prenotazioni dove l'utente è ospite (accompagnatore) di qualcun altro
     signups_guest = await db.event_signups.find(
         {"ospiti.email": email_regex},
-        {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1}
+        {"_id": 0, "id": 1, "event_id": 1, "event_title": 1, "created_at": 1, "confirmed": 1, "num_persone": 1, "is_waitlist": 1, "cancel_token": 1}
     ).sort("created_at", -1).to_list(200)
     # Unisce evitando duplicati (stesso signup_id)
     seen_ids = {s["id"] for s in signups_main}
@@ -1285,6 +1333,31 @@ async def socio_my_events(user=Depends(require_socio)):
         s["event_date"] = ev.get("date")
         s["event_slug"] = ev.get("slug")
     return {"is_fondatore": False, "events": [], "signups": signups}
+
+@api_router.delete("/auth/me/signups/{signup_id}")
+async def cancel_my_signup(signup_id: str, user=Depends(require_socio)):
+    email_regex = re.compile(f"^{re.escape(user['email'])}$", re.IGNORECASE)
+    signup = await db.event_signups.find_one({"id": signup_id, "email": email_regex}, {"_id": 0})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Prenotazione non trovata")
+    if signup.get("confirmed"):
+        num_persone = signup.get("num_persone", 1)
+        await db.events.update_one({"id": signup["event_id"]}, {"$inc": {"spots": num_persone}})
+    await db.event_signups.delete_one({"id": signup_id})
+    waitlist_count = await db.event_signups.count_documents({"event_id": signup["event_id"], "is_waitlist": True})
+    try:
+        admin_info = {
+            "Evento": signup.get("event_title", ""),
+            "Nome": signup.get("name", ""),
+            "Email": signup.get("email", ""),
+            "Motivo": "Autocancellazione da Area Soci",
+        }
+        if waitlist_count > 0:
+            admin_info["Lista di attesa"] = f"{waitlist_count} person{'a' if waitlist_count == 1 else 'e'}"
+        await EmailService().send_admin_notification(subject="Cancellazione prenotazione evento", info=admin_info)
+    except Exception as e:
+        logger.warning(f"Notifica admin cancellazione non inviata: {e}")
+    return {"ok": True}
 
 @api_router.get("/auth/me/member-info")
 async def socio_member_info(user=Depends(require_socio)):
@@ -1884,6 +1957,7 @@ async def confirm_event_signup(signup_id: str):
     event_date = event.get("date", "")
     event_time = event.get("time", "")
     event_location = event.get("location", "")
+    cancel_url = f"https://www.tramavivaaps.com/cancella/{signup.get('cancel_token', '')}"
     try:
         email_svc = EmailService()
         await email_svc.send_event_confirmation(
@@ -1893,6 +1967,7 @@ async def confirm_event_signup(signup_id: str):
             event_date=event_date,
             event_time=event_time,
             event_location=event_location,
+            cancel_url=cancel_url,
         )
         logger.info(f"Email conferma evento inviata a {to_email}")
     except Exception as e:
@@ -2058,6 +2133,7 @@ async def bulk_confirm_signups(payload: BulkConfirmPayload):
         bulk_date = event.get("date", "")
         bulk_time = event.get("time", "")
         bulk_location = event.get("location", "")
+        bulk_cancel_url = f"https://www.tramavivaaps.com/cancella/{signup.get('cancel_token', '')}"
         try:
             email_svc = EmailService()
             await email_svc.send_event_confirmation(
@@ -2067,6 +2143,7 @@ async def bulk_confirm_signups(payload: BulkConfirmPayload):
                 event_date=bulk_date,
                 event_time=bulk_time,
                 event_location=bulk_location,
+                cancel_url=bulk_cancel_url,
             )
         except Exception as e:
             logger.warning(f"Email conferma non inviata: {e}")
@@ -2098,6 +2175,55 @@ async def admin_update_event_signup_payment(signup_id: str, payload: PaymentStat
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Richiesta non trovata")
+    return {"ok": True}
+
+@api_router.get("/admin/events/{event_id}/waitlist", dependencies=[Depends(require_admin)])
+async def admin_get_waitlist(event_id: str):
+    docs = await db.event_signups.find(
+        {"event_id": event_id, "is_waitlist": True},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(200)
+    return docs
+
+@api_router.post("/admin/event-signups/{signup_id}/promote-from-waitlist", dependencies=[Depends(require_admin)])
+async def promote_from_waitlist(signup_id: str):
+    signup = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Prenotazione non trovata")
+    if not signup.get("is_waitlist"):
+        raise HTTPException(status_code=400, detail="Questa prenotazione non è in lista di attesa")
+    event = await db.events.find_one({"id": signup["event_id"]}, {"_id": 0})
+    if not event:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    num_persone = signup.get("num_persone", 1)
+    if event.get("spots", 0) < num_persone:
+        raise HTTPException(status_code=400, detail=f"Posti insufficienti (richiesti {num_persone}, disponibili {event.get('spots', 0)})")
+    await db.events.update_one({"id": signup["event_id"]}, {"$inc": {"spots": -num_persone}})
+    await db.event_signups.update_one({"id": signup_id}, {"$set": {"is_waitlist": False, "confirmed": True}})
+    cancel_url = f"https://www.tramavivaaps.com/cancella/{signup.get('cancel_token', '')}"
+    try:
+        await EmailService().send_event_confirmation(
+            email=signup.get("email", ""),
+            name=signup.get("name", ""),
+            event_title=event.get("title", signup.get("event_title", "")),
+            event_date=event.get("date", ""),
+            event_time=event.get("time", ""),
+            event_location=event.get("location", ""),
+            cancel_url=cancel_url,
+        )
+    except Exception as e:
+        logger.warning(f"Email promozione lista attesa non inviata: {e}")
+    return {"ok": True, "spots_remaining": event["spots"] - num_persone}
+
+@api_router.delete("/admin/event-signups/{signup_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_event_signup(signup_id: str):
+    signup = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
+    if not signup:
+        raise HTTPException(status_code=404, detail="Prenotazione non trovata")
+    if signup.get("confirmed"):
+        num_persone = signup.get("num_persone", 1)
+        await db.events.update_one({"id": signup["event_id"]}, {"$inc": {"spots": num_persone}})
+    await db.event_signups.delete_one({"id": signup_id})
     return {"ok": True}
 
 # ========== ADMIN: EVENTS ==========

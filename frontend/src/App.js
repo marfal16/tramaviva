@@ -20,6 +20,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./components/Auth";
 import { AreaSoci } from "./components/AreaSoci";
 import { Donazioni, DonazioniTeaser } from "./components/Donazioni";
+import { CancellaPrenotazione } from "./components/CancellaPrenotazione";
 
 const ClubsSection = () => (
   <section className="pt-0 pb-14 md:pb-20 px-6 md:px-10">
@@ -180,6 +181,7 @@ function App() {
           <Route path="/registrati" element={<RegisterPage />} />
           <Route path="/password-dimenticata" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route path="/cancella/:token" element={<CancellaPrenotazione />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

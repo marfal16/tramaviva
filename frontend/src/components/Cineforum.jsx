@@ -1030,7 +1030,7 @@ const CineforumPasswordModal = ({ onSuccess, onClose }) => {
 const FilmProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); });
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
   const [cineforumConfig, setCineforumConfig] = useState(null);
@@ -1049,12 +1049,15 @@ const FilmProposalsSection = () => {
 
   const [allMonths, setAllMonths] = useState([]);
   const loadAllMonths = useCallback(() => {
+    const nextMonthStr = (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); })();
     fetch(`${BACKEND_URL}/api/film-proposals`)
       .then((r) => r.json())
       .then((d) => {
-        const months = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month).filter(Boolean))].sort().reverse();
+        const existingMonths = [...new Set((Array.isArray(d) ? d : []).map((p) => p.proposed_month).filter(Boolean))];
+        // Includi sempre il mese futuro per permettere nuove proposte
+        const months = [...new Set([...existingMonths, nextMonthStr])].sort().reverse();
         setAllMonths(months);
-        if (months.length > 0) setSelectedMonth(months[0]);
+        setSelectedMonth(prev => months.includes(prev) ? prev : months[0]);
       })
       .catch(() => {});
   }, []);

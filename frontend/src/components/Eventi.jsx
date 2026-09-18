@@ -407,12 +407,18 @@ const FeaturedCard = ({ ev, onParticipate }) => (
       )}
       <div className="mt-7">
         {ev.spots <= 0 ? (
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black tracking-[.18em] text-tv-cream/50 uppercase shrink-0">Sold out</span>
-            <div className="w-10 border-t border-dashed border-tv-cream/20 shrink-0" />
-            <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-featured-detail-${ev.id}`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm text-tv-cream/65 border border-tv-cream/20 hover:text-tv-cream hover:border-tv-cream/50 transition-all">
-              Vedi dettagli <ArrowRight size={14} />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] font-black tracking-[.18em] text-tv-cream/50 uppercase shrink-0">Sold out</span>
+              <div className="w-10 border-t border-dashed border-tv-cream/20 shrink-0" />
+              <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-featured-detail-${ev.id}`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm text-tv-cream/65 border border-tv-cream/20 hover:text-tv-cream hover:border-tv-cream/50 transition-all">
+                Vedi dettagli <ArrowRight size={14} />
+              </Link>
+            </div>
+            <Link to={`/eventi/${ev.slug || ev.id}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-tv-cream/60 border border-tv-cream/20 hover:text-tv-cream hover:border-tv-cream/40 transition-all w-fit">
+              ⏳ Lista di attesa
             </Link>
           </div>
         ) : (
@@ -502,12 +508,18 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
       </div>
       <div className="mt-auto pt-5">
         {soldOut ? (
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-black tracking-[.18em] text-tv-bordeaux uppercase shrink-0">Sold out</span>
-            <div className="flex-1 border-t border-dashed border-tv-bordeaux/20" />
-            <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-detail-${ev.id}`}
-              className="text-sm font-bold text-tv-green-deep/50 hover:text-tv-green-deep transition-colors shrink-0 flex items-center gap-1">
-              Vedi dettagli <ArrowRight size={13} />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black tracking-[.18em] text-tv-bordeaux uppercase shrink-0">Sold out</span>
+              <div className="flex-1 border-t border-dashed border-tv-bordeaux/20" />
+              <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-detail-${ev.id}`}
+                className="text-sm font-bold text-tv-green-deep/50 hover:text-tv-green-deep transition-colors shrink-0 flex items-center gap-1">
+                Vedi dettagli <ArrowRight size={13} />
+              </Link>
+            </div>
+            <Link to={`/eventi/${ev.slug || ev.id}`}
+              className="flex items-center justify-center gap-1.5 py-2 rounded-full border border-tv-green-deep/20 text-tv-green-deep/60 text-xs font-bold hover:border-tv-green-deep/40 hover:text-tv-green-deep transition-all">
+              ⏳ Lista di attesa
             </Link>
           </div>
         ) : (

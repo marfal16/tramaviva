@@ -54,7 +54,7 @@ class EmailService:
         except Exception as e:
             logger.error(f"Errore nell'invio dell'email di iscrizione: {e}")
 
-    async def send_event_confirmation(self, email: str, name: str, event_title: str, event_date: str, event_time: str, event_location: str):
+    async def send_event_confirmation(self, email: str, name: str, event_title: str, event_date: str, event_time: str, event_location: str, cancel_url: str | None = None):
         if not HAS_SMTP or not self.smtp_user:
             logger.warning(f"Email service non configurato. Email evento saltata per {email}")
             return
@@ -66,6 +66,7 @@ class EmailService:
                 event_date=event_date,
                 event_time=event_time,
                 event_location=event_location,
+                cancel_url=cancel_url,
             )
             ics_content = self._generate_ics(event_title, event_date, event_time, event_location)
             await self._send_smtp(email, subject, html_body, ics_content=ics_content)
@@ -348,11 +349,16 @@ class EmailService:
         </body>
         </html>"""
 
-    def _get_event_confirmation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str, gcal_url: str | None = None) -> str:
+    def _get_event_confirmation_template(self, name: str, event_title: str, event_date: str, event_time: str, event_location: str, gcal_url: str | None = None, cancel_url: str | None = None) -> str:
         gcal_button = """
                     <div style="margin:20px 0 0;padding:12px 16px;background:#f0f7f0;border-radius:12px;text-align:center;">
                         <p style="margin:0;font-size:13px;color:#4a5568;">📎 Abbiamo allegato un file <strong>.ics</strong> — aprilo per aggiungere l'evento a <strong>Apple Calendar</strong>, <strong>Google Calendar</strong>, <strong>Outlook</strong> o qualsiasi altro calendario.</p>
                     </div>"""
+        cancel_block = f"""
+                    <div style="margin:24px 0 0;padding:14px 18px;background:#fff5f5;border-radius:12px;border:1px solid #fecaca;text-align:center;">
+                        <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Non riesci a venire? Puoi disdire la tua prenotazione qui:</p>
+                        <a href="{cancel_url}" style="display:inline-block;background:#5D1723;color:white;padding:9px 22px;border-radius:99px;text-decoration:none;font-weight:700;font-size:13px;">Disdici la prenotazione</a>
+                    </div>""" if cancel_url else ""
         return f"""<!DOCTYPE html>
         <html>
         <head>
@@ -375,7 +381,7 @@ class EmailService:
                     <div class="box">
                         <p>📅 <strong>{event_date}</strong> alle <strong>{event_time}</strong></p>
                         <p>📍 {event_location}</p>
-                    </div>{gcal_button}
+                    </div>{gcal_button}{cancel_block}
                     <p>Qualche piccolo consiglio:</p>
                     <ul style="font-size: 14px; line-height: 2; padding-left: 20px;">
                         <li>✓ Arriva qualche minuto prima dell'orario indicato</li>
