@@ -2095,7 +2095,13 @@ async def send_event_reminder(event_id: str):
             logger.warning(f"Reminder non inviato a {s.get('email')}: {e}")
             return False
 
-    results = await _asyncio.gather(*[_send_one(s) for s in signups])
+    semaphore = _asyncio.Semaphore(5)
+
+    async def _send_one_limited(s):
+        async with semaphore:
+            return await _send_one(s)
+
+    results = await _asyncio.gather(*[_send_one_limited(s) for s in signups])
     return {"ok": True, "sent": sum(results)}
 
 class NotifyParticipantPayload(BaseModel):
@@ -2136,34 +2142,40 @@ async def bulk_notify_participants(event_id: str, payload: BulkNotifyPayload):
     if not event:
         raise HTTPException(status_code=404, detail="Evento non trovato")
 
+    # Recupera tutti i signup in una sola query
+    all_signups = await db.event_signups.find(
+        {"id": {"$in": payload.signup_ids}}, {"_id": 0}
+    ).to_list(len(payload.signup_ids))
+
     # Raccoglie tutti i destinatari (registranti + ospiti con email)
-    signup_docs = []
-    for signup_id in payload.signup_ids:
-        s = await db.event_signups.find_one({"id": signup_id}, {"_id": 0})
-        if not s:
-            continue
+    recipients = []
+    for s in all_signups:
         if s.get("email"):
-            signup_docs.append({"email": s["email"], "name": s.get("name", "")})
+            recipients.append({"email": s["email"], "name": s.get("name", "")})
         for ospite in s.get("ospiti", []):
             if ospite.get("email"):
-                signup_docs.append({
+                recipients.append({
                     "email": ospite["email"],
                     "name": f"{ospite.get('nome', '')} {ospite.get('cognome', '')}".strip(),
                 })
 
-    async def _notify_one(recipient):
-        try:
-            await EmailService().send_participant_notification(
-                email=recipient["email"], name=recipient["name"],
-                subject=payload.subject, body_text=payload.body_text,
-                notification_type=payload.notification_type, event_title=event.get("title", ""),
-            )
-            return True
-        except Exception as e:
-            logger.warning(f"Notifica non inviata a {recipient['email']}: {e}")
-            return False
+    # Semaforo: max 5 connessioni SMTP simultanee per non saturare il server
+    semaphore = _asyncio.Semaphore(5)
 
-    results = await _asyncio.gather(*[_notify_one(r) for r in signup_docs])
+    async def _notify_one(recipient):
+        async with semaphore:
+            try:
+                await EmailService().send_participant_notification(
+                    email=recipient["email"], name=recipient["name"],
+                    subject=payload.subject, body_text=payload.body_text,
+                    notification_type=payload.notification_type, event_title=event.get("title", ""),
+                )
+                return True
+            except Exception as e:
+                logger.warning(f"Notifica non inviata a {recipient['email']}: {e}")
+                return False
+
+    results = await _asyncio.gather(*[_notify_one(r) for r in recipients])
     sent = sum(results)
     return {"ok": True, "sent": sent, "errors": len(results) - sent}
 
