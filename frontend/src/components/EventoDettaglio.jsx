@@ -50,6 +50,7 @@ export const EventoDettaglio = () => {
   const [submitting, setSubmitting] = useState(false);
   const [soloSociError, setSoloSociError] = useState(false);
   const [done, setDone] = useState(false);
+  const [doneParziale, setDoneParziale] = useState(null); // {confirmed_num, waitlist_num}
   const [doneWaitlist, setDoneWaitlist] = useState(false);
   const [waitlistForm, setWaitlistForm] = useState({ name: "", email: "", phone: "" });
   const [submittingWaitlist, setSubmittingWaitlist] = useState(false);
@@ -166,9 +167,14 @@ export const EventoDettaglio = () => {
         }
       }
 
-      setDone(true);
+      if (res.data?.split) {
+        setDoneParziale(res.data.split);
+        toast.success(`${res.data.split.confirmed_num} posti confermati, ${res.data.split.waitlist_num} in lista d'attesa.`);
+      } else {
+        setDone(true);
+        toast.success("Richiesta inviata! Ti scriviamo presto.");
+      }
       setSignupCount((c) => (typeof c === "number" ? c + 1 : c));
-      toast.success("Richiesta inviata! Ti scriviamo presto.");
       setForm({ name: "", email: "", phone: "", message: "", referral: "", metodo_pagamento: "" });
       setNumPersone(1); setOspiti([]); setOpzioneScelta(""); setDonazioneVolontaria("");
     } catch (err) {
@@ -394,16 +400,23 @@ export const EventoDettaglio = () => {
                     <MapPin size={15} /> {event.location}
                   </div>
                   {event.spots != null && (
-                    <div className="flex items-center gap-2">
-                      <Users size={15} />
-                      {event.spots <= 0 ? (
-                        <span className="font-bold text-tv-bordeaux">🔴 SOLD OUT</span>
-                      ) : event.spots === 1 ? (
-                        <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
-                      ) : event.spots <= 5 ? (
-                        <span className="font-bold text-orange-300">⚡ Ultimi {event.spots} posti!</span>
-                      ) : (
-                        <span className="opacity-80">{event.spots} posti disponibili</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Users size={15} />
+                        {event.spots <= 0 ? (
+                          <span className="font-bold text-tv-bordeaux">🔴 SOLD OUT</span>
+                        ) : event.spots === 1 ? (
+                          <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
+                        ) : event.spots <= 5 ? (
+                          <span className="font-bold text-orange-300">⚡ Ultimi {event.spots} posti!</span>
+                        ) : (
+                          <span className="opacity-80">{event.spots} posti disponibili</span>
+                        )}
+                      </div>
+                      {event.spots > 0 && (
+                        <p className="text-xs opacity-60 leading-snug pl-[19px]">
+                          Se il tuo gruppo supera i posti disponibili, chi non rientra va automaticamente in lista d'attesa.
+                        </p>
                       )}
                     </div>
                   )}
@@ -520,6 +533,30 @@ export const EventoDettaglio = () => {
                         </form>
                       </>
                     )}
+                  </div>
+                </div>
+              ) : doneParziale ? (
+                <div className="flex flex-col gap-4" data-testid="event-detail-partial">
+                  <div className="bg-tv-green text-tv-cream rounded-[2rem] p-7">
+                    <div className="flex justify-center mb-5">
+                      <div className="w-16 h-16 rounded-full bg-tv-cream/20 flex items-center justify-center text-4xl">✅</div>
+                    </div>
+                    <div className="font-display font-black text-xl text-center">
+                      {doneParziale.confirmed_num} {doneParziale.confirmed_num === 1 ? "posto prenotato" : "posti prenotati"}!
+                    </div>
+                    <p className="mt-2 text-sm opacity-90 text-center">
+                      Ti confermiamo la partecipazione entro 24h via email.
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-[2rem] p-6 text-center">
+                    <div className="text-3xl mb-2">⏳</div>
+                    <div className="font-display font-black text-base text-amber-800">
+                      {doneParziale.waitlist_num} {doneParziale.waitlist_num === 1 ? "persona in lista d'attesa" : "persone in lista d'attesa"}
+                    </div>
+                    <p className="mt-2 text-sm text-amber-700 leading-relaxed">
+                      I posti disponibili non erano sufficienti per tutto il gruppo.
+                      {doneParziale.waitlist_num === 1 ? " Chi resta" : " Chi resta"} in lista d'attesa verrà contattato appena si libera un posto.
+                    </p>
                   </div>
                 </div>
               ) : done ? (

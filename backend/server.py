@@ -763,7 +763,7 @@ async def get_event_ics(event_id: str):
         raise HTTPException(status_code=500, detail="Errore generazione ICS")
 
 # ========== ROUTES: EVENT SIGNUPS & MEMBERSHIPS ==========
-@api_router.post("/event-signup", response_model=EventSignup)
+@api_router.post("/event-signup")
 async def create_event_signup(payload: EventSignupCreate):
     # Controllo accesso: eventi solo soci
     event_doc = await db.events.find_one({"id": payload.event_id})
@@ -776,27 +776,76 @@ async def create_event_signup(payload: EventSignupCreate):
                 status_code=403,
                 detail="Questo evento è riservato ai soci Trama Viva. Per partecipare devi essere socio o avere una richiesta di iscrizione in corso."
             )
-    # Determina se i posti sono insufficienti per il gruppo → lista di attesa
+
     num_persone_req = payload.num_persone or 1
-    is_waitlist = bool(event_doc and event_doc.get("spots", 1) < num_persone_req)
+    available_spots = event_doc.get("spots", num_persone_req) if event_doc else num_persone_req
+
+    def _insert_doc(signup_obj):
+        d = signup_obj.model_dump()
+        d["created_at"] = d["created_at"].isoformat()
+        return d
+
+    def _ospiti_str(signup_obj):
+        return "; ".join(
+            f"{g.nome} {g.cognome}" + (f" ({g.email})" if g.email else "")
+            for g in (signup_obj.ospiti or [])
+        ) or None
+
+    event_date_str = ""
+    if event_doc and event_doc.get("date"):
+        try:
+            from datetime import datetime as _dt
+            event_date_str = _dt.strptime(event_doc["date"], "%Y-%m-%d").strftime("%-d %B %Y")
+        except Exception:
+            event_date_str = event_doc.get("date", "")
+
+    email_svc = EmailService()
+
+    # Caso split parziale: alcuni posti disponibili ma non abbastanza per il gruppo
+    if 0 < available_spots < num_persone_req:
+        confirmed_num = available_spots
+        waitlist_num = num_persone_req - available_spots
+        ospiti_list = [o.model_dump() if hasattr(o, "model_dump") else o for o in (payload.ospiti or [])]
+        confirmed_ospiti = ospiti_list[:confirmed_num - 1]
+        waitlist_ospiti = ospiti_list[confirmed_num - 1:]
+
+        conf_data = payload.model_dump()
+        conf_data["num_persone"] = confirmed_num
+        conf_data["ospiti"] = confirmed_ospiti
+        conf_obj = EventSignup(**conf_data, is_waitlist=False)
+        await db.event_signups.insert_one(_insert_doc(conf_obj))
+
+        wait_data = payload.model_dump()
+        wait_data["num_persone"] = waitlist_num
+        wait_data["ospiti"] = waitlist_ospiti
+        wait_obj = EventSignup(**wait_data, is_waitlist=True)
+        await db.event_signups.insert_one(_insert_doc(wait_obj))
+
+        try:
+            admin_info = {
+                "Evento": conf_obj.event_title,
+                "Data": event_date_str or "—",
+                "Nome": conf_obj.name,
+                "Email": conf_obj.email,
+                "Telefono": conf_obj.phone or "—",
+                "Stato": f"⚡ Split — {confirmed_num} in attesa di conferma + {waitlist_num} in lista d'attesa",
+            }
+            ostr = _ospiti_str(conf_obj)
+            if ostr:
+                admin_info["Accompagnatori (confermati)"] = ostr
+            await email_svc.send_admin_notification(subject="Prenotazione parziale evento", info=admin_info)
+        except Exception as e:
+            logger.warning(f"Notifica admin evento non inviata: {e}")
+
+        result = conf_obj.model_dump(mode="json")
+        result["split"] = {"confirmed_num": confirmed_num, "waitlist_num": waitlist_num}
+        return result
+
+    # Caso normale: tutti confermati o tutti in lista d'attesa
+    is_waitlist = available_spots <= 0
     obj = EventSignup(**payload.model_dump(), is_waitlist=is_waitlist)
-    doc = obj.model_dump()
-    doc["created_at"] = doc["created_at"].isoformat()
-    await db.event_signups.insert_one(doc)
+    await db.event_signups.insert_one(_insert_doc(obj))
     try:
-        event_date_str = ""
-        if event_doc and event_doc.get("date"):
-            try:
-                from datetime import datetime as _dt
-                event_date_str = _dt.strptime(event_doc["date"], "%Y-%m-%d").strftime("%-d %B %Y")
-            except Exception:
-                event_date_str = event_doc.get("date", "")
-        ospiti_str = ""
-        if obj.ospiti:
-            ospiti_str = "; ".join(
-                f"{g.nome} {g.cognome}" + (f" ({g.email})" if g.email else "")
-                for g in obj.ospiti
-            )
         admin_subject = "Lista di attesa evento" if is_waitlist else "Nuova richiesta evento"
         admin_info = {
             "Evento": obj.event_title,
@@ -807,13 +856,15 @@ async def create_event_signup(payload: EventSignupCreate):
         }
         if is_waitlist:
             admin_info["Stato"] = "⏳ Lista di attesa"
-        if ospiti_str:
-            admin_info["Accompagnatori"] = ospiti_str
-        email_svc = EmailService()
+        ostr = _ospiti_str(obj)
+        if ostr:
+            admin_info["Accompagnatori"] = ostr
         await email_svc.send_admin_notification(subject=admin_subject, info=admin_info)
     except Exception as e:
         logger.warning(f"Notifica admin evento non inviata: {e}")
-    return obj
+    result = obj.model_dump(mode="json")
+    result["split"] = None
+    return result
 
 @api_router.get("/cancel-signup/{token}")
 async def get_cancel_signup_info(token: str):
