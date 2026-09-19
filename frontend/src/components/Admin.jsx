@@ -3271,7 +3271,8 @@ const Dashboard = ({ token, onLogout }) => {
     const row = tesseraModal;
     setTesseraLoading(true);
     try {
-      if (tesseraInput.trim()) {
+      const numChanged = tesseraInput.trim() && tesseraInput.trim() !== (row.tessera_number || "").trim();
+      if (numChanged) {
         await axios.patch(`${API}/admin/registrations/${row.id}/tessera`,
           { tessera_number: tesseraInput.trim() },
           authHeader
