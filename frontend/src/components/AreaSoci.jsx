@@ -57,7 +57,7 @@ const Avatar = ({ user, onUpload, size = 96 }) => {
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       {user.has_avatar ? (
-        <img src={`${API}/api/users/${user.id}/avatar?t=${Date.now()}`} alt={user.name}
+        <img src={user.avatar_url || `${API}/api/users/${user.id}/avatar?t=${Date.now()}`} alt={user.name}
           className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg" />
       ) : (
         <div className="w-full h-full rounded-full bg-tv-green-deep flex items-center justify-center text-tv-cream font-black text-3xl shadow-lg border-4 border-white">
@@ -422,9 +422,8 @@ const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
         <p className="text-sm text-tv-green-deep/80 leading-relaxed whitespace-pre-wrap">{post.content}</p>
       </div>
 
-      {/* Image — usa il base64 inline se disponibile, evita una request separata */}
-      {post.has_image && (post.image_data || post.id) && (
-        <img src={post.image_data || `${API}/api/posts/${post.id}/image`}
+      {post.has_image && (
+        <img src={post.image_url || post.image_data || `${API}/api/posts/${post.id}/image`}
           alt="post"
           className="w-full max-h-80 object-cover"
           loading="lazy"

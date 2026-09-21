@@ -25,6 +25,35 @@ from email_service import EmailService
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Cloudinary — configurato tramite CLOUDINARY_URL env var
+try:
+    import cloudinary
+    import cloudinary.uploader
+    _CLOUDINARY_URL = os.environ.get("CLOUDINARY_URL", "")
+    if _CLOUDINARY_URL:
+        cloudinary.config(cloudinary_url=_CLOUDINARY_URL)
+        _CLOUDINARY_ENABLED = True
+    else:
+        _CLOUDINARY_ENABLED = False
+except ImportError:
+    _CLOUDINARY_ENABLED = False
+
+async def _upload_to_cloudinary(data_url: str, folder: str = "tramaviva") -> Optional[str]:
+    """Carica un'immagine base64 su Cloudinary e restituisce l'URL sicuro."""
+    if not _CLOUDINARY_ENABLED:
+        return None
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: cloudinary.uploader.upload(data_url, folder=folder, resource_type="image")
+        )
+        return result.get("secure_url")
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Upload Cloudinary fallito: {e}")
+        return None
+
 mongo_url = os.environ.get('MONGO_URL')
 if not mongo_url:
     raise ValueError("MONGO_URL not set in environment variables")
@@ -135,6 +164,7 @@ class Event(BaseModel):
     non_rimborsabile: bool = False
     solo_soci: bool = False
     has_image: bool = False
+    image_url: Optional[str] = None
     contributo_volontario: bool = False
     opzioni_label: Optional[str] = None
     opzioni_custom: Optional[str] = None
@@ -179,7 +209,8 @@ class EventUpdate(BaseModel):
     opzioni_custom: Optional[str] = None
 
 class ImageUpload(BaseModel):
-    image_data: str  # base64 dataURL
+    image_data: Optional[str] = None
+    source_url: Optional[str] = None
 
 class PaymentRequest(BaseModel):
     amount: float
@@ -671,8 +702,13 @@ async def get_events():
 
 @api_router.get("/events/{event_id}/image")
 async def get_event_image(event_id: str):
-    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"image_data": 1, "_id": 0})
-    if not doc or not doc.get("image_data"):
+    from fastapi.responses import RedirectResponse
+    doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"image_data": 1, "image_url": 1, "_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Immagine non trovata")
+    if doc.get("image_url"):
+        return RedirectResponse(url=doc["image_url"], status_code=302)
+    if not doc.get("image_data"):
         raise HTTPException(status_code=404, detail="Immagine non trovata")
     data_url = doc["image_data"]
     if "," in data_url:
@@ -1301,13 +1337,22 @@ async def socio_change_password(payload: PasswordChange, user=Depends(require_so
 async def socio_upload_avatar(payload: AvatarUpload, user=Depends(require_socio)):
     if not payload.image_data.startswith("data:image/"):
         raise HTTPException(status_code=400, detail="Formato immagine non valido.")
-    await db.users.update_one({"id": user["id"]}, {"$set": {"avatar_data": payload.image_data, "has_avatar": True}})
-    return {"ok": True}
+    avatar_url = await _upload_to_cloudinary(payload.image_data, folder="tramaviva/avatars")
+    if avatar_url:
+        await db.users.update_one({"id": user["id"]}, {"$set": {"avatar_url": avatar_url, "has_avatar": True}, "$unset": {"avatar_data": ""}})
+    else:
+        await db.users.update_one({"id": user["id"]}, {"$set": {"avatar_data": payload.image_data, "has_avatar": True}})
+    return {"ok": True, "avatar_url": avatar_url}
 
 @api_router.get("/users/{user_id}/avatar")
 async def get_user_avatar(user_id: str):
-    user = await db.users.find_one({"id": user_id}, {"avatar_data": 1, "_id": 0})
-    if not user or not user.get("avatar_data"):
+    from fastapi.responses import RedirectResponse
+    user = await db.users.find_one({"id": user_id}, {"avatar_data": 1, "avatar_url": 1, "_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Avatar non trovato")
+    if user.get("avatar_url"):
+        return RedirectResponse(url=user["avatar_url"], status_code=302)
+    if not user.get("avatar_data"):
         raise HTTPException(status_code=404, detail="Avatar non trovato")
     data_url = user["avatar_data"]
     if "," in data_url:
@@ -1534,7 +1579,7 @@ class CommentCreate(BaseModel):
 
 @api_router.get("/posts")
 async def list_posts(user=Depends(require_socio), skip: int = 0, limit: int = 20):
-    posts = await db.posts.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    posts = await db.posts.find({}, {"_id": 0, "image_data": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     total = await db.posts.count_documents({})
     return {"posts": posts, "total": total}
 
@@ -1555,7 +1600,11 @@ async def create_post(body: PostCreate, user=Depends(require_socio)):
         "comments": [],
     }
     if body.image_data:
-        post["image_data"] = body.image_data
+        image_url = await _upload_to_cloudinary(body.image_data, folder="tramaviva/posts")
+        if image_url:
+            post["image_url"] = image_url
+        else:
+            post["image_data"] = body.image_data
     await db.posts.insert_one(post)
     post.pop("image_data", None)
     return post
@@ -1572,8 +1621,13 @@ async def delete_post(post_id: str, user=Depends(require_socio)):
 
 @api_router.get("/posts/{post_id}/image")
 async def get_post_image(post_id: str):
-    post = await db.posts.find_one({"id": post_id}, {"image_data": 1})
-    if not post or not post.get("image_data"):
+    from fastapi.responses import RedirectResponse
+    post = await db.posts.find_one({"id": post_id}, {"image_data": 1, "image_url": 1, "_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Immagine non trovata")
+    if post.get("image_url"):
+        return RedirectResponse(url=post["image_url"], status_code=302)
+    if not post.get("image_data"):
         raise HTTPException(status_code=404, detail="Immagine non trovata")
     data_url = post["image_data"]
     if "," in data_url:
@@ -2297,21 +2351,68 @@ async def admin_get_events():
     docs = await db.events.find({"is_draft": {"$ne": True}}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
     return docs
 
+@api_router.get("/admin/cover-search", dependencies=[Depends(require_admin)])
+async def cover_search(q: str, type: str = "book"):
+    import httpx
+    if type == "movie":
+        token = os.environ.get("TMDB_READ_TOKEN", "")
+        if not token:
+            raise HTTPException(status_code=503, detail="TMDB non configurato")
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                "https://api.themoviedb.org/3/search/movie",
+                params={"query": q, "language": "it-IT", "page": 1},
+                headers={"Authorization": f"Bearer {token}"}
+            )
+        results = []
+        for item in r.json().get("results", [])[:10]:
+            poster = item.get("poster_path")
+            if poster:
+                results.append({
+                    "title": item.get("title", ""),
+                    "year": (item.get("release_date", "") or "")[:4],
+                    "thumb": f"https://image.tmdb.org/t/p/w200{poster}",
+                    "image": f"https://image.tmdb.org/t/p/w500{poster}",
+                })
+        return {"results": results}
+    else:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                "https://openlibrary.org/search.json",
+                params={"q": q, "fields": "key,title,cover_i,first_publish_year", "limit": 10}
+            )
+        results = []
+        for item in r.json().get("docs", []):
+            cover_id = item.get("cover_i")
+            if cover_id:
+                results.append({
+                    "title": item.get("title", ""),
+                    "year": str(item.get("first_publish_year", "")),
+                    "thumb": f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg",
+                    "image": f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg",
+                })
+        return {"results": results}
+
 @api_router.post("/admin/events/{event_id}/image", dependencies=[Depends(require_admin)])
 async def admin_upload_event_image(event_id: str, payload: ImageUpload):
-    res = await db.events.update_one(
-        {"id": event_id},
-        {"$set": {"image_data": payload.image_data, "has_image": True}}
-    )
+    source = payload.source_url or payload.image_data
+    if not source:
+        raise HTTPException(status_code=400, detail="Nessuna immagine fornita")
+    image_url = await _upload_to_cloudinary(source, folder="tramaviva/events")
+    if image_url:
+        update = {"$set": {"has_image": True, "image_url": image_url}, "$unset": {"image_data": ""}}
+    else:
+        update = {"$set": {"image_data": payload.image_data, "has_image": True}}
+    res = await db.events.update_one({"id": event_id}, update)
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Evento non trovato")
-    return {"ok": True}
+    return {"ok": True, "image_url": image_url}
 
 @api_router.delete("/admin/events/{event_id}/image", dependencies=[Depends(require_admin)])
 async def admin_delete_event_image(event_id: str):
     res = await db.events.update_one(
         {"id": event_id},
-        {"$set": {"has_image": False}, "$unset": {"image_data": ""}}
+        {"$set": {"has_image": False}, "$unset": {"image_data": "", "image_url": ""}}
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Evento non trovato")

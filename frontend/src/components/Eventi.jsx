@@ -431,7 +431,7 @@ const FeaturedCard = ({ ev, onParticipate }) => (
     </div>
     <div className="relative md:col-span-5 flex items-center justify-center">
       {ev.has_image ? (
-        <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className={`w-full max-w-xs rounded-2xl object-cover aspect-square ${ev.spots <= 0 ? "opacity-60 grayscale-[20%]" : ""}`} />
+        <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt={ev.title} className={`w-full max-w-xs rounded-2xl object-cover aspect-square ${ev.spots <= 0 ? "opacity-60 grayscale-[20%]" : ""}`} />
       ) : (
         <span className={`text-[10rem] md:text-[12rem] leading-none ${ev.spots <= 0 ? "opacity-50 grayscale" : ""}`}>{ev.emoji}</span>
       )}
@@ -456,7 +456,7 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
     >
       {!compact && ev.has_image && (
         <div className="-mx-6 -mt-6 mb-4 relative">
-          <img src={`${API}/events/${ev.id}/image`} alt={ev.title} className={`w-full h-44 object-cover ${soldOut ? "opacity-60 grayscale-[30%]" : ""}`} />
+          <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt={ev.title} className={`w-full h-44 object-cover ${soldOut ? "opacity-60 grayscale-[30%]" : ""}`} />
         </div>
       )}
       <div className="flex items-center justify-between mb-4">
@@ -549,7 +549,7 @@ const PastEventCard = ({ ev }) => (
     {ev.has_image ? (
       <div className="overflow-hidden h-28">
         <img
-          src={`${API}/events/${ev.id}/image`}
+          src={ev.image_url || `${API}/events/${ev.id}/image`}
           alt={ev.title}
           className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
         />

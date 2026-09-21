@@ -170,7 +170,7 @@ export const Navbar = () => {
                   className="flex items-center gap-2 px-3 py-2 rounded-full border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-mint/40 transition-colors"
                 >
                   {user.has_avatar ? (
-                    <img src={`${API}/api/users/${user.id}/avatar`} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+                    <img src={user.avatar_url || `${API}/api/users/${user.id}/avatar`} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
                   ) : (
                     <div className="w-6 h-6 rounded-full bg-tv-green-deep text-tv-cream flex items-center justify-center text-xs font-black">
                       {user.name?.charAt(0)?.toUpperCase()}

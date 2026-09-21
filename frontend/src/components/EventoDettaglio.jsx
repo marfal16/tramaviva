@@ -304,7 +304,7 @@ export const EventoDettaglio = () => {
             <div className="md:col-span-7">
               {event.has_image && (
                 <img
-                  src={`${API}/events/${event.id}/image`}
+                  src={event.image_url || `${API}/events/${event.id}/image`}
                   alt={event.title}
                   className="w-full h-64 md:h-80 object-cover rounded-[2rem] mb-6"
                 />
