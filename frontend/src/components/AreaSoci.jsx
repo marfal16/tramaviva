@@ -5,9 +5,10 @@ import { toast } from "sonner";
 import {
   LogOut, Camera, Edit2, Check, X, Calendar, ChevronRight,
   Loader2, Lock, Star, BookOpen, Film, MessageSquare, ThumbsUp, Award,
-  Heart, Send, Trash2, ImagePlus, Users, Trophy, Gift
+  Heart, Send, Trash2, ImagePlus, Users, Trophy, Gift, Plus
 } from "lucide-react";
 import Navbar from "./Navbar";
+import CoverSearchWidget from "./CoverSearchWidget";
 import Footer from "./Footer";
 import { CLUBS_CONFIG } from "../clubsConfig";
 
@@ -561,12 +562,16 @@ export const AreaSoci = () => {
   // Club del Libro
   const [reviews, setReviews] = useState([]);
   const [votes, setVotes] = useState([]);
+  const [myProposals, setMyProposals] = useState([]);
+  const [editingProposal, setEditingProposal] = useState(null);
   const [books, setBooks] = useState([]);
 
   // Cineforum
   const [films, setFilms] = useState([]);
   const [filmReviews, setFilmReviews] = useState([]);
   const [filmVotes, setFilmVotes] = useState([]);
+  const [myFilmProposals, setMyFilmProposals] = useState([]);
+  const [editingFilmProposal, setEditingFilmProposal] = useState(null);
   const [filmClubLoaded, setFilmClubLoaded] = useState(false);
 
   const [loadingTab, setLoadingTab] = useState(false);
@@ -597,14 +602,16 @@ export const AreaSoci = () => {
       Promise.all([
         fetch(`${API}/api/auth/me/reviews`, { headers: h }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/api/auth/me/votes`, { headers: h }).then(r => r.ok ? r.json() : []),
-      ]).then(([rev, vot]) => { setReviews(rev); setVotes(vot); setLoadingTab(false); });
+        fetch(`${API}/api/auth/me/proposals`, { headers: h }).then(r => r.ok ? r.json() : []),
+      ]).then(([rev, vot, prop]) => { setReviews(rev); setVotes(vot); setMyProposals(prop); setLoadingTab(false); });
     }
     if (activeClub === "cineforum" && !filmClubLoaded) {
       setLoadingTab(true);
       Promise.all([
         fetch(`${API}/api/auth/me/film-reviews`, { headers: h }).then(r => r.ok ? r.json() : []),
         fetch(`${API}/api/auth/me/film-votes`, { headers: h }).then(r => r.ok ? r.json() : []),
-      ]).then(([rev, vot]) => { setFilmReviews(rev); setFilmVotes(vot); setFilmClubLoaded(true); setLoadingTab(false); });
+        fetch(`${API}/api/auth/me/film-proposals`, { headers: h }).then(r => r.ok ? r.json() : []),
+      ]).then(([rev, vot, prop]) => { setFilmReviews(rev); setFilmVotes(vot); setMyFilmProposals(prop); setFilmClubLoaded(true); setLoadingTab(false); });
     }
   }, [tab, activeClub, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -941,27 +948,74 @@ export const AreaSoci = () => {
                       {votes.length === 0 ? (
                         <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun voto registrato.</p>
                       ) : (
-                        <div className="flex flex-col divide-y divide-tv-green-deep/8">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {votes.map(p => (
-                            <div key={p.id} className="py-3.5 flex items-start gap-3">
+                            <div key={p.id} className="flex flex-col gap-1">
                               {p.cover_url ? (
-                                <img src={p.cover_url} alt={p.title} className="w-9 h-12 object-cover rounded-lg shrink-0 shadow-sm" />
+                                <img src={p.cover_url} alt={p.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
                               ) : (
-                                <div className="w-9 h-12 bg-tv-green-deep/10 rounded-lg flex items-center justify-center shrink-0">
-                                  <BookOpen size={14} className="text-tv-green-deep/30" />
+                                <div className="w-full aspect-[2/3] bg-tv-green-deep/10 rounded-xl flex items-center justify-center">
+                                  <BookOpen size={18} className="text-tv-green-deep/30" />
                                 </div>
                               )}
-                              <div className="min-w-0">
-                                <p className="font-semibold text-sm text-tv-green-deep leading-tight truncate">{p.title}</p>
-                                {p.author && <p className="text-xs text-tv-green-deep/50 truncate">{p.author}</p>}
-                                <p className="text-[10px] text-tv-green-deep/35 mt-0.5">{fmtMonth(p.proposed_month)} · {p.votes} voti totali</p>
-                              </div>
+                              <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
+                              {p.author && <p className="text-[10px] text-tv-green-deep/45 truncate">{p.author}</p>}
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
+                  {/* Le mie proposte libri */}
+                  {myProposals.length > 0 && (
+                    <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Plus size={16} className="text-tv-green-deep/50" />
+                        <h2 className="font-display font-black text-lg text-tv-green-deep">Le mie proposte</h2>
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {myProposals.map(p => (
+                          <div key={p.id} className="flex flex-col gap-1.5">
+                            {editingProposal?.id === p.id ? (
+                              <div className="col-span-full">
+                                <div className="flex flex-col gap-2 p-3 rounded-xl bg-tv-cream/60 border border-tv-green-deep/10">
+                                  <input className="w-full px-3 py-1.5 rounded-lg border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep outline-none" placeholder="Titolo" value={editingProposal.title} onChange={e => setEditingProposal(ep => ({ ...ep, title: e.target.value }))} />
+                                  <input className="w-full px-3 py-1.5 rounded-lg border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep outline-none" placeholder="Autore" value={editingProposal.author} onChange={e => setEditingProposal(ep => ({ ...ep, author: e.target.value }))} />
+                                  <input className="w-full px-3 py-1.5 rounded-lg border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep outline-none" placeholder="URL copertina" value={editingProposal.cover_url || ""} onChange={e => setEditingProposal(ep => ({ ...ep, cover_url: e.target.value }))} />
+                                  <CoverSearchWidget defaultType="book" onSelect={url => setEditingProposal(ep => ({ ...ep, cover_url: url }))} />
+                                  <div className="flex gap-2 mt-1">
+                                    <button className="flex-1 py-1.5 rounded-lg bg-tv-green-deep text-tv-cream text-xs font-bold" onClick={async () => {
+                                      const h = { Authorization: `Bearer ${token}` };
+                                      await fetch(`${API}/api/auth/me/proposals/${p.id}`, { method: "PATCH", headers: { ...h, "Content-Type": "application/json" }, body: JSON.stringify({ title: editingProposal.title, author: editingProposal.author, cover_url: editingProposal.cover_url, genre: editingProposal.genre, description: editingProposal.description }) });
+                                      setMyProposals(prev => prev.map(x => x.id === p.id ? { ...x, ...editingProposal } : x));
+                                      setEditingProposal(null);
+                                      toast.success("Proposta aggiornata!");
+                                    }}>Salva</button>
+                                    <button className="px-3 py-1.5 rounded-lg border border-tv-green-deep/20 text-tv-green-deep text-xs font-bold" onClick={() => setEditingProposal(null)}>Annulla</button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {p.cover_url ? (
+                                  <img src={p.cover_url} alt={p.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
+                                ) : (
+                                  <div className="w-full aspect-[2/3] bg-tv-green-deep/10 rounded-xl flex items-center justify-center">
+                                    <BookOpen size={18} className="text-tv-green-deep/30" />
+                                  </div>
+                                )}
+                                <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
+                                <p className="text-[10px] text-tv-green-deep/45 truncate">{p.author}</p>
+                                <p className="text-[10px] text-tv-green-deep/30">{p.votes} voti · {fmtMonth(p.proposed_month)}</p>
+                                <button onClick={() => setEditingProposal({ ...p })} className="text-[10px] font-bold text-tv-green-deep/40 hover:text-tv-green-deep underline underline-offset-2 text-left">✏️ Modifica</button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 )}
               </>
             )}
@@ -1024,27 +1078,73 @@ export const AreaSoci = () => {
                       {filmVotes.length === 0 ? (
                         <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun voto registrato.</p>
                       ) : (
-                        <div className="flex flex-col divide-y divide-tv-green-deep/8">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {filmVotes.map(p => (
-                            <div key={p.id} className="py-3.5 flex items-start gap-3">
+                            <div key={p.id} className="flex flex-col gap-1">
                               {p.cover_url ? (
-                                <img src={p.cover_url} alt={p.title} className="w-9 h-12 object-cover rounded-lg shrink-0 shadow-sm" />
+                                <img src={p.cover_url} alt={p.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
                               ) : (
-                                <div className="w-9 h-12 bg-tv-sky/10 rounded-lg flex items-center justify-center shrink-0">
-                                  <Film size={14} className="text-tv-sky/40" />
+                                <div className="w-full aspect-[2/3] bg-tv-sky/10 rounded-xl flex items-center justify-center">
+                                  <Film size={18} className="text-tv-sky/40" />
                                 </div>
                               )}
-                              <div className="min-w-0">
-                                <p className="font-semibold text-sm text-tv-green-deep leading-tight truncate">{p.title}</p>
-                                {p.director && <p className="text-xs text-tv-green-deep/50 truncate">{p.director}</p>}
-                                <p className="text-[10px] text-tv-green-deep/35 mt-0.5">{fmtMonth(p.proposed_month)} · {p.votes} voti totali</p>
-                              </div>
+                              <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
+                              {p.director && <p className="text-[10px] text-tv-green-deep/45 truncate">{p.director}</p>}
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
                   </div>
+                  {/* Le mie proposte film */}
+                  {myFilmProposals.length > 0 && (
+                    <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Plus size={16} className="text-tv-sky/60" />
+                        <h2 className="font-display font-black text-lg text-tv-green-deep">Le mie proposte</h2>
+                      </div>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {myFilmProposals.map(p => (
+                          <div key={p.id} className="flex flex-col gap-1.5">
+                            {editingFilmProposal?.id === p.id ? (
+                              <div className="col-span-full">
+                                <div className="flex flex-col gap-2 p-3 rounded-xl bg-tv-cream/60 border border-tv-green-deep/10">
+                                  <input className="w-full px-3 py-1.5 rounded-lg border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep outline-none" placeholder="Titolo" value={editingFilmProposal.title} onChange={e => setEditingFilmProposal(ep => ({ ...ep, title: e.target.value }))} />
+                                  <input className="w-full px-3 py-1.5 rounded-lg border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep outline-none" placeholder="Regista" value={editingFilmProposal.director || ""} onChange={e => setEditingFilmProposal(ep => ({ ...ep, director: e.target.value }))} />
+                                  <input className="w-full px-3 py-1.5 rounded-lg border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep outline-none" placeholder="URL locandina" value={editingFilmProposal.cover_url || ""} onChange={e => setEditingFilmProposal(ep => ({ ...ep, cover_url: e.target.value }))} />
+                                  <CoverSearchWidget defaultType="movie" onSelect={url => setEditingFilmProposal(ep => ({ ...ep, cover_url: url }))} />
+                                  <div className="flex gap-2 mt-1">
+                                    <button className="flex-1 py-1.5 rounded-lg bg-tv-green-deep text-tv-cream text-xs font-bold" onClick={async () => {
+                                      const h = { Authorization: `Bearer ${token}` };
+                                      await fetch(`${API}/api/auth/me/film-proposals/${p.id}`, { method: "PATCH", headers: { ...h, "Content-Type": "application/json" }, body: JSON.stringify({ title: editingFilmProposal.title, director: editingFilmProposal.director, cover_url: editingFilmProposal.cover_url, genre: editingFilmProposal.genre, description: editingFilmProposal.description }) });
+                                      setMyFilmProposals(prev => prev.map(x => x.id === p.id ? { ...x, ...editingFilmProposal } : x));
+                                      setEditingFilmProposal(null);
+                                      toast.success("Proposta aggiornata!");
+                                    }}>Salva</button>
+                                    <button className="px-3 py-1.5 rounded-lg border border-tv-green-deep/20 text-tv-green-deep text-xs font-bold" onClick={() => setEditingFilmProposal(null)}>Annulla</button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {p.cover_url ? (
+                                  <img src={p.cover_url} alt={p.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
+                                ) : (
+                                  <div className="w-full aspect-[2/3] bg-tv-sky/10 rounded-xl flex items-center justify-center">
+                                    <Film size={18} className="text-tv-sky/40" />
+                                  </div>
+                                )}
+                                <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
+                                {p.director && <p className="text-[10px] text-tv-green-deep/45 truncate">{p.director}</p>}
+                                <p className="text-[10px] text-tv-green-deep/30">{p.votes} voti · {fmtMonth(p.proposed_month)}</p>
+                                <button onClick={() => setEditingFilmProposal({ ...p })} className="text-[10px] font-bold text-tv-green-deep/40 hover:text-tv-green-deep underline underline-offset-2 text-left">✏️ Modifica</button>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 )}
               </>
             )}

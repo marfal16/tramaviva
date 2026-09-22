@@ -1514,6 +1514,70 @@ async def socio_my_film_votes(user=Depends(require_socio)):
     ).sort("proposed_month", -1).to_list(100)
     return proposals
 
+@api_router.get("/auth/me/proposals")
+async def socio_my_proposals(user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        return []
+    nome = name_parts[0]
+    cognome = " ".join(name_parts[1:])
+    docs = await db.proposals.find(
+        {"nome": re.compile(f"^{re.escape(nome)}$", re.IGNORECASE),
+         "cognome": re.compile(f"^{re.escape(cognome)}$", re.IGNORECASE)},
+        {"_id": 0}
+    ).sort("proposed_month", -1).to_list(100)
+    return docs
+
+@api_router.patch("/auth/me/proposals/{proposal_id}")
+async def socio_edit_proposal(proposal_id: str, payload: dict, user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    nome, cognome = name_parts[0], " ".join(name_parts[1:])
+    doc = await db.proposals.find_one({"id": proposal_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    if not (re.match(f"^{re.escape(nome)}$", doc.get("nome", ""), re.IGNORECASE) and
+            re.match(f"^{re.escape(cognome)}$", doc.get("cognome", ""), re.IGNORECASE)):
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    allowed = {k: v for k, v in payload.items() if k in ("title", "author", "cover_url", "genre", "description")}
+    if not allowed:
+        raise HTTPException(status_code=400, detail="Nessun campo valido")
+    await db.proposals.update_one({"id": proposal_id}, {"$set": allowed})
+    return {"ok": True}
+
+@api_router.get("/auth/me/film-proposals")
+async def socio_my_film_proposals(user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        return []
+    nome = name_parts[0]
+    cognome = " ".join(name_parts[1:])
+    docs = await db.film_proposals.find(
+        {"nome": re.compile(f"^{re.escape(nome)}$", re.IGNORECASE),
+         "cognome": re.compile(f"^{re.escape(cognome)}$", re.IGNORECASE)},
+        {"_id": 0}
+    ).sort("proposed_month", -1).to_list(100)
+    return docs
+
+@api_router.patch("/auth/me/film-proposals/{proposal_id}")
+async def socio_edit_film_proposal(proposal_id: str, payload: dict, user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    nome, cognome = name_parts[0], " ".join(name_parts[1:])
+    doc = await db.film_proposals.find_one({"id": proposal_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    if not (re.match(f"^{re.escape(nome)}$", doc.get("nome", ""), re.IGNORECASE) and
+            re.match(f"^{re.escape(cognome)}$", doc.get("cognome", ""), re.IGNORECASE)):
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    allowed = {k: v for k, v in payload.items() if k in ("title", "director", "cover_url", "genre", "description", "trailer_url")}
+    if not allowed:
+        raise HTTPException(status_code=400, detail="Nessun campo valido")
+    await db.film_proposals.update_one({"id": proposal_id}, {"$set": allowed})
+    return {"ok": True}
+
 # ========== MISSIONI SOCI ==========
 
 @api_router.get("/auth/me/missions")
@@ -2379,22 +2443,23 @@ async def cover_search(q: str, type: str = "book"):
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(
                 "https://www.googleapis.com/books/v1/volumes",
-                params={"q": q, "maxResults": 12, "printType": "books", "fields": "items(id,volumeInfo(title,authors,publishedDate,imageLinks))"}
+                params={"q": q, "maxResults": 15, "printType": "books"}
             )
         results = []
         for item in r.json().get("items", []):
             info = item.get("volumeInfo", {})
             links = info.get("imageLinks", {})
             thumb = links.get("thumbnail") or links.get("smallThumbnail")
-            if thumb:
-                thumb = thumb.replace("http://", "https://")
-                image = thumb.replace("zoom=1", "zoom=3")
-                results.append({
-                    "title": info.get("title", ""),
-                    "year": (info.get("publishedDate", "") or "")[:4],
-                    "thumb": thumb,
-                    "image": image,
-                })
+            if not thumb:
+                continue
+            thumb = thumb.replace("http://", "https://")
+            image = thumb.replace("zoom=1", "zoom=3").replace("&edge=curl", "")
+            results.append({
+                "title": info.get("title", ""),
+                "year": (info.get("publishedDate", "") or "")[:4],
+                "thumb": thumb,
+                "image": image,
+            })
         return {"results": results}
 
 @api_router.post("/admin/events/{event_id}/image", dependencies=[Depends(require_admin)])
