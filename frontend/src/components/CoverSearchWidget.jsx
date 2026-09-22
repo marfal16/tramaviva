@@ -10,21 +10,29 @@ const CoverSearchWidget = ({ defaultType = "book", onSelect }) => {
   const [type, setType] = useState(defaultType);
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
 
   const search = async () => {
     if (!q.trim()) return;
-    setSearching(true); setResults([]);
+    setSearching(true); setResults([]); setSearched(false);
     try {
       const res = await fetch(`${API}/cover-search?q=${encodeURIComponent(q.trim())}&type=${type}`);
       const data = await res.json();
       setResults(data.results || []);
     } catch { toast.error("Errore nella ricerca copertine."); }
-    finally { setSearching(false); }
+    finally { setSearching(false); setSearched(true); }
+  };
+
+  const toggle = () => {
+    setShow(s => !s);
+    setResults([]);
+    setSearched(false);
+    setQ("");
   };
 
   return (
     <div className="mt-1">
-      <button type="button" onClick={() => { setShow(s => !s); setResults([]); }}
+      <button type="button" onClick={toggle}
         className="text-xs font-bold text-tv-green-deep/50 hover:text-tv-green-deep underline underline-offset-2 transition-colors">
         🔍 Cerca copertina
       </button>
@@ -32,7 +40,7 @@ const CoverSearchWidget = ({ defaultType = "book", onSelect }) => {
         <div className="mt-2 p-3 rounded-xl bg-tv-cream/60 border border-tv-green-deep/10 space-y-2">
           <div className="flex gap-1.5">
             {[{ v: "book", l: "📚 Libro" }, { v: "movie", l: "🎬 Film" }].map(t => (
-              <button key={t.v} type="button" onClick={() => setType(t.v)}
+              <button key={t.v} type="button" onClick={() => { setType(t.v); setResults([]); setSearched(false); }}
                 className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${type === t.v ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "bg-white text-tv-green-deep/60 border-tv-green-deep/20"}`}>
                 {t.l}
               </button>
@@ -52,7 +60,7 @@ const CoverSearchWidget = ({ defaultType = "book", onSelect }) => {
             <div className="grid grid-cols-5 gap-1.5 max-h-52 overflow-y-auto pt-1">
               {results.map((r, i) => (
                 <button key={i} type="button"
-                  onClick={() => { onSelect(r.image); setShow(false); setResults([]); setQ(""); }}
+                  onClick={() => { onSelect(r.image); setShow(false); setResults([]); setQ(""); setSearched(false); }}
                   className="relative group rounded-lg overflow-hidden border-2 border-transparent hover:border-tv-green-deep transition-all"
                   title={`${r.title}${r.year ? ` (${r.year})` : ""}`}>
                   <img src={r.thumb} alt={r.title} className="w-full aspect-[2/3] object-cover" />
@@ -61,7 +69,7 @@ const CoverSearchWidget = ({ defaultType = "book", onSelect }) => {
               ))}
             </div>
           )}
-          {!searching && results.length === 0 && q && (
+          {searched && !searching && results.length === 0 && (
             <p className="text-[11px] text-tv-green-deep/40 text-center">Nessun risultato — prova con un altro titolo.</p>
           )}
         </div>

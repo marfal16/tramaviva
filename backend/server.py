@@ -1578,6 +1578,36 @@ async def socio_edit_film_proposal(proposal_id: str, payload: dict, user=Depends
     await db.film_proposals.update_one({"id": proposal_id}, {"$set": allowed})
     return {"ok": True}
 
+@api_router.delete("/auth/me/proposals/{proposal_id}")
+async def socio_delete_proposal(proposal_id: str, user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    nome, cognome = name_parts[0], " ".join(name_parts[1:])
+    doc = await db.proposals.find_one({"id": proposal_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    if not (re.match(f"^{re.escape(nome)}$", doc.get("nome", ""), re.IGNORECASE) and
+            re.match(f"^{re.escape(cognome)}$", doc.get("cognome", ""), re.IGNORECASE)):
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    await db.proposals.delete_one({"id": proposal_id})
+    return {"ok": True}
+
+@api_router.delete("/auth/me/film-proposals/{proposal_id}")
+async def socio_delete_film_proposal(proposal_id: str, user=Depends(require_socio)):
+    name_parts = user.get("name", "").strip().split()
+    if len(name_parts) < 2:
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    nome, cognome = name_parts[0], " ".join(name_parts[1:])
+    doc = await db.film_proposals.find_one({"id": proposal_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    if not (re.match(f"^{re.escape(nome)}$", doc.get("nome", ""), re.IGNORECASE) and
+            re.match(f"^{re.escape(cognome)}$", doc.get("cognome", ""), re.IGNORECASE)):
+        raise HTTPException(status_code=403, detail="Non autorizzato")
+    await db.film_proposals.delete_one({"id": proposal_id})
+    return {"ok": True}
+
 # ========== MISSIONI SOCI ==========
 
 @api_router.get("/auth/me/missions")
@@ -2417,19 +2447,19 @@ async def admin_get_events():
 
 @api_router.get("/cover-search")
 async def cover_search(q: str, type: str = "book"):
-    import httpx
+    import httpx, asyncio
     if type == "movie":
-        token = os.environ.get("TMDB_READ_TOKEN", "")
-        if not token:
+        tmdb_token = os.environ.get("TMDB_READ_TOKEN", "")
+        if not tmdb_token:
             raise HTTPException(status_code=503, detail="TMDB non configurato")
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=8) as client:
             r = await client.get(
                 "https://api.themoviedb.org/3/search/movie",
                 params={"query": q, "language": "it-IT", "page": 1},
-                headers={"Authorization": f"Bearer {token}"}
+                headers={"Authorization": f"Bearer {tmdb_token}"}
             )
         results = []
-        for item in r.json().get("results", [])[:10]:
+        for item in r.json().get("results", [])[:12]:
             poster = item.get("poster_path")
             if poster:
                 results.append({
@@ -2439,14 +2469,25 @@ async def cover_search(q: str, type: str = "book"):
                     "image": f"https://image.tmdb.org/t/p/w500{poster}",
                 })
         return {"results": results}
-    else:
-        async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(
-                "https://www.googleapis.com/books/v1/volumes",
-                params={"q": q, "maxResults": 15, "printType": "books"}
+
+    # Books: Google Books + Open Library concurrently for best coverage
+    async with httpx.AsyncClient(timeout=8) as client:
+        try:
+            gb_r, ol_r = await asyncio.gather(
+                client.get("https://www.googleapis.com/books/v1/volumes",
+                           params={"q": q, "maxResults": 15, "printType": "books"}),
+                client.get("https://openlibrary.org/search.json",
+                           params={"title": q, "limit": 15, "fields": "key,title,author_name,cover_i"}),
+                return_exceptions=True
             )
-        results = []
-        for item in r.json().get("items", []):
+        except Exception:
+            return {"results": []}
+
+    results = []
+    seen: set = set()
+
+    if not isinstance(gb_r, Exception) and gb_r.status_code == 200:
+        for item in gb_r.json().get("items", []):
             info = item.get("volumeInfo", {})
             links = info.get("imageLinks", {})
             thumb = links.get("thumbnail") or links.get("smallThumbnail")
@@ -2454,13 +2495,32 @@ async def cover_search(q: str, type: str = "book"):
                 continue
             thumb = thumb.replace("http://", "https://")
             image = thumb.replace("zoom=1", "zoom=3").replace("&edge=curl", "")
+            title = info.get("title", "")
+            key = title.lower()[:40]
+            if key not in seen:
+                seen.add(key)
+                results.append({"title": title, "year": (info.get("publishedDate", "") or "")[:4], "thumb": thumb, "image": image})
+
+    if not isinstance(ol_r, Exception) and ol_r.status_code == 200:
+        for item in ol_r.json().get("docs", []):
+            cover_i = item.get("cover_i")
+            if not cover_i:
+                continue
+            title = item.get("title", "")
+            key = title.lower()[:40]
+            if key in seen:
+                continue
+            seen.add(key)
             results.append({
-                "title": info.get("title", ""),
-                "year": (info.get("publishedDate", "") or "")[:4],
-                "thumb": thumb,
-                "image": image,
+                "title": title,
+                "year": "",
+                "thumb": f"https://covers.openlibrary.org/b/id/{cover_i}-M.jpg",
+                "image": f"https://covers.openlibrary.org/b/id/{cover_i}-L.jpg",
             })
-        return {"results": results}
+            if len(results) >= 15:
+                break
+
+    return {"results": results}
 
 @api_router.post("/admin/events/{event_id}/image", dependencies=[Depends(require_admin)])
 async def admin_upload_event_image(event_id: str, payload: ImageUpload):
