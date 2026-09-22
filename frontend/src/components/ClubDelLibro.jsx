@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { Link } from "react-router-dom";
 import { BookOpen, Calendar, ArrowRight, Library, Star, Plus, ThumbsUp, X, Lock, RotateCcw, MessageCircle } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
+import CoverSearchWidget from "./CoverSearchWidget";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const WHATSAPP_COMMUNITY = "https://chat.whatsapp.com/IXeTAXUIfdK54NiJEaO7Pt";
@@ -306,6 +307,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
           <label>
             <div className={labelClass}>URL copertina (opzionale)</div>
             <input className={fieldClass} value={form.cover_url} onChange={(e) => set("cover_url", e.target.value)} placeholder="https://..." />
+            <CoverSearchWidget defaultType="book" onSelect={url => set("cover_url", url)} />
           </label>
           <label>
             <div className={labelClass}>Breve descrizione / trama</div>

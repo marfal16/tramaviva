@@ -2351,7 +2351,7 @@ async def admin_get_events():
     docs = await db.events.find({"is_draft": {"$ne": True}}, {"_id": 0, "image_data": 0}).sort("date", 1).to_list(1000)
     return docs
 
-@api_router.get("/admin/cover-search", dependencies=[Depends(require_admin)])
+@api_router.get("/cover-search")
 async def cover_search(q: str, type: str = "book"):
     import httpx
     if type == "movie":

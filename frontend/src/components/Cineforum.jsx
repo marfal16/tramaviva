@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { Link } from "react-router-dom";
 import { Film, Calendar, ArrowRight, Star, Plus, ThumbsUp, X, Lock, Play, ExternalLink, Send, MessageCircle } from "lucide-react";
 import { AvgStars } from "./LibroDettaglio";
+import CoverSearchWidget from "./CoverSearchWidget";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const WHATSAPP_CINEFORUM = "https://chat.whatsapp.com/IXeTAXUIfdK54NiJEaO7Pt";
@@ -580,6 +581,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
           <label>
             <div className={labelClass}>URL locandina (opzionale)</div>
             <input className={fieldClass} value={form.cover_url} onChange={(e) => set("cover_url", e.target.value)} placeholder="https://..." />
+            <CoverSearchWidget defaultType="movie" onSelect={url => set("cover_url", url)} />
           </label>
           <label>
             <div className={labelClass}>Breve descrizione / trama</div>
