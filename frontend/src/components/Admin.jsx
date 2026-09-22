@@ -1487,6 +1487,7 @@ const ProposalAdminCard = ({ p, onDelete, onReload, token }) => {
                 className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-tv-green-deep/30" />
             </div>
           </div>
+          <CoverSearchWidget token={token} defaultType="book" onSelect={url => setEditForm(f => ({ ...f, cover_url: url }))} />
           <div>
             <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Descrizione</label>
             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
@@ -1634,6 +1635,7 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
                 className="w-full text-sm border border-tv-green-deep/20 rounded-lg px-2 py-1 focus:outline-none" />
             </div>
           </div>
+          <CoverSearchWidget token={token} defaultType="movie" onSelect={url => setEditForm(f => ({ ...f, cover_url: url }))} />
           <div>
             <label className="block text-[10px] font-bold text-tv-green-deep/50 mb-1">Descrizione</label>
             <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
@@ -2056,6 +2058,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">URL copertina</label>
                 <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.cover_url} onChange={e => setProposalForm(f => ({ ...f, cover_url: e.target.value }))} placeholder="https://..." />
+                <CoverSearchWidget token={token} defaultType="book" onSelect={url => setProposalForm(f => ({ ...f, cover_url: url }))} />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Descrizione / trama</label>
@@ -2497,6 +2500,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">URL locandina</label>
                 <input className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" value={proposalForm.cover_url} onChange={e => setProposalForm(f => ({ ...f, cover_url: e.target.value }))} placeholder="https://..." />
+                <CoverSearchWidget token={token} defaultType="movie" onSelect={url => setProposalForm(f => ({ ...f, cover_url: url }))} />
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1">Descrizione / trama</label>
