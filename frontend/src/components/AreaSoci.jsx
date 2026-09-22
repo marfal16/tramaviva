@@ -918,6 +918,7 @@ export const AreaSoci = () => {
                 {loadingTab ? (
                   <div className="flex items-center justify-center py-10 text-tv-green-deep/30"><Loader2 size={24} className="animate-spin" /></div>
                 ) : (
+                  <>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -966,7 +967,6 @@ export const AreaSoci = () => {
                       )}
                     </div>
                   </div>
-                  {/* Le mie proposte libri */}
                   {myProposals.length > 0 && (
                     <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -1015,7 +1015,7 @@ export const AreaSoci = () => {
                       </div>
                     </div>
                   )}
-                </div>
+                  </>
                 )}
               </>
             )}
@@ -1048,6 +1048,7 @@ export const AreaSoci = () => {
                 {loadingTab ? (
                   <div className="flex items-center justify-center py-10 text-tv-sky/40"><Loader2 size={24} className="animate-spin" /></div>
                 ) : (
+                  <>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -1096,7 +1097,6 @@ export const AreaSoci = () => {
                       )}
                     </div>
                   </div>
-                  {/* Le mie proposte film */}
                   {myFilmProposals.length > 0 && (
                     <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                       <div className="flex items-center gap-2 mb-4">
@@ -1145,6 +1145,7 @@ export const AreaSoci = () => {
                       </div>
                     </div>
                   )}
+                  </>
                 )}
               </>
             )}
