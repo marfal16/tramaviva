@@ -574,7 +574,6 @@ export const AreaSoci = () => {
   const [editingFilmProposal, setEditingFilmProposal] = useState(null);
   const [filmClubLoaded, setFilmClubLoaded] = useState(false);
   const [proposalModal, setProposalModal] = useState(null);
-  const [proposteLoaded, setProposteLoaded] = useState(false);
 
   const [loadingTab, setLoadingTab] = useState(false);
 
@@ -639,21 +638,6 @@ export const AreaSoci = () => {
   }, [tab, missionsData, token]);
 
   useEffect(() => {
-    if (tab !== "proposte" || proposteLoaded) return;
-    const h = { Authorization: `Bearer ${token}` };
-    setLoadingTab(true);
-    Promise.all([
-      fetch(`${API}/api/auth/me/votes`, { headers: h }).then(r => r.ok ? r.json() : []),
-      fetch(`${API}/api/auth/me/proposals`, { headers: h }).then(r => r.ok ? r.json() : []),
-      fetch(`${API}/api/auth/me/film-votes`, { headers: h }).then(r => r.ok ? r.json() : []),
-      fetch(`${API}/api/auth/me/film-proposals`, { headers: h }).then(r => r.ok ? r.json() : []),
-    ]).then(([v, p, fv, fp]) => {
-      setVotes(v); setMyProposals(p); setFilmVotes(fv); setMyFilmProposals(fp);
-      setProposteLoaded(true); setLoadingTab(false);
-    });
-  }, [tab, proposteLoaded, token]); // eslint-disable-line
-
-  useEffect(() => {
     if (tab === "bacheca" && !postsLoaded) loadPosts(0);
   }, [tab, postsLoaded, loadPosts]);
 
@@ -697,11 +681,10 @@ export const AreaSoci = () => {
   const isFondatore = memberInfo?.is_fondatore || !memberInfo?.tessera_number;
 
   const tabs = [
-    { key: "eventi",   label: "I miei eventi", icon: Calendar },
-    { key: "missioni", label: "Missioni",       icon: Trophy },
-    { key: "proposte", label: "Proposte",       icon: ThumbsUp },
-    { key: "clubs",    label: "I nostri Club",  icon: BookOpen },
-    { key: "profilo",  label: "Profilo",        icon: Edit2 },
+    { key: "eventi",  label: "I miei eventi", icon: Calendar },
+    { key: "missioni", label: "Missioni",      icon: Trophy },
+    { key: "clubs",   label: "I nostri Club",  icon: BookOpen },
+    { key: "profilo", label: "Profilo",        icon: Edit2 },
   ];
 
   return (
@@ -936,6 +919,7 @@ export const AreaSoci = () => {
                 {loadingTab ? (
                   <div className="flex items-center justify-center py-10 text-tv-green-deep/30"><Loader2 size={24} className="animate-spin" /></div>
                 ) : (
+                  <>
                   <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <MessageSquare size={16} className="text-tv-green-deep/50" />
@@ -957,6 +941,23 @@ export const AreaSoci = () => {
                       </div>
                     )}
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => { setProposalModal("libri-votati"); setEditingProposal(null); }}
+                      className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-green-deep/20 hover:shadow-sm transition-all text-left">
+                      <ThumbsUp size={20} className="text-tv-green-deep/45" />
+                      <div className="font-display font-black text-3xl text-tv-green-deep">{votes.length}</div>
+                      <div className="text-sm font-bold text-tv-green-deep/60">Proposte votate</div>
+                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                    </button>
+                    <button onClick={() => { setProposalModal("libri-proposti"); setEditingProposal(null); }}
+                      className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-green-deep/20 hover:shadow-sm transition-all text-left">
+                      <Plus size={20} className="text-tv-green-deep/45" />
+                      <div className="font-display font-black text-3xl text-tv-green-deep">{myProposals.length}</div>
+                      <div className="text-sm font-bold text-tv-green-deep/60">Le mie proposte</div>
+                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                    </button>
+                  </div>
+                  </>
                 )}
               </>
             )}
@@ -989,6 +990,7 @@ export const AreaSoci = () => {
                 {loadingTab ? (
                   <div className="flex items-center justify-center py-10 text-tv-sky/40"><Loader2 size={24} className="animate-spin" /></div>
                 ) : (
+                  <>
                   <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <MessageSquare size={16} className="text-tv-sky/60" />
@@ -1010,40 +1012,27 @@ export const AreaSoci = () => {
                       </div>
                     )}
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => { setProposalModal("film-votati"); setEditingFilmProposal(null); }}
+                      className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-sky/25 hover:shadow-sm transition-all text-left">
+                      <ThumbsUp size={20} className="text-tv-sky/55" />
+                      <div className="font-display font-black text-3xl text-tv-green-deep">{filmVotes.length}</div>
+                      <div className="text-sm font-bold text-tv-green-deep/60">Proposte votate</div>
+                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                    </button>
+                    <button onClick={() => { setProposalModal("film-proposti"); setEditingFilmProposal(null); }}
+                      className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-sky/25 hover:shadow-sm transition-all text-left">
+                      <Plus size={20} className="text-tv-sky/55" />
+                      <div className="font-display font-black text-3xl text-tv-green-deep">{myFilmProposals.length}</div>
+                      <div className="text-sm font-bold text-tv-green-deep/60">Le mie proposte</div>
+                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                    </button>
+                  </div>
+                  </>
                 )}
               </>
             )}
 
-          </div>
-        )}
-
-        {/* ── Tab: proposte ── */}
-        {tab === "proposte" && (
-          <div className="flex flex-col gap-4">
-            {loadingTab ? (
-              <div className="flex items-center justify-center py-16 text-tv-green-deep/30"><Loader2 size={24} className="animate-spin" /></div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { key: "libri-votati",   label: "Libri votati",    count: votes.length,          Icon: ThumbsUp, color: "text-tv-green-deep/50", bg: "bg-tv-green-deep/8" },
-                  { key: "film-votati",    label: "Film votati",     count: filmVotes.length,       Icon: ThumbsUp, color: "text-tv-sky/60",         bg: "bg-tv-sky/10" },
-                  { key: "libri-proposti", label: "Libri proposti",  count: myProposals.length,     Icon: Plus,     color: "text-tv-green-deep/50", bg: "bg-tv-green-deep/8" },
-                  { key: "film-proposti",  label: "Film proposti",   count: myFilmProposals.length, Icon: Plus,     color: "text-tv-sky/60",         bg: "bg-tv-sky/10" },
-                ].map(({ key, label, count, Icon, color, bg }) => (
-                  <button key={key} onClick={() => { setProposalModal(key); setEditingProposal(null); setEditingFilmProposal(null); }}
-                    className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6 flex flex-col items-start gap-3 hover:border-tv-green-deep/20 hover:shadow-sm transition-all text-left">
-                    <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center`}>
-                      <Icon size={22} className={color} />
-                    </div>
-                    <div>
-                      <div className="font-display font-black text-3xl text-tv-green-deep">{count}</div>
-                      <div className="text-sm font-bold text-tv-green-deep/60 mt-0.5">{label}</div>
-                    </div>
-                    <span className="text-xs text-tv-green-deep/35">Apri →</span>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
