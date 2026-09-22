@@ -2378,18 +2378,22 @@ async def cover_search(q: str, type: str = "book"):
     else:
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(
-                "https://openlibrary.org/search.json",
-                params={"q": q, "fields": "key,title,cover_i,first_publish_year", "limit": 10}
+                "https://www.googleapis.com/books/v1/volumes",
+                params={"q": q, "maxResults": 12, "printType": "books", "fields": "items(id,volumeInfo(title,authors,publishedDate,imageLinks))"}
             )
         results = []
-        for item in r.json().get("docs", []):
-            cover_id = item.get("cover_i")
-            if cover_id:
+        for item in r.json().get("items", []):
+            info = item.get("volumeInfo", {})
+            links = info.get("imageLinks", {})
+            thumb = links.get("thumbnail") or links.get("smallThumbnail")
+            if thumb:
+                thumb = thumb.replace("http://", "https://")
+                image = thumb.replace("zoom=1", "zoom=3")
                 results.append({
-                    "title": item.get("title", ""),
-                    "year": str(item.get("first_publish_year", "")),
-                    "thumb": f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg",
-                    "image": f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg",
+                    "title": info.get("title", ""),
+                    "year": (info.get("publishedDate", "") or "")[:4],
+                    "thumb": thumb,
+                    "image": image,
                 })
         return {"results": results}
 
