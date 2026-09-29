@@ -1076,6 +1076,8 @@ const LoanManager = ({ books, token, onReload }) => {
   const [savingEdit, setSavingEdit] = useState(false);
 
   const libraryBooks = books.filter(b => b.is_library_book || b.in_biblioteca);
+  const availableBooks = libraryBooks.filter(b => !b.is_lent);
+  const lentBooks = libraryBooks.filter(b => b.is_lent);
 
   const handleReturn = async (book) => {
     try {
@@ -1198,8 +1200,29 @@ const LoanManager = ({ books, token, onReload }) => {
           Nessun libro registrato.
         </div>
       ) : (
-        <div className="grid gap-3">
-          {libraryBooks.map(book => (
+        <div className="space-y-6">
+          {availableBooks.length > 0 && (
+            <div>
+              <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/50 mb-3">✅ Disponibili ({availableBooks.length})</div>
+              <div className="grid gap-3">
+                {availableBooks.map(book => renderLibraryBook(book))}
+              </div>
+            </div>
+          )}
+          {lentBooks.length > 0 && (
+            <div>
+              <div className="text-xs font-black uppercase tracking-widest text-tv-orange/70 mb-3">📤 In giro ({lentBooks.length})</div>
+              <div className="grid gap-3">
+                {lentBooks.map(book => renderLibraryBook(book))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  function renderLibraryBook(book) { return (
             <div key={book.id} className="bg-white rounded-2xl border border-tv-green-deep/10 overflow-hidden">
               <div className="p-4 flex items-center gap-4">
                 {book.cover_url ? (
@@ -1272,11 +1295,7 @@ const LoanManager = ({ books, token, onReload }) => {
                 </div>
               )}
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  ); }
 };
 
 // ── ProposalAdminCard ─────────────────────────────────────────────────────────
@@ -1708,6 +1727,7 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
   const [configForm, setConfigForm] = useState({ proposals_ends_at: "", proposals_deadline_enabled: false, voting_ends_at: "", countdown_enabled: false, community_password: "" });
   const [savingConfig, setSavingConfig] = useState(false);
   const [rushActivating, setRushActivating] = useState(false);
+  const [proclaimingWinner, setProclaimingWinner] = useState(false);
 
   useEffect(() => {
     if (subTab !== "configurazione") return;
@@ -1765,6 +1785,18 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
       setClubConfig(prev => ({ ...prev, rush_finale_active: false }));
     } catch { toast.error("Errore nella disattivazione."); }
     finally { setRushActivating(false); }
+  };
+
+  const handleProclaimBookWinner = async () => {
+    if (!window.confirm(`Proclamare il vincitore per ${configMonth}? Il libro con più voti verrà segnato come vincitore del mese.`)) return;
+    setProclaimingWinner(true);
+    try {
+      const res = await axios.post(`${API}/admin/book-club-config/${configMonth}/proclaim-winner`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data.already_proclaimed) { toast.info("Vincitore già proclamato per questo mese."); return; }
+      toast.success(`🏆 ${res.data.winners?.join(", ")} proclamato vincitore!`);
+      setClubConfig(prev => ({ ...prev, winner_proclaimed: true }));
+    } catch (err) { toast.error(err?.response?.data?.detail || "Errore."); }
+    finally { setProclaimingWinner(false); }
   };
 
   const handleSave = () => onReload();
@@ -2146,6 +2178,24 @@ const BookManager = ({ books, events, reviews, proposals, token, onReload }) => 
                   </button>
                 )}
               </div>
+
+              {/* Proclama vincitore */}
+              {clubConfig.winner_proclaimed ? (
+                <div className="rounded-3xl bg-amber-50 border border-amber-200 p-4 text-amber-800 font-bold text-sm flex items-center gap-2">
+                  🏆 Vincitore già proclamato per {configMonth}
+                </div>
+              ) : (
+                <div className="rounded-3xl bg-amber-50 border border-amber-200 p-5 flex flex-col gap-3">
+                  <div>
+                    <div className="font-black text-amber-800 text-sm flex items-center gap-2">🏆 Proclama vincitore del mese</div>
+                    <div className="text-xs text-amber-700/70 mt-0.5 leading-relaxed">Segna come vincitore il libro con più voti. Se il Rush Finale è attivo, viene considerato solo il podio. Operazione irreversibile.</div>
+                  </div>
+                  <button onClick={handleProclaimBookWinner} disabled={proclaimingWinner}
+                    className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500 text-white font-bold text-sm disabled:opacity-60 hover:bg-amber-600 transition-colors">
+                    {proclaimingWinner ? "Salvo…" : "🏆 Proclama vincitore"}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2180,6 +2230,7 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
   const [cfConfigForm, setCfConfigForm] = useState({ proposals_ends_at: "", proposals_deadline_enabled: false, voting_ends_at: "", countdown_enabled: false, community_password: "" });
   const [savingCfConfig, setSavingCfConfig] = useState(false);
   const [cfRushActivating, setCfRushActivating] = useState(false);
+  const [cfProclaimingWinner, setCfProclaimingWinner] = useState(false);
 
   useEffect(() => {
     if (subTab !== "configurazione") return;
@@ -2236,6 +2287,18 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
       setCfConfig(prev => ({ ...prev, rush_finale_active: false }));
     } catch { toast.error("Errore nella disattivazione."); }
     finally { setCfRushActivating(false); }
+  };
+
+  const handleProclaimCfWinner = async () => {
+    if (!window.confirm(`Proclamare il vincitore del Cineforum per ${cfConfigMonth}? Il film con più voti verrà segnato come vincitore del mese.`)) return;
+    setCfProclaimingWinner(true);
+    try {
+      const res = await axios.post(`${API}/admin/cineforum-config/${cfConfigMonth}/proclaim-winner`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.data.already_proclaimed) { toast.info("Vincitore già proclamato per questo mese."); return; }
+      toast.success(`🏆 ${res.data.winners?.join(", ")} proclamato vincitore!`);
+      setCfConfig(prev => ({ ...prev, winner_proclaimed: true }));
+    } catch (err) { toast.error(err?.response?.data?.detail || "Errore."); }
+    finally { setCfProclaimingWinner(false); }
   };
 
   const handleDelete = async (id) => {
@@ -2610,6 +2673,24 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
                   </button>
                 )}
               </div>
+
+              {/* Proclama vincitore */}
+              {cfConfig.winner_proclaimed ? (
+                <div className="rounded-3xl bg-amber-50 border border-amber-200 p-4 text-amber-800 font-bold text-sm flex items-center gap-2">
+                  🏆 Vincitore già proclamato per {cfConfigMonth}
+                </div>
+              ) : (
+                <div className="rounded-3xl bg-amber-50 border border-amber-200 p-5 flex flex-col gap-3">
+                  <div>
+                    <div className="font-black text-amber-800 text-sm flex items-center gap-2">🏆 Proclama vincitore del mese</div>
+                    <div className="text-xs text-amber-700/70 mt-0.5 leading-relaxed">Segna come vincitore il film con più voti. Se il Rush Finale è attivo, viene considerato solo il podio. Operazione irreversibile.</div>
+                  </div>
+                  <button onClick={handleProclaimCfWinner} disabled={cfProclaimingWinner}
+                    className="self-start inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-500 text-white font-bold text-sm disabled:opacity-60 hover:bg-amber-600 transition-colors">
+                    {cfProclaimingWinner ? "Salvo…" : "🏆 Proclama vincitore"}
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

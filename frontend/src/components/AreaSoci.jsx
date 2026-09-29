@@ -71,6 +71,11 @@ const Avatar = ({ user, onUpload, size = 96, hasGoldRing = false }) => {
         className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-tv-orange text-tv-green-deep flex items-center justify-center shadow-md hover:bg-tv-orange/80 transition-colors">
         {uploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
       </button>
+      {hasGoldRing && (
+        <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center shadow-md" title="Missione completata!">
+          <Trophy size={12} className="text-amber-900" />
+        </div>
+      )}
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
     </div>
   );
@@ -632,12 +637,15 @@ export const AreaSoci = () => {
     setPostsLoaded(true);
   }, [token]);
 
+  const missionsFetchedRef = useRef(false);
   useEffect(() => {
-    if (!missionsData) {
-      fetch(`${API}/api/auth/me/missions`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : null).then(setMissionsData);
-    }
-  }, [missionsData, token]);
+    if (!token || missionsFetchedRef.current) return;
+    missionsFetchedRef.current = true;
+    fetch(`${API}/api/auth/me/missions`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setMissionsData(data); })
+      .catch(() => {});
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (tab === "bacheca" && !postsLoaded) loadPosts(0);

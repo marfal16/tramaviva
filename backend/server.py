@@ -2928,6 +2928,41 @@ async def admin_update_film_proposal(proposal_id: str, payload: dict):
         raise HTTPException(status_code=404, detail="Proposta non trovata")
     return await db.film_proposals.find_one({"id": proposal_id}, {"_id": 0})
 
+@api_router.post("/admin/cineforum-config/{month}/proclaim-winner", dependencies=[Depends(require_admin)])
+async def proclaim_film_winner_month(month: str):
+    """Trova il film con più voti del mese e lo segna come vincitore (idempotente)."""
+    config = await db.cineforum_config.find_one({"month": month})
+    if config and config.get("winner_proclaimed"):
+        return {"ok": True, "already_proclaimed": True}
+
+    rush_active = config.get("rush_finale_active", False) if config else False
+    query = {"proposed_month": month}
+    if rush_active:
+        query["rush_excluded"] = {"$ne": True}
+
+    proposals = await db.film_proposals.find(query, {"_id": 0}).to_list(1000)
+    if not proposals:
+        raise HTTPException(status_code=404, detail="Nessuna proposta trovata per questo mese")
+
+    max_votes = max((p.get("votes", 0) for p in proposals), default=0)
+    winners = [p for p in proposals if p.get("votes", 0) == max_votes]
+    winner_ids = [w["id"] for w in winners]
+
+    await db.film_proposals.update_many(
+        {"id": {"$in": winner_ids}},
+        {"$set": {"is_winner": True}}
+    )
+    await db.film_proposals.update_many(
+        {"proposed_month": month, "id": {"$nin": winner_ids}},
+        {"$set": {"is_winner": False}}
+    )
+    await db.cineforum_config.update_one(
+        {"month": month},
+        {"$set": {"month": month, "winner_proclaimed": True, "winner_ids": winner_ids}},
+        upsert=True,
+    )
+    return {"ok": True, "winners": [w["title"] for w in winners]}
+
 @api_router.post("/admin/film-proposals/{proposal_id}/mark-winner", dependencies=[Depends(require_admin)])
 async def mark_film_winner(proposal_id: str):
     proposal = await db.film_proposals.find_one({"id": proposal_id}, {"_id": 0, "proposed_month": 1})

@@ -976,8 +976,7 @@ const CommunityLibrary = () => {
                         <div className="font-bold text-tv-cream leading-tight">{b.title}</div>
                         {b.author && <div className="text-sm text-tv-cream/55">{b.author}</div>}
                         <div className="text-xs text-tv-orange/70 mt-1 font-bold">
-                          {b.lent_to_name} {b.lent_to_surname}
-                          {b.lent_date && <span className="font-normal text-tv-cream/35"> · dal {b.lent_date}</span>}
+                          In prestito
                         </div>
                       </div>
                       <button onClick={() => { setReturnForm({ returned_date: today() }); setReturnTarget(b); }}
