@@ -2919,13 +2919,30 @@ async def admin_get_film_proposals():
 
 @api_router.put("/admin/film-proposals/{proposal_id}", dependencies=[Depends(require_admin)])
 async def admin_update_film_proposal(proposal_id: str, payload: dict):
-    allowed = {"title", "director", "genre", "cover_url", "description", "trailer_url", "discussion_topics", "external_reviews", "proposed_month"}
+    allowed = {"title", "director", "genre", "cover_url", "description", "trailer_url", "discussion_topics", "external_reviews", "proposed_month", "is_winner"}
     update = {k: v for k, v in payload.items() if k in allowed}
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
     res = await db.film_proposals.update_one({"id": proposal_id}, {"$set": update})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Proposta non trovata")
+    return await db.film_proposals.find_one({"id": proposal_id}, {"_id": 0})
+
+@api_router.post("/admin/film-proposals/{proposal_id}/mark-winner", dependencies=[Depends(require_admin)])
+async def mark_film_winner(proposal_id: str):
+    proposal = await db.film_proposals.find_one({"id": proposal_id}, {"_id": 0, "proposed_month": 1})
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposta non trovata")
+    month = proposal.get("proposed_month")
+    if month:
+        await db.film_proposals.update_many({"proposed_month": month}, {"$set": {"is_winner": False}})
+    await db.film_proposals.update_one({"id": proposal_id}, {"$set": {"is_winner": True}})
+    if month:
+        await db.cineforum_config.update_one(
+            {"month": month},
+            {"$set": {"month": month, "winner_proclaimed": True, "winner_id": proposal_id}},
+            upsert=True,
+        )
     return await db.film_proposals.find_one({"id": proposal_id}, {"_id": 0})
 
 @api_router.delete("/admin/film-proposals/{proposal_id}", dependencies=[Depends(require_admin)])
@@ -3185,10 +3202,31 @@ async def check_community_password(body: dict):
     stored = doc.get("community_password", "")
     return {"ok": stored == password}
 
+def _map_catalog_book_to_community(b):
+    lent_to = (b.get("lent_to") or "").strip()
+    parts = lent_to.split(" ", 1) if lent_to else []
+    return {
+        "id": b["id"],
+        "title": b.get("title", ""),
+        "author": b.get("author", ""),
+        "cover_url": b.get("cover_url"),
+        "status": "lent" if b.get("is_lent") else "available",
+        "lent_to_name": parts[0] if parts else "",
+        "lent_to_surname": parts[1] if len(parts) > 1 else "",
+        "lent_date": b.get("lent_date"),
+        "added_by": "",
+        "added_at": "",
+        "club": "club-del-libro",
+        "source": "catalog",
+    }
+
 @api_router.get("/community-library")
 async def get_community_books():
-    books = await db.community_library.find({}, {"_id": 0}).sort("added_at", -1).to_list(500)
-    return books
+    community_books = await db.community_library.find({}, {"_id": 0}).sort("added_at", -1).to_list(500)
+    catalog_books = await db.books.find({"in_biblioteca": True}, {"_id": 0}).to_list(500)
+    community_titles = {b.get("title", "").lower() for b in community_books}
+    extra = [_map_catalog_book_to_community(b) for b in catalog_books if b.get("title", "").lower() not in community_titles]
+    return community_books + extra
 
 @api_router.post("/community-library")
 async def add_community_book(body: dict):
@@ -3221,44 +3259,72 @@ async def add_community_book(body: dict):
 async def take_community_book(book_id: str, body: dict):
     password = body.get("password", "")
     doc = await db.community_library.find_one({"id": book_id}, {"_id": 0, "club": 1})
-    if not doc:
+    if doc:
+        club = doc.get("club", "club-del-libro")
+        collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+        cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+        if not cfg or cfg.get("community_password") != password:
+            raise HTTPException(status_code=403, detail="Password errata")
+        await db.community_library.update_one({"id": book_id}, {"$set": {
+            "status": "lent",
+            "lent_to_name": (body.get("lent_to_name") or "").strip(),
+            "lent_to_surname": (body.get("lent_to_surname") or "").strip(),
+            "lent_date": body.get("lent_date") or datetime.utcnow().strftime("%Y-%m-%d"),
+            "returned_date": None,
+        }})
+        book = await db.community_library.find_one({"id": book_id}, {"_id": 0})
+        return book
+    # Catalog book (db.books with in_biblioteca: True)
+    catalog = await db.books.find_one({"id": book_id, "in_biblioteca": True}, {"_id": 0})
+    if not catalog:
         raise HTTPException(status_code=404, detail="Libro non trovato")
-    club = doc.get("club", "club-del-libro")
-    collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
-    cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+    cfg = await db.book_club_config.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
     if not cfg or cfg.get("community_password") != password:
         raise HTTPException(status_code=403, detail="Password errata")
-    await db.community_library.update_one({"id": book_id}, {"$set": {
-        "status": "lent",
-        "lent_to_name": (body.get("lent_to_name") or "").strip(),
-        "lent_to_surname": (body.get("lent_to_surname") or "").strip(),
+    lent_to_name = (body.get("lent_to_name") or "").strip()
+    lent_to_surname = (body.get("lent_to_surname") or "").strip()
+    await db.books.update_one({"id": book_id}, {"$set": {
+        "is_lent": True,
+        "lent_to": f"{lent_to_name} {lent_to_surname}".strip(),
         "lent_date": body.get("lent_date") or datetime.utcnow().strftime("%Y-%m-%d"),
-        "returned_date": None,
     }})
-    book = await db.community_library.find_one({"id": book_id}, {"_id": 0})
-    return book
+    updated = await db.books.find_one({"id": book_id}, {"_id": 0})
+    return _map_catalog_book_to_community(updated)
 
 @api_router.post("/community-library/{book_id}/return")
 async def return_community_book(book_id: str, body: dict):
     password = body.get("password", "")
     doc = await db.community_library.find_one({"id": book_id}, {"_id": 0, "club": 1})
-    if not doc:
+    if doc:
+        club = doc.get("club", "club-del-libro")
+        collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+        cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+        if not cfg or cfg.get("community_password") != password:
+            raise HTTPException(status_code=403, detail="Password errata")
+        returned_date = body.get("returned_date") or datetime.utcnow().strftime("%Y-%m-%d")
+        await db.community_library.update_one({"id": book_id}, {"$set": {
+            "status": "available",
+            "returned_date": returned_date,
+            "lent_to_name": None,
+            "lent_to_surname": None,
+            "lent_date": None,
+        }})
+        book = await db.community_library.find_one({"id": book_id}, {"_id": 0})
+        return book
+    # Catalog book
+    catalog = await db.books.find_one({"id": book_id, "in_biblioteca": True}, {"_id": 0})
+    if not catalog:
         raise HTTPException(status_code=404, detail="Libro non trovato")
-    club = doc.get("club", "club-del-libro")
-    collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
-    cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+    cfg = await db.book_club_config.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
     if not cfg or cfg.get("community_password") != password:
         raise HTTPException(status_code=403, detail="Password errata")
-    returned_date = body.get("returned_date") or datetime.utcnow().strftime("%Y-%m-%d")
-    await db.community_library.update_one({"id": book_id}, {"$set": {
-        "status": "available",
-        "returned_date": returned_date,
-        "lent_to_name": None,
-        "lent_to_surname": None,
+    await db.books.update_one({"id": book_id}, {"$set": {
+        "is_lent": False,
+        "lent_to": None,
         "lent_date": None,
     }})
-    book = await db.community_library.find_one({"id": book_id}, {"_id": 0})
-    return book
+    updated = await db.books.find_one({"id": book_id}, {"_id": 0})
+    return _map_catalog_book_to_community(updated)
 
 
 # ── Admin Calendar Events ─────────────────────────────────────────────────────

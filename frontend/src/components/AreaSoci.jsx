@@ -29,7 +29,7 @@ const fmtMonth = m => {
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
-const Avatar = ({ user, onUpload, size = 96 }) => {
+const Avatar = ({ user, onUpload, size = 96, hasGoldRing = false }) => {
   const inputRef = useRef();
   const [uploading, setUploading] = useState(false);
 
@@ -59,9 +59,9 @@ const Avatar = ({ user, onUpload, size = 96 }) => {
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       {user.has_avatar ? (
         <img src={user.avatar_url || `${API}/api/users/${user.id}/avatar?t=${Date.now()}`} alt={user.name}
-          className="w-full h-full rounded-full object-cover border-4 border-white shadow-lg" />
+          className={`w-full h-full rounded-full object-cover border-4 shadow-lg ${hasGoldRing ? "border-amber-400 shadow-amber-400/40" : "border-white"}`} />
       ) : (
-        <div className="w-full h-full rounded-full bg-tv-green-deep flex items-center justify-center text-tv-cream font-black text-3xl shadow-lg border-4 border-white">
+        <div className={`w-full h-full rounded-full bg-tv-green-deep flex items-center justify-center text-tv-cream font-black text-3xl shadow-lg border-4 ${hasGoldRing ? "border-amber-400 shadow-amber-400/40" : "border-white"}`}>
           {user.name?.charAt(0)?.toUpperCase() || "S"}
         </div>
       )}
@@ -631,11 +631,11 @@ export const AreaSoci = () => {
   }, [token]);
 
   useEffect(() => {
-    if (tab === "missioni" && !missionsData) {
+    if (!missionsData) {
       fetch(`${API}/api/auth/me/missions`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : null).then(setMissionsData);
     }
-  }, [tab, missionsData, token]);
+  }, [missionsData, token]);
 
   useEffect(() => {
     if (tab === "bacheca" && !postsLoaded) loadPosts(0);
@@ -696,7 +696,7 @@ export const AreaSoci = () => {
         <div className="bg-tv-green-deep rounded-[2rem] p-7 md:p-10 text-tv-cream mb-6 relative overflow-hidden">
           <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-tv-green/30 blur-3xl pointer-events-none" />
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <Avatar user={user} onUpload={refreshUser} size={88} />
+            <Avatar user={user} onUpload={refreshUser} size={88} hasGoldRing={missionsData?.missions?.some(m => m.unlocked)} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <span className="text-xs font-black uppercase tracking-[.2em] text-tv-cream/40">Area soci</span>

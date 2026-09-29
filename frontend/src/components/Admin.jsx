@@ -1450,7 +1450,18 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
   const [editForm, setEditForm] = useState({});
   const [savingEdit, setSavingEdit] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [markingWinner, setMarkingWinner] = useState(false);
   const voters = p.voters || [];
+
+  const handleMarkWinner = async () => {
+    setMarkingWinner(true);
+    try {
+      await axios.post(`${API}/admin/film-proposals/${p.id}/mark-winner`, {}, authHeader);
+      toast.success(`🏆 «${p.title}» proclamato vincitore del mese!`);
+      onReload();
+    } catch { toast.error("Errore nel salvataggio."); }
+    finally { setMarkingWinner(false); }
+  };
 
   const startEdit = () => {
     setEditForm({ title: p.title || "", director: p.director || "", genre: p.genre || "", cover_url: p.cover_url || "", description: p.description || "", trailer_url: p.trailer_url || "", discussion_topics: p.discussion_topics || "", external_reviews: p.external_reviews || [], proposed_month: p.proposed_month || "" });
@@ -1529,6 +1540,13 @@ const FilmProposalAdminCard = ({ p, onDelete, onReload, token }) => {
           <button onClick={startEdit} className="p-1.5 rounded-full hover:bg-tv-sky/10 text-tv-sky" title="Modifica">
             <Pencil size={13} />
           </button>
+          {p.is_winner ? (
+            <span className="text-[10px] font-black text-amber-500 px-2 py-1 rounded-full bg-amber-50 border border-amber-200">🏆 Vincitore</span>
+          ) : (
+            <button onClick={handleMarkWinner} disabled={markingWinner} className="p-1.5 rounded-full hover:bg-amber-50 text-amber-500" title="Segna come vincitore">
+              <Trophy size={13} />
+            </button>
+          )}
           {confirmDelete ? (
             <div className="flex items-center gap-1">
               <button onClick={() => setConfirmDelete(false)} className="text-[10px] px-2 py-1 rounded-lg border border-tv-green-deep/20 text-tv-green-deep/50">No</button>

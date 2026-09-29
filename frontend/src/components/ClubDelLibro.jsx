@@ -605,7 +605,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, onVot
 const ProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
   const [clubConfig, setClubConfig] = useState(null);
@@ -614,6 +614,7 @@ const ProposalsSection = () => {
   const [pendingAction, setPendingAction] = useState(null);
 
   const load = useCallback(() => {
+    if (!selectedMonth) return;
     setLoading(true);
     fetch(`${BACKEND_URL}/api/proposals?month=${selectedMonth}`)
       .then((r) => r.json())
@@ -634,7 +635,7 @@ const ProposalsSection = () => {
         setAllMonths(months);
         // Default: mese più recente con proposte; mese futuro solo se già selezionato
         const defaultMonth = existingMonths.length > 0 ? [...existingMonths].sort().reverse()[0] : nextMonthStr;
-        setSelectedMonth(prev => months.includes(prev) ? prev : defaultMonth);
+        setSelectedMonth(prev => prev === null ? defaultMonth : (months.includes(prev) ? prev : defaultMonth));
       })
       .catch(() => {});
   }, []);
@@ -935,10 +936,6 @@ const CommunityLibrary = () => {
             <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">Scambio libri community</h2>
             <p className="mt-2 text-tv-cream/55 max-w-xl">Libri messi a disposizione da chi partecipa al Club. Prendili di persona agli incontri e segnali qui quando li prendi o restituisci.</p>
           </div>
-          <button onClick={() => withPwd(() => { setAddForm({ title: "", author: "", added_by: "" }); setShowAddForm(true); })}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm hover:bg-tv-orange/80 transition-colors shrink-0">
-            <Plus size={15} /> Aggiungi un libro
-          </button>
         </div>
 
         {loading ? (

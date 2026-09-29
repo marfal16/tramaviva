@@ -1032,7 +1032,7 @@ const CineforumPasswordModal = ({ onSuccess, onClose }) => {
 const FilmProposalsSection = () => {
   const [proposals, setProposals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 7); });
+  const [selectedMonth, setSelectedMonth] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [reproponiData, setReproponiData] = useState(null);
   const [cineforumConfig, setCineforumConfig] = useState(null);
@@ -1041,6 +1041,7 @@ const FilmProposalsSection = () => {
   const [pendingAction, setPendingAction] = useState(null);
 
   const load = useCallback(() => {
+    if (!selectedMonth) return;
     setLoading(true);
     fetch(`${BACKEND_URL}/api/film-proposals?month=${selectedMonth}`)
       .then((r) => r.json())
@@ -1061,7 +1062,7 @@ const FilmProposalsSection = () => {
         setAllMonths(months);
         // Default: mese più recente con proposte; mese futuro solo se già selezionato
         const defaultMonth = existingMonths.length > 0 ? [...existingMonths].sort().reverse()[0] : nextMonthStr;
-        setSelectedMonth(prev => months.includes(prev) ? prev : defaultMonth);
+        setSelectedMonth(prev => prev === null ? defaultMonth : (months.includes(prev) ? prev : defaultMonth));
       })
       .catch(() => {});
   }, []);
