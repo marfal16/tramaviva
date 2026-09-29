@@ -59,9 +59,11 @@ const Avatar = ({ user, onUpload, size = 96, hasGoldRing = false }) => {
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       {user.has_avatar ? (
         <img src={user.avatar_url || `${API}/api/users/${user.id}/avatar?t=${Date.now()}`} alt={user.name}
-          className={`w-full h-full rounded-full object-cover border-4 shadow-lg ${hasGoldRing ? "border-amber-400 shadow-amber-400/40" : "border-white"}`} />
+          className={`w-full h-full rounded-full object-cover border-4 shadow-lg ${hasGoldRing ? "border-amber-400" : "border-white"}`}
+          style={hasGoldRing ? { boxShadow: "0 0 0 3px rgba(251,191,36,0.85), 0 0 18px rgba(251,191,36,0.35)" } : undefined} />
       ) : (
-        <div className={`w-full h-full rounded-full bg-tv-green-deep flex items-center justify-center text-tv-cream font-black text-3xl shadow-lg border-4 ${hasGoldRing ? "border-amber-400 shadow-amber-400/40" : "border-white"}`}>
+        <div className={`w-full h-full rounded-full bg-tv-green-deep flex items-center justify-center text-tv-cream font-black text-3xl shadow-lg border-4 ${hasGoldRing ? "border-amber-400" : "border-white"}`}
+          style={hasGoldRing ? { boxShadow: "0 0 0 3px rgba(251,191,36,0.85), 0 0 18px rgba(251,191,36,0.35)" } : undefined}>
           {user.name?.charAt(0)?.toUpperCase() || "S"}
         </div>
       )}

@@ -896,11 +896,10 @@ const CommunityLibrary = () => {
     if (!takeForm.lent_to_name.trim() || !takeForm.lent_to_surname.trim()) return;
     setTakeSaving(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/community-library/${takeTarget.id}/take`, {
+      await fetch(`${BACKEND_URL}/api/community-library/${takeTarget.id}/take`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...takeForm, password: communityPwd }),
+        body: JSON.stringify({ ...takeForm }),
       });
-      if (res.status === 403) { setCommunityPwd(""); localStorage.removeItem(CLUB_PWD_KEY); alert("Password non valida."); return; }
       setTakeTarget(null); load();
     } catch { alert("Errore. Riprova."); }
     finally { setTakeSaving(false); }
@@ -909,11 +908,10 @@ const CommunityLibrary = () => {
   const doReturn = async () => {
     setReturnSaving(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/community-library/${returnTarget.id}/return`, {
+      await fetch(`${BACKEND_URL}/api/community-library/${returnTarget.id}/return`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...returnForm, password: communityPwd }),
+        body: JSON.stringify({ ...returnForm }),
       });
-      if (res.status === 403) { setCommunityPwd(""); localStorage.removeItem(CLUB_PWD_KEY); alert("Password non valida."); return; }
       setReturnTarget(null); load();
     } catch { alert("Errore. Riprova."); }
     finally { setReturnSaving(false); }
@@ -944,7 +942,7 @@ const CommunityLibrary = () => {
           <div className="rounded-[2rem] bg-tv-cream/10 border border-tv-cream/10 p-10 text-center text-tv-cream/40">
             <Library size={36} className="mx-auto mb-3 opacity-30" />
             <p className="font-bold">Nessun libro ancora disponibile.</p>
-            <p className="text-sm mt-1 opacity-70">Sii il primo ad aggiungere un libro!</p>
+            <p className="text-sm mt-1 opacity-70">I libri verranno aggiunti dagli organizzatori prima degli incontri.</p>
           </div>
         ) : (
           <div className="grid gap-8">
@@ -959,7 +957,7 @@ const CommunityLibrary = () => {
                         {b.author && <div className="text-sm text-tv-cream/55">{b.author}</div>}
                         {b.added_by && <div className="text-xs text-tv-cream/35 mt-1">Aggiunto da {b.added_by}</div>}
                       </div>
-                      <button onClick={() => withPwd(() => { setTakeForm({ lent_to_name: "", lent_to_surname: "", lent_date: today() }); setTakeTarget(b); })}
+                      <button onClick={() => { setTakeForm({ lent_to_name: "", lent_to_surname: "", lent_date: today() }); setTakeTarget(b); }}
                         className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-tv-orange/20 text-tv-orange hover:bg-tv-orange/30 transition-colors">
                         Prendo io
                       </button>
@@ -982,7 +980,7 @@ const CommunityLibrary = () => {
                           {b.lent_date && <span className="font-normal text-tv-cream/35"> · dal {b.lent_date}</span>}
                         </div>
                       </div>
-                      <button onClick={() => withPwd(() => { setReturnForm({ returned_date: today() }); setReturnTarget(b); })}
+                      <button onClick={() => { setReturnForm({ returned_date: today() }); setReturnTarget(b); }}
                         className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-tv-cream/10 text-tv-cream/60 hover:bg-tv-cream/20 transition-colors flex items-center gap-1">
                         <RotateCcw size={11} /> Restituito
                       </button>
@@ -1022,21 +1020,22 @@ const CommunityLibrary = () => {
       {takeTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/70 p-4" onClick={() => setTakeTarget(null)}>
           <div className="bg-tv-green-deep border border-tv-cream/15 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-display font-black text-lg text-tv-cream">Prendo «{takeTarget.title}»</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-black text-lg text-tv-cream">📚 «{takeTarget.title}»</h3>
               <button onClick={() => setTakeTarget(null)} className="p-1.5 rounded-full hover:bg-tv-cream/10"><X size={16} className="text-tv-cream/60" /></button>
             </div>
-            <p className="text-xs text-tv-cream/40 mb-4">Inserisci il tuo nome per segnare che hai preso il libro.</p>
+            <div className="rounded-2xl bg-tv-cream/8 border border-tv-cream/10 px-4 py-3 mb-4">
+              <p className="text-sm text-tv-cream/75 leading-relaxed">Ti stai prenotando per prendere questo libro al prossimo incontro del Club. Inserisci il tuo nome così i lettori sapranno a chi è in prestito — e ricordati di segnarlo restituito quando lo riporti!</p>
+            </div>
             <div className="grid gap-3">
               <div className="grid grid-cols-2 gap-2">
-                <label><div className={labelClass}>Nome *</div><input className={fieldClass} value={takeForm.lent_to_name} onChange={e => setTakeForm(f => ({ ...f, lent_to_name: e.target.value }))} placeholder="Maria" /></label>
+                <label><div className={labelClass}>Nome *</div><input className={fieldClass} value={takeForm.lent_to_name} onChange={e => setTakeForm(f => ({ ...f, lent_to_name: e.target.value }))} placeholder="Maria" autoFocus /></label>
                 <label><div className={labelClass}>Cognome *</div><input className={fieldClass} value={takeForm.lent_to_surname} onChange={e => setTakeForm(f => ({ ...f, lent_to_surname: e.target.value }))} placeholder="Rossi" /></label>
               </div>
-              <label><div className={labelClass}>Data di presa</div><input type="date" className={fieldClass} value={takeForm.lent_date} onChange={e => setTakeForm(f => ({ ...f, lent_date: e.target.value }))} /></label>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1">
                 <button onClick={() => setTakeTarget(null)} className="flex-1 px-4 py-2.5 rounded-full border border-tv-cream/20 text-tv-cream font-bold text-sm">Annulla</button>
                 <button onClick={doTake} disabled={takeSaving || !takeForm.lent_to_name.trim() || !takeForm.lent_to_surname.trim()} className="flex-1 px-4 py-2.5 rounded-full bg-tv-orange text-tv-green-deep font-bold text-sm disabled:opacity-60">
-                  {takeSaving ? "…" : "Confermo"}
+                  {takeSaving ? "…" : "Mi prenoto ✓"}
                 </button>
               </div>
             </div>

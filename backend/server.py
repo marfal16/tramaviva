@@ -3260,11 +3260,12 @@ async def take_community_book(book_id: str, body: dict):
     password = body.get("password", "")
     doc = await db.community_library.find_one({"id": book_id}, {"_id": 0, "club": 1})
     if doc:
-        club = doc.get("club", "club-del-libro")
-        collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
-        cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
-        if not cfg or cfg.get("community_password") != password:
-            raise HTTPException(status_code=403, detail="Password errata")
+        if password:
+            club = doc.get("club", "club-del-libro")
+            collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+            cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+            if cfg and cfg.get("community_password") and cfg.get("community_password") != password:
+                raise HTTPException(status_code=403, detail="Password errata")
         await db.community_library.update_one({"id": book_id}, {"$set": {
             "status": "lent",
             "lent_to_name": (body.get("lent_to_name") or "").strip(),
@@ -3278,9 +3279,10 @@ async def take_community_book(book_id: str, body: dict):
     catalog = await db.books.find_one({"id": book_id, "in_biblioteca": True}, {"_id": 0})
     if not catalog:
         raise HTTPException(status_code=404, detail="Libro non trovato")
-    cfg = await db.book_club_config.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
-    if not cfg or cfg.get("community_password") != password:
-        raise HTTPException(status_code=403, detail="Password errata")
+    if password:
+        cfg = await db.book_club_config.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+        if cfg and cfg.get("community_password") and cfg.get("community_password") != password:
+            raise HTTPException(status_code=403, detail="Password errata")
     lent_to_name = (body.get("lent_to_name") or "").strip()
     lent_to_surname = (body.get("lent_to_surname") or "").strip()
     await db.books.update_one({"id": book_id}, {"$set": {
@@ -3296,11 +3298,12 @@ async def return_community_book(book_id: str, body: dict):
     password = body.get("password", "")
     doc = await db.community_library.find_one({"id": book_id}, {"_id": 0, "club": 1})
     if doc:
-        club = doc.get("club", "club-del-libro")
-        collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
-        cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
-        if not cfg or cfg.get("community_password") != password:
-            raise HTTPException(status_code=403, detail="Password errata")
+        if password:
+            club = doc.get("club", "club-del-libro")
+            collection = db.book_club_config if club == "club-del-libro" else db.cineforum_config
+            cfg = await collection.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+            if cfg and cfg.get("community_password") and cfg.get("community_password") != password:
+                raise HTTPException(status_code=403, detail="Password errata")
         returned_date = body.get("returned_date") or datetime.utcnow().strftime("%Y-%m-%d")
         await db.community_library.update_one({"id": book_id}, {"$set": {
             "status": "available",
@@ -3315,9 +3318,10 @@ async def return_community_book(book_id: str, body: dict):
     catalog = await db.books.find_one({"id": book_id, "in_biblioteca": True}, {"_id": 0})
     if not catalog:
         raise HTTPException(status_code=404, detail="Libro non trovato")
-    cfg = await db.book_club_config.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
-    if not cfg or cfg.get("community_password") != password:
-        raise HTTPException(status_code=403, detail="Password errata")
+    if password:
+        cfg = await db.book_club_config.find_one({"community_password": {"$exists": True, "$ne": ""}}, {"_id": 0, "community_password": 1})
+        if cfg and cfg.get("community_password") and cfg.get("community_password") != password:
+            raise HTTPException(status_code=403, detail="Password errata")
     await db.books.update_one({"id": book_id}, {"$set": {
         "is_lent": False,
         "lent_to": None,
