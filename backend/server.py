@@ -766,7 +766,7 @@ async def check_event_signup(event_id: str, emails: str = ""):
 async def get_event_ics(event_id: str):
     from fastapi.responses import Response
     from datetime import datetime, timedelta
-    from urllib.parse import quote
+    import unicodedata, re
     doc = await db.events.find_one({"$or": [{"id": event_id}, {"slug": event_id}]}, {"_id": 0})
     if not doc:
         raise HTTPException(status_code=404, detail="Evento non trovato")
@@ -780,7 +780,26 @@ async def get_event_ics(event_id: str):
             return (s or '').replace('\\', '\\\\').replace(',', '\\,').replace(';', '\\;').replace('\n', '\\n')
         lines = [
             'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Trama Viva APS//IT',
-            'METHOD:PUBLISH', 'BEGIN:VEVENT',
+            'METHOD:PUBLISH',
+            # VTIMEZONE required by RFC 5545 when TZID is used — without it Apple Calendar and Outlook reject the file
+            'BEGIN:VTIMEZONE',
+            'TZID:Europe/Rome',
+            'BEGIN:STANDARD',
+            'DTSTART:19701025T030000',
+            'RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10',
+            'TZNAME:CET',
+            'TZOFFSETFROM:+0200',
+            'TZOFFSETTO:+0100',
+            'END:STANDARD',
+            'BEGIN:DAYLIGHT',
+            'DTSTART:19700329T020000',
+            'RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3',
+            'TZNAME:CEST',
+            'TZOFFSETFROM:+0100',
+            'TZOFFSETTO:+0200',
+            'END:DAYLIGHT',
+            'END:VTIMEZONE',
+            'BEGIN:VEVENT',
             f'DTSTART;TZID=Europe/Rome:{fmt(start)}', f'DTEND;TZID=Europe/Rome:{fmt(end)}',
             f'SUMMARY:{esc(doc.get("title",""))}',
             f'LOCATION:{esc(doc.get("location",""))}',
@@ -789,11 +808,13 @@ async def get_event_ics(event_id: str):
             'END:VEVENT', 'END:VCALENDAR',
         ]
         content = '\r\n'.join(lines)
-        filename = (doc.get("title") or "evento").replace(" ", "_")
+        raw_name = doc.get("title") or "evento"
+        ascii_name = unicodedata.normalize('NFKD', raw_name).encode('ascii', 'ignore').decode('ascii')
+        filename = re.sub(r'[^\w\-]', '_', ascii_name).strip('_') or "evento"
         return Response(
             content=content.encode("utf-8"),
             media_type="text/calendar; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{filename}.ics"'},
+            headers={"Content-Disposition": f"attachment; filename=\"{filename}.ics\""},
         )
     except Exception:
         raise HTTPException(status_code=500, detail="Errore generazione ICS")

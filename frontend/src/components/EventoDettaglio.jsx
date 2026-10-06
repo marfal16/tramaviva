@@ -306,6 +306,7 @@ export const EventoDettaglio = () => {
                 <img
                   src={event.image_url || `${API}/events/${event.id}/image`}
                   alt={event.title}
+                  loading="lazy"
                   className="w-full h-64 md:h-80 object-cover rounded-[2rem] mb-6"
                 />
               )}
@@ -598,7 +599,7 @@ export const EventoDettaglio = () => {
                   </p>
                   <p className="mt-4 text-xs opacity-70">Aggiungi al calendario:</p>
                   <div className="mt-2 flex flex-wrap justify-center gap-2">
-                    <a href={icsUrl(event)} target="_blank" rel="noopener noreferrer"
+                    <a href={icsUrl(event)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-xs transition-colors">
                       🍎 Apple
                     </a>
@@ -606,7 +607,7 @@ export const EventoDettaglio = () => {
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-xs transition-colors">
                       G&nbsp; Google
                     </a>
-                    <a href={icsUrl(event)} target="_blank" rel="noopener noreferrer"
+                    <a href={icsUrl(event)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30 text-tv-cream font-bold text-xs transition-colors">
                       📧 Outlook
                     </a>
