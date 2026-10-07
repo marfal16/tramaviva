@@ -207,8 +207,12 @@ export const EventoDettaglio = () => {
       });
       setDoneWaitlist(true);
       toast.success("Iscritto alla lista di attesa!");
-    } catch {
-      toast.error("Errore nell'iscrizione. Riprova.");
+    } catch (err) {
+      if (err?.response?.status === 403) {
+        setSoloSociError(true);
+      } else {
+        toast.error("Errore nell'iscrizione. Riprova.");
+      }
     } finally {
       setSubmittingWaitlist(false);
     }
