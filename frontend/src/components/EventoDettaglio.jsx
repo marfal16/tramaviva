@@ -535,6 +535,22 @@ export const EventoDettaglio = () => {
                             className="w-full py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm flex items-center justify-center gap-2 hover:bg-tv-green-deep/90 transition-colors disabled:opacity-50">
                             {submittingWaitlist ? <><span className="animate-spin inline-block w-4 h-4 border-2 border-tv-cream/40 border-t-tv-cream rounded-full" /> Iscrizione...</> : "Iscriviti alla lista di attesa"}
                           </button>
+                          {soloSociError && (
+                            <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
+                              <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
+                              <p className="text-xs text-tv-green-deep/70 mb-3">
+                                La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio.
+                              </p>
+                              <a
+                                href="https://www.tramavivaaps.com/iscrizione"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-block text-xs font-bold px-4 py-2 rounded-full bg-tv-bordeaux text-white hover:bg-tv-bordeaux/80 transition-colors"
+                              >
+                                Richiedi l'iscrizione →
+                              </a>
+                            </div>
+                          )}
                         </form>
                       </>
                     )}
