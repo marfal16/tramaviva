@@ -443,7 +443,7 @@ const buildMembersSheet = (rows) => rows.map(r => {
   };
 });
 
-const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore, onAddManual, onExportMembers, exportingMembers }) => {
+const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore, onAddManual, onExportMembers, exportingMembers, onSyncTessere, syncingTessere }) => {
   const [activeFilter, setActiveFilter] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState("created_at");
@@ -574,6 +574,13 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
             title="Scarica tutti i dati dei soci approvati (anagrafica, documento, indirizzo, consensi, genitore se minorenne)"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/80 text-xs font-bold transition-colors whitespace-nowrap disabled:opacity-50">
             {exportingMembers ? "Preparazione…" : "⬇ Dati soci approvati"}
+          </button>
+        )}
+        {onSyncTessere && (
+          <button onClick={onSyncTessere} disabled={syncingTessere}
+            title="Allinea il numero tessera tra iscrizioni e anagrafica soci (utile se un numero è stato aggiunto dopo l'approvazione)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap disabled:opacity-50">
+            {syncingTessere ? "Riallineo…" : "🔄 Riallinea tessere"}
           </button>
         )}
       </div>
@@ -3302,6 +3309,7 @@ const Dashboard = ({ token, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const [exportingMembers, setExportingMembers] = useState(false);
+  const [syncingTessere, setSyncingTessere] = useState(false);
   const [eventEditor, setEventEditor] = useState(null);
   const [memberEditor, setMemberEditor] = useState(null);
   const [tesseraModal, setTesseraModal] = useState(null);
@@ -3456,6 +3464,7 @@ const Dashboard = ({ token, onLogout }) => {
             r.id === row.id ? { ...r, tessera_number: tesseraInput.trim() } : r
           ),
         }));
+        loadAll(true);
       }
       setTesseraModal(null);
       await downloadPdf(row.id);
@@ -3471,7 +3480,7 @@ const Dashboard = ({ token, onLogout }) => {
     if (!tesseraModal || !tesseraInput.trim()) { setTesseraModal(null); return; }
     setTesseraLoading(true);
     try {
-      await axios.patch(`${API}/admin/registrations/${tesseraModal.id}/tessera`,
+      const res = await axios.patch(`${API}/admin/registrations/${tesseraModal.id}/tessera`,
         { tessera_number: tesseraInput.trim() }, authHeader
       );
       setData(prev => ({
@@ -3480,8 +3489,11 @@ const Dashboard = ({ token, onLogout }) => {
           r.id === tesseraModal.id ? { ...r, tessera_number: tesseraInput.trim() } : r
         ),
       }));
-      toast.success("Numero tessera aggiornato.");
+      toast.success(res.data?.member_updated
+        ? "Numero tessera aggiornato anche nell'anagrafica soci."
+        : "Numero tessera aggiornato.");
       setTesseraModal(null);
+      loadAll(true);
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Errore nell'aggiornamento.");
     } finally {
@@ -3568,6 +3580,29 @@ const Dashboard = ({ token, onLogout }) => {
       toast.success(newValue ? "Pagamento segnato come ricevuto!" : "Pagamento segnato come da ricevere.");
       loadAll();
     } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
+  };
+
+  const syncTessere = async () => {
+    if (syncingTessere) return;
+    if (!window.confirm("Riallineare i numeri tessera tra iscrizioni e anagrafica soci?\n\nI soci senza numero ricevono quello già assegnato nella loro iscrizione; se i due numeri sono diversi vale quello del socio.")) return;
+    setSyncingTessere(true);
+    try {
+      const res = await axios.post(`${API}/admin/members/sync-tessere`, {}, authHeader);
+      const { members_fixed = 0, registrations_fixed = 0, conflicts = [] } = res.data || {};
+      if (members_fixed + registrations_fixed === 0 && conflicts.length === 0) {
+        toast.success("Tutti i numeri tessera erano già allineati.");
+      } else {
+        toast.success(`Riallineato: ${members_fixed} soci e ${registrations_fixed} iscrizioni aggiornati.`);
+      }
+      if (conflicts.length > 0) {
+        toast.warning(`Non aggiornati per conflitto di numero:\n${conflicts.join("\n")}`, { duration: 20000 });
+      }
+      loadAll(true);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nel riallineamento delle tessere.");
+    } finally {
+      setSyncingTessere(false);
+    }
   };
 
   const exportApprovedMembers = async () => {
@@ -3963,6 +3998,8 @@ const Dashboard = ({ token, onLogout }) => {
                   onAddManual={() => setManualModal(true)}
                   onExportMembers={exportApprovedMembers}
                   exportingMembers={exportingMembers}
+                  onSyncTessere={syncTessere}
+                  syncingTessere={syncingTessere}
                 />
               );
             })()
@@ -6488,7 +6525,8 @@ const MemberEditor = ({ token, initial, onClose, onSaved }) => {
       }
       onSaved();
     } catch (err) {
-      toast.error("Errore durante il salvataggio.");
+      const detail = err?.response?.data?.detail;
+      toast.error(typeof detail === "string" ? detail : "Errore durante il salvataggio.");
     } finally {
       setSaving(false);
     }

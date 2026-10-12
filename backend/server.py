@@ -1955,21 +1955,67 @@ class TesseraAssign(BaseModel):
 @api_router.patch("/admin/registrations/{registration_id}/tessera", dependencies=[Depends(require_admin)])
 async def assign_registration_tessera(registration_id: str, payload: TesseraAssign):
     num = payload.tessera_number.strip()
-    existing_member = await db.members.find_one({"tessera_number": num}, {"_id": 0, "first_name": 1, "last_name": 1})
-    if existing_member:
-        name = f"{existing_member.get('first_name', '')} {existing_member.get('last_name', '')}".strip()
-        raise HTTPException(status_code=409, detail=f"Il numero #{num} è già assegnato al socio {name}. Consulta i numeri disponibili nella sezione Soci tesserati.")
-    existing_reg = await db.registrations.find_one(
-        {"tessera_number": num, "id": {"$ne": registration_id}},
-        {"_id": 0, "first_name": 1, "last_name": 1}
-    )
-    if existing_reg:
-        name = f"{existing_reg.get('first_name', '')} {existing_reg.get('last_name', '')}".strip()
-        raise HTTPException(status_code=409, detail=f"Il numero #{num} è già riservato a {name}.")
-    result = await db.registrations.update_one({"id": registration_id}, {"$set": {"tessera_number": num}})
-    if result.matched_count == 0:
+    reg = await db.registrations.find_one({"id": registration_id}, {"_id": 0, "email": 1})
+    if not reg:
         raise HTTPException(status_code=404, detail="Richiesta non trovata")
-    return {"ok": True}
+    await _raise_if_tessera_taken(num, reg.get("email"))
+    synced = await _set_tessera_everywhere(reg.get("email"), num)
+    return {"ok": True, "member_updated": synced["members"] > 0}
+
+async def _raise_if_tessera_taken(num: str, own_email: Optional[str]):
+    """409 se il numero è di un'altra persona; la stessa persona (stessa email) in soci/iscrizioni non è un conflitto."""
+    own = (own_email or "").strip().lower()
+    for kind, coll in (("member", db.members), ("registration", db.registrations)):
+        async for d in coll.find({"tessera_number": num}, {"_id": 0, "first_name": 1, "last_name": 1, "email": 1}):
+            if (d.get("email") or "").strip().lower() == own:
+                continue
+            name = f"{d.get('first_name', '')} {d.get('last_name', '')}".strip()
+            if kind == "member":
+                raise HTTPException(status_code=409, detail=f"Il numero #{num} è già assegnato al socio {name}. Consulta i numeri disponibili nella sezione Soci tesserati.")
+            raise HTTPException(status_code=409, detail=f"Il numero #{num} è già riservato a {name}.")
+
+async def _set_tessera_everywhere(email: Optional[str], num: Optional[str]) -> dict:
+    """Il numero tessera vive in members (letto dall'area soci) e in registrations: va scritto in entrambe."""
+    rx = re.compile(f"^{re.escape((email or '').strip())}$", re.IGNORECASE)
+    m = await db.members.update_many({"email": rx}, {"$set": {"tessera_number": num}})
+    r = await db.registrations.update_many(
+        {"email": rx, "status": {"$ne": "archived"}}, {"$set": {"tessera_number": num}}
+    )
+    return {"members": m.matched_count, "registrations": r.matched_count}
+
+@api_router.post("/admin/members/sync-tessere", dependencies=[Depends(require_admin)])
+async def admin_sync_tessere():
+    """Riallinea i numeri tessera già salvati in modo incoerente: la tessera del socio (members) prevale, se manca si prende da registrations."""
+    members = await db.members.find({}, {"_id": 0}).to_list(10000)
+    members_fixed, registrations_fixed, conflicts = 0, 0, []
+    for m in members:
+        email = (m.get("email") or "").strip()
+        if not email:
+            continue
+        rx = re.compile(f"^{re.escape(email)}$", re.IGNORECASE)
+        mine = (m.get("tessera_number") or "").strip()
+        if not mine:
+            reg = await db.registrations.find_one(
+                {"email": rx, "status": {"$ne": "archived"}, "tessera_number": {"$exists": True, "$nin": [None, ""]}},
+                {"_id": 0, "tessera_number": 1},
+            )
+            if not reg:
+                continue
+            candidate = str(reg["tessera_number"]).strip()
+            try:
+                await _raise_if_tessera_taken(candidate, email)
+            except HTTPException as e:
+                conflicts.append(f"{m.get('first_name', '')} {m.get('last_name', '')}: {e.detail}".strip())
+                continue
+            await db.members.update_one({"id": m["id"]}, {"$set": {"tessera_number": candidate}})
+            members_fixed += 1
+            mine = candidate
+        res = await db.registrations.update_many(
+            {"email": rx, "status": {"$ne": "archived"}, "tessera_number": {"$ne": mine}},
+            {"$set": {"tessera_number": mine}},
+        )
+        registrations_fixed += res.modified_count
+    return {"members_fixed": members_fixed, "registrations_fixed": registrations_fixed, "conflicts": conflicts}
 
 @api_router.patch("/admin/registrations/{registration_id}/payment-status", dependencies=[Depends(require_admin)])
 async def admin_update_payment_status(registration_id: str, payload: PaymentStatusUpdate):
@@ -2247,10 +2293,15 @@ async def admin_create_member(payload: MemberCreate):
     existing = await db.members.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=409, detail="Esiste già un socio con questa email")
+    tessera = (payload.tessera_number or "").strip()
+    if tessera:
+        await _raise_if_tessera_taken(tessera, email)
     obj = Member(**{**payload.model_dump(), "email": email})
     doc = obj.model_dump()
     doc["joined_at"] = doc["joined_at"].isoformat()
     await db.members.insert_one(doc)
+    if tessera:
+        await _set_tessera_everywhere(email, tessera)
     return obj
 
 @api_router.put("/admin/members/{member_id}", response_model=Member, dependencies=[Depends(require_admin)])
@@ -2260,9 +2311,17 @@ async def admin_update_member(member_id: str, payload: MemberUpdate):
         update["email"] = update["email"].lower()
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
-    res = await db.members.update_one({"id": member_id}, {"$set": update})
-    if res.matched_count == 0:
+    current = await db.members.find_one({"id": member_id}, {"_id": 0, "email": 1})
+    if not current:
         raise HTTPException(status_code=404, detail="Socio non trovato")
+    if "tessera_number" in update:
+        num = (update["tessera_number"] or "").strip()
+        if num:
+            await _raise_if_tessera_taken(num, current.get("email"))
+        update["tessera_number"] = num or None
+    await db.members.update_one({"id": member_id}, {"$set": update})
+    if "tessera_number" in update:
+        await _set_tessera_everywhere(update.get("email") or current.get("email"), update["tessera_number"])
     doc = await db.members.find_one({"id": member_id}, {"_id": 0})
     return doc
 
