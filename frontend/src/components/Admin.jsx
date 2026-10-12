@@ -386,7 +386,64 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
   );
 };
 
-const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore, onAddManual }) => {
+const fmtItDate = (v) => {
+  if (!v) return "";
+  const s = String(v);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+};
+
+const MEMBER_PAYMENT_LABELS = { contanti: "Contanti", bonifico: "Bonifico", elettronico: "Carta" };
+
+const buildMembersSheet = (rows) => rows.map(r => {
+  const hasData = !!r.has_registration_data;
+  const yesNo = (v) => (!hasData ? "" : v === true ? "Sì" : v === false ? "No" : "Non registrato");
+  return {
+    "N° Tessera": r.tessera_number || "",
+    "Nome": r.first_name || "",
+    "Cognome": r.last_name || "",
+    "Email": r.email || "",
+    "Telefono": r.phone || "",
+    "Cellulare": r.cellulare || "",
+    "Data di nascita": fmtItDate(r.data_nascita),
+    "Luogo di nascita": r.luogo_nascita || "",
+    "Codice fiscale": r.codice_fiscale || "",
+    "Cittadinanza": r.cittadinanza || "",
+    "Indirizzo": r.indirizzo || "",
+    "Comune": r.comune || "",
+    "Provincia": r.provincia || "",
+    "CAP": r.cap || "",
+    "Documento - tipo": r.documento_tipo || "",
+    "Documento - numero": r.documento_numero || "",
+    "Documento - rilasciato da": r.documento_rilasciato || "",
+    "Documento - data rilascio": fmtItDate(r.documento_data),
+    "Minorenne": yesNo(r.is_minorenne),
+    "Genitore/tutore - nome": r.genitore_nome || "",
+    "Genitore/tutore - cognome": r.genitore_cognome || "",
+    "Genitore/tutore - luogo di nascita": r.genitore_luogo_nascita || "",
+    "Genitore/tutore - data di nascita": fmtItDate(r.genitore_data_nascita),
+    "Genitore/tutore - codice fiscale": r.genitore_codice_fiscale || "",
+    "Genitore/tutore - telefono": r.genitore_telefono || "",
+    "Genitore/tutore - documento tipo": r.genitore_documento_tipo || "",
+    "Genitore/tutore - documento numero": r.genitore_documento_numero || "",
+    "Consenso comunicazioni": yesNo(r.consenso_comunicazioni),
+    "Consenso pubblico": yesNo(r.consenso_pubblico),
+    "Consenso telefono": yesNo(r.consenso_telefono),
+    "Consenso chat": yesNo(r.consenso_chat),
+    "Consenso privacy": yesNo(r.consenso_privacy),
+    "Consenso trattamento dati": yesNo(r.consenso_dati),
+    "Metodo pagamento": MEMBER_PAYMENT_LABELS[r.metodo_pagamento] || r.metodo_pagamento || "",
+    "Pagamento ricevuto": hasData ? (r.payment_completed ? "Sì" : "No") : "",
+    "Referral": r.referral || "",
+    "Fondatore": r.is_fondatore ? "Sì" : "No",
+    "Data richiesta": fmtItDate(r.created_at),
+    "Data iscrizione socio": fmtItDate(r.joined_at),
+    "Note": r.notes || "",
+    "Modulo iscrizione": hasData ? "Completo" : "Non disponibile (inserito a mano o dati cancellati)",
+  };
+});
+
+const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore, onAddManual, onExportMembers, exportingMembers }) => {
   const [activeFilter, setActiveFilter] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState("created_at");
@@ -512,6 +569,13 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap">
           ⬇ Esporta XLSX
         </button>
+        {onExportMembers && (
+          <button onClick={onExportMembers} disabled={exportingMembers}
+            title="Scarica tutti i dati dei soci approvati (anagrafica, documento, indirizzo, consensi, genitore se minorenne)"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/80 text-xs font-bold transition-colors whitespace-nowrap disabled:opacity-50">
+            {exportingMembers ? "Preparazione…" : "⬇ Dati soci approvati"}
+          </button>
+        )}
       </div>
       {filteredList.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
@@ -3237,6 +3301,7 @@ const Dashboard = ({ token, onLogout }) => {
   });
   const [loading, setLoading] = useState(true);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
+  const [exportingMembers, setExportingMembers] = useState(false);
   const [eventEditor, setEventEditor] = useState(null);
   const [memberEditor, setMemberEditor] = useState(null);
   const [tesseraModal, setTesseraModal] = useState(null);
@@ -3503,6 +3568,41 @@ const Dashboard = ({ token, onLogout }) => {
       toast.success(newValue ? "Pagamento segnato come ricevuto!" : "Pagamento segnato come da ricevere.");
       loadAll();
     } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
+  };
+
+  const exportApprovedMembers = async () => {
+    if (exportingMembers) return;
+    setExportingMembers(true);
+    const toastId = toast.loading("Preparazione export soci…");
+    try {
+      let result = null;
+      // Il server recupera i consensi delle iscrizioni vecchie a blocchi: si ripete finché non resta nulla
+      for (let i = 0; i < 40; i++) {
+        const res = await axios.post(`${API}/admin/members/export`, {}, authHeader);
+        result = res.data;
+        if (!result.pending_consents) break;
+      }
+      if (!result || !result.rows || result.rows.length === 0) {
+        toast.error("Nessun socio da esportare.", { id: toastId });
+        return;
+      }
+      const sheet = buildMembersSheet(result.rows);
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(sheet);
+      ws["!cols"] = Object.keys(sheet[0]).map(k => ({ wch: Math.min(Math.max(k.length, ...sheet.map(r => String(r[k] ?? "").length)) + 2, 50) }));
+      XLSX.utils.book_append_sheet(wb, ws, "Soci approvati");
+      XLSX.writeFile(wb, `soci-approvati-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      toast.success(
+        result.pending_consents
+          ? `Esportati ${sheet.length} soci (alcuni consensi non ancora recuperati, riprova).`
+          : `Esportati ${sheet.length} soci.`,
+        { id: toastId }
+      );
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nell'export dei soci.", { id: toastId });
+    } finally {
+      setExportingMembers(false);
+    }
   };
 
   const toggleEventPayment = async (row) => {
@@ -3861,6 +3961,8 @@ const Dashboard = ({ token, onLogout }) => {
                     } catch { toast.error("Errore nell'aggiornamento."); }
                   }}
                   onAddManual={() => setManualModal(true)}
+                  onExportMembers={exportApprovedMembers}
+                  exportingMembers={exportingMembers}
                 />
               );
             })()

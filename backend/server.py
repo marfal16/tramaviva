@@ -598,6 +598,8 @@ class Registration(BaseModel):
     genitore_codice_fiscale: Optional[str] = None
     consenso_comunicazioni: bool
     consenso_pubblico: bool
+    consenso_telefono: Optional[bool] = None
+    consenso_chat: Optional[bool] = None
     consenso_privacy: bool
     consenso_dati: bool
     pdf_base64: Optional[str] = None
@@ -1990,6 +1992,10 @@ async def admin_download_pdf(registration_id: str):
         if not registration:
             raise HTTPException(status_code=404, detail="Registrazione non trovata")
 
+        if "consenso_telefono" not in registration:
+            original = await db.registrations.find_one({"id": registration_id}, {"_id": 0, "pdf_base64": 1})
+            registration.update(await _store_recovered_consents(registration_id, (original or {}).get("pdf_base64")))
+
         # Rigenera il PDF al volo così ogni download usa le impostazioni correnti
         pdf_base64 = PDFService.generate_pdf_from_registration(registration)
         if not pdf_base64:
@@ -2091,6 +2097,90 @@ async def _get_member_emails() -> set:
         return {(d.get("email") or "").lower() for d in docs if d.get("email")}
     except:
         return set()
+
+async def _store_recovered_consents(registration_id: str, pdf_base64: Optional[str]) -> dict:
+    """Le iscrizioni vecchie non hanno salvato i consensi telefono/chat: si rileggono dal PDF originale e si salvano."""
+    consents = (
+        PDFService.read_consents(pdf_base64)
+        if pdf_base64
+        else {"consenso_telefono": None, "consenso_chat": None}
+    )
+    await db.registrations.update_one({"id": registration_id}, {"$set": consents})
+    return consents
+
+_CONSENTS_MISSING_FILTER = {
+    "consenso_telefono": {"$exists": False},
+    "pdf_base64": {"$exists": True, "$nin": [None, ""]},
+    "status": {"$ne": "archived"},
+}
+_CONSENTS_BATCH = 25
+
+@api_router.post("/admin/members/export", dependencies=[Depends(require_admin)])
+async def admin_export_members():
+    """Dati completi dei soci approvati (anagrafica soci + modulo di iscrizione). Va richiamato finché pending_consents è 0."""
+    batch = await db.registrations.find(
+        _CONSENTS_MISSING_FILTER, {"_id": 0, "id": 1, "pdf_base64": 1}
+    ).limit(_CONSENTS_BATCH).to_list(_CONSENTS_BATCH)
+    for d in batch:
+        await _store_recovered_consents(d["id"], d.get("pdf_base64"))
+    pending = await db.registrations.count_documents(_CONSENTS_MISSING_FILTER)
+
+    members = await db.members.find({}, {"_id": 0}).to_list(10000)
+    regs = await db.registrations.find({}, {"_id": 0, "pdf_base64": 0}).to_list(10000)
+
+    def rank(r):
+        return (1 if r.get("status") == "approved" else 0, str(r.get("created_at") or ""))
+
+    reg_by_email = {}
+    for r in regs:
+        email = (r.get("email") or "").strip().lower()
+        if email and (email not in reg_by_email or rank(r) > rank(reg_by_email[email])):
+            reg_by_email[email] = r
+
+    reg_fields = (
+        "data_nascita", "luogo_nascita", "codice_fiscale", "cittadinanza", "cellulare",
+        "indirizzo", "comune", "provincia", "cap",
+        "documento_tipo", "documento_numero", "documento_rilasciato", "documento_data",
+        "is_minorenne", "genitore_nome", "genitore_cognome", "genitore_luogo_nascita",
+        "genitore_data_nascita", "genitore_codice_fiscale", "genitore_telefono",
+        "genitore_documento_tipo", "genitore_documento_numero",
+        "consenso_comunicazioni", "consenso_pubblico", "consenso_telefono", "consenso_chat",
+        "consenso_privacy", "consenso_dati", "metodo_pagamento", "payment_completed", "referral",
+    )
+
+    def build(m, r):
+        m, r = m or {}, r or {}
+        row = {
+            "tessera_number": m.get("tessera_number") or r.get("tessera_number") or "",
+            "first_name": m.get("first_name") or r.get("first_name") or "",
+            "last_name": m.get("last_name") or r.get("last_name") or "",
+            "email": m.get("email") or r.get("email") or "",
+            "phone": r.get("phone") or m.get("phone") or "",
+            "is_fondatore": bool(m.get("is_fondatore")),
+            "joined_at": m.get("joined_at") or r.get("promoted_to_member_at") or "",
+            "created_at": r.get("created_at") or "",
+            "notes": m.get("notes") or "",
+            "has_registration_data": bool(r.get("codice_fiscale")),
+        }
+        for f in reg_fields:
+            row[f] = r.get(f)
+        return row
+
+    rows, seen = [], set()
+    for m in members:
+        email = (m.get("email") or "").strip().lower()
+        seen.add(email)
+        rows.append(build(m, reg_by_email.get(email)))
+    for email, r in reg_by_email.items():
+        if email not in seen and r.get("status") == "approved":
+            rows.append(build(None, r))
+
+    def sort_key(row):
+        t = str(row["tessera_number"]).strip()
+        return (0, int(t), "") if t.isdigit() else (1, 0, row["last_name"].lower())
+
+    rows.sort(key=sort_key)
+    return {"rows": rows, "pending_consents": pending}
 
 @api_router.delete("/admin/{collection}/{doc_id}", dependencies=[Depends(require_admin)])
 async def admin_delete(collection: str, doc_id: str):

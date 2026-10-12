@@ -60,6 +60,26 @@ def _set_radio(writer: PdfWriter, field_name: str, kid_index: int) -> None:
 
 class PDFService:
     @staticmethod
+    def read_consents(pdf_base64: str) -> dict:
+        """Legge dal PDF salvato alla creazione i consensi telefono (consenso_c) e chat (consenso_d): /0 = acconsento."""
+        try:
+            reader = PdfReader(io.BytesIO(base64.b64decode(pdf_base64)))
+            fields = reader.get_fields() or {}
+
+            def _acconsente(name):
+                field = fields.get(name)
+                value = field.get("/V") if field is not None else None
+                return None if value is None else str(value) == "/0"
+
+            return {
+                "consenso_telefono": _acconsente("consenso_c"),
+                "consenso_chat": _acconsente("consenso_d"),
+            }
+        except Exception as e:
+            print(f"[pdf_service] read_consents error: {e}")
+            return {"consenso_telefono": None, "consenso_chat": None}
+
+    @staticmethod
     def generate_pdf_from_registration(registration_data: dict) -> str:
         try:
             template_path = BASE_DIR / "Modulo_Iscrizione_TramaViva_compilabile.pdf"
