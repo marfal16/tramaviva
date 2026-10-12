@@ -8,7 +8,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import List, Optional
+from typing import Dict, List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
 import httpx
@@ -470,6 +470,9 @@ class Member(BaseModel):
     notes: Optional[str] = None
     is_fondatore: bool = False
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    checklist: Dict[str, bool] = Field(default_factory=dict)
+    completed: bool = False
+    completed_at: Optional[str] = None
 
 class MemberUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -2066,6 +2069,9 @@ async def admin_resend_confirmation(registration_id: str):
     try:
         reg = await db.registrations.find_one({"id": registration_id}, {"_id": 0})
         if not reg:
+            # l'id può essere anche di un socio senza modulo di iscrizione online
+            reg = await db.members.find_one({"id": registration_id}, {"_id": 0})
+        if not reg:
             raise HTTPException(status_code=404, detail="Registrazione non trovata")
         email_svc = EmailService()
         await email_svc.send_registration_confirmation(
@@ -2080,32 +2086,24 @@ async def admin_resend_confirmation(registration_id: str):
         logger.error(f"Errore reinvio email: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# AGGIUNTO: Endpoint per ripulire i dati sensibili dopo aver salvato il PDF
-@api_router.post("/admin/registrations/{registration_id}/cleanup", dependencies=[Depends(require_admin)])
-async def admin_cleanup_registration(registration_id: str):
-    try:
-        registration = await db.registrations.find_one({"id": registration_id})
-        if not registration:
-            raise HTTPException(status_code=404, detail="Registrazione non trovata")
-        cleaned_data = {
-            "id": registration["id"],
-            "first_name": registration["first_name"],
-            "last_name": registration["last_name"],
-            "email": registration["email"],
-            "phone": registration["phone"],
-            "referral": registration.get("referral"),
-            "status": "archived",
-            "created_at": registration["created_at"],
-            "document_downloaded": True,
-            "document_deleted_at": datetime.now(timezone.utc).isoformat()
-        }
-        await db.registrations.replace_one({"id": registration_id}, cleaned_data)
-        return {"ok": True, "message": "Dati sensibili eliminati con successo."}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Errore nel cleanup: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+async def _wipe_registration(reg: dict):
+    """Cancella i dati sensibili di un'iscrizione e il PDF; restano solo i dati principali e il numero tessera."""
+    cleaned = {
+        "id": reg["id"],
+        "first_name": reg.get("first_name", ""),
+        "last_name": reg.get("last_name", ""),
+        "email": reg.get("email", ""),
+        "phone": reg.get("phone", ""),
+        "referral": reg.get("referral"),
+        "tessera_number": reg.get("tessera_number"),
+        "promoted_to_member_at": reg.get("promoted_to_member_at"),
+        "status": "archived",
+        "created_at": reg.get("created_at"),
+        "document_downloaded": True,
+        "document_deleted_at": datetime.now(timezone.utc).isoformat(),
+        "completed_migrated": True,
+    }
+    await db.registrations.replace_one({"id": reg["id"]}, cleaned)
 
 # AGGIUNTO: Endpoint per approvare ufficialmente e tesserare l'utente inserendolo in "members"
 @api_router.post("/admin/registrations/{registration_id}/approve", dependencies=[Depends(require_admin)])
@@ -2162,79 +2160,55 @@ async def _store_recovered_consents(registration_id: str, pdf_base64: Optional[s
     await db.registrations.update_one({"id": registration_id}, {"$set": consents})
     return consents
 
-_CONSENTS_MISSING_FILTER = {
-    "consenso_telefono": {"$exists": False},
-    "pdf_base64": {"$exists": True, "$nin": [None, ""]},
-    "status": {"$ne": "archived"},
-}
-_CONSENTS_BATCH = 25
+_RECORD_REG_FIELDS = (
+    "data_nascita", "luogo_nascita", "codice_fiscale", "cittadinanza", "cellulare",
+    "indirizzo", "comune", "provincia", "cap",
+    "documento_tipo", "documento_numero", "documento_rilasciato", "documento_data",
+    "is_minorenne", "genitore_nome", "genitore_cognome", "genitore_luogo_nascita",
+    "genitore_data_nascita", "genitore_codice_fiscale", "genitore_telefono",
+    "genitore_documento_tipo", "genitore_documento_numero",
+    "consenso_comunicazioni", "consenso_pubblico", "consenso_telefono", "consenso_chat",
+    "consenso_privacy", "consenso_dati", "metodo_pagamento", "payment_completed", "referral",
+)
 
-@api_router.post("/admin/members/export", dependencies=[Depends(require_admin)])
-async def admin_export_members():
-    """Dati completi dei soci approvati (anagrafica soci + modulo di iscrizione). Va richiamato finché pending_consents è 0."""
-    batch = await db.registrations.find(
-        _CONSENTS_MISSING_FILTER, {"_id": 0, "id": 1, "pdf_base64": 1}
-    ).limit(_CONSENTS_BATCH).to_list(_CONSENTS_BATCH)
-    for d in batch:
-        await _store_recovered_consents(d["id"], d.get("pdf_base64"))
-    pending = await db.registrations.count_documents(_CONSENTS_MISSING_FILTER)
+def _member_record(m: Optional[dict], r: Optional[dict]) -> dict:
+    """Riga completa di un socio: dati principali dal socio, dati del modulo dall'iscrizione (se ancora presenti)."""
+    m, r = m or {}, r or {}
+    row = {
+        "tessera_number": m.get("tessera_number") or r.get("tessera_number") or "",
+        "first_name": m.get("first_name") or r.get("first_name") or "",
+        "last_name": m.get("last_name") or r.get("last_name") or "",
+        "email": m.get("email") or r.get("email") or "",
+        "phone": r.get("phone") or m.get("phone") or "",
+        "is_fondatore": bool(m.get("is_fondatore")),
+        "joined_at": m.get("joined_at") or r.get("promoted_to_member_at") or "",
+        "created_at": r.get("created_at") or "",
+        "notes": m.get("notes") or "",
+        "has_registration_data": bool(r.get("codice_fiscale")),
+    }
+    for f in _RECORD_REG_FIELDS:
+        row[f] = r.get(f)
+    return row
 
-    members = await db.members.find({}, {"_id": 0}).to_list(10000)
-    regs = await db.registrations.find({}, {"_id": 0, "pdf_base64": 0}).to_list(10000)
+def _reg_rank(r: dict):
+    return (0 if r.get("status") == "archived" else 1, 1 if r.get("status") == "approved" else 0, str(r.get("created_at") or ""))
 
-    def rank(r):
-        return (1 if r.get("status") == "approved" else 0, str(r.get("created_at") or ""))
-
-    reg_by_email = {}
-    for r in regs:
-        email = (r.get("email") or "").strip().lower()
-        if email and (email not in reg_by_email or rank(r) > rank(reg_by_email[email])):
-            reg_by_email[email] = r
-
-    reg_fields = (
-        "data_nascita", "luogo_nascita", "codice_fiscale", "cittadinanza", "cellulare",
-        "indirizzo", "comune", "provincia", "cap",
-        "documento_tipo", "documento_numero", "documento_rilasciato", "documento_data",
-        "is_minorenne", "genitore_nome", "genitore_cognome", "genitore_luogo_nascita",
-        "genitore_data_nascita", "genitore_codice_fiscale", "genitore_telefono",
-        "genitore_documento_tipo", "genitore_documento_numero",
-        "consenso_comunicazioni", "consenso_pubblico", "consenso_telefono", "consenso_chat",
-        "consenso_privacy", "consenso_dati", "metodo_pagamento", "payment_completed", "referral",
-    )
-
-    def build(m, r):
-        m, r = m or {}, r or {}
-        row = {
-            "tessera_number": m.get("tessera_number") or r.get("tessera_number") or "",
-            "first_name": m.get("first_name") or r.get("first_name") or "",
-            "last_name": m.get("last_name") or r.get("last_name") or "",
-            "email": m.get("email") or r.get("email") or "",
-            "phone": r.get("phone") or m.get("phone") or "",
-            "is_fondatore": bool(m.get("is_fondatore")),
-            "joined_at": m.get("joined_at") or r.get("promoted_to_member_at") or "",
-            "created_at": r.get("created_at") or "",
-            "notes": m.get("notes") or "",
-            "has_registration_data": bool(r.get("codice_fiscale")),
-        }
-        for f in reg_fields:
-            row[f] = r.get(f)
-        return row
-
-    rows, seen = [], set()
-    for m in members:
-        email = (m.get("email") or "").strip().lower()
-        seen.add(email)
-        rows.append(build(m, reg_by_email.get(email)))
-    for email, r in reg_by_email.items():
-        if email not in seen and r.get("status") == "approved":
-            rows.append(build(None, r))
-
-    def sort_key(row):
-        t = str(row["tessera_number"]).strip()
-        return (0, int(t), "") if t.isdigit() else (1, 0, row["last_name"].lower())
-
-    rows.sort(key=sort_key)
-    return {"rows": rows, "pending_consents": pending}
+@api_router.get("/admin/members/{member_id}/record", dependencies=[Depends(require_admin)])
+async def admin_member_record(member_id: str):
+    """Tutti i dati di un socio (anagrafica + modulo di iscrizione, se non ancora cancellato) per copiarli nel proprio Excel."""
+    m = await db.members.find_one({"id": member_id}, {"_id": 0})
+    if not m:
+        raise HTTPException(status_code=404, detail="Socio non trovato")
+    regs = []
+    email = (m.get("email") or "").strip()
+    if email:
+        rx = re.compile(f"^{re.escape(email)}$", re.IGNORECASE)
+        regs = await db.registrations.find({"email": rx}, {"_id": 0, "pdf_base64": 0}).to_list(100)
+    reg = max(regs, key=_reg_rank) if regs else None
+    if reg and reg.get("status") != "archived" and "consenso_telefono" not in reg:
+        original = await db.registrations.find_one({"id": reg["id"]}, {"_id": 0, "pdf_base64": 1})
+        reg.update(await _store_recovered_consents(reg["id"], (original or {}).get("pdf_base64")))
+    return {"row": _member_record(m, reg)}
 
 @api_router.delete("/admin/{collection}/{doc_id}", dependencies=[Depends(require_admin)])
 async def admin_delete(collection: str, doc_id: str):
@@ -2290,10 +2264,116 @@ async def admin_delete(collection: str, doc_id: str):
     return {"ok": True}
 
 # ========== ADMIN: MEMBERS ==========
+async def _migrate_archived_registrations():
+    """Chi era già archiviato (dati sensibili cancellati) risulta con la pratica completa al 100%."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    async for reg in db.registrations.find(
+        {"status": "archived", "completed_migrated": {"$ne": True}},
+        {"_id": 0, "id": 1, "email": 1, "document_deleted_at": 1},
+    ):
+        email = (reg.get("email") or "").strip()
+        if email:
+            rx = re.compile(f"^{re.escape(email)}$", re.IGNORECASE)
+            await db.members.update_many(
+                {"email": rx, "completed": {"$ne": True}},
+                {"$set": {
+                    "checklist.visionato": True,
+                    "checklist.tessera": True,
+                    "checklist.pdf_scaricato": True,
+                    "checklist.stampato": True,
+                    "checklist.dati_cancellati": True,
+                    "completed": True,
+                    "completed_at": reg.get("document_deleted_at") or now_iso,
+                }},
+            )
+        await db.registrations.update_one({"id": reg["id"]}, {"$set": {"completed_migrated": True}})
+
 @api_router.get("/admin/members", dependencies=[Depends(require_admin)])
 async def admin_get_members():
+    try:
+        await _migrate_archived_registrations()
+    except Exception as e:
+        logger.warning(f"Migrazione soci archiviati non riuscita: {e}")
     docs = await db.members.find({}, {"_id": 0}).sort("joined_at", -1).to_list(10000)
     return docs
+
+_CHECKLIST_REQUIRED = {
+    "visionato": "Visionato",
+    "tessera": "Tessera assegnata",
+    "pdf_scaricato": "PDF scaricato",
+    "stampato": "Stampato",
+}
+
+class ChecklistUpdate(BaseModel):
+    visionato: Optional[bool] = None
+    tessera: Optional[bool] = None
+    pdf_scaricato: Optional[bool] = None
+    stampato: Optional[bool] = None
+    modulo_firmato: Optional[bool] = None
+
+@api_router.patch("/admin/members/{member_id}/checklist", dependencies=[Depends(require_admin)])
+async def admin_update_member_checklist(member_id: str, payload: ChecklistUpdate):
+    changes = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not changes:
+        raise HTTPException(status_code=400, detail="Niente da aggiornare")
+    member = await db.members.find_one({"id": member_id}, {"_id": 0, "completed": 1})
+    if member is None:
+        raise HTTPException(status_code=404, detail="Socio non trovato")
+    if member.get("completed") and any(k in _CHECKLIST_REQUIRED for k in changes):
+        raise HTTPException(status_code=400, detail="Pratica già completata: si può modificare solo il modulo firmato.")
+    await db.members.update_one({"id": member_id}, {"$set": {f"checklist.{k}": v for k, v in changes.items()}})
+    return {"ok": True}
+
+class CompleteMember(BaseModel):
+    confirm_no_registration: bool = False
+
+@api_router.post("/admin/members/{member_id}/complete", dependencies=[Depends(require_admin)])
+async def admin_complete_member(member_id: str, payload: CompleteMember):
+    """Pratica al 100%: cancella i dati sensibili dell'iscrizione e sposta il socio in 'Tesseramento completato'."""
+    member = await db.members.find_one({"id": member_id}, {"_id": 0})
+    if not member:
+        raise HTTPException(status_code=404, detail="Socio non trovato")
+    if member.get("completed"):
+        return {"ok": True, "already_completed": True, "wiped": 0}
+    checklist = member.get("checklist") or {}
+    missing = [label for key, label in _CHECKLIST_REQUIRED.items() if not checklist.get(key)]
+    if missing:
+        raise HTTPException(status_code=400, detail="Prima di completare spunta: " + ", ".join(missing))
+
+    regs = []
+    email = (member.get("email") or "").strip()
+    if email:
+        rx = re.compile(f"^{re.escape(email)}$", re.IGNORECASE)
+        regs = await db.registrations.find({"email": rx}, {"_id": 0, "pdf_base64": 0}).to_list(100)
+    if not regs and not payload.confirm_no_registration:
+        return {"ok": False, "needs_confirmation": True, "reason": "registration_not_found"}
+
+    live = [r for r in regs if r.get("status") != "archived"]
+    for reg in live:
+        await _wipe_registration(reg)
+    await db.members.update_one(
+        {"id": member_id},
+        {"$set": {
+            "checklist.dati_cancellati": True,
+            "completed": True,
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+    return {"ok": True, "wiped": len(live)}
+
+@api_router.delete("/admin/members/{member_id}/purge", dependencies=[Depends(require_admin)])
+async def admin_purge_member(member_id: str):
+    """Elimina il socio e le sue iscrizioni (stessa email)."""
+    member = await db.members.find_one({"id": member_id}, {"_id": 0, "email": 1})
+    if member is None:
+        raise HTTPException(status_code=404, detail="Socio non trovato")
+    deleted = 0
+    email = (member.get("email") or "").strip()
+    if email:
+        rx = re.compile(f"^{re.escape(email)}$", re.IGNORECASE)
+        deleted = (await db.registrations.delete_many({"email": rx})).deleted_count
+    await db.members.delete_one({"id": member_id})
+    return {"ok": True, "registrations_deleted": deleted}
 
 @api_router.post("/admin/members", response_model=Member, dependencies=[Depends(require_admin)])
 async def admin_create_member(payload: MemberCreate):
@@ -2320,7 +2400,7 @@ async def admin_update_member(member_id: str, payload: MemberUpdate):
     if not update:
         raise HTTPException(status_code=400, detail="Niente da aggiornare")
     current = await db.members.find_one({"id": member_id}, {"_id": 0, "email": 1})
-    if not current:
+    if current is None:
         raise HTTPException(status_code=404, detail="Socio non trovato")
     if "tessera_number" in update:
         num = (update["tessera_number"] or "").strip()

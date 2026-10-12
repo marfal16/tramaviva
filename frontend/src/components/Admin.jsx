@@ -130,262 +130,6 @@ const NAV = NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, ic
 
 const CATEGORIES = ["Laboratori Artistici", "Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
-const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete }) => {
-  const isArchived = row.status === "archived";
-  const isApproved = row.is_member || row.status === "approved";
-  const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
-  const initial = (name[0] || "?").toUpperCase();
-  return (
-    <article
-      data-testid={`admin-row-${row.id}`}
-      className="bg-white rounded-3xl overflow-hidden border border-tv-green-deep/10"
-    >
-      <div className="p-5 md:p-6 flex items-start gap-4">
-        <div className="w-11 h-11 rounded-2xl bg-tv-green-deep text-tv-cream flex items-center justify-center font-display font-black text-lg shrink-0">
-          {initial}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <span className="font-display font-black text-lg text-tv-green-deep leading-tight">{name}</span>
-            <span className="text-xs text-tv-green-deep/40 shrink-0">{fmtDate(row.created_at)}</span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-tv-green-deep/65">
-            {row.email && (
-              <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1 min-w-0">
-                <Mail size={12} className="shrink-0" />
-                <span className="truncate">{row.email}</span>
-              </a>
-            )}
-            {(row.cellulare || row.phone) && <span>📞 {row.cellulare || row.phone}</span>}
-            {row.referral && <span className="text-tv-green-deep/45">✨ {row.referral}</span>}
-          </div>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {(row.is_member || row.status === "approved") && (
-              <span
-                data-testid={`badge-member-${row.id}`}
-                className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green text-tv-cream px-2.5 py-1 rounded-full"
-              >
-                <UserCheck size={10} /> Socio tesserato
-              </span>
-            )}
-            {isArchived ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/50 px-2.5 py-1 rounded-full">
-                🗃 Dati cancellati
-              </span>
-            ) : row.document_downloaded ? (
-              <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider bg-tv-sky/40 text-tv-green-deep px-2.5 py-1 rounded-full">
-                📥 PDF scaricato
-              </span>
-            ) : null}
-            {row.tessera_number && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-tv-orange/30 text-tv-green-deep px-2.5 py-1 rounded-full">
-                🎫 Tessera #{row.tessera_number}
-              </span>
-            )}
-            {row.is_manual && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
-                📋 Cartaceo
-              </span>
-            )}
-            {row.metodo_pagamento && (
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                row.payment_completed
-                  ? "bg-tv-green/20 text-tv-green-deep"
-                  : row.metodo_pagamento === "elettronico"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-tv-orange/30 text-tv-green-deep"
-              }`}>
-                {row.metodo_pagamento === "elettronico" ? "💳" : row.metodo_pagamento === "bonifico" ? "🏦" : "💵"}
-                {row.metodo_pagamento === "elettronico"
-                  ? (row.payment_completed ? "Pagato online" : "Verifica su SumUp")
-                  : (row.payment_completed ? "Pagamento ricevuto" : "Da ricevere")}
-              </span>
-            )}
-            {row.is_minorenne && (
-              <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-tv-bordeaux px-2.5 py-1 rounded-full bg-tv-bordeaux/10">
-                👶 Minorenne
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="px-5 md:px-6 py-3 bg-tv-sky/20 border-t border-tv-green-deep/[0.08] flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        {/* Gruppo sinistra: azioni documento e pagamento */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {!isArchived && (
-            <button
-              onClick={() => onPdf(row.id)}
-              disabled={pdfLoadingId === row.id}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-tv-green-deep font-bold text-xs hover:bg-tv-sky/40 transition-colors disabled:opacity-50 border border-tv-green-deep/10"
-            >
-              {pdfLoadingId === row.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-              Scarica PDF
-            </button>
-          )}
-          {row.email && (
-            <button
-              onClick={() => onResend(row)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-tv-green-deep/60 font-bold text-xs hover:bg-tv-sky/40 hover:text-tv-green-deep transition-colors border border-tv-green-deep/10"
-              title="Reinvia email di conferma"
-            >
-              <Mail size={12} /> Reinvia email
-            </button>
-          )}
-          {!isArchived && row.metodo_pagamento && (
-            <button
-              onClick={() => onTogglePayment(row)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-xs transition-colors ${
-                row.payment_completed
-                  ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux"
-                  : "bg-tv-orange/30 text-tv-green-deep hover:bg-tv-orange/50"
-              }`}
-            >
-              {row.payment_completed ? "✓ Pagato" : (row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere")}
-            </button>
-          )}
-        </div>
-
-        {/* Gruppo destra: azioni stato e distruttive */}
-        <div className="flex items-center gap-2">
-          {!isArchived && !isApproved && (
-            <button
-              onClick={() => onApprove(row)}
-              data-testid={`admin-promote-${row.id}`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-green text-tv-cream font-bold text-xs hover:bg-tv-green-deep transition-colors"
-            >
-              <Sparkles size={12} /> Approva socio
-            </button>
-          )}
-          <div className="w-px h-5 bg-tv-green-deep/10 mx-1" />
-          {!isArchived && !row._from_members && (
-            <button
-              onClick={() => onCleanup(row)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/20 transition-colors"
-            >
-              <ShieldOff size={12} /> Cancella dati
-            </button>
-          )}
-          <button
-            onClick={() => onDelete(row.id)}
-            data-testid={`admin-delete-${row.id}`}
-            className="p-2.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-            aria-label="Elimina"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-};
-
-// ─── Registrations — tabella + filtri ────────────────────────────────────────
-
-const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore }) => {
-  const isArchived = row.status === "archived";
-  const isApproved = row.is_member || row.status === "approved";
-  const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
-  return (
-    <tr className={`group border-b border-tv-green-deep/5 transition-colors ${
-      isArchived ? "opacity-40 hover:opacity-60"
-      : row.is_fondatore ? "bg-amber-50/60 hover:bg-amber-50"
-      : isApproved ? "hover:bg-tv-cream/50"
-      : "bg-amber-50/40 hover:bg-amber-50/70"
-    }`} data-testid={`admin-row-${row.id}`}>
-      <td className="py-3 pl-4 pr-4 min-w-[160px]">
-        <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm flex-shrink-0 ${
-            row.is_fondatore ? "bg-amber-400 text-white"
-            : isApproved ? "bg-tv-green text-tv-cream"
-            : isArchived ? "bg-gray-200 text-gray-500"
-            : "bg-tv-green-deep text-tv-cream"
-          }`}>{(name[0] || "?").toUpperCase()}</div>
-          <div className="min-w-0">
-            <div className="font-semibold text-sm text-tv-green-deep">{name}</div>
-            {row.is_fondatore && <span className="text-[9px] font-bold text-amber-600">★ Fondatore</span>}
-            {row.is_minorenne && <span className="text-[9px] font-bold text-tv-bordeaux">👶 Minorenne</span>}
-          </div>
-        </div>
-      </td>
-      <td className="py-3 pr-4 hidden md:table-cell">
-        <div className="text-xs text-tv-green-deep/60 space-y-0.5">
-          {row.email && <a href={`mailto:${row.email}`} className="flex items-center gap-1 hover:text-tv-bordeaux truncate max-w-[180px]"><Mail size={10}/>{row.email}</a>}
-          {(row.cellulare || row.phone) && <div className="text-tv-green-deep/40">📞 {row.cellulare || row.phone}</div>}
-        </div>
-      </td>
-      <td className="py-3 pr-4 hidden lg:table-cell">
-        <span className="text-xs text-tv-green-deep/45">{fmtDate(row.created_at)}</span>
-      </td>
-      <td className="py-3 pr-4">
-        <div className="flex flex-col gap-1">
-          {row.tessera_number
-            ? <span className="text-[10px] font-bold bg-tv-orange/25 text-tv-green-deep px-2 py-0.5 rounded-full">🎫 #{row.tessera_number}</span>
-            : <span className="text-tv-green-deep/20 text-xs">—</span>}
-          {row.is_manual && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">📋 Cartaceo</span>}
-        </div>
-      </td>
-      <td className="py-3 pr-4 hidden md:table-cell">
-        {row.document_downloaded
-          ? <span className="text-[10px] font-bold bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full whitespace-nowrap">📥 Scaricato</span>
-          : <span className="text-tv-green-deep/20 text-xs">—</span>}
-      </td>
-      <td className="py-3 pr-4 hidden lg:table-cell">
-        {row.metodo_pagamento
-          ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/20 text-tv-bordeaux"}`}>
-              {row.payment_completed ? "✓" : "⏳"} {{ contanti: "Contanti", bonifico: "Bonifico", elettronico: "Carta" }[row.metodo_pagamento] || row.metodo_pagamento}
-            </span>
-          : <span className="text-tv-green-deep/20 text-xs">—</span>}
-      </td>
-      <td className="py-3 pr-4">
-        {isArchived
-          ? <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full whitespace-nowrap">Archiviato</span>
-          : isApproved
-          ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full whitespace-nowrap">✓ Socio</span>
-          : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full whitespace-nowrap">⏳ Attesa</span>}
-      </td>
-      <td className="py-3 pr-4">
-        <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
-          {!isArchived && <button onClick={() => onPdf(row.id)} disabled={pdfLoadingId === row.id} title="Scarica PDF"
-            className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
-            {pdfLoadingId === row.id ? <Loader2 size={13} className="animate-spin"/> : <Download size={13}/>}
-          </button>}
-          {row.email && <button onClick={() => onResend(row)} title="Reinvia email"
-            className="p-1.5 rounded-lg bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
-            <Mail size={13}/>
-          </button>}
-          {!isArchived && row.metodo_pagamento && <button onClick={() => onTogglePayment(row)}
-            title={row.payment_completed ? "Annulla pagamento" : "Segna pagato"}
-            className={`p-1.5 rounded-lg transition-colors text-xs ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10" : "bg-tv-orange/20 text-tv-green-deep hover:bg-tv-orange/40"}`}>
-            💸
-          </button>}
-          {!isArchived && !isApproved && <button onClick={() => onApprove(row)} title="Approva socio"
-            className="p-1.5 rounded-lg bg-tv-green/20 text-tv-green-deep hover:bg-tv-green hover:text-tv-cream transition-colors">
-            <Sparkles size={13}/>
-          </button>}
-          {isApproved && onToggleFondatore && (
-            <button
-              onClick={() => onToggleFondatore(row)}
-              title={row.is_fondatore ? "Rimuovi badge Fondatore" : "Assegna badge Fondatore"}
-              className={`p-1.5 rounded-lg transition-colors text-sm leading-none ${row.is_fondatore ? "bg-amber-400/30 text-amber-700 hover:bg-amber-500 hover:text-white" : "bg-amber-100/50 text-amber-400/70 hover:bg-amber-400/30 hover:text-amber-700"}`}
-            >
-              ★
-            </button>
-          )}
-          {!isArchived && !row._from_members && <button onClick={() => onCleanup(row)} title="Cancella dati"
-            className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux/20 transition-colors">
-            <ShieldOff size={13}/>
-          </button>}
-          <button onClick={() => onDelete(row.id)} title="Elimina"
-            className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
-            <Trash2 size={13}/>
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-};
-
 const fmtItDate = (v) => {
   if (!v) return "";
   const s = String(v);
@@ -443,28 +187,362 @@ const buildMembersSheet = (rows) => rows.map(r => {
   };
 });
 
-const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onApprove, onCleanup, onResend, onDelete, onToggleFondatore, onAddManual, onExportMembers, exportingMembers, onSyncTessere, syncingTessere }) => {
+const COMPLETED_SECTION = "Tesseramento completato";
+
+const CHECKLIST_ITEMS = [
+  { key: "visionato", label: "Visionato" },
+  { key: "tessera", label: "Tessera assegnata" },
+  { key: "pdf_scaricato", label: "PDF scaricato" },
+  { key: "stampato", label: "Stampato" },
+];
+
+const SECTION_LABELS = { pending: "In attesa", approved: "Approvato", completed: COMPLETED_SECTION };
+
+const lc = (s) => (s || "").trim().toLowerCase();
+
+// Un'unica lista di persone, ognuna in una sola sezione: richieste (iscrizioni senza socio), soci approvati, soci completi.
+const buildSociList = (registrations, members) => {
+  const membersByEmail = new Map(members.map(m => [lc(m.email), m]));
+  const regsByEmail = new Map();
+  registrations.forEach(r => {
+    const k = lc(r.email);
+    if (!regsByEmail.has(k)) regsByEmail.set(k, []);
+    regsByEmail.get(k).push(r);
+  });
+  const rows = [];
+  registrations.forEach(reg => {
+    if (membersByEmail.has(lc(reg.email)) || reg.status === "archived") return;
+    rows.push({ ...reg, key: `reg:${reg.id}`, section: "pending", registration_id: reg.id });
+  });
+  members.forEach(m => {
+    const live = (regsByEmail.get(lc(m.email)) || [])
+      .filter(r => r.status !== "archived")
+      .sort((a, b) => (b.status === "approved") - (a.status === "approved") || new Date(b.created_at || 0) - new Date(a.created_at || 0))[0] || null;
+    rows.push({
+      ...(live || {}),
+      key: `mem:${m.id}`,
+      id: m.id,
+      section: m.completed ? "completed" : "approved",
+      member_id: m.id,
+      registration_id: live ? live.id : null,
+      has_registration: !!live,
+      first_name: m.first_name,
+      last_name: m.last_name,
+      email: m.email,
+      phone: m.phone || (live && live.phone) || "",
+      cellulare: (live && live.cellulare) || "",
+      tessera_number: m.tessera_number || "",
+      is_fondatore: !!m.is_fondatore,
+      checklist: m.checklist || {},
+      created_at: (live && live.created_at) || m.joined_at,
+      payment_completed: live ? !!live.payment_completed : true,
+      status: "approved",
+      is_member: true,
+    });
+  });
+  return rows;
+};
+
+const tesseraNum = (r) => {
+  const n = parseInt(r.tessera_number, 10);
+  return Number.isNaN(n) ? null : n;
+};
+
+const compareSoci = (a, b, field, dir, section) => {
+  const sign = dir === "asc" ? 1 : -1;
+  const byName = (x, y) => (`${x.first_name || ""} ${x.last_name || ""}`).localeCompare(`${y.first_name || ""} ${y.last_name || ""}`, "it");
+  const byDateDesc = (x, y) => new Date(y.created_at || 0) - new Date(x.created_at || 0);
+  const tie = section === "pending" ? byDateDesc : byName;
+  if (field === "tessera_number") {
+    const ta = tesseraNum(a);
+    const tb = tesseraNum(b);
+    if (ta === null && tb === null) return tie(a, b);
+    if (ta === null) return 1;
+    if (tb === null) return -1;
+    return (ta - tb) * sign || tie(a, b);
+  }
+  if (field === "name") return byName(a, b) * sign || byDateDesc(a, b);
+  return (new Date(a.created_at || 0) - new Date(b.created_at || 0)) * sign || byName(a, b);
+};
+
+// Copia negli appunti: API moderna, con ripiego per browser/mobile che non la supportano
+const copyText = async (text) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch { /* ripiego sotto */ }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.top = "0";
+  ta.style.left = "0";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+};
+
+const CheckItem = ({ checked, onChange, label, disabled }) => (
+  <label className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border select-none text-xs font-bold transition-colors ${
+    checked ? "bg-tv-green/15 border-tv-green/40 text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/70"
+  } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+    <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)}
+      className="h-5 w-5 shrink-0 accent-tv-green" />
+    {label}
+  </label>
+);
+
+const SocioCard = ({
+  row, busy, pdfLoadingId,
+  onApprove, onReject, onPdf, onResend, onTogglePayment, onToggleFondatore,
+  onToggleCheck, onCopy, onComplete, onEdit, onDelete,
+}) => {
+  const section = row.section;
+  const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
+  const phone = row.cellulare || row.phone;
+  const checklist = row.checklist || {};
+  const allFour = CHECKLIST_ITEMS.every(i => checklist[i.key]);
+  const canEdit = section === "completed" || (section === "approved" && !row.has_registration);
+  const btn = "inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full text-xs font-bold transition-colors disabled:opacity-50";
+  const btnLight = `${btn} bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky`;
+  const tone = section === "pending" ? "bg-amber-50 border-tv-orange/25"
+    : row.is_fondatore ? "bg-amber-50 border-amber-200"
+    : section === "approved" ? "bg-white border-tv-green/25"
+    : "bg-white border-tv-green-deep/10";
+
+  return (
+    <article className={`rounded-2xl border p-4 ${tone}`} data-testid={`admin-row-${row.key}`}>
+      <div className="flex items-start gap-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+          row.is_fondatore ? "bg-amber-400 text-white" : section === "pending" ? "bg-tv-green-deep text-tv-cream" : "bg-tv-green text-tv-cream"
+        }`}>{(name[0] || "?").toUpperCase()}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-semibold text-tv-green-deep break-words">{name}</div>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {row.is_fondatore && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">★ Fondatore</span>}
+                {row.is_minorenne && <span className="text-[10px] font-bold bg-tv-bordeaux/10 text-tv-bordeaux px-2 py-0.5 rounded-full">👶 Minorenne</span>}
+                {row.is_manual && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">📋 Cartaceo</span>}
+                {row.registration_id && row.metodo_pagamento && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep" : "bg-tv-orange/25 text-tv-green-deep"}`}>
+                    {row.metodo_pagamento === "elettronico" ? "💳" : row.metodo_pagamento === "bonifico" ? "🏦" : "💵"}{" "}
+                    {row.metodo_pagamento === "elettronico"
+                      ? (row.payment_completed ? "Pagato online" : "Verifica su SumUp")
+                      : (row.payment_completed ? "Pagamento ricevuto" : "Da ricevere")}
+                  </span>
+                )}
+                {row.referral && section === "pending" && <span className="text-[10px] font-bold bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full">{row.referral}</span>}
+              </div>
+            </div>
+            {row.tessera_number && (
+              <span className="shrink-0 inline-flex items-center justify-center min-w-[2.5rem] px-3 py-1.5 rounded-xl bg-tv-orange/25 text-tv-green-deep font-display font-black text-lg leading-none">
+                {row.tessera_number}
+              </span>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-tv-green-deep/65">
+            {row.email && <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1 min-w-0"><Mail size={12} className="shrink-0" /><span className="break-all">{row.email}</span></a>}
+            {phone && <span>{phone}</span>}
+            {section === "pending" && row.created_at && <span className="text-tv-green-deep/45">{fmtDate(row.created_at)}</span>}
+          </div>
+        </div>
+      </div>
+
+      {section === "approved" && (
+        <div className="mt-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {CHECKLIST_ITEMS.map(i => (
+              <CheckItem key={i.key} label={i.label} checked={!!checklist[i.key]} disabled={busy}
+                onChange={(v) => onToggleCheck(row, i.key, v)} />
+            ))}
+          </div>
+          {!allFour && (
+            <p className="mt-2 text-[11px] text-tv-green-deep/50">
+              Spunta tutte e 4 le voci per poter copiare i dati e completare la pratica.
+            </p>
+          )}
+        </div>
+      )}
+
+      {section === "completed" && (
+        <div className="mt-3 max-w-xs">
+          <CheckItem label="Modulo cartaceo firmato" checked={!!checklist.modulo_firmato} disabled={busy}
+            onChange={(v) => onToggleCheck(row, "modulo_firmato", v)} />
+        </div>
+      )}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {section === "pending" && (
+          <>
+            <button onClick={() => onApprove(row)} disabled={busy} data-testid={`admin-promote-${row.id}`}
+              className={`${btn} bg-tv-green text-tv-cream hover:bg-tv-green-deep`}>
+              <Sparkles size={13} /> Approva
+            </button>
+            <button onClick={() => onReject(row)} disabled={busy} data-testid={`admin-reject-${row.id}`}
+              className={`${btn} bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux/20`}>
+              <X size={13} /> Rifiuta
+            </button>
+          </>
+        )}
+
+        {section === "approved" && (
+          <>
+            {row.has_registration && (
+              <button onClick={() => onPdf(row)} disabled={pdfLoadingId === row.registration_id} className={btnLight}>
+                {pdfLoadingId === row.registration_id ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} Scarica PDF
+              </button>
+            )}
+            {row.has_registration && row.metodo_pagamento && (
+              <button onClick={() => onTogglePayment(row)} className={`${btn} ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux" : "bg-tv-orange/30 text-tv-green-deep hover:bg-tv-orange/50"}`}>
+                {row.payment_completed ? "✓ Pagato" : (row.metodo_pagamento === "elettronico" ? "⏳ Verifica SumUp" : "⏳ Da ricevere")}
+              </button>
+            )}
+            {canEdit && (
+              <button onClick={() => onEdit(row)} className={btnLight}><Pencil size={13} /> Modifica</button>
+            )}
+          </>
+        )}
+
+        {section === "completed" && (
+          <button onClick={() => onEdit(row)} className={btnLight}><Pencil size={13} /> Modifica</button>
+        )}
+
+        {section !== "pending" && row.email && (
+          <button onClick={() => onResend(row)} className={btnLight} title="Reinvia email di conferma">
+            <Mail size={13} /> Reinvia email
+          </button>
+        )}
+        {section !== "pending" && (
+          <button onClick={() => onToggleFondatore(row)} className={`${btn} ${row.is_fondatore ? "bg-amber-400/30 text-amber-700 hover:bg-amber-500 hover:text-white" : "bg-amber-100/60 text-amber-600 hover:bg-amber-300/50"}`}>
+            ★ {row.is_fondatore ? "Fondatore" : "Segna come fondatore"}
+          </button>
+        )}
+
+        {section === "approved" && allFour && (
+          <>
+            <button onClick={() => onCopy(row)} disabled={busy} className={`${btn} bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85`}>
+              <Copy size={13} /> Copia dati
+            </button>
+            <button onClick={() => onComplete(row)} disabled={busy} className={`${btn} bg-tv-bordeaux text-white hover:bg-tv-bordeaux/85`}>
+              {busy ? <Loader2 size={13} className="animate-spin" /> : <ShieldOff size={13} />} Cancella dati e completa
+            </button>
+          </>
+        )}
+
+        {section !== "pending" && (
+          <button onClick={() => onDelete(row)} disabled={busy} aria-label="Elimina" title="Elimina"
+            className={`${btn} bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream`}>
+            <Trash2 size={13} /> Elimina
+          </button>
+        )}
+      </div>
+    </article>
+  );
+};
+
+const CopyDataModal = ({ row, token, onClose }) => {
+  const [record, setRecord] = useState(null);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    axios.get(`${API}/admin/members/${row.member_id}/record`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => { if (alive) setRecord(res.data.row); })
+      .catch(err => { if (alive) setError(err?.response?.data?.detail || "Impossibile recuperare i dati del socio."); });
+    return () => { alive = false; };
+  }, [row.member_id, token]);
+
+  const entries = record ? Object.entries(buildMembersSheet([record])[0]) : [];
+  const line = entries.map(([, v]) => String(v ?? "").replace(/[\t\r\n]+/g, " ").trim()).join("\t");
+
+  const handleCopy = async () => {
+    const ok = await copyText(line);
+    setCopied(ok);
+    if (ok) toast.success("Dati copiati! Incollali nel tuo Excel.");
+    else toast.error("Copia non riuscita: tocca il riquadro, seleziona tutto e copia a mano.");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-3 sm:p-4 overflow-y-auto" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xl bg-tv-cream rounded-[2rem] p-5 md:p-8 my-4 md:my-8">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">Copia dati socio</div>
+            <h3 className="mt-1 font-display font-black text-xl md:text-2xl text-tv-green-deep break-words">{row.first_name} {row.last_name}</h3>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Chiudi" className="p-2.5 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green shrink-0"><X size={16} /></button>
+        </div>
+
+        {error ? (
+          <p className="text-sm text-tv-bordeaux">{error}</p>
+        ) : !record ? (
+          <div className="flex items-center justify-center gap-2 py-10 text-tv-green-deep/50 text-sm"><Loader2 size={18} className="animate-spin" /> Recupero i dati…</div>
+        ) : (
+          <>
+            <p className="text-sm text-tv-green-deep/70 mb-3">
+              Premi <strong>Copia</strong> e incolla nella prima cella libera del tuo Excel: i valori si dispongono in colonna con la stessa struttura del file che usi.
+            </p>
+            <button type="button" onClick={handleCopy}
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/85 transition-colors">
+              {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? "Copiato! Copia di nuovo" : "Copia dati negli appunti"}
+            </button>
+            <label className="block mt-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1">Se la copia non funziona: tocca il riquadro, seleziona tutto e copia</div>
+              <textarea readOnly rows={3} value={line} onFocus={(e) => e.target.select()}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-tv-green-deep/15 text-[11px] font-mono text-tv-green-deep resize-none outline-none" />
+            </label>
+            <details className="mt-4">
+              <summary className="cursor-pointer text-xs font-bold text-tv-green-deep/70 py-1">Anteprima dei campi copiati</summary>
+              <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                {entries.filter(([, v]) => String(v ?? "").trim() !== "").map(([k, v]) => (
+                  <div key={k} className="min-w-0">
+                    <dt className="text-tv-green-deep/45">{k}</dt>
+                    <dd className="font-semibold text-tv-green-deep break-words">{String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </details>
+            <p className="mt-4 text-[11px] text-tv-green-deep/50">
+              Quando hai finito, chiudi questa finestra e premi <strong>Cancella dati e completa</strong>.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const RegistrationsManager = ({
+  list, pdfLoadingId, busyKey,
+  onApprove, onReject, onPdf, onResend, onTogglePayment, onToggleFondatore,
+  onToggleCheck, onCopy, onComplete, onEdit, onDelete,
+  onAddManual, onSyncTessere, syncingTessere,
+}) => {
   const [activeFilter, setActiveFilter] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState("created_at");
-  const [sortDir, setSortDir] = useState("desc");
+  const [sortField, setSortField] = useState("tessera_number");
+  const [sortDir, setSortDir] = useState("asc");
 
   const exportRegistrations = (rows) => {
     try {
       if (!rows || rows.length === 0) { toast.error("Nessuna iscrizione da esportare nel filtro attivo."); return; }
-      const statusLabel = (s, isMember) => {
-        if (isMember || s === "approved") return "Approvato";
-        if (s === "archived") return "Archiviato";
-        return "In attesa";
-      };
-      const fmtDate = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
+      const fmtDay2 = (d) => { try { return new Date(d).toLocaleDateString("it-IT"); } catch { return d || ""; } };
       const sheet = rows.map(r => ({
-        "Data richiesta": fmtDate(r.created_at),
+        "Data richiesta": fmtDay2(r.created_at),
         "Nome": r.first_name || "",
         "Cognome": r.last_name || "",
         "Email": r.email || "",
         "Telefono": r.phone || "",
-        "Stato": statusLabel(r.status, r.is_member),
+        "Stato": SECTION_LABELS[r.section] || "",
         "N° Tessera": r.tessera_number || "",
         "Pagamento": r.payment_completed ? "Sì" : "No",
         "Motivazione": r.motivation || "",
@@ -481,43 +559,28 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
   };
 
   const counts = useMemo(() => ({
-    pending: list.filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length,
-    approved: list.filter(r => r.is_member || r.status === "approved").length,
-    archived: list.filter(r => r.status === "archived").length,
+    pending: list.filter(r => r.section === "pending").length,
+    approved: list.filter(r => r.section === "approved").length,
+    completed: list.filter(r => r.section === "completed").length,
   }), [list]);
 
   const filteredList = useMemo(() => {
-    let items = [...list];
-    if (activeFilter === "pending") items = items.filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived");
-    else if (activeFilter === "approved") items = items.filter(r => r.is_member || r.status === "approved");
-    else if (activeFilter === "archived") items = items.filter(r => r.status === "archived");
+    let items = list.filter(r => r.section === activeFilter);
     const q = searchQuery.trim().toLowerCase();
     if (q) items = items.filter(r =>
       (`${r.first_name || ""} ${r.last_name || ""}`).toLowerCase().includes(q) ||
-      (r.email || "").toLowerCase().includes(q)
+      (r.email || "").toLowerCase().includes(q) ||
+      String(r.tessera_number || "") === q
     );
-    items.sort((a, b) => {
-      let v = 0;
-      if (sortField === "name") {
-        v = (`${a.first_name || ""} ${a.last_name || ""}`).localeCompare(`${b.first_name || ""} ${b.last_name || ""}`, "it");
-      } else if (sortField === "tessera_number") {
-        const ta = parseInt(a.tessera_number || "0", 10) || 0;
-        const tb = parseInt(b.tessera_number || "0", 10) || 0;
-        v = ta - tb;
-      } else {
-        v = new Date(a.created_at || 0) - new Date(b.created_at || 0);
-      }
-      return sortDir === "asc" ? v : -v;
-    });
-    return items;
+    return [...items].sort((a, b) => compareSoci(a, b, sortField, sortDir, activeFilter));
   }, [list, activeFilter, searchQuery, sortField, sortDir]);
 
   const toggleSort = (field) => {
-    if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortField(field); setSortDir("desc"); }
+    if (sortField === field) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir(field === "created_at" ? "desc" : "asc"); }
   };
   const SortArrow = ({ field }) => sortField === field
-    ? (sortDir === "asc" ? <ChevronUp size={10}/> : <ChevronDown size={10}/>)
+    ? (sortDir === "asc" ? <ChevronUp size={10} /> : <ChevronDown size={10} />)
     : null;
 
   if (list.length === 0) {
@@ -528,179 +591,74 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
     );
   }
 
+  const captions = {
+    pending: "Richieste di iscrizione da valutare: puoi approvarle o rifiutarle.",
+    approved: "Spunta le 4 voci man mano che procedi: quando sono tutte spuntate puoi copiare i dati e completare la pratica.",
+    completed: "Pratiche chiuse al 100%: restano solo i dati principali, i dati sensibili sono stati cancellati.",
+  };
+
   return (
     <div className="bg-white rounded-[2rem] border border-tv-green-deep/10 overflow-hidden" data-testid="admin-list">
-      <div className="px-5 py-4 border-b border-tv-green-deep/10 flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1">
+      <div className="px-4 sm:px-5 py-4 border-b border-tv-green-deep/10 flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-1 bg-tv-cream rounded-xl p-1">
           {[
             { key: "pending", label: `In attesa (${counts.pending})` },
             { key: "approved", label: `Approvati (${counts.approved})` },
-            { key: "archived", label: `Archiviati (${counts.archived})` },
+            { key: "completed", label: `${COMPLETED_SECTION} (${counts.completed})` },
           ].map(f => (
             <button key={f.key} onClick={() => setActiveFilter(f.key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
                 activeFilter === f.key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/50 hover:text-tv-green-deep"
               }`}>{f.label}</button>
           ))}
         </div>
         <div className="relative flex-1 min-w-[180px]">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none"/>
-          <input type="text" placeholder="Cerca nome o email…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-4 py-1.5 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep"/>
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-tv-green-deep/35 pointer-events-none" />
+          <input type="text" placeholder="Cerca nome, email o tessera…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-4 py-2 rounded-xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green outline-none text-xs text-tv-green-deep" />
         </div>
-        <div className="flex items-center gap-1 bg-tv-cream rounded-xl p-1 border border-tv-green-deep/10">
+        <div className="flex flex-wrap items-center gap-1 bg-tv-cream rounded-xl p-1 border border-tv-green-deep/10">
           <span className="text-[10px] text-tv-green-deep/40 px-2 font-bold uppercase tracking-wider">Ordina</span>
           {[{ key: "name", label: "Nome" }, { key: "tessera_number", label: "Tessera" }, { key: "created_at", label: "Data" }].map(s => (
             <button key={s.key} onClick={() => toggleSort(s.key)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-0.5 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-0.5 ${
                 sortField === s.key ? "bg-tv-green-deep text-tv-cream" : "text-tv-green-deep/50 hover:text-tv-green-deep"
               }`}>
-              {s.label}<SortArrow field={s.key}/>
+              {s.label}<SortArrow field={s.key} />
             </button>
           ))}
         </div>
         {onAddManual && (
           <button onClick={onAddManual}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tv-green-deep text-tv-cream text-xs font-bold hover:bg-tv-green-deep/80 transition-colors whitespace-nowrap">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-tv-green-deep text-tv-cream text-xs font-bold hover:bg-tv-green-deep/80 transition-colors whitespace-nowrap">
             + Cartaceo
           </button>
         )}
         <button onClick={() => exportRegistrations(filteredList)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap">
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap">
           ⬇ Esporta XLSX
         </button>
-        {onExportMembers && (
-          <button onClick={onExportMembers} disabled={exportingMembers}
-            title="Scarica tutti i dati dei soci approvati (anagrafica, documento, indirizzo, consensi, genitore se minorenne)"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/80 text-xs font-bold transition-colors whitespace-nowrap disabled:opacity-50">
-            {exportingMembers ? "Preparazione…" : "⬇ Dati soci approvati"}
-          </button>
-        )}
         {onSyncTessere && (
           <button onClick={onSyncTessere} disabled={syncingTessere}
             title="Allinea il numero tessera tra iscrizioni e anagrafica soci (utile se un numero è stato aggiunto dopo l'approvazione)"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap disabled:opacity-50">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-tv-green-deep/15 text-tv-green-deep/70 hover:text-tv-green-deep hover:border-tv-green-deep/30 text-xs font-bold transition-all whitespace-nowrap disabled:opacity-50">
             {syncingTessere ? "Riallineo…" : "🔄 Riallinea tessere"}
           </button>
         )}
       </div>
+      <p className="px-4 sm:px-5 pt-3 text-xs text-tv-green-deep/55">{captions[activeFilter]}</p>
       {filteredList.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
       ) : (
-        <>
-          {/* Desktop: tabella */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-tv-cream/70 sticky top-0">
-                <tr className="border-b border-tv-green-deep/10">
-                  <th className="py-2.5 pl-4 pr-4 text-left">
-                    <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Nome <SortArrow field="name"/></button>
-                  </th>
-                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">Contatti</th>
-                  <th className="py-2.5 pr-4 text-left hidden lg:table-cell">
-                    <button onClick={() => toggleSort("created_at")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Data <SortArrow field="created_at"/></button>
-                  </th>
-                  <th className="py-2.5 pr-4 text-left">
-                    <button onClick={() => toggleSort("tessera_number")} className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hover:text-tv-green-deep">Tessera <SortArrow field="tessera_number"/></button>
-                  </th>
-                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden md:table-cell">PDF</th>
-                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40 hidden lg:table-cell">Pagamento</th>
-                  <th className="py-2.5 pr-4 text-left text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/40">Stato</th>
-                  <th className="py-2.5 pr-4 w-36"/>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredList.map(row => (
-                  <RegistrationRow key={row.id} row={row} onPdf={onPdf} pdfLoadingId={pdfLoadingId}
-                    onTogglePayment={onTogglePayment} onApprove={onApprove} onCleanup={onCleanup}
-                    onResend={onResend} onDelete={onDelete} onToggleFondatore={onToggleFondatore}/>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile: card list */}
-          <div className="block md:hidden space-y-2 p-3">
-            {filteredList.map(row => {
-              const isArchived = row.status === "archived";
-              const isApproved = row.is_member || row.status === "approved";
-              const name = `${row.first_name || ""} ${row.last_name || ""}`.trim() || "—";
-              return (
-                <div key={row.id} className={`rounded-2xl border p-3 ${
-                  isArchived ? "opacity-50 bg-gray-50 border-gray-200"
-                  : row.is_fondatore ? "bg-amber-50 border-amber-200"
-                  : isApproved ? "bg-white border-tv-green/25"
-                  : "bg-amber-50 border-tv-orange/20"
-                }`}>
-                  <div className="flex items-start gap-2.5 mb-2.5">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
-                      row.is_fondatore ? "bg-amber-400 text-white"
-                      : isApproved ? "bg-tv-green text-tv-cream"
-                      : isArchived ? "bg-gray-200 text-gray-500"
-                      : "bg-tv-green-deep text-tv-cream"
-                    }`}>{(name[0] || "?").toUpperCase()}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-tv-green-deep">{name}</div>
-                      {row.is_fondatore && <div className="text-[9px] font-bold text-amber-600">★ Fondatore</div>}
-                      {row.email && <div className="text-[11px] text-tv-green-deep/50 truncate">{row.email}</div>}
-                      {(row.cellulare || row.phone) && <div className="text-[11px] text-tv-green-deep/40">📞 {row.cellulare || row.phone}</div>}
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      {row.tessera_number && <span className="text-[10px] font-bold bg-tv-orange/25 text-tv-green-deep px-2 py-0.5 rounded-full">🎫 #{row.tessera_number}</span>}
-                      {isArchived
-                        ? <span className="text-[10px] font-bold bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Archiviato</span>
-                        : isApproved
-                        ? <span className="text-[10px] font-bold bg-tv-green/20 text-tv-green-deep px-2 py-0.5 rounded-full">✓ Socio</span>
-                        : <span className="text-[10px] font-bold bg-tv-orange/15 text-tv-bordeaux px-2 py-0.5 rounded-full">⏳ In attesa</span>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                    {!isArchived && (
-                      <button onClick={() => onPdf(row.id)} disabled={pdfLoadingId === row.id}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-sky/30 text-tv-green-deep text-[11px] font-bold rounded-full hover:bg-tv-sky transition-colors disabled:opacity-50">
-                        {pdfLoadingId === row.id ? <Loader2 size={11} className="animate-spin"/> : <Download size={11}/>} PDF
-                      </button>
-                    )}
-                    {row.email && (
-                      <button onClick={() => onResend(row)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-sky/30 text-tv-green-deep/70 text-[11px] font-bold rounded-full hover:bg-tv-sky hover:text-tv-green-deep transition-colors">
-                        <Mail size={11}/> Email
-                      </button>
-                    )}
-                    {!isArchived && row.metodo_pagamento && (
-                      <button onClick={() => onTogglePayment(row)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-full transition-colors ${row.payment_completed ? "bg-tv-green/20 text-tv-green-deep hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux" : "bg-tv-orange/20 text-tv-green-deep hover:bg-tv-orange/30"}`}>
-                        {row.payment_completed ? "✓ Pagato" : "⏳ Pagamento"}
-                      </button>
-                    )}
-                    {!isArchived && !isApproved && (
-                      <button onClick={() => onApprove(row)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-green text-tv-cream text-[11px] font-bold rounded-full hover:bg-tv-green-deep transition-colors">
-                        <Sparkles size={11}/> Approva
-                      </button>
-                    )}
-                    {isApproved && onToggleFondatore && (
-                      <button onClick={() => onToggleFondatore(row)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-full transition-colors ${row.is_fondatore ? "bg-amber-400/30 text-amber-700 hover:bg-amber-500 hover:text-white" : "bg-amber-100/50 text-amber-400/70 hover:bg-amber-300/50 hover:text-amber-700"}`}>
-                        ★ {row.is_fondatore ? "Fondatore" : "Fondatore?"}
-                      </button>
-                    )}
-                    {!isArchived && !row._from_members && (
-                      <button onClick={() => onCleanup(row)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-bordeaux/10 text-tv-bordeaux text-[11px] font-bold rounded-full hover:bg-tv-bordeaux/20 transition-colors">
-                        <ShieldOff size={11}/> Dati
-                      </button>
-                    )}
-                    <button onClick={() => onDelete(row.id)}
-                      className="p-1.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
-                      <Trash2 size={12}/>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
+        <div className="space-y-3 p-3 sm:p-4">
+          {filteredList.map(row => (
+            <SocioCard key={row.key} row={row} busy={busyKey === row.key} pdfLoadingId={pdfLoadingId}
+              onApprove={onApprove} onReject={onReject} onPdf={onPdf} onResend={onResend}
+              onTogglePayment={onTogglePayment} onToggleFondatore={onToggleFondatore}
+              onToggleCheck={onToggleCheck} onCopy={onCopy} onComplete={onComplete}
+              onEdit={onEdit} onDelete={onDelete} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -2861,7 +2819,7 @@ const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats, visitorGeo
   const approvedRegsCount = (data.registrations || []).filter(r => r.is_member || r.status === "approved").length;
   const numberedMembers = approvedRegsCount + membersOnlyCount;
   const unreadContacts = data.contacts.length;
-  const pendingRegBadge = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+  const pendingRegBadge = (data.registrations || []).filter(r => !r.is_member && r.status !== "archived").length;
   const futureEventIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
   const toConfirmBadge = (data["event-signups"] || []).filter(s => !s.confirmed && futureEventIds.has(s.event_id)).length;
 
@@ -3308,7 +3266,8 @@ const Dashboard = ({ token, onLogout }) => {
   });
   const [loading, setLoading] = useState(true);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
-  const [exportingMembers, setExportingMembers] = useState(false);
+  const [busyKey, setBusyKey] = useState(null);
+  const [copyRow, setCopyRow] = useState(null);
   const [syncingTessere, setSyncingTessere] = useState(false);
   const [eventEditor, setEventEditor] = useState(null);
   const [memberEditor, setMemberEditor] = useState(null);
@@ -3567,7 +3526,7 @@ const Dashboard = ({ token, onLogout }) => {
     try {
       await axios.post(`${API}/admin/registrations/${req.id}/approve`, {}, authHeader);
       toast.success("Richiesta approvata e aggiunta al registro dei soci!");
-      loadAll();
+      loadAll(true);
     } catch (e) {
       toast.error(e.response?.data?.detail || "Errore durante l'approvazione");
     }
@@ -3576,9 +3535,9 @@ const Dashboard = ({ token, onLogout }) => {
   const togglePayment = async (row) => {
     const newValue = !row.payment_completed;
     try {
-      await axios.patch(`${API}/admin/registrations/${row.id}/payment-status`, { payment_completed: newValue }, authHeader);
+      await axios.patch(`${API}/admin/registrations/${row.registration_id || row.id}/payment-status`, { payment_completed: newValue }, authHeader);
       toast.success(newValue ? "Pagamento segnato come ricevuto!" : "Pagamento segnato come da ricevere.");
-      loadAll();
+      loadAll(true);
     } catch { toast.error("Errore nell'aggiornamento del pagamento."); }
   };
 
@@ -3605,41 +3564,6 @@ const Dashboard = ({ token, onLogout }) => {
     }
   };
 
-  const exportApprovedMembers = async () => {
-    if (exportingMembers) return;
-    setExportingMembers(true);
-    const toastId = toast.loading("Preparazione export soci…");
-    try {
-      let result = null;
-      // Il server recupera i consensi delle iscrizioni vecchie a blocchi: si ripete finché non resta nulla
-      for (let i = 0; i < 40; i++) {
-        const res = await axios.post(`${API}/admin/members/export`, {}, authHeader);
-        result = res.data;
-        if (!result.pending_consents) break;
-      }
-      if (!result || !result.rows || result.rows.length === 0) {
-        toast.error("Nessun socio da esportare.", { id: toastId });
-        return;
-      }
-      const sheet = buildMembersSheet(result.rows);
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(sheet);
-      ws["!cols"] = Object.keys(sheet[0]).map(k => ({ wch: Math.min(Math.max(k.length, ...sheet.map(r => String(r[k] ?? "").length)) + 2, 50) }));
-      XLSX.utils.book_append_sheet(wb, ws, "Soci approvati");
-      XLSX.writeFile(wb, `soci-approvati-${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast.success(
-        result.pending_consents
-          ? `Esportati ${sheet.length} soci (alcuni consensi non ancora recuperati, riprova).`
-          : `Esportati ${sheet.length} soci.`,
-        { id: toastId }
-      );
-    } catch (e) {
-      toast.error(e.response?.data?.detail || "Errore nell'export dei soci.", { id: toastId });
-    } finally {
-      setExportingMembers(false);
-    }
-  };
-
   const toggleEventPayment = async (row) => {
     const newValue = !row.payment_completed;
     try {
@@ -3651,31 +3575,103 @@ const Dashboard = ({ token, onLogout }) => {
 
   const resendEmail = async (row) => {
     try {
-      await axios.post(`${API}/admin/registrations/${row.id}/resend-confirmation`, {}, authHeader);
+      await axios.post(`${API}/admin/registrations/${row.registration_id || row.member_id || row.id}/resend-confirmation`, {}, authHeader);
       toast.success("Email di conferma reinviata!");
     } catch (e) {
       toast.error(e.response?.data?.detail || "Errore nel reinvio email.");
     }
   };
 
-  const cleanupRegistration = async (row) => {
+  const rejectRequest = async (row) => {
     const name = `${row.first_name || ""} ${row.last_name || ""}`.trim();
-    if (!window.confirm(`Cancellare tutti i dati sensibili di ${name}?\n\nVerranno conservati solo nome, cognome, email, telefono e origine.\nIl PDF verrà eliminato dal database.\n\n⚠️ Questa azione è irreversibile.`)) return;
+    if (!window.confirm(`Rifiutare la richiesta di ${name}?\n\nLa richiesta e tutti i dati inseriti verranno eliminati.`)) return;
     try {
-      await axios.post(`${API}/admin/registrations/${row.id}/cleanup`, {}, authHeader);
-      toast.success("Dati sensibili cancellati.");
-      setData(prev => ({
-        ...prev,
-        registrations: prev.registrations.map(r =>
-          r.id === row.id
-            ? { ...r, status: "archived", pdf_base64: null, document_deleted_at: new Date().toISOString() }
-            : r
-        ),
-      }));
+      await axios.delete(`${API}/admin/registrations/${row.id}`, authHeader);
+      toast.success("Richiesta rifiutata.");
+      loadAll(true);
     } catch (e) {
-      toast.error(e.response?.data?.detail || "Errore nella cancellazione dati.");
+      toast.error(e.response?.data?.detail || "Errore nel rifiuto della richiesta.");
     }
   };
+
+  const setLocalCheck = (memberId, key, value) => setData(prev => ({
+    ...prev,
+    members: prev.members.map(m => (
+      m.id === memberId ? { ...m, checklist: { ...(m.checklist || {}), [key]: value } } : m
+    )),
+  }));
+
+  const toggleChecklist = async (row, key, value) => {
+    setLocalCheck(row.member_id, key, value);
+    try {
+      await axios.patch(`${API}/admin/members/${row.member_id}/checklist`, { [key]: value }, authHeader);
+    } catch (e) {
+      setLocalCheck(row.member_id, key, !value);
+      toast.error(e.response?.data?.detail || "Errore nel salvataggio della spunta.");
+    }
+  };
+
+  const completeSocio = async (row) => {
+    const name = `${row.first_name || ""} ${row.last_name || ""}`.trim();
+    const noRegistrationMsg = `Registrazione non trovata.\n\nProcedere comunque ad inserire il socio nella sezione "${COMPLETED_SECTION}"?`;
+    const post = (confirmNoRegistration) => axios.post(
+      `${API}/admin/members/${row.member_id}/complete`,
+      { confirm_no_registration: confirmNoRegistration },
+      authHeader
+    );
+    setBusyKey(row.key);
+    try {
+      let res;
+      if (!row.has_registration) {
+        if (!window.confirm(noRegistrationMsg)) return;
+        res = await post(true);
+      } else {
+        if (!window.confirm(`Cancellare tutti i dati sensibili di ${name} e spostarlo in "${COMPLETED_SECTION}"?\n\nVerranno conservati solo nome, cognome, email, telefono e numero tessera. Il PDF verrà eliminato dal database.\n\nHai già copiato i dati nel tuo Excel?\n\n⚠️ Questa azione è irreversibile.`)) return;
+        res = await post(false);
+        if (res.data?.needs_confirmation) {
+          if (!window.confirm(noRegistrationMsg)) return;
+          res = await post(true);
+        }
+      }
+      toast.success(`${name} spostato in "${COMPLETED_SECTION}".`);
+      await loadAll(true);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nel completamento della pratica.");
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const deleteSocio = async (row) => {
+    const name = `${row.first_name || ""} ${row.last_name || ""}`.trim();
+    if (!window.confirm(`Eliminare ${name} dal registro soci?\n\nVerranno eliminati il socio e le sue iscrizioni. L'operazione è irreversibile.`)) return;
+    try {
+      await axios.delete(`${API}/admin/members/${row.member_id}/purge`, authHeader);
+      toast.success("Socio eliminato.");
+      loadAll(true);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nell'eliminazione del socio.");
+    }
+  };
+
+  const toggleFondatore = async (row) => {
+    try {
+      await axios.put(`${API}/admin/members/${row.member_id}`, { is_fondatore: !row.is_fondatore }, authHeader);
+      toast.success(row.is_fondatore ? "Badge fondatore rimosso." : "Badge fondatore assegnato.");
+      loadAll(true);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Errore nell'aggiornamento.");
+    }
+  };
+
+  const editSocio = (row) => setMemberEditor({
+    id: row.member_id,
+    first_name: row.first_name || "",
+    last_name: row.last_name || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    tessera_number: row.tessera_number || "",
+  });
 
   const confirmSignup = async (row) => {
     if (!window.confirm(`Confermi la presenza di ${row.name} e scali un posto da "${row.event_title}"?`)) return;
@@ -3765,7 +3761,7 @@ const Dashboard = ({ token, onLogout }) => {
                       {items.map(item => {
                         const isActive = tab === item.key;
                         let dot = 0;
-                        if (item.key === "libro-soci") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "approved" && r.status !== "archived").length;
+                        if (item.key === "libro-soci") dot = (data.registrations || []).filter(r => !r.is_member && r.status !== "archived").length;
                         else if (item.key === "event-signups") {
                           const futureIds = new Set((data.events || []).filter(e => !isPast(e.date)).map(e => e.id));
                           dot = (data["event-signups"] || []).filter(s => !s.confirmed && futureIds.has(s.event_id)).length;
@@ -3949,60 +3945,25 @@ const Dashboard = ({ token, onLogout }) => {
               onReload={loadAll}
             />
           ) : tab === "libro-soci" ? (
-            (() => {
-              const regEmails = new Set((data.registrations || []).map(r => (r.email || "").toLowerCase()));
-              const membersByEmail = new Map((data.members || []).map(m => [(m.email || "").toLowerCase(), m]));
-              const membersOnly = (data.members || [])
-                .filter(m => !regEmails.has((m.email || "").toLowerCase()))
-                .map(m => ({
-                  ...m,
-                  is_member: true,
-                  status: "approved",
-                  created_at: m.joined_at || m.created_at,
-                  payment_completed: true,
-                  _from_members: true,
-                }));
-              // Arricchisce le registrazioni con is_fondatore dal record membro (se presente)
-              const enrichedRegs = (data.registrations || []).map(reg => {
-                const member = membersByEmail.get((reg.email || "").toLowerCase());
-                return member ? { ...reg, is_fondatore: member.is_fondatore ?? false } : reg;
-              });
-              const mergedList = [...enrichedRegs, ...membersOnly];
-              return (
-                <RegistrationsManager
-                  list={mergedList}
-                  onPdf={openTesseraModal}
-                  pdfLoadingId={pdfLoadingId}
-                  onTogglePayment={togglePayment}
-                  onApprove={promoteToMember}
-                  onCleanup={cleanupRegistration}
-                  onResend={resendEmail}
-                  onDelete={(id) => {
-                    const rec = mergedList.find(r => r.id === id);
-                    remove(rec?._from_members ? "members" : "registrations", id);
-                  }}
-                  onToggleFondatore={async (rec) => {
-                    let memberId = rec._from_members ? rec.id : null;
-                    let currentIsFondatore = rec.is_fondatore ?? false;
-                    if (!memberId) {
-                      const m = (data.members || []).find(m => (m.email || "").toLowerCase() === (rec.email || "").toLowerCase());
-                      if (m) { memberId = m.id; currentIsFondatore = m.is_fondatore ?? false; }
-                    }
-                    if (!memberId) { toast.error("Membro non trovato."); return; }
-                    try {
-                      await axios.put(`${API}/admin/members/${memberId}`, { is_fondatore: !currentIsFondatore }, { headers: { Authorization: `Bearer ${token}` } });
-                      toast.success(currentIsFondatore ? "Badge fondatore rimosso." : "Badge fondatore assegnato.");
-                      loadAll(true);
-                    } catch { toast.error("Errore nell'aggiornamento."); }
-                  }}
-                  onAddManual={() => setManualModal(true)}
-                  onExportMembers={exportApprovedMembers}
-                  exportingMembers={exportingMembers}
-                  onSyncTessere={syncTessere}
-                  syncingTessere={syncingTessere}
-                />
-              );
-            })()
+            <RegistrationsManager
+              list={buildSociList(data.registrations || [], data.members || [])}
+              pdfLoadingId={pdfLoadingId}
+              busyKey={busyKey}
+              onApprove={promoteToMember}
+              onReject={rejectRequest}
+              onPdf={(row) => openTesseraModal(row.registration_id)}
+              onResend={resendEmail}
+              onTogglePayment={togglePayment}
+              onToggleFondatore={toggleFondatore}
+              onToggleCheck={toggleChecklist}
+              onCopy={setCopyRow}
+              onComplete={completeSocio}
+              onEdit={editSocio}
+              onDelete={deleteSocio}
+              onAddManual={() => setManualModal(true)}
+              onSyncTessere={syncTessere}
+              syncingTessere={syncingTessere}
+            />
           ) : tab === "event-signups" ? (
             <EventSignupsManager
               signups={data["event-signups"]}
@@ -4349,9 +4310,13 @@ const Dashboard = ({ token, onLogout }) => {
         <MemberEditor
           token={token}
           initial={memberEditor === "new" ? null : memberEditor}
+          basicOnly={memberEditor !== "new"}
           onClose={() => setMemberEditor(null)}
-          onSaved={() => { setMemberEditor(null); loadAll(); }}
+          onSaved={() => { setMemberEditor(null); loadAll(true); }}
         />
+      )}
+      {copyRow && (
+        <CopyDataModal row={copyRow} token={token} onClose={() => setCopyRow(null)} />
       )}
     </div>
   );
@@ -6499,7 +6464,7 @@ const MembersManager = ({ members, registrations, onEdit, onDelete }) => {
   );
 };
 
-const MemberEditor = ({ token, initial, onClose, onSaved }) => {
+const MemberEditor = ({ token, initial, onClose, onSaved, basicOnly = false }) => {
   const isNew = !initial;
   const [form, setForm] = useState(
     initial || { first_name: "", last_name: "", email: "", phone: "", tessera_number: "", notes: "" }
@@ -6549,10 +6514,16 @@ const MemberEditor = ({ token, initial, onClose, onSaved }) => {
           <Field label="Telefono" value={form.phone} onChange={change("phone")} />
           <Field label="Numero Tessera" value={form.tessera_number} onChange={change("tessera_number")} className="sm:col-span-2" />
         </div>
-        <label className="block mt-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Note / Annotazioni</div>
-          <textarea rows={3} value={form.notes} onChange={change("notes")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep resize-none outline-none" />
-        </label>
+        {basicOnly ? (
+          <p className="mt-4 text-[11px] text-tv-green-deep/55">
+            Se cambi l'email, l'accesso del socio all'area soci (collegato alla vecchia email) potrebbe non riconoscerlo più.
+          </p>
+        ) : (
+          <label className="block mt-4">
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Note / Annotazioni</div>
+            <textarea rows={3} value={form.notes} onChange={change("notes")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep resize-none outline-none" />
+          </label>
+        )}
         <div className="mt-5 flex gap-3">
           <button type="submit" disabled={saving} className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60">{saving ? "Salvo…" : "Salva Socio"}</button>
           <button type="button" onClick={onClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>
