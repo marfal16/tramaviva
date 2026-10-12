@@ -200,6 +200,9 @@ const SECTION_LABELS = { pending: "In attesa", approved: "Approvato", completed:
 
 const lc = (s) => (s || "").trim().toLowerCase();
 
+// I fondatori non contano: possono anche non aver firmato il modulo
+const isUnsignedMember = (r) => r.section === "completed" && !r.is_fondatore && !(r.checklist || {}).modulo_firmato;
+
 // Un'unica lista di persone, ognuna in una sola sezione: richieste (iscrizioni senza socio), soci approvati, soci completi.
 const buildSociList = (registrations, members) => {
   const membersByEmail = new Map(members.map(m => [lc(m.email), m]));
@@ -531,6 +534,7 @@ const RegistrationsManager = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState("tessera_number");
   const [sortDir, setSortDir] = useState("asc");
+  const [onlyUnsigned, setOnlyUnsigned] = useState(false);
 
   const exportRegistrations = (rows) => {
     try {
@@ -562,10 +566,12 @@ const RegistrationsManager = ({
     pending: list.filter(r => r.section === "pending").length,
     approved: list.filter(r => r.section === "approved").length,
     completed: list.filter(r => r.section === "completed").length,
+    unsigned: list.filter(isUnsignedMember).length,
   }), [list]);
 
   const filteredList = useMemo(() => {
     let items = list.filter(r => r.section === activeFilter);
+    if (activeFilter === "completed" && onlyUnsigned) items = items.filter(isUnsignedMember);
     const q = searchQuery.trim().toLowerCase();
     if (q) items = items.filter(r =>
       (`${r.first_name || ""} ${r.last_name || ""}`).toLowerCase().includes(q) ||
@@ -573,7 +579,7 @@ const RegistrationsManager = ({
       String(r.tessera_number || "") === q
     );
     return [...items].sort((a, b) => compareSoci(a, b, sortField, sortDir, activeFilter));
-  }, [list, activeFilter, searchQuery, sortField, sortDir]);
+  }, [list, activeFilter, onlyUnsigned, searchQuery, sortField, sortDir]);
 
   const toggleSort = (field) => {
     if (sortField === field) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -647,6 +653,19 @@ const RegistrationsManager = ({
         )}
       </div>
       <p className="px-4 sm:px-5 pt-3 text-xs text-tv-green-deep/55">{captions[activeFilter]}</p>
+      {activeFilter === "completed" && (counts.unsigned > 0 || onlyUnsigned) && (
+        <p className="px-4 sm:px-5 pt-1 text-xs text-tv-green-deep/55" data-testid="admin-unsigned-note">
+          {counts.unsigned === 0
+            ? "Nessun socio da far firmare."
+            : counts.unsigned === 1
+              ? "Resta 1 socio da far firmare."
+              : `Restano ${counts.unsigned} soci da far firmare.`}{" "}
+          <button type="button" onClick={() => setOnlyUnsigned(v => !v)}
+            className="underline font-bold text-tv-bordeaux hover:text-tv-green-deep">
+            {onlyUnsigned ? "Mostra tutti" : counts.unsigned === 1 ? "Clicca qui per visualizzarlo" : "Clicca qui per visualizzarli"}
+          </button>
+        </p>
+      )}
       {filteredList.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
       ) : (
