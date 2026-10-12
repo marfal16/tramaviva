@@ -197,15 +197,32 @@ const DonationForm = ({ onSuccess }) => {
 
 // ─── Pagina principale ────────────────────────────────────────────────────────
 export const Donazioni = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [success, setSuccess] = useState(null);
+  const [sumupState, setSumupState] = useState(null); // null | "checking" | "paid" | "unpaid"
   const formRef = useRef();
 
   useEffect(() => {
     window.scrollTo(0, 0);
     const grazie = searchParams.get("grazie");
-    if (grazie) setSuccess({ name: "Amico", amount: null, id: grazie, fromSumup: true });
+    if (!grazie) return;
+    setSuccess({ name: "Amico", amount: null, id: grazie, fromSumup: true });
+    setSumupState("checking");
+    fetch(`${API}/api/payments/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ref_id: grazie }),
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error("verify failed"))))
+      .then(d => setSumupState(d.paid ? "paid" : "unpaid"))
+      .catch(() => setSumupState("unpaid"));
   }, [searchParams]);
+
+  const retryDonation = () => {
+    setSuccess(null);
+    setSumupState(null);
+    setSearchParams({}, { replace: true });
+  };
 
   const scrollToForm = () => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -261,13 +278,31 @@ export const Donazioni = () => {
         <div className="mx-auto max-w-xl">
           {success ? (
             success.fromSumup ? (
-              <div className="bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(5,47,23,0.12)] p-8 md:p-12 text-center">
-                <div className="w-16 h-16 rounded-full bg-tv-mint/20 flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle size={32} className="text-tv-green" />
+              sumupState === "paid" ? (
+                <div className="bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(5,47,23,0.12)] p-8 md:p-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-tv-mint/20 flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle size={32} className="text-tv-green" />
+                  </div>
+                  <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Grazie!</h2>
+                  <p className="text-tv-green-deep/60 leading-relaxed">Il tuo pagamento è stato ricevuto. Grazie di cuore per il tuo sostegno — significa molto per tutta la comunità di Trama Viva.</p>
                 </div>
-                <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Grazie!</h2>
-                <p className="text-tv-green-deep/60 leading-relaxed">Il tuo pagamento è stato ricevuto. Grazie di cuore per il tuo sostegno — significa molto per tutta la comunità di Trama Viva.</p>
-              </div>
+              ) : sumupState === "unpaid" ? (
+                <div className="bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(5,47,23,0.12)] p-8 md:p-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-tv-orange/15 flex items-center justify-center mx-auto mb-6">
+                    <Heart size={32} className="text-tv-orange" />
+                  </div>
+                  <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Pagamento non completato</h2>
+                  <p className="text-tv-green-deep/60 leading-relaxed mb-6">Non risulta ancora nessun pagamento per questa donazione. Se hai interrotto l'operazione puoi riprovare quando vuoi; se invece hai pagato, scrivici a <span className="font-bold">tramavivaaps@gmail.com</span> e verificheremo subito.</p>
+                  <button onClick={retryDonation} className="btn-tv px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold">
+                    Riprova a donare
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(5,47,23,0.12)] p-8 md:p-12 text-center">
+                  <Loader2 size={32} className="animate-spin text-tv-green mx-auto mb-4" />
+                  <p className="text-tv-green-deep/60">Stiamo verificando il tuo pagamento…</p>
+                </div>
+              )
             ) : (
               <SuccessBonifico name={success.name} amount={success.amount} />
             )

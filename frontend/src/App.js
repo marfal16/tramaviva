@@ -75,7 +75,7 @@ const Home = () => {
   );
 };
 
-// Rileva il ritorno da SumUp (?paid=<registration_id>) e conferma il pagamento
+// Rileva il ritorno da SumUp (?paid=<id>) e conferma il pagamento solo se SumUp lo ha davvero incassato
 const PaymentReturnHandler = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -87,9 +87,32 @@ const PaymentReturnHandler = () => {
     clean.searchParams.delete("paid");
     window.history.replaceState({}, "", clean.toString());
 
-    fetch(`${BACKEND_URL}/api/registrations/${paidId}/payment-completed`, { method: "POST" })
-      .then(() => toast.success("Pagamento completato! La tua iscrizione è confermata."))
-      .catch(() => {});
+    fetch(`${BACKEND_URL}/api/payments/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ref_id: paidId }),
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error("verify failed"))))
+      .then(data => {
+        if (data.paid) {
+          toast.success(
+            data.kind === "registration"
+              ? "Pagamento completato! La tua iscrizione è confermata."
+              : "Pagamento completato! Grazie."
+          );
+        } else {
+          toast.warning(
+            "Il pagamento non risulta completato. Se hai interrotto l'operazione puoi riprovare; se invece hai pagato, scrivici e verificheremo.",
+            { duration: 10000 }
+          );
+        }
+      })
+      .catch(() => {
+        toast.warning(
+          "Non siamo riusciti a verificare il pagamento. Se hai pagato, scrivici e verificheremo.",
+          { duration: 10000 }
+        );
+      });
   }, []);
   return null;
 };

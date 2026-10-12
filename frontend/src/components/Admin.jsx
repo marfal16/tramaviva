@@ -5711,9 +5711,27 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
     last_name: (s.name || "").split(" ").slice(1).join(" ") || "",
     email: s.email || "",
     amount: s.donazione_volontaria || 0,
-    status: s.confirmed ? "completed" : "pending",
+    status: s.payment_completed ? "completed" : "pending",
+    metodo_pagamento: s.metodo_pagamento || "",
     created_at: s.created_at,
   }));
+
+  const toggleEventDonationPaid = async (id, paid) => {
+    try {
+      await axios.patch(`${API}/admin/event-signups/${id}/payment-status`, { payment_completed: paid }, authHeader);
+      toast.success(paid ? "Donazione segnata come pagata" : "Donazione rimessa in attesa");
+      onReload();
+    } catch { toast.error("Errore nell'aggiornamento"); }
+  };
+
+  const removeEventDonation = async (id) => {
+    if (!window.confirm("Rimuovere questa donazione? L'iscrizione all'evento resta, ma l'importo donato viene azzerato.")) return;
+    try {
+      await axios.delete(`${API}/admin/event-signups/${id}/donation`, authHeader);
+      toast.success("Donazione rimossa");
+      onReload();
+    } catch { toast.error("Errore nella rimozione"); }
+  };
 
   const allDonations = [
     ...donations.map(d => ({ ...d, _id: d.id, _type: "spontanea" })),
@@ -5770,7 +5788,14 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
                     <span className="font-black text-tv-green-deep">{d.first_name} {d.last_name}</span>
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                     {isEvento
-                      ? <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux">Da evento</span>
+                      ? <>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux">Da evento</span>
+                          {d.metodo_pagamento && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-sky/40 text-tv-green-deep">
+                              {{ contanti: "Contanti", bonifico: "Bonifico", elettronico: "Carta" }[d.metodo_pagamento] || d.metodo_pagamento}
+                            </span>
+                          )}
+                        </>
                       : (d.metodo_pagamento === "bonifico"
                           ? <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-sky/40 text-tv-green-deep">Bonifico</span>
                           : <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-tv-mint/30 text-tv-green">SumUp</span>)
@@ -5809,6 +5834,27 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
                   </div>
                 )}
 
+                {/* Azioni donazioni da evento */}
+                {isEvento && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {d.status !== "completed" ? (
+                      <button onClick={() => toggleEventDonationPaid(d._id, true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-tv-mint/30 text-tv-green text-xs font-bold rounded-full hover:bg-tv-mint/50 transition-colors">
+                        <Check size={12} /> Segna pagata
+                      </button>
+                    ) : (
+                      <button onClick={() => toggleEventDonationPaid(d._id, false)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-tv-green-deep/5 text-tv-green-deep/50 text-xs font-bold rounded-full hover:bg-tv-green-deep/10 transition-colors">
+                        Rimetti in attesa
+                      </button>
+                    )}
+                    <button onClick={() => removeEventDonation(d._id)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-tv-bordeaux/8 text-tv-bordeaux text-xs font-bold rounded-full hover:bg-tv-bordeaux/15 transition-colors">
+                      <Trash2 size={12} /> Rimuovi donazione
+                    </button>
+                  </div>
+                )}
+
                 {/* Azioni (solo donazioni spontanee) */}
                 {!isEvento && (
                   <div className="flex flex-wrap gap-2 mt-3">
@@ -5822,6 +5868,17 @@ const DonationsManager = ({ donations, eventSignups = [], token, onReload }) => 
                       <button onClick={() => setStatus(d._id, "pending")}
                         className="flex items-center gap-1 px-3 py-1.5 bg-tv-green-deep/5 text-tv-green-deep/50 text-xs font-bold rounded-full hover:bg-tv-green-deep/10 transition-colors">
                         In attesa
+                      </button>
+                    )}
+                    {d.status !== "annullata" ? (
+                      <button onClick={() => setStatus(d._id, "annullata")}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-tv-orange/15 text-tv-orange text-xs font-bold rounded-full hover:bg-tv-orange/25 transition-colors">
+                        Annulla
+                      </button>
+                    ) : (
+                      <button onClick={() => setStatus(d._id, "pending")}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-tv-green-deep/5 text-tv-green-deep/50 text-xs font-bold rounded-full hover:bg-tv-green-deep/10 transition-colors">
+                        Ripristina
                       </button>
                     )}
                     <button onClick={() => setEditNote(p => ({ ...p, [d._id + "_open"]: !p[d._id + "_open"], [d._id]: p[d._id] ?? d.note ?? "" }))}

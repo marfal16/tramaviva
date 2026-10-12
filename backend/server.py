@@ -1041,29 +1041,67 @@ async def create_registration(payload: RegistrationCreate):
         logger.error(f"Errore nella creazione della registrazione: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
-@api_router.post("/registrations/{registration_id}/payment-completed")
-async def mark_payment_completed(registration_id: str):
-    """Marca una registrazione come pagata e completed."""
-    try:
-        registration = await db.registrations.find_one({"id": registration_id}, {"_id": 0})
-        if not registration:
-            raise HTTPException(status_code=404, detail="Registrazione non trovata")
-        
-        await db.registrations.update_one(
-            {"id": registration_id},
-            {"$set": {
-                "status": "completed",
-                "payment_completed": True,
-                "payment_completed_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
-        logger.info(f"Pagamento confermato per registrazione: {registration_id}")
-        return {"ok": True, "message": "Pagamento registrato correttamente."}
-    except Exception as e:
-        logger.error(f"Errore nel completamento pagamento: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-
 # ========== ROUTES: PAYMENTS ==========
+async def _sumup_checkout_status(checkout_id: Optional[str]) -> Optional[str]:
+    """Stato reale di un checkout SumUp (PENDING/PAID/FAILED/EXPIRED), None se non verificabile."""
+    api_key = os.environ.get("SUMUP_API_KEY")
+    if not api_key or not checkout_id:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client_http:
+            r = await client_http.get(
+                f"https://api.sumup.com/v0.1/checkouts/{checkout_id}",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+        if r.status_code != 200:
+            logger.warning(f"SumUp checkout lookup {checkout_id}: HTTP {r.status_code}")
+            return None
+        return (r.json().get("status") or "").upper() or None
+    except Exception as exc:
+        logger.warning(f"SumUp checkout lookup error: {exc}")
+        return None
+
+class PaymentVerifyRequest(BaseModel):
+    ref_id: str
+
+@api_router.post("/payments/verify")
+async def verify_payment(payload: PaymentVerifyRequest, background_tasks: BackgroundTasks):
+    """Al ritorno da SumUp: segna come pagato SOLO se SumUp conferma lo stato PAID del checkout."""
+    ref_id = payload.ref_id
+    kind, doc, coll = None, None, None
+    for k, c in (("registration", db.registrations), ("event_signup", db.event_signups), ("donation", db.donations)):
+        d = await c.find_one({"id": ref_id}, {"_id": 0})
+        if d:
+            kind, doc, coll = k, d, c
+            break
+    if not doc:
+        raise HTTPException(status_code=404, detail="Riferimento pagamento non trovato")
+
+    status = await _sumup_checkout_status(doc.get("sumup_checkout_id"))
+    if status != "PAID":
+        return {"paid": False, "kind": kind, "status": status or "UNKNOWN"}
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if kind == "registration":
+        await coll.update_one({"id": ref_id}, {"$set": {"payment_completed": True, "payment_completed_at": now_iso}})
+        await coll.update_one({"id": ref_id, "status": "pending"}, {"$set": {"status": "completed"}})
+    elif kind == "event_signup":
+        await coll.update_one({"id": ref_id}, {"$set": {"payment_completed": True, "payment_completed_at": now_iso}})
+    else:
+        res = await coll.update_one(
+            {"id": ref_id, "status": "pending"},
+            {"$set": {"status": "completed", "payment_completed_at": now_iso}},
+        )
+        if res.modified_count:
+            background_tasks.add_task(
+                EmailService().send_donation_thank_you,
+                doc.get("email", ""),
+                doc.get("first_name", ""),
+                doc.get("amount"),
+            )
+    logger.info(f"Pagamento verificato su SumUp: {kind} {ref_id}")
+    return {"paid": True, "kind": kind, "status": "PAID"}
+
 @api_router.post("/payments/create-checkout")
 async def create_sumup_checkout(payload: PaymentRequest):
     api_key = os.environ.get("SUMUP_API_KEY")
@@ -1116,8 +1154,17 @@ async def create_sumup_checkout(payload: PaymentRequest):
                 }
             
             res_json = response.json()
+            checkout_id = res_json.get("id")
+            if payload.registration_id and checkout_id:
+                for coll in (db.registrations, db.event_signups):
+                    res = await coll.update_one(
+                        {"id": payload.registration_id},
+                        {"$set": {"sumup_checkout_id": checkout_id}},
+                    )
+                    if res.matched_count:
+                        break
             return {
-                "id": res_json.get("id"),
+                "id": checkout_id,
                 "status": res_json.get("status"),
                 "checkout_url": res_json.get("hosted_checkout_url")
             }
@@ -2406,6 +2453,16 @@ async def admin_update_event_signup_payment(signup_id: str, payload: PaymentStat
     res = await db.event_signups.update_one(
         {"id": signup_id},
         {"$set": {"payment_completed": payload.payment_completed}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Richiesta non trovata")
+    return {"ok": True}
+
+@api_router.delete("/admin/event-signups/{signup_id}/donation", dependencies=[Depends(require_admin)])
+async def admin_remove_event_signup_donation(signup_id: str):
+    res = await db.event_signups.update_one(
+        {"id": signup_id},
+        {"$set": {"donazione_volontaria": None}}
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Richiesta non trovata")
