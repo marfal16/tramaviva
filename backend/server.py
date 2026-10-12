@@ -2213,10 +2213,14 @@ async def admin_member_record(member_id: str):
 # ── Idee di eventi ────────────────────────────────────────────────────────────
 # Definite prima della rotta generica di eliminazione, che altrimenti intercetterebbe /admin/event-ideas/{id}.
 
+_IDEA_CATEGORIES = ("sede_rareca", "salute", "lab_creativi", "natura", "club", "altro")  # come nel calendario
+
 class EventIdeaIn(BaseModel):
     title: str
     description: Optional[str] = ""
     date: Optional[str] = ""  # "YYYY-MM-DD"; vuota = nessuna data
+    location: Optional[str] = ""
+    category: Optional[str] = ""  # una delle categorie del calendario; vuota = nessuna
 
 def _clean_event_idea(body: EventIdeaIn) -> dict:
     title = (body.title or "").strip()
@@ -2228,23 +2232,34 @@ def _clean_event_idea(body: EventIdeaIn) -> dict:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(status_code=400, detail="Data non valida")
-    return {"title": title, "description": (body.description or "").strip(), "date": date}
+    category = (body.category or "").strip()
+    if category and category not in _IDEA_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Categoria non valida")
+    return {
+        "title": title,
+        "description": (body.description or "").strip(),
+        "date": date,
+        "location": (body.location or "").strip(),
+        "category": category,
+    }
 
 async def _sync_idea_calendar(idea: dict) -> Optional[str]:
-    """Un'idea con data vive nel calendario come bozza ("in modifica"); un evento già ufficiale non viene toccato."""
+    """Un'idea con data e luogo vive nel calendario come bozza ("in modifica"); un evento già ufficiale non viene toccato."""
     event = None
     if idea.get("event_id"):
         event = await db.events.find_one({"id": idea["event_id"]}, {"_id": 0, "id": 1, "is_draft": 1})
     if event is not None and event.get("is_draft") is not True:
         return idea["event_id"]
-    if not idea.get("date"):
+    if not (idea.get("date") and idea.get("location")):
         if event is not None:
             await db.events.delete_one({"id": event["id"]})
         return None
     fields = {
         "title": idea["title"],
         "date": idea["date"],
+        "location": idea["location"],
         "description": idea.get("description") or "",
+        "calendar_category": idea.get("category") or "altro",
         "calendar_notes": idea.get("description") or None,
     }
     if event is not None:
@@ -2254,13 +2269,11 @@ async def _sync_idea_calendar(idea: dict) -> Optional[str]:
     await db.events.insert_one({
         "id": event_id,
         "slug": make_slug(idea["title"]) + "-" + event_id[-4:],
-        "calendar_category": "altro",
         "calendar_organizer": None,
         "calendar_status": "tentative",
         "is_draft": True,
         "idea_id": idea["id"],
         "time": "19:00",
-        "location": "",
         "emoji": "📅",
         "spots": 20,
         "max_participants": 20,
@@ -2306,7 +2319,7 @@ async def update_event_idea(idea_id: str, body: EventIdeaIn):
     idea["event_id"] = await _sync_idea_calendar(idea)
     await db.event_ideas.update_one(
         {"id": idea_id},
-        {"$set": {k: idea[k] for k in ("title", "description", "date", "event_id")}},
+        {"$set": {k: idea[k] for k in ("title", "description", "date", "location", "category", "event_id")}},
     )
     return idea
 

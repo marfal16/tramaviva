@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -3908,11 +3908,21 @@ const Dashboard = ({ token, onLogout }) => {
             {NAV.find(n => n.key === tab)?.label ?? ""}
           </h1>
           {tab === "events" ? (
-            <p className="text-xs md:text-sm text-tv-green-deep/60 mt-1 max-w-3xl leading-relaxed" data-testid="admin-events-howto">
-              Il percorso di un evento: <strong className="text-tv-green-deep">1. Idee</strong> — annota gli eventi che vorresti proporre (titolo, descrizione e, se vuoi, una data).{" "}
-              <strong className="text-tv-green-deep">2. Calendario</strong> — un'idea con data compare come bozza ("in modifica"); quando la confermi diventa evento ufficiale.{" "}
-              <strong className="text-tv-green-deep">3. Lista</strong> — qui trovi gli eventi ufficiali, da completare con tutti i dettagli.
-            </p>
+            <ol className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-2 max-w-4xl list-none p-0 m-0" data-testid="admin-events-howto">
+              {[
+                { n: 1, t: "Idee", d: "Appunta le proposte: titolo, descrizione, data, luogo e categoria." },
+                { n: 2, t: "Calendario", d: "Con data e luogo l'idea diventa bozza. Confermala per renderla ufficiale." },
+                { n: 3, t: "Lista", d: "Gli eventi ufficiali: completali con tutti i dettagli." },
+              ].map(step => (
+                <li key={step.n} className="flex items-start gap-2">
+                  <span className="shrink-0 w-5 h-5 mt-0.5 rounded-full bg-tv-green-deep/10 text-tv-green-deep text-[10px] font-black flex items-center justify-center">{step.n}</span>
+                  <span className="text-xs leading-snug text-tv-green-deep/60">
+                    <strong className="block text-tv-green-deep">{step.t}</strong>
+                    {step.d}
+                  </span>
+                </li>
+              ))}
+            </ol>
           ) : (
             <p className="text-xs text-tv-green-deep/50 mt-0.5">
               {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
@@ -5358,22 +5368,18 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
 
 // ─── Idee di eventi ───────────────────────────────────────────────────────────
 
-const IDEA_EMPTY = { title: "", description: "", date: "" };
+const IDEA_EMPTY = { title: "", description: "", date: "", location: "", category: "" };
 
-const IDEA_STATES = {
-  none: { label: "Senza data", cls: "bg-gray-100 text-gray-500" },
-  draft: { label: "In calendario · bozza", cls: "bg-amber-100 text-amber-700 border border-dashed border-amber-400" },
-  official: { label: "Evento ufficiale · completalo in Lista", cls: "bg-tv-green/20 text-tv-green-deep" },
-  missing: { label: "Data impostata · non in calendario", cls: "bg-tv-bordeaux/10 text-tv-bordeaux" },
-};
-
-const IdeasManager = ({ token }) => {
+const IdeasManager = forwardRef(({ token }, ref) => {
   const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
   const [ideas, setIdeas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null); // null | { id: string | null }
   const [form, setForm] = useState(IDEA_EMPTY);
-  const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const openNew = useCallback(() => { setForm(IDEA_EMPTY); setModal({ id: null }); }, []);
+  useImperativeHandle(ref, () => ({ openNew }), [openNew]);
 
   const load = async () => {
     try {
@@ -5385,36 +5391,41 @@ const IdeasManager = ({ token }) => {
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const resetForm = () => { setForm(IDEA_EMPTY); setEditingId(null); };
+  const openEdit = (idea) => {
+    setForm({
+      title: idea.title || "",
+      description: idea.description || "",
+      date: idea.event_date || idea.date || "",
+      location: idea.location || "",
+      category: idea.category || "",
+    });
+    setModal({ id: idea.id });
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) { toast.error("Il titolo è obbligatorio."); return; }
     setSaving(true);
     try {
-      if (editingId) {
-        await axios.put(`${API}/admin/event-ideas/${editingId}`, form, auth);
+      if (modal.id) {
+        await axios.put(`${API}/admin/event-ideas/${modal.id}`, form, auth);
         toast.success("Idea aggiornata.");
       } else {
         await axios.post(`${API}/admin/event-ideas`, form, auth);
-        toast.success(form.date ? "Idea aggiunta e messa in calendario come bozza." : "Idea aggiunta.");
+        toast.success(form.date && form.location ? "Idea aggiunta e messa in calendario come bozza." : "Idea aggiunta.");
       }
-      resetForm();
+      setModal(null);
       await load();
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Errore nel salvataggio dell'idea.");
     } finally { setSaving(false); }
   };
 
-  const startEdit = (idea) => {
-    setEditingId(idea.id);
-    setForm({ title: idea.title || "", description: idea.description || "", date: idea.event_date || idea.date || "" });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const putCalendar = async (idea) => {
     try {
-      await axios.put(`${API}/admin/event-ideas/${idea.id}`, { title: idea.title, description: idea.description, date: idea.date }, auth);
+      await axios.put(`${API}/admin/event-ideas/${idea.id}`, {
+        title: idea.title, description: idea.description, date: idea.date, location: idea.location, category: idea.category,
+      }, auth);
       toast.success("Idea rimessa in calendario come bozza.");
       await load();
     } catch (err) { toast.error(err?.response?.data?.detail || "Errore nel salvataggio."); }
@@ -5426,7 +5437,6 @@ const IdeasManager = ({ token }) => {
     try {
       await axios.delete(`${API}/admin/event-ideas/${idea.id}`, auth);
       toast.success("Idea eliminata.");
-      if (editingId === idea.id) resetForm();
       await load();
     } catch (err) { toast.error(err?.response?.data?.detail || "Errore nell'eliminazione."); }
   };
@@ -5448,45 +5458,7 @@ const IdeasManager = ({ token }) => {
   const labelCls = "text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block";
 
   return (
-    <div className="space-y-5" data-testid="admin-ideas-manager">
-      <form onSubmit={submit} className="bg-white rounded-2xl border border-tv-green-deep/10 p-4 md:p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Lightbulb size={16} className="text-tv-orange" />
-          <h2 className="font-display font-black text-base text-tv-green-deep">{editingId ? "Modifica idea" : "Nuova idea"}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="md:col-span-2">
-            <label className={labelCls}>Titolo *</label>
-            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className={inputCls} placeholder="Es. Serata giochi da tavolo" />
-          </div>
-          <div>
-            <label className={labelCls}>Data (facoltativa)</label>
-            <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputCls} />
-          </div>
-          <div className="md:col-span-3">
-            <label className={labelCls}>Descrizione</label>
-            <textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className={`${inputCls} resize-none`} placeholder="Di cosa si tratta, a chi è rivolto, note utili…" />
-          </div>
-        </div>
-        <p className="mt-2 text-[11px] text-tv-green-deep/55">
-          Se imposti una data, l'idea compare nel Calendario come bozza ("in modifica"): confermala da lì per renderla un evento ufficiale.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button type="submit" disabled={saving}
-            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-60">
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} {editingId ? "Salva modifiche" : "Aggiungi idea"}
-          </button>
-          {editingId && (
-            <button type="button" onClick={resetForm}
-              className="px-5 py-2.5 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep text-sm font-bold">
-              Annulla
-            </button>
-          )}
-        </div>
-      </form>
-
+    <div data-testid="admin-ideas-manager">
       {loading ? (
         <div className="flex items-center gap-2 text-tv-green-deep/60 font-bold py-6">
           <Loader2 size={18} className="animate-spin" /> Caricamento…
@@ -5496,53 +5468,128 @@ const IdeasManager = ({ token }) => {
           Nessuna idea ancora. Aggiungi la prima!
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="space-y-2 max-w-4xl">
           {sorted.map(idea => {
             const official = idea.event_state === "official";
-            const st = IDEA_STATES[idea.event_state] || IDEA_STATES.none;
+            const cat = CAL_CATS[idea.category];
             const when = shownDate(idea);
+            const meta = [when ? fmtDay(when) : "", idea.location || ""].filter(Boolean).join(" · ");
+            const hint = idea.event_state === "none"
+              ? (when && !idea.location ? "Aggiungi il luogo per metterla in calendario"
+                : idea.location && !when ? "Aggiungi la data per metterla in calendario" : "")
+              : "";
             return (
               <article key={idea.id} data-testid={`admin-idea-${idea.id}`}
-                className={`rounded-xl border p-3 bg-white ${official ? "border-tv-green/25 opacity-75" : "border-tv-green-deep/10"}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-display font-black text-sm text-tv-green-deep break-words">{idea.title}</h3>
-                  <div className="flex gap-1 shrink-0">
-                    {!official && (
-                      <button onClick={() => startEdit(idea)} aria-label="Modifica" title="Modifica"
-                        className="p-2 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
-                        <Pencil size={13} />
-                      </button>
+                className={`flex items-stretch bg-white rounded-xl border border-tv-green-deep/10 overflow-hidden ${official ? "opacity-70" : ""}`}>
+                <div className={`w-1.5 shrink-0 ${cat ? cat.bg : "bg-tv-green-deep/10"}`} />
+                <div className="flex-1 min-w-0 px-3 py-2.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-display font-black text-sm text-tv-green-deep break-words">{idea.title}</h3>
+                    {cat && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${cat.bg} ${cat.text}`}>{cat.label}</span>}
+                  </div>
+                  {idea.description && <p className="mt-0.5 text-xs text-tv-green-deep/60 line-clamp-2 whitespace-pre-line break-words">{idea.description}</p>}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-tv-green-deep/50">
+                    {meta && <span>{meta}</span>}
+                    {idea.event_state === "draft" && <span className="font-bold text-amber-700">Bozza in calendario</span>}
+                    {official && <span className="font-bold text-tv-green">Evento ufficiale · completalo in Lista</span>}
+                    {idea.event_state === "missing" && (
+                      <>
+                        <span className="font-bold text-tv-bordeaux">Non più in calendario</span>
+                        <button onClick={() => putCalendar(idea)} className="underline font-bold text-tv-green-deep hover:text-tv-bordeaux">Rimetti in calendario</button>
+                      </>
                     )}
-                    <button onClick={() => remove(idea)} aria-label="Elimina" title="Elimina"
-                      className="p-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
-                      <Trash2 size={13} />
-                    </button>
+                    {hint && <span className="italic">{hint}</span>}
                   </div>
                 </div>
-                {idea.description && <p className="mt-1 text-xs text-tv-green-deep/65 whitespace-pre-line break-words">{idea.description}</p>}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  {when && <span className="text-[10px] font-bold bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full">{fmtDay(when)}</span>}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
-                  {idea.event_state === "missing" && (
-                    <button onClick={() => putCalendar(idea)}
-                      className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors">
-                      Rimetti in calendario
+                <div className="flex items-center gap-1 pr-2.5 shrink-0">
+                  {!official && (
+                    <button onClick={() => openEdit(idea)} aria-label="Modifica" title="Modifica"
+                      className="p-2 rounded-full text-tv-green-deep/60 hover:bg-tv-sky/40 hover:text-tv-green-deep transition-colors">
+                      <Pencil size={14} />
                     </button>
                   )}
+                  <button onClick={() => remove(idea)} aria-label="Elimina" title="Elimina"
+                    className="p-2 rounded-full text-tv-bordeaux/70 hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux transition-colors">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </article>
             );
           })}
         </div>
       )}
+
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setModal(null)}>
+          <form onSubmit={submit} onClick={e => e.stopPropagation()}
+            className="bg-white rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 w-full sm:max-w-md shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display font-black text-base text-tv-green-deep">{modal.id ? "Modifica idea" : "Nuova idea"}</h3>
+              <button type="button" onClick={() => setModal(null)} aria-label="Chiudi" className="p-1.5 rounded-xl hover:bg-tv-green-deep/10"><X size={15} /></button>
+            </div>
+            <div className="space-y-2.5">
+              <div>
+                <label className={labelCls}>Titolo *</label>
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  className={inputCls} placeholder="Es. Serata giochi da tavolo" autoFocus />
+              </div>
+              <div>
+                <label className={labelCls}>Descrizione</label>
+                <textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  className={`${inputCls} resize-none`} placeholder="Di cosa si tratta, a chi è rivolto…" />
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className={labelCls}>Data</label>
+                  <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Luogo</label>
+                  <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                    className={inputCls} placeholder="Es. Sede" />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Categoria</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(CAL_CATS).map(([key, c]) => (
+                    <button key={key} type="button"
+                      onClick={() => setForm(f => ({ ...f, category: f.category === key ? "" : key }))}
+                      aria-pressed={form.category === key}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full transition-all ${c.bg} ${c.text} ${
+                        form.category === key ? "ring-2 ring-tv-green-deep ring-offset-1" : form.category ? "opacity-40" : "opacity-90"
+                      }`}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-tv-green-deep/55">
+              Con data e luogo l'idea compare nel Calendario come bozza: confermala da lì per renderla ufficiale.
+            </p>
+            <div className="flex gap-2 mt-4">
+              <button type="button" onClick={() => setModal(null)}
+                className="px-4 py-2.5 rounded-2xl bg-tv-green-deep/10 text-tv-green-deep text-sm font-bold hover:bg-tv-green-deep/15 transition-colors">
+                Annulla
+              </button>
+              <button type="submit" disabled={saving}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-60">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : null} {modal.id ? "Salva modifiche" : "Aggiungi idea"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
-};
+});
 
 // ─── Events manager con storico ───────────────────────────────────────────────
 
 const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) => {
   const [view, setView] = useState("lista");
+  const ideasRef = useRef(null);
 
   const fmtDay = (d) => {
     try { return new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" }); }
@@ -5647,12 +5694,21 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) 
             <Plus size={16} /> Crea evento
           </button>
         )}
+        {view === "idee" && (
+          <button
+            onClick={() => ideasRef.current?.openNew()}
+            data-testid="admin-idea-new"
+            className="btn-tv inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold"
+          >
+            <Plus size={16} /> Aggiungi idea
+          </button>
+        )}
       </div>
 
       {view === "calendario" ? (
         <CalendarManager token={token} onReload={onReload} />
       ) : view === "idee" ? (
-        <IdeasManager token={token} />
+        <IdeasManager ref={ideasRef} token={token} />
       ) : events.length === 0 ? (
         <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
           Nessun evento ancora. Crea il primo!
