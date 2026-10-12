@@ -258,7 +258,7 @@ const RegistrationCard = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove
             </button>
           )}
           <div className="w-px h-5 bg-tv-green-deep/10 mx-1" />
-          {!isArchived && (
+          {!isArchived && !row._from_members && (
             <button
               onClick={() => onCleanup(row)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux font-bold text-xs hover:bg-tv-bordeaux/20 transition-colors"
@@ -372,7 +372,7 @@ const RegistrationRow = ({ row, onPdf, pdfLoadingId, onTogglePayment, onApprove,
               ★
             </button>
           )}
-          {!isArchived && <button onClick={() => onCleanup(row)} title="Cancella dati"
+          {!isArchived && !row._from_members && <button onClick={() => onCleanup(row)} title="Cancella dati"
             className="p-1.5 rounded-lg bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux/20 transition-colors">
             <ShieldOff size={13}/>
           </button>}
@@ -685,7 +685,7 @@ const RegistrationsManager = ({ list, onPdf, pdfLoadingId, onTogglePayment, onAp
                         ★ {row.is_fondatore ? "Fondatore" : "Fondatore?"}
                       </button>
                     )}
-                    {!isArchived && (
+                    {!isArchived && !row._from_members && (
                       <button onClick={() => onCleanup(row)}
                         className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-bordeaux/10 text-tv-bordeaux text-[11px] font-bold rounded-full hover:bg-tv-bordeaux/20 transition-colors">
                         <ShieldOff size={11}/> Dati

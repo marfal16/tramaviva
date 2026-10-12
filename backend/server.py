@@ -2055,6 +2055,8 @@ async def admin_download_pdf(registration_id: str):
             "pdf_base64": pdf_base64,
             "filename": f"iscrizione_{registration['first_name']}_{registration['last_name']}_{registration_id[:8]}.pdf"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Errore nel download PDF: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -2072,6 +2074,8 @@ async def admin_resend_confirmation(registration_id: str):
             registration_id=registration_id,
         )
         return {"ok": True, "message": "Email di conferma reinviata."}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Errore reinvio email: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -2097,6 +2101,8 @@ async def admin_cleanup_registration(registration_id: str):
         }
         await db.registrations.replace_one({"id": registration_id}, cleaned_data)
         return {"ok": True, "message": "Dati sensibili eliminati con successo."}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Errore nel cleanup: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -2132,6 +2138,8 @@ async def admin_approve_registration(registration_id: str):
             {"$set": {"status": "approved", "promoted_to_member_at": datetime.now(timezone.utc).isoformat()}}
         )
         return {"ok": True, "message": f"Socio {member.first_name} creato correttamente."}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Errore nell'approvazione: {e}")
         raise HTTPException(status_code=400, detail=str(e))
