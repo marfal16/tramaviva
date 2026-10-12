@@ -290,11 +290,11 @@ const copyText = async (text) => {
 };
 
 const CheckItem = ({ checked, onChange, label, disabled }) => (
-  <label className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border select-none text-xs font-bold transition-colors ${
+  <label className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border select-none text-[11px] font-bold transition-colors ${
     checked ? "bg-tv-green/15 border-tv-green/40 text-tv-green-deep" : "bg-white border-tv-green-deep/15 text-tv-green-deep/70"
   } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
     <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)}
-      className="h-5 w-5 shrink-0 accent-tv-green" />
+      className="h-4 w-4 shrink-0 accent-tv-green" />
     {label}
   </label>
 );
@@ -310,7 +310,7 @@ const SocioCard = ({
   const checklist = row.checklist || {};
   const allFour = CHECKLIST_ITEMS.every(i => checklist[i.key]);
   const canEdit = section === "completed" || (section === "approved" && !row.has_registration);
-  const btn = "inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-full text-xs font-bold transition-colors disabled:opacity-50";
+  const btn = "inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold transition-colors disabled:opacity-50";
   const btnLight = `${btn} bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky`;
   const tone = section === "pending" ? "bg-amber-50 border-tv-orange/25"
     : row.is_fondatore ? "bg-amber-50 border-amber-200"
@@ -318,16 +318,16 @@ const SocioCard = ({
     : "bg-white border-tv-green-deep/10";
 
   return (
-    <article className={`rounded-2xl border p-4 ${tone}`} data-testid={`admin-row-${row.key}`}>
-      <div className="flex items-start gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+    <article className={`rounded-xl border p-3 ${tone}`} data-testid={`admin-row-${row.key}`}>
+      <div className="flex items-start gap-2.5">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
           row.is_fondatore ? "bg-amber-400 text-white" : section === "pending" ? "bg-tv-green-deep text-tv-cream" : "bg-tv-green text-tv-cream"
         }`}>{(name[0] || "?").toUpperCase()}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="font-semibold text-tv-green-deep break-words">{name}</div>
-              <div className="mt-1 flex flex-wrap gap-1.5">
+              <div className="font-semibold text-sm text-tv-green-deep break-words">{name}</div>
+              <div className="mt-0.5 flex flex-wrap gap-1">
                 {row.is_fondatore && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">★ Fondatore</span>}
                 {row.is_minorenne && <span className="text-[10px] font-bold bg-tv-bordeaux/10 text-tv-bordeaux px-2 py-0.5 rounded-full">👶 Minorenne</span>}
                 {row.is_manual && <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">📋 Cartaceo</span>}
@@ -343,12 +343,12 @@ const SocioCard = ({
               </div>
             </div>
             {row.tessera_number && (
-              <span className="shrink-0 inline-flex items-center justify-center min-w-[2.5rem] px-3 py-1.5 rounded-xl bg-tv-orange/25 text-tv-green-deep font-display font-black text-lg leading-none">
+              <span className="shrink-0 inline-flex items-center justify-center min-w-[2rem] px-2 py-1 rounded-lg bg-tv-orange/25 text-tv-green-deep font-display font-black text-sm leading-none">
                 {row.tessera_number}
               </span>
             )}
           </div>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-tv-green-deep/65">
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-tv-green-deep/65">
             {row.email && <a href={`mailto:${row.email}`} className="hover:text-tv-bordeaux flex items-center gap-1 min-w-0"><Mail size={12} className="shrink-0" /><span className="break-all">{row.email}</span></a>}
             {phone && <span>{phone}</span>}
             {section === "pending" && row.created_at && <span className="text-tv-green-deep/45">{fmtDate(row.created_at)}</span>}
@@ -357,15 +357,15 @@ const SocioCard = ({
       </div>
 
       {section === "approved" && (
-        <div className="mt-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="mt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
             {CHECKLIST_ITEMS.map(i => (
               <CheckItem key={i.key} label={i.label} checked={!!checklist[i.key]} disabled={busy}
                 onChange={(v) => onToggleCheck(row, i.key, v)} />
             ))}
           </div>
           {!allFour && (
-            <p className="mt-2 text-[11px] text-tv-green-deep/50">
+            <p className="mt-1.5 text-[10px] text-tv-green-deep/50">
               Spunta tutte e 4 le voci per poter copiare i dati e completare la pratica.
             </p>
           )}
@@ -373,13 +373,13 @@ const SocioCard = ({
       )}
 
       {section === "completed" && (
-        <div className="mt-3 max-w-xs">
+        <div className="mt-2 max-w-[14rem]">
           <CheckItem label="Modulo cartaceo firmato" checked={!!checklist.modulo_firmato} disabled={busy}
             onChange={(v) => onToggleCheck(row, "modulo_firmato", v)} />
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {section === "pending" && (
           <>
             <button onClick={() => onApprove(row)} disabled={busy} data-testid={`admin-promote-${row.id}`}
@@ -650,7 +650,7 @@ const RegistrationsManager = ({
       {filteredList.length === 0 ? (
         <div className="text-center py-16 text-tv-green-deep/40 text-sm">Nessun risultato.</div>
       ) : (
-        <div className="space-y-3 p-3 sm:p-4">
+        <div className="space-y-2 p-2.5 sm:p-3">
           {filteredList.map(row => (
             <SocioCard key={row.key} row={row} busy={busyKey === row.key} pdfLoadingId={pdfLoadingId}
               onApprove={onApprove} onReject={onReject} onPdf={onPdf} onResend={onResend}
