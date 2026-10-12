@@ -2210,6 +2210,116 @@ async def admin_member_record(member_id: str):
         reg.update(await _store_recovered_consents(reg["id"], (original or {}).get("pdf_base64")))
     return {"row": _member_record(m, reg)}
 
+# ── Idee di eventi ────────────────────────────────────────────────────────────
+# Definite prima della rotta generica di eliminazione, che altrimenti intercetterebbe /admin/event-ideas/{id}.
+
+class EventIdeaIn(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    date: Optional[str] = ""  # "YYYY-MM-DD"; vuota = nessuna data
+
+def _clean_event_idea(body: EventIdeaIn) -> dict:
+    title = (body.title or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Il titolo è obbligatorio")
+    date = (body.date or "").strip()
+    if date:
+        try:
+            datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Data non valida")
+    return {"title": title, "description": (body.description or "").strip(), "date": date}
+
+async def _sync_idea_calendar(idea: dict) -> Optional[str]:
+    """Un'idea con data vive nel calendario come bozza ("in modifica"); un evento già ufficiale non viene toccato."""
+    event = None
+    if idea.get("event_id"):
+        event = await db.events.find_one({"id": idea["event_id"]}, {"_id": 0, "id": 1, "is_draft": 1})
+    if event is not None and event.get("is_draft") is not True:
+        return idea["event_id"]
+    if not idea.get("date"):
+        if event is not None:
+            await db.events.delete_one({"id": event["id"]})
+        return None
+    fields = {
+        "title": idea["title"],
+        "date": idea["date"],
+        "description": idea.get("description") or "",
+        "calendar_notes": idea.get("description") or None,
+    }
+    if event is not None:
+        await db.events.update_one({"id": event["id"]}, {"$set": fields})
+        return event["id"]
+    event_id = str(uuid.uuid4())
+    await db.events.insert_one({
+        "id": event_id,
+        "slug": make_slug(idea["title"]) + "-" + event_id[-4:],
+        "calendar_category": "altro",
+        "calendar_organizer": None,
+        "calendar_status": "tentative",
+        "is_draft": True,
+        "idea_id": idea["id"],
+        "time": "19:00",
+        "location": "",
+        "emoji": "📅",
+        "spots": 20,
+        "max_participants": 20,
+        "contributo": 0.0,
+        "featured": False,
+        "categories": [],
+        "created_at": datetime.utcnow().isoformat(),
+        **fields,
+    })
+    return event_id
+
+@api_router.get("/admin/event-ideas", dependencies=[Depends(require_admin)])
+async def list_event_ideas():
+    ideas = await db.event_ideas.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    ids = [i["event_id"] for i in ideas if i.get("event_id")]
+    events = {}
+    if ids:
+        found = await db.events.find({"id": {"$in": ids}}, {"_id": 0, "id": 1, "is_draft": 1, "date": 1}).to_list(1000)
+        events = {e["id"]: e for e in found}
+    for idea in ideas:
+        event = events.get(idea.get("event_id"))
+        if event is None:
+            idea["event_state"] = "missing" if idea.get("event_id") else "none"
+            idea["event_date"] = None
+        else:
+            idea["event_state"] = "draft" if event.get("is_draft") is True else "official"
+            idea["event_date"] = (event.get("date") or "")[:10] or None
+    return ideas
+
+@api_router.post("/admin/event-ideas", dependencies=[Depends(require_admin)])
+async def create_event_idea(body: EventIdeaIn):
+    idea = {"id": str(uuid.uuid4()), **_clean_event_idea(body), "event_id": None, "created_at": datetime.utcnow().isoformat()}
+    idea["event_id"] = await _sync_idea_calendar(idea)
+    await db.event_ideas.insert_one(dict(idea))
+    return idea
+
+@api_router.put("/admin/event-ideas/{idea_id}", dependencies=[Depends(require_admin)])
+async def update_event_idea(idea_id: str, body: EventIdeaIn):
+    idea = await db.event_ideas.find_one({"id": idea_id}, {"_id": 0})
+    if idea is None:
+        raise HTTPException(status_code=404, detail="Idea non trovata")
+    idea.update(_clean_event_idea(body))
+    idea["event_id"] = await _sync_idea_calendar(idea)
+    await db.event_ideas.update_one(
+        {"id": idea_id},
+        {"$set": {k: idea[k] for k in ("title", "description", "date", "event_id")}},
+    )
+    return idea
+
+@api_router.delete("/admin/event-ideas/{idea_id}", dependencies=[Depends(require_admin)])
+async def delete_event_idea(idea_id: str):
+    idea = await db.event_ideas.find_one({"id": idea_id}, {"_id": 0, "event_id": 1})
+    if idea is None:
+        raise HTTPException(status_code=404, detail="Idea non trovata")
+    if idea.get("event_id"):
+        await db.events.delete_one({"id": idea["event_id"], "is_draft": True})
+    await db.event_ideas.delete_one({"id": idea_id})
+    return {"ok": True}
+
 @api_router.delete("/admin/{collection}/{doc_id}", dependencies=[Depends(require_admin)])
 async def admin_delete(collection: str, doc_id: str):
     allowed = {

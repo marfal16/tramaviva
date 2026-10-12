@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film, Grid3x3, ChevronLeft, ChevronRight } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film, Grid3x3, ChevronLeft, ChevronRight, Lightbulb } from "lucide-react";
 import CoverSearchWidget from "./CoverSearchWidget";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -3888,9 +3888,17 @@ const Dashboard = ({ token, onLogout }) => {
           <h1 className="font-display font-black text-xl md:text-2xl text-tv-green-deep">
             {NAV.find(n => n.key === tab)?.label ?? ""}
           </h1>
-          <p className="text-xs text-tv-green-deep/50 mt-0.5">
-            {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-          </p>
+          {tab === "events" ? (
+            <p className="text-xs md:text-sm text-tv-green-deep/60 mt-1 max-w-3xl leading-relaxed" data-testid="admin-events-howto">
+              Il percorso di un evento: <strong className="text-tv-green-deep">1. Idee</strong> — annota gli eventi che vorresti proporre (titolo, descrizione e, se vuoi, una data).{" "}
+              <strong className="text-tv-green-deep">2. Calendario</strong> — un'idea con data compare come bozza ("in modifica"); quando la confermi diventa evento ufficiale.{" "}
+              <strong className="text-tv-green-deep">3. Lista</strong> — qui trovi gli eventi ufficiali, da completare con tutti i dettagli.
+            </p>
+          ) : (
+            <p className="text-xs text-tv-green-deep/50 mt-0.5">
+              {new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            </p>
+          )}
         </div>
       )}
 
@@ -5329,6 +5337,189 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
   );
 };
 
+// ─── Idee di eventi ───────────────────────────────────────────────────────────
+
+const IDEA_EMPTY = { title: "", description: "", date: "" };
+
+const IDEA_STATES = {
+  none: { label: "Senza data", cls: "bg-gray-100 text-gray-500" },
+  draft: { label: "In calendario · bozza", cls: "bg-amber-100 text-amber-700 border border-dashed border-amber-400" },
+  official: { label: "Evento ufficiale · completalo in Lista", cls: "bg-tv-green/20 text-tv-green-deep" },
+  missing: { label: "Data impostata · non in calendario", cls: "bg-tv-bordeaux/10 text-tv-bordeaux" },
+};
+
+const IdeasManager = ({ token }) => {
+  const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
+  const [ideas, setIdeas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(IDEA_EMPTY);
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    try {
+      const r = await axios.get(`${API}/admin/event-ideas`, auth);
+      setIdeas(Array.isArray(r.data) ? r.data : []);
+    } catch { toast.error("Errore nel caricamento delle idee."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resetForm = () => { setForm(IDEA_EMPTY); setEditingId(null); };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) { toast.error("Il titolo è obbligatorio."); return; }
+    setSaving(true);
+    try {
+      if (editingId) {
+        await axios.put(`${API}/admin/event-ideas/${editingId}`, form, auth);
+        toast.success("Idea aggiornata.");
+      } else {
+        await axios.post(`${API}/admin/event-ideas`, form, auth);
+        toast.success(form.date ? "Idea aggiunta e messa in calendario come bozza." : "Idea aggiunta.");
+      }
+      resetForm();
+      await load();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Errore nel salvataggio dell'idea.");
+    } finally { setSaving(false); }
+  };
+
+  const startEdit = (idea) => {
+    setEditingId(idea.id);
+    setForm({ title: idea.title || "", description: idea.description || "", date: idea.event_date || idea.date || "" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const putCalendar = async (idea) => {
+    try {
+      await axios.put(`${API}/admin/event-ideas/${idea.id}`, { title: idea.title, description: idea.description, date: idea.date }, auth);
+      toast.success("Idea rimessa in calendario come bozza.");
+      await load();
+    } catch (err) { toast.error(err?.response?.data?.detail || "Errore nel salvataggio."); }
+  };
+
+  const remove = async (idea) => {
+    const warn = idea.event_state === "draft" ? "\n\nLa bozza in calendario verrà tolta." : idea.event_state === "official" ? "\n\nL'evento ufficiale resta in Lista." : "";
+    if (!window.confirm(`Eliminare l'idea "${idea.title}"?${warn}`)) return;
+    try {
+      await axios.delete(`${API}/admin/event-ideas/${idea.id}`, auth);
+      toast.success("Idea eliminata.");
+      if (editingId === idea.id) resetForm();
+      await load();
+    } catch (err) { toast.error(err?.response?.data?.detail || "Errore nell'eliminazione."); }
+  };
+
+  const shownDate = (i) => i.event_date || i.date || "";
+  const sorted = [...ideas].sort((a, b) => {
+    const oa = a.event_state === "official" ? 1 : 0;
+    const ob = b.event_state === "official" ? 1 : 0;
+    if (oa !== ob) return oa - ob;
+    const da = shownDate(a);
+    const dbd = shownDate(b);
+    if (da && dbd) return da.localeCompare(dbd);
+    if (da) return -1;
+    if (dbd) return 1;
+    return (b.created_at || "").localeCompare(a.created_at || "");
+  });
+
+  const inputCls = "w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep focus:border-tv-green outline-none";
+  const labelCls = "text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block";
+
+  return (
+    <div className="space-y-5" data-testid="admin-ideas-manager">
+      <form onSubmit={submit} className="bg-white rounded-2xl border border-tv-green-deep/10 p-4 md:p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Lightbulb size={16} className="text-tv-orange" />
+          <h2 className="font-display font-black text-base text-tv-green-deep">{editingId ? "Modifica idea" : "Nuova idea"}</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <label className={labelCls}>Titolo *</label>
+            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              className={inputCls} placeholder="Es. Serata giochi da tavolo" />
+          </div>
+          <div>
+            <label className={labelCls}>Data (facoltativa)</label>
+            <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputCls} />
+          </div>
+          <div className="md:col-span-3">
+            <label className={labelCls}>Descrizione</label>
+            <textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              className={`${inputCls} resize-none`} placeholder="Di cosa si tratta, a chi è rivolto, note utili…" />
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-tv-green-deep/55">
+          Se imposti una data, l'idea compare nel Calendario come bozza ("in modifica"): confermala da lì per renderla un evento ufficiale.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="submit" disabled={saving}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream text-sm font-bold hover:bg-tv-green transition-colors disabled:opacity-60">
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} {editingId ? "Salva modifiche" : "Aggiungi idea"}
+          </button>
+          {editingId && (
+            <button type="button" onClick={resetForm}
+              className="px-5 py-2.5 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep text-sm font-bold">
+              Annulla
+            </button>
+          )}
+        </div>
+      </form>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-tv-green-deep/60 font-bold py-6">
+          <Loader2 size={18} className="animate-spin" /> Caricamento…
+        </div>
+      ) : sorted.length === 0 ? (
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+          Nessuna idea ancora. Aggiungi la prima!
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {sorted.map(idea => {
+            const official = idea.event_state === "official";
+            const st = IDEA_STATES[idea.event_state] || IDEA_STATES.none;
+            const when = shownDate(idea);
+            return (
+              <article key={idea.id} data-testid={`admin-idea-${idea.id}`}
+                className={`rounded-xl border p-3 bg-white ${official ? "border-tv-green/25 opacity-75" : "border-tv-green-deep/10"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-display font-black text-sm text-tv-green-deep break-words">{idea.title}</h3>
+                  <div className="flex gap-1 shrink-0">
+                    {!official && (
+                      <button onClick={() => startEdit(idea)} aria-label="Modifica" title="Modifica"
+                        className="p-2 rounded-full bg-tv-sky/30 text-tv-green-deep hover:bg-tv-sky transition-colors">
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    <button onClick={() => remove(idea)} aria-label="Elimina" title="Elimina"
+                      className="p-2 rounded-full bg-tv-bordeaux/10 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+                {idea.description && <p className="mt-1 text-xs text-tv-green-deep/65 whitespace-pre-line break-words">{idea.description}</p>}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {when && <span className="text-[10px] font-bold bg-tv-sky/40 text-tv-green-deep px-2 py-0.5 rounded-full">{fmtDay(when)}</span>}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
+                  {idea.event_state === "missing" && (
+                    <button onClick={() => putCalendar(idea)}
+                      className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors">
+                      Rimetti in calendario
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Events manager con storico ───────────────────────────────────────────────
 
 const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) => {
@@ -5414,13 +5605,14 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) 
   return (
     <div data-testid="admin-events-manager">
       {/* Toggle view */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex items-center bg-tv-green-deep/10 rounded-2xl p-1 gap-1">
-          {[{ k: "lista", label: "Lista", icon: CalendarPlus }, { k: "calendario", label: "Calendario", icon: Grid3x3 }].map(v => (
+          {[{ k: "lista", label: "Lista", icon: CalendarPlus }, { k: "calendario", label: "Calendario", icon: Grid3x3 }, { k: "idee", label: "Idee", icon: Lightbulb }].map(v => (
             <button
               key={v.k}
               onClick={() => setView(v.k)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all
+              data-testid={`admin-events-view-${v.k}`}
+              className={`flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold transition-all
                 ${view === v.k ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/60 hover:text-tv-green-deep"}`}
             >
               <v.icon size={14} /> {v.label}
@@ -5440,6 +5632,8 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) 
 
       {view === "calendario" ? (
         <CalendarManager token={token} onReload={onReload} />
+      ) : view === "idee" ? (
+        <IdeasManager token={token} />
       ) : events.length === 0 ? (
         <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
           Nessun evento ancora. Crea il primo!
