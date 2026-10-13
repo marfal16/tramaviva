@@ -2221,6 +2221,7 @@ class EventIdeaIn(BaseModel):
     date: Optional[str] = ""  # "YYYY-MM-DD"; vuota = nessuna data
     location: Optional[str] = ""
     category: Optional[str] = ""  # una delle categorie del calendario; vuota = nessuna
+    month: Optional[str] = ""  # mese di riferimento "YYYY-MM"; con una data vale il mese della data
 
 def _clean_event_idea(body: EventIdeaIn) -> dict:
     title = (body.title or "").strip()
@@ -2235,12 +2236,18 @@ def _clean_event_idea(body: EventIdeaIn) -> dict:
     category = (body.category or "").strip()
     if category and category not in _IDEA_CATEGORIES:
         raise HTTPException(status_code=400, detail="Categoria non valida")
+    month = (body.month or "").strip()
+    if month and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month):
+        raise HTTPException(status_code=400, detail="Mese non valido")
+    if date:
+        month = date[:7]
     return {
         "title": title,
         "description": (body.description or "").strip(),
         "date": date,
         "location": (body.location or "").strip(),
         "category": category,
+        "month": month,
     }
 
 async def _sync_idea_calendar(idea: dict) -> Optional[str]:
@@ -2319,7 +2326,7 @@ async def update_event_idea(idea_id: str, body: EventIdeaIn):
     idea["event_id"] = await _sync_idea_calendar(idea)
     await db.event_ideas.update_one(
         {"id": idea_id},
-        {"$set": {k: idea[k] for k in ("title", "description", "date", "location", "category", "event_id")}},
+        {"$set": {k: idea[k] for k in ("title", "description", "date", "location", "category", "month", "event_id")}},
     )
     return idea
 

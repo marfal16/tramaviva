@@ -5368,7 +5368,23 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
 
 // ─── Idee di eventi ───────────────────────────────────────────────────────────
 
-const IDEA_EMPTY = { title: "", description: "", date: "", location: "", category: "" };
+const IDEA_EMPTY = { title: "", description: "", date: "", location: "", category: "", month: "" };
+
+const ideaMonthLabel = (ym) => {
+  const [y, m] = ym.split("-");
+  return `${MONTHS_IT[Number(m) - 1]} ${y}`;
+};
+
+// Mesi selezionabili: i prossimi 18, più quello eventualmente già salvato
+const ideaMonthOptions = (current) => {
+  const now = new Date();
+  const opts = Array.from({ length: 18 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  if (current && !opts.includes(current)) opts.push(current);
+  return opts.sort();
+};
 
 const IdeasManager = forwardRef(({ token }, ref) => {
   const auth = useMemo(() => ({ headers: { Authorization: `Bearer ${token}` } }), [token]);
@@ -5398,6 +5414,7 @@ const IdeasManager = forwardRef(({ token }, ref) => {
       date: idea.event_date || idea.date || "",
       location: idea.location || "",
       category: idea.category || "",
+      month: (idea.event_date || idea.date || "").slice(0, 7) || idea.month || "",
     });
     setModal({ id: idea.id });
   };
@@ -5424,7 +5441,7 @@ const IdeasManager = forwardRef(({ token }, ref) => {
   const putCalendar = async (idea) => {
     try {
       await axios.put(`${API}/admin/event-ideas/${idea.id}`, {
-        title: idea.title, description: idea.description, date: idea.date, location: idea.location, category: idea.category,
+        title: idea.title, description: idea.description, date: idea.date, location: idea.location, category: idea.category, month: idea.month,
       }, auth);
       toast.success("Idea rimessa in calendario come bozza.");
       await load();
@@ -5442,7 +5459,8 @@ const IdeasManager = forwardRef(({ token }, ref) => {
   };
 
   const shownDate = (i) => i.event_date || i.date || "";
-  const sorted = [...ideas].sort((a, b) => {
+  const monthOf = (i) => shownDate(i).slice(0, 7) || i.month || "";
+  const compareIdeas = (a, b) => {
     const oa = a.event_state === "official" ? 1 : 0;
     const ob = b.event_state === "official" ? 1 : 0;
     if (oa !== ob) return oa - ob;
@@ -5452,7 +5470,60 @@ const IdeasManager = forwardRef(({ token }, ref) => {
     if (da) return -1;
     if (dbd) return 1;
     return (b.created_at || "").localeCompare(a.created_at || "");
-  });
+  };
+  const groups = Object.entries(
+    ideas.reduce((acc, i) => { (acc[monthOf(i)] = acc[monthOf(i)] || []).push(i); return acc; }, {})
+  )
+    .sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b)))
+    .map(([key, items]) => ({ key, items: [...items].sort(compareIdeas) }));
+
+  const renderIdea = (idea) => {
+    const official = idea.event_state === "official";
+    const cat = CAL_CATS[idea.category];
+    const when = shownDate(idea);
+    const meta = [when ? fmtDay(when) : "", idea.location || ""].filter(Boolean).join(" · ");
+    const hint = idea.event_state === "none"
+      ? (when && !idea.location ? "Aggiungi il luogo per metterla in calendario"
+        : idea.location && !when ? "Aggiungi la data per metterla in calendario" : "")
+      : "";
+    return (
+      <article key={idea.id} data-testid={`admin-idea-${idea.id}`}
+        className={`flex items-stretch bg-white rounded-xl border border-tv-green-deep/10 overflow-hidden ${official ? "opacity-70" : ""}`}>
+        <div className={`w-1.5 shrink-0 ${cat ? cat.bg : "bg-tv-green-deep/10"}`} />
+        <div className="flex-1 min-w-0 px-3 py-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-display font-black text-sm text-tv-green-deep break-words">{idea.title}</h3>
+            {cat && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${cat.bg} ${cat.text}`}>{cat.label}</span>}
+          </div>
+          {idea.description && <p className="mt-0.5 text-xs text-tv-green-deep/60 line-clamp-2 whitespace-pre-line break-words">{idea.description}</p>}
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-tv-green-deep/50">
+            {meta && <span>{meta}</span>}
+            {idea.event_state === "draft" && <span className="font-bold text-amber-700">Bozza in calendario</span>}
+            {official && <span className="font-bold text-tv-green">Evento ufficiale · completalo in Lista</span>}
+            {idea.event_state === "missing" && (
+              <>
+                <span className="font-bold text-tv-bordeaux">Non più in calendario</span>
+                <button onClick={() => putCalendar(idea)} className="underline font-bold text-tv-green-deep hover:text-tv-bordeaux">Rimetti in calendario</button>
+              </>
+            )}
+            {hint && <span className="italic">{hint}</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 pr-2.5 shrink-0">
+          {!official && (
+            <button onClick={() => openEdit(idea)} aria-label="Modifica" title="Modifica"
+              className="p-2 rounded-full text-tv-green-deep/60 hover:bg-tv-sky/40 hover:text-tv-green-deep transition-colors">
+              <Pencil size={14} />
+            </button>
+          )}
+          <button onClick={() => remove(idea)} aria-label="Elimina" title="Elimina"
+            className="p-2 rounded-full text-tv-bordeaux/70 hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux transition-colors">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </article>
+    );
+  };
 
   const inputCls = "w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-white text-sm text-tv-green-deep focus:border-tv-green outline-none";
   const labelCls = "text-[10px] font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1 block";
@@ -5463,59 +5534,26 @@ const IdeasManager = forwardRef(({ token }, ref) => {
         <div className="flex items-center gap-2 text-tv-green-deep/60 font-bold py-6">
           <Loader2 size={18} className="animate-spin" /> Caricamento…
         </div>
-      ) : sorted.length === 0 ? (
+      ) : ideas.length === 0 ? (
         <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
           Nessuna idea ancora. Aggiungi la prima!
         </div>
       ) : (
-        <div className="space-y-2 max-w-4xl">
-          {sorted.map(idea => {
-            const official = idea.event_state === "official";
-            const cat = CAL_CATS[idea.category];
-            const when = shownDate(idea);
-            const meta = [when ? fmtDay(when) : "", idea.location || ""].filter(Boolean).join(" · ");
-            const hint = idea.event_state === "none"
-              ? (when && !idea.location ? "Aggiungi il luogo per metterla in calendario"
-                : idea.location && !when ? "Aggiungi la data per metterla in calendario" : "")
-              : "";
-            return (
-              <article key={idea.id} data-testid={`admin-idea-${idea.id}`}
-                className={`flex items-stretch bg-white rounded-xl border border-tv-green-deep/10 overflow-hidden ${official ? "opacity-70" : ""}`}>
-                <div className={`w-1.5 shrink-0 ${cat ? cat.bg : "bg-tv-green-deep/10"}`} />
-                <div className="flex-1 min-w-0 px-3 py-2.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-display font-black text-sm text-tv-green-deep break-words">{idea.title}</h3>
-                    {cat && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${cat.bg} ${cat.text}`}>{cat.label}</span>}
-                  </div>
-                  {idea.description && <p className="mt-0.5 text-xs text-tv-green-deep/60 line-clamp-2 whitespace-pre-line break-words">{idea.description}</p>}
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-tv-green-deep/50">
-                    {meta && <span>{meta}</span>}
-                    {idea.event_state === "draft" && <span className="font-bold text-amber-700">Bozza in calendario</span>}
-                    {official && <span className="font-bold text-tv-green">Evento ufficiale · completalo in Lista</span>}
-                    {idea.event_state === "missing" && (
-                      <>
-                        <span className="font-bold text-tv-bordeaux">Non più in calendario</span>
-                        <button onClick={() => putCalendar(idea)} className="underline font-bold text-tv-green-deep hover:text-tv-bordeaux">Rimetti in calendario</button>
-                      </>
-                    )}
-                    {hint && <span className="italic">{hint}</span>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 pr-2.5 shrink-0">
-                  {!official && (
-                    <button onClick={() => openEdit(idea)} aria-label="Modifica" title="Modifica"
-                      className="p-2 rounded-full text-tv-green-deep/60 hover:bg-tv-sky/40 hover:text-tv-green-deep transition-colors">
-                      <Pencil size={14} />
-                    </button>
-                  )}
-                  <button onClick={() => remove(idea)} aria-label="Elimina" title="Elimina"
-                    className="p-2 rounded-full text-tv-bordeaux/70 hover:bg-tv-bordeaux/10 hover:text-tv-bordeaux transition-colors">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+        <div className="space-y-6 max-w-4xl">
+          {groups.map(group => (
+            <section key={group.key || "none"} data-testid={`admin-ideas-month-${group.key || "none"}`}>
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-tv-green-deep/50">
+                  {group.key ? ideaMonthLabel(group.key) : "Senza mese"}
+                </h2>
+                <span className="text-[10px] font-bold text-tv-green-deep/35">{group.items.length}</span>
+                <div className="flex-1 border-t border-tv-green-deep/10" />
+              </div>
+              <div className="space-y-2">
+                {group.items.map(renderIdea)}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
@@ -5541,13 +5579,27 @@ const IdeasManager = forwardRef(({ token }, ref) => {
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className={labelCls}>Data</label>
-                  <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputCls} />
+                  <input type="date" value={form.date}
+                    onChange={e => setForm(f => ({ ...f, date: e.target.value, month: e.target.value ? e.target.value.slice(0, 7) : f.month }))}
+                    className={inputCls} />
                 </div>
                 <div>
                   <label className={labelCls}>Luogo</label>
                   <input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                     className={inputCls} placeholder="Es. Sede" />
                 </div>
+              </div>
+              <div>
+                <label className={labelCls}>Mese di riferimento</label>
+                <select value={form.date ? form.date.slice(0, 7) : form.month} disabled={!!form.date}
+                  onChange={e => setForm(f => ({ ...f, month: e.target.value }))}
+                  className={`${inputCls} disabled:bg-tv-green-deep/5 disabled:text-tv-green-deep/60`}>
+                  <option value="">Nessun mese</option>
+                  {ideaMonthOptions(form.date ? form.date.slice(0, 7) : form.month).map(ym => (
+                    <option key={ym} value={ym}>{ideaMonthLabel(ym)}</option>
+                  ))}
+                </select>
+                {form.date && <p className="mt-1 text-[10px] text-tv-green-deep/50">Con una data, il mese è quello della data.</p>}
               </div>
               <div>
                 <label className={labelCls}>Categoria</label>
