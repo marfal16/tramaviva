@@ -117,6 +117,23 @@ export const EventoDettaglio = () => {
       toast.error("Seleziona l'opzione per ogni accompagnatore.");
       return;
     }
+    if (event.solo_soci && numPersone > 1) {
+      const seen = new Set([form.email.trim().toLowerCase()]);
+      const guests = ospiti.slice(0, numPersone - 1);
+      for (let i = 0; i < guests.length; i++) {
+        const label = `Persona ${i + 2} (${`${guests[i].nome} ${guests[i].cognome}`.trim()})`;
+        const guestEmail = (guests[i].email || "").trim().toLowerCase();
+        if (!guestEmail) {
+          toast.error(`Inserisci l'email di ${label}: per gli eventi riservati ai soci è obbligatoria.`, { duration: 6000 });
+          return;
+        }
+        if (seen.has(guestEmail)) {
+          toast.error(`L'email di ${label} deve essere diversa da quella della persona principale e degli altri accompagnatori.`, { duration: 6000 });
+          return;
+        }
+        seen.add(guestEmail);
+      }
+    }
     // Verifica iscrizione duplicata
     setSubmitting(true);
     try {
@@ -134,6 +151,7 @@ export const EventoDettaglio = () => {
         return;
       }
     } catch { /* ignora errori di rete sul check, procedi comunque */ }
+    setSoloSociError(false);
     try {
       const res = await axios.post(`${API}/event-signup`, {
         event_id: event.id,
@@ -178,8 +196,12 @@ export const EventoDettaglio = () => {
       setForm({ name: "", email: "", phone: "", message: "", referral: "", metodo_pagamento: "" });
       setNumPersone(1); setOspiti([]); setOpzioneScelta(""); setDonazioneVolontaria("");
     } catch (err) {
-      if (err?.response?.status === 403) {
-        setSoloSociError(true);
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail;
+      if (status === 403) {
+        setSoloSociError(detail && typeof detail === "object" && detail.message ? detail.message : true);
+      } else if (status === 400 && typeof detail === "string") {
+        toast.error(detail, { duration: 6000 });
       } else {
         toast.error("Errore nell'invio. Riprova.");
       }
@@ -539,7 +561,7 @@ export const EventoDettaglio = () => {
                             <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                               <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
                               <p className="text-xs text-tv-green-deep/70 mb-3">
-                                La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio.
+                                {typeof soloSociError === "string" ? soloSociError : "La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio."}
                               </p>
                               <a
                                 href="https://www.tramavivaaps.com/iscrizione"
@@ -756,9 +778,11 @@ export const EventoDettaglio = () => {
                         </div>
                         <div>
                           <p className="text-[11px] text-tv-green-deep/45 mb-1.5 leading-snug">
-                            Inserisci l'email dell'accompagnatore — riceverà tutte le informazioni sull'evento e gli aggiornamenti direttamente nella sua casella. Facoltativa, ma consigliata.
+                            {event.solo_soci
+                              ? "Evento riservato ai soci: l'email dell'accompagnatore è obbligatoria e deve essere quella con cui è registrato/a come socio/a (diversa dalla tua). Se non è ancora socio/a, deve prima iscriversi."
+                              : "Inserisci l'email dell'accompagnatore — riceverà tutte le informazioni sull'evento e gli aggiornamenti direttamente nella sua casella. Facoltativa, ma consigliata."}
                           </p>
-                          <input placeholder="Email (opzionale)" type="email" value={g.email} onChange={e => updateOspite(i, "email", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
+                          <input required={!!event.solo_soci} placeholder={event.solo_soci ? "Email *" : "Email (opzionale)"} type="email" value={g.email} onChange={e => updateOspite(i, "email", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                         </div>
                         <input placeholder="Telefono (opzionale)" value={g.phone} onChange={e => updateOspite(i, "phone", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                         {event.opzioni_custom && (
@@ -939,7 +963,7 @@ export const EventoDettaglio = () => {
                     <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                       <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
                       <p className="text-xs text-tv-green-deep/70 mb-3">
-                        La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio.
+                        {typeof soloSociError === "string" ? soloSociError : "La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio."}
                       </p>
                       <a
                         href="https://www.tramavivaaps.com/iscrizione"

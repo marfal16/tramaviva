@@ -825,19 +825,61 @@ async def get_event_ics(event_id: str):
         raise HTTPException(status_code=500, detail="Errore generazione ICS")
 
 # ========== ROUTES: EVENT SIGNUPS & MEMBERSHIPS ==========
+async def _is_member_or_pending(email: str) -> bool:
+    """Socio, oppure con una richiesta di iscrizione in corso."""
+    if not email:
+        return False
+    rx = re.compile(f"^{re.escape(email)}$", re.IGNORECASE)
+    return bool(await db.members.find_one({"email": rx}) or await db.registrations.find_one({"email": rx}))
+
+async def _enforce_solo_soci(payload: EventSignupCreate):
+    """Eventi riservati ai soci: devono esserlo la persona principale e ogni accompagnatore (con la propria email)."""
+    main_email = (payload.email or "").lower().strip()
+    if not await _is_member_or_pending(main_email):
+        raise HTTPException(
+            status_code=403,
+            detail="Questo evento è riservato ai soci Trama Viva. Per partecipare devi essere socio o avere una richiesta di iscrizione in corso."
+        )
+    guests = payload.ospiti or []
+    if (payload.num_persone or 1) > len(guests) + 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Inserisci i dati di tutti gli accompagnatori: per gli eventi riservati ai soci servono nome, cognome ed email di ciascuno."
+        )
+    seen = {main_email}
+    non_soci = []
+    for idx, guest in enumerate(guests, start=2):
+        full_name = f"{guest.nome} {guest.cognome}".strip()
+        label = f"Persona {idx} ({full_name})" if full_name else f"Persona {idx}"
+        guest_email = (guest.email or "").lower().strip()
+        if not guest_email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Inserisci l'email di {label}: per gli eventi riservati ai soci è obbligatoria."
+            )
+        if guest_email in seen:
+            raise HTTPException(
+                status_code=400,
+                detail=f"L'email di {label} deve essere diversa da quella della persona principale e degli altri accompagnatori."
+            )
+        seen.add(guest_email)
+        if not await _is_member_or_pending(guest_email):
+            non_soci.append(label)
+    if non_soci:
+        names = non_soci[0] if len(non_soci) == 1 else ", ".join(non_soci[:-1]) + " e " + non_soci[-1]
+        message = (
+            f"{names} non è socio e deve procedere all'iscrizione."
+            if len(non_soci) == 1
+            else f"{names} non sono soci e devono procedere all'iscrizione."
+        )
+        raise HTTPException(status_code=403, detail={"message": message, "guests_not_members": True})
+
 @api_router.post("/event-signup")
 async def create_event_signup(payload: EventSignupCreate):
     # Controllo accesso: eventi solo soci
     event_doc = await db.events.find_one({"id": payload.event_id})
     if event_doc and event_doc.get("solo_soci"):
-        email = (payload.email or "").lower().strip()
-        is_member  = await db.members.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
-        is_pending = await db.registrations.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
-        if not is_member and not is_pending:
-            raise HTTPException(
-                status_code=403,
-                detail="Questo evento è riservato ai soci Trama Viva. Per partecipare devi essere socio o avere una richiesta di iscrizione in corso."
-            )
+        await _enforce_solo_soci(payload)
 
     num_persone_req = payload.num_persone or 1
     available_spots = event_doc.get("spots", num_persone_req) if event_doc else num_persone_req
