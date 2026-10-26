@@ -849,8 +849,7 @@ async def _enforce_solo_soci(payload: EventSignupCreate):
     seen = {main_email}
     non_soci = []
     for idx, guest in enumerate(guests, start=2):
-        full_name = f"{guest.nome} {guest.cognome}".strip()
-        label = f"Persona {idx} ({full_name})" if full_name else f"Persona {idx}"
+        label = f"{guest.nome} {guest.cognome}".strip() or f"Persona {idx}"
         guest_email = (guest.email or "").lower().strip()
         if not guest_email:
             raise HTTPException(

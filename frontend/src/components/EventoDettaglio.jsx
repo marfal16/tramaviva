@@ -121,7 +121,7 @@ export const EventoDettaglio = () => {
       const seen = new Set([form.email.trim().toLowerCase()]);
       const guests = ospiti.slice(0, numPersone - 1);
       for (let i = 0; i < guests.length; i++) {
-        const label = `Persona ${i + 2} (${`${guests[i].nome} ${guests[i].cognome}`.trim()})`;
+        const label = `${guests[i].nome} ${guests[i].cognome}`.trim() || `Persona ${i + 2}`;
         const guestEmail = (guests[i].email || "").trim().toLowerCase();
         if (!guestEmail) {
           toast.error(`Inserisci l'email di ${label}: per gli eventi riservati ai soci è obbligatoria.`, { duration: 6000 });
@@ -431,7 +431,7 @@ export const EventoDettaglio = () => {
                       <div className="flex items-center gap-2">
                         <Users size={15} />
                         {event.spots <= 0 ? (
-                          <span className="font-bold text-tv-bordeaux">🔴 SOLD OUT</span>
+                          <span className="text-[11px] font-black uppercase tracking-[.18em] text-tv-cream">Sold out</span>
                         ) : event.spots === 1 ? (
                           <span className="font-bold text-orange-300">⚡ Ultimo posto disponibile!</span>
                         ) : event.spots <= 5 ? (
@@ -510,11 +510,15 @@ export const EventoDettaglio = () => {
               ) : event.spots <= 0 ? (
                 <div data-testid="event-detail-soldout" className="flex flex-col gap-4">
                   {/* Sold out badge */}
-                  <div className="bg-tv-bordeaux/5 border border-tv-bordeaux/20 rounded-[2rem] p-6 text-center">
-                    <div className="text-4xl mb-2">🎟️</div>
-                    <div className="font-display font-black text-2xl text-tv-bordeaux tracking-wider">🔴 SOLD OUT</div>
-                    <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
-                      Tutti i posti sono stati prenotati. Puoi comunque iscriverti alla lista di attesa.
+                  <div className="bg-white border border-tv-green-deep/10 rounded-[2rem] p-6">
+                    <span className="inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[.12em] bg-tv-bordeaux/10 text-tv-bordeaux border border-tv-bordeaux/20">
+                      Sold out
+                    </span>
+                    <p className="mt-3 font-display font-black text-lg text-tv-green-deep leading-snug">
+                      Tutti i posti sono stati prenotati.
+                    </p>
+                    <p className="mt-1 text-sm text-tv-green-deep/60 leading-relaxed">
+                      Puoi comunque iscriverti alla lista di attesa.
                     </p>
                   </div>
                   {/* Waitlist form */}
