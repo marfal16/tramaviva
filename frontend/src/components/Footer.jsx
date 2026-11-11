@@ -127,6 +127,40 @@ export const Footer = () => (
           </div>
         </div>
       </div>
+
+      {/* Dati ufficiali dell'associazione */}
+      <div className="mt-12 pt-8 border-t border-tv-cream/15">
+        <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-4">
+          Informazioni associative
+        </div>
+
+        <div className="space-y-2 text-sm opacity-80">
+          <p className="font-bold">
+            TRAMA VIVA APS
+          </p>
+          <p>
+            Associazione di Promozione Sociale senza scopo di lucro
+          </p>
+          <p>
+            Sede legale: Via Pastrengo 36, 80042 Boscotrecase (NA)
+          </p>
+          <p>
+            C.F. 90117290636
+          </p>
+          <p>
+            Iscritta al RUNTS, sezione APS, rep. n. 181646
+          </p>
+          <p>
+            <a
+              href="mailto:tramavivaaps@gmail.com"
+              className="hover:text-tv-mint transition-colors"
+            >
+              tramavivaaps@gmail.com
+            </a>
+          </p>
+        </div>
+      </div>
+
       <div className="mt-14 pt-6 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-4 text-xs opacity-70">
         <div>© {new Date().getFullYear()} APS Trama Viva — Ogni filo conta.</div>
         <div>Fatto con cura, amore e qualche caffè.</div>

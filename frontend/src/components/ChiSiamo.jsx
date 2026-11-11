@@ -59,6 +59,23 @@ export const ChiSiamo = () => (
             Momenti in cui due persone che prima non si conoscevano possano ritrovarsi, a fine serata, a dirsi:{" "}
             <i>"ci risentiamo la prossima settimana?"</i>.
           </p>
+
+          {/* Missione dell'associazione */}
+          <div className="mt-10 pt-8 border-t border-tv-bordeaux/20">
+            <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-3">
+              La nostra missione
+            </div>
+            <p className="text-base text-tv-green-deep/75 leading-relaxed">
+              TRAMA VIVA APS è un'associazione di promozione sociale senza scopo di lucro,
+              iscritta al Registro Unico Nazionale del Terzo Settore. Promuoviamo la
+              socialità e il contrasto all'isolamento nel territorio vesuviano attraverso
+              attività culturali, ricreative e di benessere aperte a tutte le età:
+              laboratori ed eventi sociali, club del libro e cineforum, passeggiate ed
+              escursioni di gruppo, giornate di prevenzione e screening della salute
+              con medici volontari, corsi di formazione sulle nuove tecnologie.
+            </p>
+          </div>
+
         </div>
 
         <div className="md:col-span-7 grid grid-cols-2 gap-4 md:gap-6">
