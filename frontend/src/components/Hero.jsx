@@ -58,7 +58,7 @@ export const Hero = () => {
             <span className="italic font-light text-tv-bordeaux">storie</span>,
             <br />
             persone e{" "}
-            <span className="italic font-light text-tv-sky">opportunità</span>.
+            <span className="italic font-light text-tv-bordeaux">opportunità</span>.
           </h1>
           <p className="mt-8 max-w-xl text-lg md:text-xl text-tv-green-deep/75 font-medium">
             Ogni filo conta. Noi siamo <b className="text-tv-green-deep">Trama Viva</b> —
@@ -69,7 +69,7 @@ export const Hero = () => {
               href="#eventi"
               onClick={scrollTo("#eventi")}
               data-testid="hero-cta-eventi"
-              className="btn-tv inline-flex items-center gap-2 px-7 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold text-base hover:bg-tv-green"
+              className="btn-tv inline-flex items-center gap-2 px-7 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold text-base hover:bg-tv-green-deep/85"
             >
               Scopri gli eventi
               <ArrowDownRight size={18} />
@@ -141,9 +141,9 @@ export const Hero = () => {
               : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
             return (
               <div className="mt-5 rounded-[2rem] border border-tv-green/40 bg-tv-green/20 p-5">
-                <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50 mb-2">📅 Prossimo evento</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">📅 Prossimo evento</div>
                 <h3 className="font-display font-black text-base leading-tight text-tv-green-deep mb-0.5">{primary.title}</h3>
-                <p className="text-xs text-tv-green-deep/55 mb-3">
+                <p className="text-xs text-tv-green-deep/75 mb-3">
                   {new Date(primary.date).toLocaleDateString("it-IT", { day: "numeric", month: "long" })}
                   {primary.time ? ` · ${primary.time}` : ""}
                   {primary.location ? ` · ${primary.location}` : ""}
@@ -155,20 +155,20 @@ export const Hero = () => {
                     {units.map(({ v, l }) => (
                       <div key={l} className="text-center bg-tv-green-deep/10 rounded-xl px-2 py-2 flex-1">
                         <div className="font-display font-black text-xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
-                        <div className="text-[9px] uppercase text-tv-green-deep/45 mt-0.5">{l}</div>
+                        <div className="text-[9px] uppercase text-tv-green-deep/75 mt-0.5">{l}</div>
                       </div>
                     ))}
                   </div>
                 )}
                 <Link
                   to={`/eventi/${primary.slug || primary.id}`}
-                  className="block text-center px-4 py-2 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors"
+                  className="block text-center px-4 py-2 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/85 transition-colors"
                 >
                   Partecipa →
                 </Link>
                 {others.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-tv-green-deep/15 flex flex-col gap-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40">Anche in arrivo</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75">Anche in arrivo</span>
                     {others.map(ev => {
                       const evDay = new Date(ev.date); evDay.setHours(0,0,0,0);
                       const todayDay = new Date(now); todayDay.setHours(0,0,0,0);
@@ -191,7 +191,7 @@ export const Hero = () => {
 
       {/* Marquee */}
       <div className="relative mt-20 border-y border-tv-green-deep/15 py-3 overflow-hidden bg-tv-green-deep">
-        <div className="flex marquee-track whitespace-nowrap text-tv-cream font-display font-black text-xl md:text-2xl lg:text-3xl tracking-tight">
+        <div aria-hidden="true" className="flex marquee-track whitespace-nowrap text-tv-cream font-display font-black text-xl md:text-2xl lg:text-3xl tracking-tight">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-10 px-6">
               <span>Passeggiamo in gruppo</span>

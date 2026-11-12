@@ -9,11 +9,11 @@ const ConsentModal = ({ onAccept, onDecline }) => {
         {/* Header */}
         <div className="sticky top-0 bg-tv-bordeaux text-tv-cream p-6 md:p-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <FileText size={24} />
-            <h2 className="font-display font-bold text-2xl">Dichiarazione di Iscrizione</h2>
+            <FileText size={24} aria-hidden="true" />
+            <h2 id="consent-title" className="font-display font-bold text-2xl">Dichiarazione di Iscrizione</h2>
           </div>
-          <button onClick={onDecline} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-            <X size={24} />
+          <button aria-label="Chiudi" onClick={onDecline} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+            <X aria-hidden="true" size={24} />
           </button>
         </div>
 
@@ -28,7 +28,8 @@ const ConsentModal = ({ onAccept, onDecline }) => {
               trattati da <strong>Trama Viva APS</strong> esclusivamente per gestire la tua iscrizione,
               adempiere agli obblighi legali e statutari e fornirti i servizi associativi.
               I tuoi dati non saranno ceduti a terzi senza consenso e potrai esercitare i tuoi diritti
-              scrivendo a <strong>tramavivaaps@gmail.com</strong>.
+              scrivendo a <strong>tramavivaaps@gmail.com</strong>. Il testo completo è nella{" "}
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-bold underline">Privacy Policy<span className="sr-only"> (si apre in una nuova scheda)</span></a>.
             </p>
           </section>
 
@@ -46,10 +47,10 @@ const ConsentModal = ({ onAccept, onDecline }) => {
             <h3 className="font-bold text-lg mb-3">Dichiarazione del richiedente</h3>
             <p className="text-sm text-tv-green-deep/80 mb-3">Con la presente dichiarazione:</p>
             <ul className="text-sm space-y-2.5 ml-4 text-tv-green-deep/80">
-              <li>✓ Accetto pienamente lo <strong>Statuto</strong> e il Regolamento interno di Trama Viva APS;</li>
-              <li>✓ Mi impegno a rispettare i valori e i principi dell'associazione;</li>
-              <li>✓ Dichiaro che le informazioni fornite nel modulo sono veritiere e aggiornate;</li>
-              <li>✓ Prendo atto che l'iscrizione diventa ufficiale con la <strong>firma del modulo</strong>, che avverrà di persona al primo incontro con l'associazione.</li>
+              <li><span aria-hidden="true">✓ </span>Accetto pienamente lo <strong>Statuto</strong> e il Regolamento interno di Trama Viva APS;</li>
+              <li><span aria-hidden="true">✓ </span>Mi impegno a rispettare i valori e i principi dell'associazione;</li>
+              <li><span aria-hidden="true">✓ </span>Dichiaro che le informazioni fornite nel modulo sono veritiere e aggiornate;</li>
+              <li><span aria-hidden="true">✓ </span>Prendo atto che l'iscrizione diventa ufficiale con la <strong>firma del modulo</strong>, che avverrà di persona al primo incontro con l'associazione.</li>
             </ul>
           </section>
 

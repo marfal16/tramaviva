@@ -59,7 +59,7 @@ export const AvgStars = ({ reviews }) => {
   return (
     <div className="flex items-center gap-1.5">
       <StarDisplay rating={avg} size="sm" />
-      <span className="text-xs font-bold text-tv-green-deep/50">
+      <span className="text-xs font-bold text-tv-green-deep/75">
         {avg.toFixed(1)} <span className="font-normal">({reviews.length} recension{reviews.length === 1 ? "e" : "i"})</span>
       </span>
     </div>
@@ -77,7 +77,7 @@ const ReviewCard = ({ review }) => {
         </div>
         <div>
           <div className="font-bold text-tv-green-deep">{review.reviewer_name}</div>
-          <div className="text-xs text-tv-green-deep/40">{fmtDay(review.created_at)}</div>
+          <div className="text-xs text-tv-green-deep/75">{fmtDay(review.created_at)}</div>
         </div>
         <div className="ml-auto">
           <StarDisplay rating={review.rating} size="sm" />
@@ -119,7 +119,7 @@ const ReviewForm = ({ bookId, bookTitle, onSubmit }) => {
     <div className="rounded-[2rem] bg-tv-green/15 border border-tv-green/30 p-8 text-center">
       <div className="text-4xl mb-3">📚</div>
       <div className="font-display font-black text-xl text-tv-green-deep">Grazie per la tua recensione!</div>
-      <p className="mt-2 text-tv-green-deep/60">La tua voce arricchisce il nostro club.</p>
+      <p className="mt-2 text-tv-green-deep/75">La tua voce arricchisce il nostro club.</p>
       <button onClick={() => setSent(false)} className="mt-4 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm">
         Scrivi un'altra
       </button>
@@ -127,7 +127,7 @@ const ReviewForm = ({ bookId, bookTitle, onSubmit }) => {
   );
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep";
-  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1.5";
 
   return (
     <form onSubmit={submit} className="rounded-[2rem] bg-tv-green-deep/[0.04] border border-tv-green-deep/8 p-6 md:p-8">
@@ -155,7 +155,7 @@ const ReviewForm = ({ bookId, bookTitle, onSubmit }) => {
         <button
           type="submit"
           disabled={sending}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors disabled:opacity-60 w-fit"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60 w-fit"
         >
           <Send size={14} /> {sending ? "Invio…" : "Pubblica recensione"}
         </button>
@@ -208,13 +208,13 @@ export const LibroDettaglio = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-tv-cream flex items-center justify-center text-tv-green-deep/40">
+    <div className="min-h-screen bg-tv-cream flex items-center justify-center text-tv-green-deep/75">
       Caricamento…
     </div>
   );
 
   if (!book) return (
-    <div className="min-h-screen bg-tv-cream flex flex-col items-center justify-center gap-4 text-tv-green-deep/50">
+    <div className="min-h-screen bg-tv-cream flex flex-col items-center justify-center gap-4 text-tv-green-deep/75">
       <BookOpen size={40} className="opacity-20" />
       <p className="font-bold">Libro non trovato.</p>
       <Link to="/club-del-libro" className="text-tv-bordeaux font-bold hover:underline">← Torna al Club del Libro</Link>
@@ -229,7 +229,7 @@ export const LibroDettaglio = () => {
         {/* Back link */}
         <Link
           to="/club-del-libro"
-          className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/50 hover:text-tv-green-deep mb-10 transition-colors"
+          className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/75 hover:text-tv-green-deep mb-10 transition-colors"
         >
           <ArrowLeft size={15} /> Club del Libro
         </Link>
@@ -251,13 +251,13 @@ export const LibroDettaglio = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-4">
               <span className={`w-2.5 h-2.5 rounded-full ${st.dot}`} />
-              <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40">{st.label}</span>
+              <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75">{st.label}</span>
             </div>
 
             <h1 className="font-display font-black text-4xl md:text-5xl leading-tight text-tv-green-deep">
               {book.title}
             </h1>
-            <div className="mt-2 text-xl text-tv-green-deep/55 font-medium">
+            <div className="mt-2 text-xl text-tv-green-deep/75 font-medium">
               {book.author}
               {book.genre && <span className="italic text-base"> · {book.genre}</span>}
             </div>
@@ -265,14 +265,14 @@ export const LibroDettaglio = () => {
             {avgRating !== null && (
               <div className="mt-3 flex items-center gap-2">
                 <StarDisplay rating={avgRating} size="md" />
-                <span className="text-sm text-tv-green-deep/50 font-bold">
+                <span className="text-sm text-tv-green-deep/75 font-bold">
                   {avgRating.toFixed(1)} · {reviews.length} recension{reviews.length === 1 ? "e" : "i"}
                 </span>
               </div>
             )}
 
             {book.reading_month && (
-              <div className="mt-3 text-sm text-tv-green-deep/40 flex items-center gap-1.5">
+              <div className="mt-3 text-sm text-tv-green-deep/75 flex items-center gap-1.5">
                 <Calendar size={13} /> {fmtMonthYear(book.reading_month)}
               </div>
             )}
@@ -283,7 +283,7 @@ export const LibroDettaglio = () => {
 
             {linkedEvents.length > 0 && (
               <div className="mt-5">
-                <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/35 mb-2">Evento collegato</div>
+                <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Evento collegato</div>
                 {linkedEvents.map((ev) => (
                   <Link
                     key={ev.id}
@@ -301,7 +301,7 @@ export const LibroDettaglio = () => {
         {/* Recensione della redazione */}
         {book.recensione && (
           <div className="mb-14 rounded-[2rem] bg-tv-mint/40 border-l-4 border-tv-green p-6 md:p-8">
-            <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40 mb-3">La nostra lettura</div>
+            <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75 mb-3">La nostra lettura</div>
             <p className="text-tv-green-deep/80 leading-relaxed text-base">{book.recensione}</p>
           </div>
         )}
@@ -314,12 +314,12 @@ export const LibroDettaglio = () => {
           {avgRating !== null && (
             <div className="flex items-center gap-2 mb-6">
               <StarDisplay rating={avgRating} size="md" />
-              <span className="text-tv-green-deep/50">{avgRating.toFixed(1)} su 5 · {reviews.length} lettori</span>
+              <span className="text-tv-green-deep/75">{avgRating.toFixed(1)} su 5 · {reviews.length} lettori</span>
             </div>
           )}
 
           {reviews.length === 0 ? (
-            <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/40">
+            <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/75">
               <Star size={36} className="mx-auto mb-3 opacity-15" />
               <p className="font-bold">Nessuna recensione ancora.</p>
               <p className="text-sm mt-1 opacity-70">Sii il primo a condividere la tua opinione!</p>

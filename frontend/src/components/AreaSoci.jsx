@@ -98,9 +98,9 @@ const EditableField = ({ label, value, onSave, multiline = false }) => {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50">{label}</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75">{label}</span>
         {!editing && (
-          <button onClick={() => setEditing(true)} className="text-tv-green-deep/40 hover:text-tv-green-deep transition-colors">
+          <button onClick={() => setEditing(true)} className="text-tv-green-deep/75 hover:text-tv-green-deep transition-colors">
             <Edit2 size={13} />
           </button>
         )}
@@ -115,16 +115,16 @@ const EditableField = ({ label, value, onSave, multiline = false }) => {
               className="flex-1 px-3 py-2 rounded-2xl border border-tv-green-deep/20 bg-tv-cream/40 focus:border-tv-green focus:outline-none text-sm text-tv-green-deep" />
           )}
           <button onClick={handleSave} disabled={saving}
-            className="p-2 rounded-xl bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors disabled:opacity-50">
+            className="p-2 rounded-xl bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85 transition-colors disabled:opacity-50">
             {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
           </button>
-          <button onClick={() => { setVal(value || ""); setEditing(false); }}
+          <button aria-label="Annulla modifica" onClick={() => { setVal(value || ""); setEditing(false); }}
             className="p-2 rounded-xl bg-tv-green-deep/10 text-tv-green-deep hover:bg-tv-green-deep/20 transition-colors">
-            <X size={13} />
+            <X aria-hidden="true" size={13} />
           </button>
         </div>
       ) : (
-        <p className="text-sm text-tv-green-deep/70">{value || <span className="italic text-tv-green-deep/30">Non specificato</span>}</p>
+        <p className="text-sm text-tv-green-deep/70">{value || <span className="italic text-tv-green-deep/75">Non specificato</span>}</p>
       )}
     </div>
   );
@@ -161,20 +161,20 @@ const ChangePasswordForm = ({ token }) => {
   return (
     <div className="border-t border-tv-green-deep/10 pt-4">
       <button onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 text-sm font-bold text-tv-green-deep/60 hover:text-tv-green-deep transition-colors">
+        className="flex items-center gap-2 text-sm font-bold text-tv-green-deep/75 hover:text-tv-green-deep transition-colors">
         <Lock size={14} /> Cambia password
       </button>
       {open && (
         <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-3">
           {[["Password attuale", "current"], ["Nuova password", "next"], ["Conferma", "confirm"]].map(([label, key]) => (
             <div key={key}>
-              <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 block mb-1">{label}</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 block mb-1">{label}</label>
               <input type="password" value={form[key]} onChange={set(key)} required
                 className="w-full px-3 py-2.5 rounded-2xl border border-tv-green-deep/15 bg-tv-cream/40 focus:border-tv-green focus:outline-none text-sm text-tv-green-deep" />
             </div>
           ))}
           <button type="submit" disabled={loading}
-            className="w-full px-5 py-2.5 rounded-full font-bold text-sm bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+            className="w-full px-5 py-2.5 rounded-full font-bold text-sm bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
             {loading ? <><Loader2 size={14} className="animate-spin" /> Salvo…</> : "Salva password"}
           </button>
         </form>
@@ -187,7 +187,7 @@ const ChangePasswordForm = ({ token }) => {
 
 const MissioniCards = ({ missionsData }) => {
   if (!missionsData) return (
-    <div className="flex items-center justify-center py-16 text-tv-green-deep/30">
+    <div className="flex items-center justify-center py-16 text-tv-green-deep/75">
       <Loader2 size={24} className="animate-spin" />
     </div>
   );
@@ -244,7 +244,7 @@ const MissioniCards = ({ missionsData }) => {
       {total === 0 ? (
         <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-12 text-center">
           <Trophy size={36} className="mx-auto mb-3 text-tv-green-deep/15" />
-          <p className="text-sm text-tv-green-deep/40">Le missioni saranno presto disponibili.</p>
+          <p className="text-sm text-tv-green-deep/75">Le missioni saranno presto disponibili.</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
@@ -269,7 +269,7 @@ const MissioniCards = ({ missionsData }) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <h3 className={`font-display font-black text-base leading-tight ${m.unlocked ? "text-tv-green-deep" : "text-tv-green-deep/30"}`}>
+                      <h3 className={`font-display font-black text-base leading-tight ${m.unlocked ? "text-tv-green-deep" : "text-tv-green-deep/75"}`}>
                         {m.title}
                       </h3>
                       {m.unlocked && (
@@ -278,7 +278,7 @@ const MissioniCards = ({ missionsData }) => {
                         </span>
                       )}
                     </div>
-                    <p className={`text-xs leading-relaxed ${m.unlocked ? "text-tv-green-deep/55" : "text-tv-green-deep/25"}`}>
+                    <p className={`text-xs leading-relaxed ${m.unlocked ? "text-tv-green-deep/75" : "text-tv-green-deep/25"}`}>
                       {m.description}
                     </p>
                   </div>
@@ -313,7 +313,7 @@ const MissioniCards = ({ missionsData }) => {
 
                 {/* Footer: reward + status */}
                 <div className={`flex items-center justify-between pt-3 border-t ${m.unlocked ? "border-tv-green/15" : "border-tv-green-deep/5"}`}>
-                  <div className={`flex items-center gap-1.5 text-xs font-semibold ${m.unlocked ? "text-tv-green-deep/60" : "text-tv-green-deep/20"}`}>
+                  <div className={`flex items-center gap-1.5 text-xs font-semibold ${m.unlocked ? "text-tv-green-deep/75" : "text-tv-green-deep/20"}`}>
                     <Gift size={12} /> {m.reward}
                   </div>
                   {m.unlocked ? (
@@ -414,7 +414,7 @@ const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
           <UserBubble userId={post.user_id} userName={post.user_name} size={36} />
           <div>
             <p className="font-bold text-sm text-tv-green-deep">{post.user_name}</p>
-            <p className="text-[10px] text-tv-green-deep/35">{fmtTimeAgo(post.created_at)}</p>
+            <p className="text-[10px] text-tv-green-deep/75">{fmtTimeAgo(post.created_at)}</p>
           </div>
         </div>
         {post.user_id === currentUserId && (
@@ -441,12 +441,12 @@ const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
       {/* Actions */}
       <div className="flex items-center gap-4 px-5 py-3 border-t border-tv-green-deep/8">
         <button onClick={handleLike}
-          className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${liked ? "text-tv-bordeaux" : "text-tv-green-deep/40 hover:text-tv-bordeaux"}`}>
+          className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${liked ? "text-tv-bordeaux" : "text-tv-green-deep/75 hover:text-tv-bordeaux"}`}>
           <Heart size={15} className={liked ? "fill-tv-bordeaux" : ""} />
           {likeCount > 0 && <span>{likeCount}</span>}
         </button>
         <button onClick={() => setShowComments(s => !s)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-tv-green-deep/40 hover:text-tv-green-deep transition-colors">
+          className="flex items-center gap-1.5 text-xs font-semibold text-tv-green-deep/75 hover:text-tv-green-deep transition-colors">
           <MessageSquare size={15} />
           {comments.length > 0 && <span>{comments.length}</span>}
         </button>
@@ -463,9 +463,9 @@ const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
                 <p className="text-xs text-tv-green-deep/70 mt-0.5">{c.content}</p>
               </div>
               {c.user_id === currentUserId && (
-                <button onClick={() => handleDeleteComment(c.id)}
+                <button aria-label="Elimina commento" onClick={() => handleDeleteComment(c.id)}
                   className="p-1 text-tv-green-deep/20 hover:text-tv-bordeaux transition-colors mt-1">
-                  <X size={11} />
+                  <X aria-hidden="true" size={11} />
                 </button>
               )}
             </div>
@@ -475,7 +475,7 @@ const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
               placeholder="Scrivi un commento…"
               className="flex-1 px-3 py-2 rounded-full text-xs border border-tv-green-deep/15 bg-white focus:border-tv-green focus:outline-none text-tv-green-deep" />
             <button type="submit" disabled={sending || !commentText.trim()}
-              className="p-2 rounded-full bg-tv-green-deep text-tv-cream disabled:opacity-40 hover:bg-tv-green transition-colors">
+              className="p-2 rounded-full bg-tv-green-deep text-tv-cream disabled:opacity-40 hover:bg-tv-green-deep/85 transition-colors">
               {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
             </button>
           </form>
@@ -534,20 +534,20 @@ const PostComposer = ({ user, token, onPost }) => {
       {imagePreview && (
         <div className="relative ml-12">
           <img src={imagePreview} alt="preview" className="max-h-40 rounded-2xl object-cover" />
-          <button type="button" onClick={() => { setImageData(null); setImagePreview(null); }}
+          <button aria-label="Rimuovi immagine" type="button" onClick={() => { setImageData(null); setImagePreview(null); }}
             className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors">
-            <X size={12} />
+            <X aria-hidden="true" size={12} />
           </button>
         </div>
       )}
       <div className="flex items-center justify-between ml-12">
         <button type="button" onClick={() => fileRef.current?.click()}
-          className="flex items-center gap-1.5 text-xs font-semibold text-tv-green-deep/40 hover:text-tv-green-deep transition-colors">
+          className="flex items-center gap-1.5 text-xs font-semibold text-tv-green-deep/75 hover:text-tv-green-deep transition-colors">
           <ImagePlus size={15} /> Foto
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
         <button type="submit" disabled={posting || !text.trim()}
-          className="px-5 py-2 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green transition-colors disabled:opacity-40 flex items-center gap-2">
+          className="px-5 py-2 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85 transition-colors disabled:opacity-40 flex items-center gap-2">
           {posting ? <><Loader2 size={13} className="animate-spin" /> Invio…</> : "Pubblica"}
         </button>
       </div>
@@ -749,7 +749,7 @@ export const AreaSoci = () => {
           <div className="flex gap-1 bg-white rounded-2xl p-1.5 border border-tv-green-deep/8 flex-1">
             {tabs.filter(t => t.key !== "missioni").map(({ key, label, icon: Icon }) => (
               <button key={key} onClick={() => setTab(key)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${tab === key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/55 hover:text-tv-green-deep hover:bg-tv-mint/30"}`}>
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold transition-all ${tab === key ? "bg-tv-green-deep text-tv-cream shadow-sm" : "text-tv-green-deep/75 hover:text-tv-green-deep hover:bg-tv-mint/30"}`}>
                 <Icon size={14} /> <span className="hidden sm:inline">{label}</span>
               </button>
             ))}
@@ -768,10 +768,10 @@ export const AreaSoci = () => {
               )}
             </div>
             {!eventsData ? (
-              <div className="flex items-center justify-center py-10 text-tv-green-deep/30"><Loader2 size={24} className="animate-spin" /></div>
+              <div className="flex items-center justify-center py-10 text-tv-green-deep/75"><Loader2 size={24} className="animate-spin" /></div>
             ) : eventsData.is_fondatore ? (
               eventsData.events.length === 0 ? (
-                <p className="text-sm text-tv-green-deep/40 text-center py-8">Nessun evento trovato.</p>
+                <p className="text-sm text-tv-green-deep/75 text-center py-8">Nessun evento trovato.</p>
               ) : (
                 <div className="flex flex-col divide-y divide-tv-green-deep/8">
                   {eventsData.events.map(ev => (
@@ -780,7 +780,7 @@ export const AreaSoci = () => {
                       <span className="text-xl shrink-0">{ev.emoji}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-tv-green-deep truncate">{ev.title}</p>
-                        <p className="text-xs text-tv-green-deep/40">{fmtDate(ev.date)} · {ev.location}</p>
+                        <p className="text-xs text-tv-green-deep/75">{fmtDate(ev.date)} · {ev.location}</p>
                       </div>
                       <ChevronRight size={14} className="text-tv-green-deep/25 shrink-0" />
                     </Link>
@@ -788,10 +788,10 @@ export const AreaSoci = () => {
                 </div>
               )
             ) : eventsData.signups.length === 0 ? (
-              <div className="text-center py-10 text-tv-green-deep/40">
+              <div className="text-center py-10 text-tv-green-deep/75">
                 <Calendar size={32} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Non hai ancora partecipato a nessun evento.</p>
-                <Link to="/#eventi" className="mt-3 inline-block text-sm font-bold text-tv-green-deep/60 hover:text-tv-green-deep transition-colors">Scopri gli eventi →</Link>
+                <Link to="/#eventi" className="mt-3 inline-block text-sm font-bold text-tv-green-deep/75 hover:text-tv-green-deep transition-colors">Scopri gli eventi →</Link>
               </div>
             ) : (
               <div className="flex flex-col divide-y divide-tv-green-deep/8">
@@ -803,7 +803,7 @@ export const AreaSoci = () => {
                         className="flex-1 min-w-0 flex items-center gap-3 hover:bg-tv-mint/20 rounded-xl transition-colors -mx-1 px-1 py-1">
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm text-tv-green-deep truncate">{ev.event_title}</p>
-                          <p className="text-xs text-tv-green-deep/40 mt-0.5">
+                          <p className="text-xs text-tv-green-deep/75 mt-0.5">
                             {ev.event_date && <span className="mr-2">📅 {fmtDate(ev.event_date)}</span>}
                             <span>Iscrizione: {fmtDate(ev.created_at)}</span>
                           </p>
@@ -852,11 +852,11 @@ export const AreaSoci = () => {
             <PostComposer user={user} token={token} onPost={handleNewPost} />
 
             {loadingPosts && posts.length === 0 ? (
-              <div className="flex items-center justify-center py-10 text-tv-green-deep/30">
+              <div className="flex items-center justify-center py-10 text-tv-green-deep/75">
                 <Loader2 size={24} className="animate-spin" />
               </div>
             ) : posts.length === 0 ? (
-              <div className="text-center py-10 text-tv-green-deep/40">
+              <div className="text-center py-10 text-tv-green-deep/75">
                 <Users size={32} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Nessun post ancora. Sii il primo a condividere qualcosa!</p>
               </div>
@@ -868,7 +868,7 @@ export const AreaSoci = () => {
                 ))}
                 {posts.length < postsTotal && (
                   <button onClick={() => loadPosts(posts.length)} disabled={loadingPosts}
-                    className="mx-auto px-6 py-2.5 rounded-full border border-tv-green-deep/20 text-sm font-semibold text-tv-green-deep/60 hover:text-tv-green-deep hover:border-tv-green-deep/40 transition-all disabled:opacity-40 flex items-center gap-2">
+                    className="mx-auto px-6 py-2.5 rounded-full border border-tv-green-deep/20 text-sm font-semibold text-tv-green-deep/75 hover:text-tv-green-deep hover:border-tv-green-deep/40 transition-all disabled:opacity-40 flex items-center gap-2">
                     {loadingPosts ? <Loader2 size={14} className="animate-spin" /> : null}
                     Carica altri post
                   </button>
@@ -891,7 +891,7 @@ export const AreaSoci = () => {
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                     activeClub === key
                       ? "bg-tv-green-deep text-tv-cream shadow-sm"
-                      : "text-tv-green-deep/55 hover:text-tv-green-deep hover:bg-tv-mint/30"
+                      : "text-tv-green-deep/75 hover:text-tv-green-deep hover:bg-tv-mint/30"
                   }`}
                 >
                   <Icon size={14} className={activeClub === key ? "" : iconColor} />
@@ -906,7 +906,7 @@ export const AreaSoci = () => {
                 <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                   <h2 className="font-display font-black text-lg text-tv-green-deep mb-4">Libri letti insieme</h2>
                   {books.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun libro concluso ancora.</p>
+                    <p className="text-sm text-tv-green-deep/75 text-center py-6">Nessun libro concluso ancora.</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {books.map(b => (
@@ -916,27 +916,27 @@ export const AreaSoci = () => {
                             <img src={b.cover_url} alt={b.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
                           ) : (
                             <div className="w-full aspect-[2/3] bg-tv-green-deep/10 rounded-xl flex items-center justify-center">
-                              <BookOpen size={24} className="text-tv-green-deep/30" />
+                              <BookOpen size={24} className="text-tv-green-deep/75" />
                             </div>
                           )}
                           <p className="text-xs font-bold text-tv-green-deep leading-tight group-hover:text-tv-green transition-colors line-clamp-2">{b.title}</p>
-                          <p className="text-[10px] text-tv-green-deep/45 truncate">{b.author}</p>
+                          <p className="text-[10px] text-tv-green-deep/75 truncate">{b.author}</p>
                         </Link>
                       ))}
                     </div>
                   )}
                 </div>
                 {loadingTab ? (
-                  <div className="flex items-center justify-center py-10 text-tv-green-deep/30"><Loader2 size={24} className="animate-spin" /></div>
+                  <div className="flex items-center justify-center py-10 text-tv-green-deep/75"><Loader2 size={24} className="animate-spin" /></div>
                 ) : (
                   <>
                   <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                     <div className="flex items-center gap-2 mb-4">
-                      <MessageSquare size={16} className="text-tv-green-deep/50" />
+                      <MessageSquare size={16} className="text-tv-green-deep/75" />
                       <h2 className="font-display font-black text-lg text-tv-green-deep">Le mie recensioni</h2>
                     </div>
                     {reviews.length === 0 ? (
-                      <p className="text-sm text-tv-green-deep/40 text-center py-4">Nessuna recensione ancora.</p>
+                      <p className="text-sm text-tv-green-deep/75 text-center py-4">Nessuna recensione ancora.</p>
                     ) : (
                       <div className="flex flex-col divide-y divide-tv-green-deep/8">
                         {reviews.map(r => (
@@ -945,7 +945,7 @@ export const AreaSoci = () => {
                               <p className="font-semibold text-sm text-tv-green-deep leading-tight">{r.book_title || "—"}</p>
                               <Stars rating={r.rating} />
                             </div>
-                            {r.content && <p className="text-xs text-tv-green-deep/60 mt-1 line-clamp-2">{r.content}</p>}
+                            {r.content && <p className="text-xs text-tv-green-deep/75 mt-1 line-clamp-2">{r.content}</p>}
                           </div>
                         ))}
                       </div>
@@ -954,17 +954,17 @@ export const AreaSoci = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => { setProposalModal("libri-votati"); setEditingProposal(null); }}
                       className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-green-deep/20 hover:shadow-sm transition-all text-left">
-                      <ThumbsUp size={20} className="text-tv-green-deep/45" />
+                      <ThumbsUp size={20} className="text-tv-green-deep/75" />
                       <div className="font-display font-black text-3xl text-tv-green-deep">{votes.length}</div>
-                      <div className="text-sm font-bold text-tv-green-deep/60">Proposte votate</div>
-                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                      <div className="text-sm font-bold text-tv-green-deep/75">Proposte votate</div>
+                      <span className="text-xs text-tv-green-deep/75">Apri →</span>
                     </button>
                     <button onClick={() => { setProposalModal("libri-proposti"); setEditingProposal(null); }}
                       className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-green-deep/20 hover:shadow-sm transition-all text-left">
-                      <Plus size={20} className="text-tv-green-deep/45" />
+                      <Plus size={20} className="text-tv-green-deep/75" />
                       <div className="font-display font-black text-3xl text-tv-green-deep">{myProposals.length}</div>
-                      <div className="text-sm font-bold text-tv-green-deep/60">Le mie proposte</div>
-                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                      <div className="text-sm font-bold text-tv-green-deep/75">Le mie proposte</div>
+                      <span className="text-xs text-tv-green-deep/75">Apri →</span>
                     </button>
                   </div>
                   </>
@@ -978,7 +978,7 @@ export const AreaSoci = () => {
                 <div className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-6">
                   <h2 className="font-display font-black text-lg text-tv-green-deep mb-4">Film visti insieme</h2>
                   {films.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-6">Nessun film concluso ancora.</p>
+                    <p className="text-sm text-tv-green-deep/75 text-center py-6">Nessun film concluso ancora.</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {films.map(f => (
@@ -991,7 +991,7 @@ export const AreaSoci = () => {
                             </div>
                           )}
                           <p className="text-xs font-bold text-tv-green-deep leading-tight line-clamp-2">{f.title}</p>
-                          <p className="text-[10px] text-tv-green-deep/45 truncate">{f.director}</p>
+                          <p className="text-[10px] text-tv-green-deep/75 truncate">{f.director}</p>
                         </div>
                       ))}
                     </div>
@@ -1007,7 +1007,7 @@ export const AreaSoci = () => {
                       <h2 className="font-display font-black text-lg text-tv-green-deep">Le mie recensioni</h2>
                     </div>
                     {filmReviews.length === 0 ? (
-                      <p className="text-sm text-tv-green-deep/40 text-center py-4">Nessuna recensione ancora.</p>
+                      <p className="text-sm text-tv-green-deep/75 text-center py-4">Nessuna recensione ancora.</p>
                     ) : (
                       <div className="flex flex-col divide-y divide-tv-green-deep/8">
                         {filmReviews.map(r => (
@@ -1016,7 +1016,7 @@ export const AreaSoci = () => {
                               <p className="font-semibold text-sm text-tv-green-deep leading-tight">{r.film_title || "—"}</p>
                               <Stars rating={r.rating} />
                             </div>
-                            {r.content && <p className="text-xs text-tv-green-deep/60 mt-1 line-clamp-2">{r.content}</p>}
+                            {r.content && <p className="text-xs text-tv-green-deep/75 mt-1 line-clamp-2">{r.content}</p>}
                           </div>
                         ))}
                       </div>
@@ -1027,15 +1027,15 @@ export const AreaSoci = () => {
                       className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-sky/25 hover:shadow-sm transition-all text-left">
                       <ThumbsUp size={20} className="text-tv-sky/55" />
                       <div className="font-display font-black text-3xl text-tv-green-deep">{filmVotes.length}</div>
-                      <div className="text-sm font-bold text-tv-green-deep/60">Proposte votate</div>
-                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                      <div className="text-sm font-bold text-tv-green-deep/75">Proposte votate</div>
+                      <span className="text-xs text-tv-green-deep/75">Apri →</span>
                     </button>
                     <button onClick={() => { setProposalModal("film-proposti"); setEditingFilmProposal(null); }}
                       className="bg-white rounded-[2rem] border border-tv-green-deep/8 p-5 flex flex-col items-start gap-2 hover:border-tv-sky/25 hover:shadow-sm transition-all text-left">
                       <Plus size={20} className="text-tv-sky/55" />
                       <div className="font-display font-black text-3xl text-tv-green-deep">{myFilmProposals.length}</div>
-                      <div className="text-sm font-bold text-tv-green-deep/60">Le mie proposte</div>
-                      <span className="text-xs text-tv-green-deep/30">Apri →</span>
+                      <div className="text-sm font-bold text-tv-green-deep/75">Le mie proposte</div>
+                      <span className="text-xs text-tv-green-deep/75">Apri →</span>
                     </button>
                   </div>
                   </>
@@ -1060,9 +1060,9 @@ export const AreaSoci = () => {
                   {proposalModal === "libri-proposti" && "📚 Libri proposti da me"}
                   {proposalModal === "film-proposti"  && "🎬 Film proposti da me"}
                 </h2>
-                <button onClick={() => { setProposalModal(null); setEditingProposal(null); setEditingFilmProposal(null); }}
+                <button aria-label="Chiudi" onClick={() => { setProposalModal(null); setEditingProposal(null); setEditingFilmProposal(null); }}
                   className="p-2 rounded-xl bg-tv-green-deep/10 text-tv-green-deep hover:bg-tv-green-deep/20 transition-colors">
-                  <X size={20} />
+                  <X aria-hidden="true" size={20} />
                 </button>
               </div>
 
@@ -1072,7 +1072,7 @@ export const AreaSoci = () => {
                 {/* LIBRI VOTATI */}
                 {proposalModal === "libri-votati" && (
                   votes.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-10">Nessun voto registrato.</p>
+                    <p className="text-sm text-tv-green-deep/75 text-center py-10">Nessun voto registrato.</p>
                   ) : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                       {votes.map(p => {
@@ -1084,11 +1084,11 @@ export const AreaSoci = () => {
                               <img src={p.cover_url} alt={p.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
                             ) : (
                               <div className="w-full aspect-[2/3] bg-tv-green-deep/10 rounded-xl flex items-center justify-center">
-                                <BookOpen size={18} className="text-tv-green-deep/30" />
+                                <BookOpen size={18} className="text-tv-green-deep/75" />
                               </div>
                             )}
                             <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
-                            {p.author && <p className="text-[10px] text-tv-green-deep/45 truncate">{p.author}</p>}
+                            {p.author && <p className="text-[10px] text-tv-green-deep/75 truncate">{p.author}</p>}
                             <button onClick={async () => {
                               const r = await fetch(`${API}/api/proposals/${p.id}/unvote`, {
                                 method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -1109,7 +1109,7 @@ export const AreaSoci = () => {
                 {/* FILM VOTATI */}
                 {proposalModal === "film-votati" && (
                   filmVotes.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-10">Nessun voto registrato.</p>
+                    <p className="text-sm text-tv-green-deep/75 text-center py-10">Nessun voto registrato.</p>
                   ) : (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                       {filmVotes.map(p => {
@@ -1125,7 +1125,7 @@ export const AreaSoci = () => {
                               </div>
                             )}
                             <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
-                            {p.director && <p className="text-[10px] text-tv-green-deep/45 truncate">{p.director}</p>}
+                            {p.director && <p className="text-[10px] text-tv-green-deep/75 truncate">{p.director}</p>}
                             <button onClick={async () => {
                               const r = await fetch(`${API}/api/film-proposals/${p.id}/unvote`, {
                                 method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -1146,7 +1146,7 @@ export const AreaSoci = () => {
                 {/* LIBRI PROPOSTI */}
                 {proposalModal === "libri-proposti" && (
                   myProposals.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-10">Nessuna proposta ancora.</p>
+                    <p className="text-sm text-tv-green-deep/75 text-center py-10">Nessuna proposta ancora.</p>
                   ) : (
                     <>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
@@ -1156,15 +1156,15 @@ export const AreaSoci = () => {
                               <img src={p.cover_url} alt={p.title} className="w-full aspect-[2/3] object-cover rounded-xl shadow-sm" />
                             ) : (
                               <div className="w-full aspect-[2/3] bg-tv-green-deep/10 rounded-xl flex items-center justify-center">
-                                <BookOpen size={18} className="text-tv-green-deep/30" />
+                                <BookOpen size={18} className="text-tv-green-deep/75" />
                               </div>
                             )}
                             <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
-                            {p.author && <p className="text-[10px] text-tv-green-deep/45 truncate">{p.author}</p>}
-                            <p className="text-[10px] text-tv-green-deep/30">{p.votes} voti</p>
+                            {p.author && <p className="text-[10px] text-tv-green-deep/75 truncate">{p.author}</p>}
+                            <p className="text-[10px] text-tv-green-deep/75">{p.votes} voti</p>
                             <div className="flex gap-2">
                               <button onClick={() => setEditingProposal(ep => ep?.id === p.id ? null : { ...p })}
-                                className={`text-[10px] font-bold underline underline-offset-2 ${editingProposal?.id === p.id ? "text-tv-green-deep" : "text-tv-green-deep/40 hover:text-tv-green-deep"}`}>
+                                className={`text-[10px] font-bold underline underline-offset-2 ${editingProposal?.id === p.id ? "text-tv-green-deep" : "text-tv-green-deep/75 hover:text-tv-green-deep"}`}>
                                 ✏️
                               </button>
                               <button onClick={async () => {
@@ -1181,7 +1181,7 @@ export const AreaSoci = () => {
                       </div>
                       {editingProposal && myProposals.some(p => p.id === editingProposal.id) && (
                         <div className="p-4 bg-white rounded-2xl border border-tv-green-deep/12 flex flex-col gap-3">
-                          <p className="text-xs font-black uppercase tracking-wider text-tv-green-deep/40 truncate">✏️ {editingProposal.title}</p>
+                          <p className="text-xs font-black uppercase tracking-wider text-tv-green-deep/75 truncate">✏️ {editingProposal.title}</p>
                           <input className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm text-tv-green-deep outline-none" placeholder="Titolo" value={editingProposal.title} onChange={e => setEditingProposal(ep => ({ ...ep, title: e.target.value }))} />
                           <input className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm text-tv-green-deep outline-none" placeholder="Autore" value={editingProposal.author || ""} onChange={e => setEditingProposal(ep => ({ ...ep, author: e.target.value }))} />
                           <input className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm text-tv-green-deep outline-none" placeholder="URL copertina" value={editingProposal.cover_url || ""} onChange={e => setEditingProposal(ep => ({ ...ep, cover_url: e.target.value }))} />
@@ -1204,7 +1204,7 @@ export const AreaSoci = () => {
                 {/* FILM PROPOSTI */}
                 {proposalModal === "film-proposti" && (
                   myFilmProposals.length === 0 ? (
-                    <p className="text-sm text-tv-green-deep/40 text-center py-10">Nessuna proposta ancora.</p>
+                    <p className="text-sm text-tv-green-deep/75 text-center py-10">Nessuna proposta ancora.</p>
                   ) : (
                     <>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
@@ -1218,11 +1218,11 @@ export const AreaSoci = () => {
                               </div>
                             )}
                             <p className="text-[11px] font-bold text-tv-green-deep leading-tight line-clamp-2">{p.title}</p>
-                            {p.director && <p className="text-[10px] text-tv-green-deep/45 truncate">{p.director}</p>}
-                            <p className="text-[10px] text-tv-green-deep/30">{p.votes} voti</p>
+                            {p.director && <p className="text-[10px] text-tv-green-deep/75 truncate">{p.director}</p>}
+                            <p className="text-[10px] text-tv-green-deep/75">{p.votes} voti</p>
                             <div className="flex gap-2">
                               <button onClick={() => setEditingFilmProposal(ep => ep?.id === p.id ? null : { ...p })}
-                                className={`text-[10px] font-bold underline underline-offset-2 ${editingFilmProposal?.id === p.id ? "text-tv-green-deep" : "text-tv-green-deep/40 hover:text-tv-green-deep"}`}>
+                                className={`text-[10px] font-bold underline underline-offset-2 ${editingFilmProposal?.id === p.id ? "text-tv-green-deep" : "text-tv-green-deep/75 hover:text-tv-green-deep"}`}>
                                 ✏️
                               </button>
                               <button onClick={async () => {
@@ -1239,7 +1239,7 @@ export const AreaSoci = () => {
                       </div>
                       {editingFilmProposal && myFilmProposals.some(p => p.id === editingFilmProposal.id) && (
                         <div className="p-4 bg-white rounded-2xl border border-tv-green-deep/12 flex flex-col gap-3">
-                          <p className="text-xs font-black uppercase tracking-wider text-tv-green-deep/40 truncate">✏️ {editingFilmProposal.title}</p>
+                          <p className="text-xs font-black uppercase tracking-wider text-tv-green-deep/75 truncate">✏️ {editingFilmProposal.title}</p>
                           <input className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm text-tv-green-deep outline-none" placeholder="Titolo" value={editingFilmProposal.title} onChange={e => setEditingFilmProposal(ep => ({ ...ep, title: e.target.value }))} />
                           <input className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm text-tv-green-deep outline-none" placeholder="Regista" value={editingFilmProposal.director || ""} onChange={e => setEditingFilmProposal(ep => ({ ...ep, director: e.target.value }))} />
                           <input className="w-full px-3 py-2 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm text-tv-green-deep outline-none" placeholder="URL locandina" value={editingFilmProposal.cover_url || ""} onChange={e => setEditingFilmProposal(ep => ({ ...ep, cover_url: e.target.value }))} />
@@ -1281,13 +1281,13 @@ export const AreaSoci = () => {
                 <div className="space-y-3 text-sm">
                   {memberInfo.tessera_number && (
                     <div className="flex justify-between items-center">
-                      <span className="text-tv-green-deep/50">N° tessera</span>
+                      <span className="text-tv-green-deep/75">N° tessera</span>
                       <span className="font-bold text-tv-green-deep">#{memberInfo.tessera_number}</span>
                     </div>
                   )}
                   {isFondatore && (
                     <div className="flex justify-between items-center">
-                      <span className="text-tv-green-deep/50">Ruolo</span>
+                      <span className="text-tv-green-deep/75">Ruolo</span>
                       <span className="text-[10px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-2.5 py-1 rounded-full flex items-center gap-1">
                         <Award size={9} /> Socio fondatore
                       </span>
@@ -1295,12 +1295,12 @@ export const AreaSoci = () => {
                   )}
                   {memberInfo.joined_at && (
                     <div className="flex justify-between items-center">
-                      <span className="text-tv-green-deep/50">Socio dal</span>
+                      <span className="text-tv-green-deep/75">Socio dal</span>
                       <span className="font-semibold text-tv-green-deep">{fmtDate(memberInfo.joined_at)}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center">
-                    <span className="text-tv-green-deep/50">Email account</span>
+                    <span className="text-tv-green-deep/75">Email account</span>
                     <span className="text-tv-green-deep/70 text-xs">{user.email}</span>
                   </div>
                 </div>

@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
 import { it } from "date-fns/locale";
 import { icsUrl, googleCalendarUrl } from "../utils/calendarUtils";
+import { PrivacyCheckbox, RecaptchaNotice } from "./PrivacyCheckbox";
+import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
+import { PRIVACY_VERSION } from "../lib/legal";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -18,10 +21,10 @@ const fmtDate = (iso) => {
 
 const categoryColor = {
   "Laboratori Artistici": "bg-tv-orange text-tv-green-deep",
-  "Eventi Sociali": "bg-tv-green text-tv-cream",
+  "Eventi Sociali": "bg-tv-green text-tv-green-deep",
   "Passeggiate": "bg-tv-sky text-tv-green-deep",
   "Screening Salute": "bg-tv-bordeaux text-tv-cream",
-  "Corsi IT": "bg-tv-sky text-tv-cream",
+  "Corsi IT": "bg-tv-sky text-tv-green-deep",
 };
 
 const categoryDot = {
@@ -53,6 +56,8 @@ export const Eventi = () => {
   const [doneEvent, setDoneEvent] = useState(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
+  useRecaptcha();
   const [soloSociError, setSoloSociError] = useState(false);
   const [view, setView] = useState("list");
   const [pickedDate, setPickedDate] = useState(null);
@@ -76,20 +81,27 @@ export const Eventi = () => {
       toast.error("Nome ed email sono obbligatori.");
       return;
     }
+    if (!privacy) {
+      toast.error("Per inviare la richiesta devi accettare l'informativa sulla privacy.");
+      return;
+    }
     setSubmitting(true);
     try {
       await axios.post(`${API}/event-signup`, {
         event_id: selected.id,
         event_title: selected.title,
         ...form,
-      });
+        privacy_accepted: true,
+        privacy_version: PRIVACY_VERSION,
+      }, { headers: await recaptchaHeaders("event_signup") });
       setDoneEvent(selected);
       setForm({ name: user?.name || "", email: user?.email || "", phone: "", message: "" });
+      setPrivacy(false);
     } catch (err) {
       if (err?.response?.status === 403) {
         setSoloSociError(true);
       } else {
-        toast.error("Qualcosa è andato storto. Riprova.");
+        toast.error(antiSpamMessage(err) || "Qualcosa è andato storto. Riprova.");
       }
     } finally {
       setSubmitting(false);
@@ -98,6 +110,7 @@ export const Eventi = () => {
 
   useEffect(() => {
     setSoloSociError(false);
+    setPrivacy(false);
     setForm({ name: user?.name || "", email: user?.email || "", phone: "", message: "" });
   }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -125,7 +138,7 @@ export const Eventi = () => {
         </div>
 
         {loading ? (
-          <div className="text-tv-green-deep/60" data-testid="events-loading">Caricamento…</div>
+          <div className="text-tv-green-deep/75" data-testid="events-loading">Caricamento…</div>
         ) : (
           <>
             {/* View toggle */}
@@ -177,9 +190,9 @@ export const Eventi = () => {
         >
           {doneEvent ? (
             <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-tv-green text-tv-cream rounded-[2rem] p-7 md:p-9 relative my-4">
-              <button type="button" onClick={() => { setSelected(null); setDoneEvent(null); }}
+              <button aria-label="Chiudi" type="button" onClick={() => { setSelected(null); setDoneEvent(null); }}
                 className="absolute top-5 right-5 p-2 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30">
-                <X size={16} />
+                <X aria-hidden="true" size={16} />
               </button>
               <div className="flex justify-center mb-5">
                 <div className="w-16 h-16 rounded-full bg-tv-cream/20 flex items-center justify-center text-4xl">✅</div>
@@ -220,14 +233,14 @@ export const Eventi = () => {
             onSubmit={submit}
             className="w-full max-w-lg bg-tv-cream rounded-[2rem] p-7 md:p-9 relative my-4"
           >
-            <button
+            <button aria-label="Chiudi"
               type="button"
               onClick={() => setSelected(null)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+              className="absolute top-5 right-5 p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85"
               data-testid="event-modal-close"
               aria-label="Chiudi"
             >
-              <X size={16} />
+              <X aria-hidden="true" size={16} />
             </button>
             <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
               Partecipa a
@@ -235,7 +248,7 @@ export const Eventi = () => {
             <h3 className="mt-2 font-display font-black text-2xl md:text-3xl text-tv-green-deep leading-tight">
               {selected.title}
             </h3>
-            <p className="mt-1 text-sm text-tv-green-deep/60">
+            <p className="mt-1 text-sm text-tv-green-deep/75">
               {fmtDate(selected.date)} · {selected.time} · {selected.location}
             </p>
 
@@ -259,6 +272,8 @@ export const Eventi = () => {
               <input
                 data-testid="event-form-name"
                 required
+                aria-label="Nome e cognome"
+                autoComplete="name"
                 placeholder="Nome e cognome"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -268,6 +283,8 @@ export const Eventi = () => {
                 data-testid="event-form-email"
                 required
                 type="email"
+                aria-label="Email"
+                autoComplete="email"
                 placeholder="Email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -275,6 +292,8 @@ export const Eventi = () => {
               />
               <input
                 data-testid="event-form-phone"
+                aria-label="Telefono (opzionale)"
+                autoComplete="tel"
                 placeholder="Telefono (opzionale)"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -282,6 +301,7 @@ export const Eventi = () => {
               />
               <textarea
                 data-testid="event-form-message"
+                aria-label="Una nota per noi (opzionale)"
                 placeholder="Una nota per noi (opzionale)"
                 rows={3}
                 value={form.message}
@@ -290,12 +310,20 @@ export const Eventi = () => {
               />
                 <input
                  data-testid="detail-form-referral"
+                 aria-label="Come hai saputo dell'evento (opzionale)"
                  placeholder="Come hai saputo dell'evento/Chi ti ha consigliato? (opzionale)"
                  value={form.referral || ""}
                  onChange={(e) => setForm({ ...form, referral: e.target.value })}
                  className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep resize-none"
                />
             </div>
+            <PrivacyCheckbox
+              id="event-privacy"
+              className="mt-5"
+              checked={privacy}
+              onChange={(e) => setPrivacy(e.target.checked)}
+              purpose="gestire la mia richiesta di partecipazione a questo evento"
+            />
             <button
               type="submit"
               disabled={submitting}
@@ -304,6 +332,7 @@ export const Eventi = () => {
             >
               {submitting ? "Invio in corso…" : "Invia richiesta"}
             </button>
+            <RecaptchaNotice className="mt-3" />
             {soloSociError && (
               <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                 <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
@@ -344,7 +373,7 @@ const ListView = ({ events, onParticipate }) => {
           ))}
         </div>
       ) : !featured && (
-        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/60">
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/75">
           Nessun evento in programma al momento. Torna presto!
         </div>
       )}
@@ -352,7 +381,7 @@ const ListView = ({ events, onParticipate }) => {
         <>
           <div className="mt-16 mb-6 flex items-center gap-4">
             <div className="flex-1 border-t border-tv-green-deep/10" />
-            <span className="text-xs font-bold uppercase tracking-[0.3em] text-tv-green-deep/30">Storico eventi</span>
+            <span className="text-xs font-bold uppercase tracking-[0.3em] text-tv-green-deep/75">Storico eventi</span>
             <div className="flex-1 border-t border-tv-green-deep/10" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
@@ -469,7 +498,7 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
             {ev.category}
           </span>
           {past && (
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/50">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/75">
               Concluso
             </span>
           )}
@@ -513,12 +542,12 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
               <span className="text-[10px] font-black tracking-[.18em] text-tv-bordeaux uppercase shrink-0">Sold out</span>
               <div className="flex-1 border-t border-dashed border-tv-bordeaux/20" />
               <Link to={`/eventi/${ev.slug || ev.id}`} data-testid={`event-detail-${ev.id}`}
-                className="text-sm font-bold text-tv-green-deep/50 hover:text-tv-green-deep transition-colors shrink-0 flex items-center gap-1">
+                className="text-sm font-bold text-tv-green-deep/75 hover:text-tv-green-deep transition-colors shrink-0 flex items-center gap-1">
                 Vedi dettagli <ArrowRight size={13} />
               </Link>
             </div>
             <Link to={`/eventi/${ev.slug || ev.id}`}
-              className="flex items-center justify-center gap-1.5 py-2 rounded-full border border-tv-green-deep/20 text-tv-green-deep/60 text-xs font-bold hover:border-tv-green-deep/40 hover:text-tv-green-deep transition-all">
+              className="flex items-center justify-center gap-1.5 py-2 rounded-full border border-tv-green-deep/20 text-tv-green-deep/75 text-xs font-bold hover:border-tv-green-deep/40 hover:text-tv-green-deep transition-all">
               ⏳ Lista di attesa
             </Link>
           </div>
@@ -529,7 +558,7 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
             className={`inline-flex items-center justify-center gap-2 w-full px-5 py-3 rounded-full font-bold text-sm transition-all duration-300 ${
               past
                 ? "bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-green-deep hover:text-tv-cream"
-                : "btn-tv bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+                : "btn-tv bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85"
             }`}
           >
             {past ? "Vedi dettagli" : <>Vedi dettagli e Partecipa <ArrowRight size={16} /></>}
@@ -567,12 +596,12 @@ const PastEventCard = ({ ev }) => (
       <h3 className="font-display font-black text-sm leading-tight text-tv-green-deep/75 group-hover:text-tv-green-deep transition-colors">
         {ev.title}
       </h3>
-      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-tv-green-deep/30">
+      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-tv-green-deep/75">
         <CalendarIcon size={10} />
         {new Date(ev.date).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
       </div>
       <div className="mt-auto pt-3 flex items-center justify-end">
-        <ArrowRight size={13} className="text-tv-green-deep/20 group-hover:text-tv-green-deep/50 group-hover:translate-x-0.5 transition-all" />
+        <ArrowRight size={13} className="text-tv-green-deep/20 group-hover:text-tv-green-deep/75 group-hover:translate-x-0.5 transition-all" />
       </div>
     </div>
   </Link>
@@ -657,7 +686,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             table: "w-full border-collapse",
             head_row: "flex w-full",
             head_cell:
-              "flex-1 text-tv-green-deep/50 font-bold text-[11px] uppercase tracking-wider py-2",
+              "flex-1 text-tv-green-deep/75 font-bold text-[11px] uppercase tracking-wider py-2",
             row: "flex w-full mt-1",
             cell: "flex-1 aspect-square text-center text-sm relative p-0",
             day: "h-full w-full inline-flex items-center justify-center rounded-2xl text-tv-green-deep hover:bg-tv-sky/40 transition-colors aria-selected:opacity-100",
@@ -706,7 +735,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             <div className="font-display font-black text-2xl leading-tight">
               Niente eventi questo giorno.
             </div>
-            <div className="mt-2 text-sm text-tv-green-deep/60">
+            <div className="mt-2 text-sm text-tv-green-deep/75">
               Ma se hai un'idea, proponicela: la prossima trama la tessiamo insieme.
             </div>
           </div>

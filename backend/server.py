@@ -15,6 +15,7 @@ import httpx
 import sys
 
 import hashlib
+import hmac
 import secrets
 import jwt as pyjwt
 
@@ -67,6 +68,76 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ========== PRIVACY, CONSENSI E ANTI-BOT ==========
+# Versione dell'informativa privacy mostrata agli utenti (tenere allineata a frontend/src/lib/legal.js)
+PRIVACY_POLICY_VERSION = "2026-11-12"
+RECAPTCHA_MIN_SCORE = 0.5
+
+
+class PrivacyFields(BaseModel):
+    """Prova del consenso al trattamento dei dati, salvata insieme a ogni richiesta pubblica."""
+    privacy_accepted: bool = False
+    privacy_version: Optional[str] = Field(default=None, max_length=20)
+    privacy_accepted_at: Optional[str] = None
+
+
+def _stamp_privacy(payload) -> None:
+    """Rifiuta la richiesta se manca la spunta privacy e registra versione e data del consenso."""
+    if getattr(payload, "privacy_accepted", False) is not True:
+        raise HTTPException(
+            status_code=400,
+            detail="Per procedere devi accettare l'informativa sulla privacy.",
+        )
+    payload.privacy_version = (payload.privacy_version or PRIVACY_POLICY_VERSION)[:20]
+    payload.privacy_accepted_at = datetime.now(timezone.utc).isoformat()
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
+def verify_recaptcha(action: str):
+    """Dipendenza FastAPI: verifica il token reCAPTCHA v3 inviato nell'header X-Recaptcha-Token.
+
+    - Se RECAPTCHA_SECRET_KEY non è configurata il controllo è disattivato (sito funzionante anche prima della configurazione).
+    - Se Google non è raggiungibile non blocchiamo gli utenti: lo segnaliamo solo nei log.
+    """
+    async def _dependency(request: Request):
+        secret = os.environ.get("RECAPTCHA_SECRET_KEY")
+        if not secret:
+            return
+        token = request.headers.get("x-recaptcha-token", "")
+        if not token:
+            raise HTTPException(
+                status_code=400,
+                detail="Verifica anti-spam mancante. Ricarica la pagina e riprova.",
+            )
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as http:
+                resp = await http.post(
+                    "https://www.google.com/recaptcha/api/siteverify",
+                    data={"secret": secret, "response": token, "remoteip": _client_ip(request)},
+                )
+            result = resp.json()
+        except Exception as exc:
+            logger.warning(f"reCAPTCHA non verificabile ({action}): {exc}")
+            return
+        if (
+            not result.get("success")
+            or result.get("action") != action
+            or float(result.get("score", 0)) < RECAPTCHA_MIN_SCORE
+        ):
+            logger.info(f"reCAPTCHA rifiutato ({action}): {result.get('error-codes')} score={result.get('score')}")
+            raise HTTPException(
+                status_code=400,
+                detail="Verifica anti-spam non superata. Riprova tra qualche istante.",
+            )
+    return _dependency
+
+
 # ========== MODELS ==========
 class GuestInfo(BaseModel):
     nome: str
@@ -75,7 +146,7 @@ class GuestInfo(BaseModel):
     email: Optional[str] = None
     opzione_scelta: Optional[str] = None
 
-class EventSignupCreate(BaseModel):
+class EventSignupCreate(PrivacyFields):
     event_id: str
     event_title: str
     name: str
@@ -89,7 +160,7 @@ class EventSignupCreate(BaseModel):
     donazione_volontaria: Optional[float] = None
     opzione_scelta: Optional[str] = None
 
-class EventSignup(BaseModel):
+class EventSignup(PrivacyFields):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     event_id: str
@@ -133,12 +204,12 @@ class Membership(BaseModel):
     referral: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class ContactCreate(BaseModel):
+class ContactCreate(PrivacyFields):
     name: str
     email: EmailStr
     message: str
 
-class Contact(BaseModel):
+class Contact(PrivacyFields):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -545,7 +616,7 @@ class RegistrationCreate(BaseModel):
     dichiarazione_accettata: bool
     metodo_pagamento: Optional[str] = None
 
-class DonationCreate(BaseModel):
+class DonationCreate(PrivacyFields):
     model_config = ConfigDict(extra="ignore")
     first_name: str
     last_name: str
@@ -555,7 +626,7 @@ class DonationCreate(BaseModel):
     message: Optional[str] = None
     metodo_pagamento: str = "bonifico"
 
-class Donation(BaseModel):
+class Donation(PrivacyFields):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     first_name: str
     last_name: str
@@ -873,8 +944,9 @@ async def _enforce_solo_soci(payload: EventSignupCreate):
         )
         raise HTTPException(status_code=403, detail={"message": message, "guests_not_members": True})
 
-@api_router.post("/event-signup")
+@api_router.post("/event-signup", dependencies=[Depends(verify_recaptcha("event_signup"))])
 async def create_event_signup(payload: EventSignupCreate):
+    _stamp_privacy(payload)
     # Controllo accesso: eventi solo soci
     event_doc = await db.events.find_one({"id": payload.event_id})
     if event_doc and event_doc.get("solo_soci"):
@@ -1010,7 +1082,7 @@ async def perform_cancel_signup(token: str):
         logger.warning(f"Notifica admin cancellazione non inviata: {e}")
     return {"ok": True}
 
-@api_router.post("/membership", response_model=Membership)
+@api_router.post("/membership", response_model=Membership, dependencies=[Depends(verify_recaptcha("membership"))])
 async def create_membership(payload: MembershipCreate):
     obj = Membership(**payload.model_dump())
     doc = obj.model_dump()
@@ -1018,8 +1090,9 @@ async def create_membership(payload: MembershipCreate):
     await db.memberships.insert_one(doc)
     return obj
 
-@api_router.post("/contact", response_model=Contact)
+@api_router.post("/contact", response_model=Contact, dependencies=[Depends(verify_recaptcha("contact"))])
 async def create_contact(payload: ContactCreate):
+    _stamp_privacy(payload)
     obj = Contact(**payload.model_dump())
     doc = obj.model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
@@ -1034,9 +1107,35 @@ async def create_contact(payload: ContactCreate):
         logger.warning(f"Notifica admin contatti non inviata: {e}")
     return obj
 
+# ========== ROUTES: CONSENSI COOKIE ==========
+class CookieConsentIn(BaseModel):
+    consent_id: str = Field(min_length=8, max_length=64)
+    analytics: bool
+    action: str = Field(max_length=20)  # accept_all | reject_all | custom
+    policy_version: str = Field(max_length=20)
+
+@api_router.post("/consents")
+async def log_cookie_consent(payload: CookieConsentIn, request: Request):
+    """Registra la scelta sui cookie (prova del consenso). L'IP non è salvato in chiaro, solo un hash non reversibile."""
+    ip = _client_ip(request)
+    ip_hash = hmac.new(JWT_SECRET.encode(), ip.encode(), hashlib.sha256).hexdigest()[:32] if ip else None
+    await db.cookie_consents.insert_one({
+        "id": str(uuid.uuid4()),
+        "consent_id": payload.consent_id,
+        "analytics": payload.analytics,
+        "action": payload.action if payload.action in ("accept_all", "reject_all", "custom") else "custom",
+        "policy_version": payload.policy_version,
+        "ip_hash": ip_hash,
+        "user_agent": (request.headers.get("user-agent") or "")[:300],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True}
+
 # ========== ROUTES: REGISTRATIONS ==========
-@api_router.post("/registrations/create")
+@api_router.post("/registrations/create", dependencies=[Depends(verify_recaptcha("membership_register"))])
 async def create_registration(payload: RegistrationCreate):
+    if payload.consenso_privacy is not True or payload.consenso_dati is not True:
+        raise HTTPException(status_code=400, detail="Per procedere devi accettare l'informativa sulla privacy e il trattamento dei dati.")
     try:
         registration_data = payload.model_dump()
         
@@ -1232,7 +1331,7 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "https://www.tramavivaaps.com")
 
-class SocioCreate(BaseModel):
+class SocioCreate(PrivacyFields):
     email: EmailStr
     password: str = Field(min_length=8)
     name: str
@@ -1304,8 +1403,9 @@ def require_admin(authorization: Optional[str] = Header(default=None)):
 
 # ========== ROUTES: DONATIONS ==========
 
-@api_router.post("/donations")
+@api_router.post("/donations", dependencies=[Depends(verify_recaptcha("donation"))])
 async def create_donation(payload: DonationCreate):
+    _stamp_privacy(payload)
     try:
         donation = Donation(**payload.model_dump())
         checkout_url = None
@@ -1354,6 +1454,16 @@ async def list_donations():
     return docs
 
 
+@api_router.get("/admin/consents", dependencies=[Depends(require_admin)])
+async def admin_list_consents(limit: int = 200):
+    """Registro delle scelte cookie, dalla più recente."""
+    limit = max(1, min(limit, 1000))
+    items = await db.cookie_consents.find({}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    total = await db.cookie_consents.count_documents({})
+    accepted = await db.cookie_consents.count_documents({"analytics": True})
+    return {"total": total, "analytics_accepted": accepted, "analytics_rejected": total - accepted, "items": items}
+
+
 @api_router.put("/admin/donations/{donation_id}", dependencies=[Depends(require_admin)])
 async def update_donation(donation_id: str, data: dict, background_tasks: BackgroundTasks):
     allowed = {k: v for k, v in data.items() if k in ("status", "note")}
@@ -1391,8 +1501,9 @@ async def admin_login(payload: dict):
 
 # ========== SOCIO AUTH ENDPOINTS ==========
 
-@api_router.post("/auth/register")
+@api_router.post("/auth/register", dependencies=[Depends(verify_recaptcha("register"))])
 async def socio_register(payload: SocioCreate):
+    _stamp_privacy(payload)
     email = payload.email.lower().strip()
     member = await db.members.find_one({"email": re.compile(f"^{re.escape(email)}$", re.IGNORECASE)})
     if not member:
@@ -1410,11 +1521,14 @@ async def socio_register(payload: SocioCreate):
         "bio": None,
         "has_avatar": False,
         "created_at": now,
+        "privacy_accepted": True,
+        "privacy_version": payload.privacy_version,
+        "privacy_accepted_at": payload.privacy_accepted_at,
     })
     token = _create_access_token(user_id)
     return {"token": token, "user": {"id": user_id, "email": email, "name": payload.name.strip(), "bio": None, "has_avatar": False}}
 
-@api_router.post("/auth/login")
+@api_router.post("/auth/login", dependencies=[Depends(verify_recaptcha("login"))])
 async def socio_login(payload: SocioLogin):
     email = payload.email.lower().strip()
     user = await db.users.find_one({"email": email})
@@ -1476,7 +1590,7 @@ async def get_user_avatar(user_id: str):
         b64, content_type = data_url, "image/jpeg"
     return Response(content=base64.b64decode(b64), media_type=content_type)
 
-@api_router.post("/auth/forgot-password")
+@api_router.post("/auth/forgot-password", dependencies=[Depends(verify_recaptcha("forgot_password"))])
 async def socio_forgot_password(payload: PasswordResetRequest):
     email = payload.email.lower().strip()
     user = await db.users.find_one({"email": email})

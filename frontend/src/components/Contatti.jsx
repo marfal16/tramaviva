@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Instagram, Mail, Send, Facebook } from "lucide-react";
+import { PrivacyCheckbox, RecaptchaNotice } from "./PrivacyCheckbox";
+import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
+import { PRIVACY_VERSION } from "../lib/legal";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -43,7 +46,10 @@ const SOCIAL = [
 
 export const Contatti = () => {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [privacy, setPrivacy] = useState(false);
+  const [privacyError, setPrivacyError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  useRecaptcha();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -51,13 +57,22 @@ export const Contatti = () => {
       toast.error("Compila tutti i campi.");
       return;
     }
+    if (!privacy) {
+      setPrivacyError("Per inviare il messaggio devi accettare l'informativa sulla privacy.");
+      return;
+    }
     setSubmitting(true);
     try {
-      await axios.post(`${API}/contact`, form);
+      await axios.post(
+        `${API}/contact`,
+        { ...form, privacy_accepted: true, privacy_version: PRIVACY_VERSION },
+        { headers: await recaptchaHeaders("contact") }
+      );
       toast.success("Messaggio inviato. Grazie!");
       setForm({ name: "", email: "", message: "" });
+      setPrivacy(false);
     } catch (e) {
-      toast.error("Errore nell'invio. Riprova.");
+      toast.error(antiSpamMessage(e) || "Errore nell'invio. Riprova.");
     } finally {
       setSubmitting(false);
     }
@@ -91,7 +106,7 @@ export const Contatti = () => {
 
           {/* Canali */}
           <div className="md:col-span-2">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-tv-green-deep/45 mb-5">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-tv-green-deep/75 mb-5">
               Trovaci anche qui
             </p>
             <div className="space-y-2">
@@ -109,7 +124,7 @@ export const Contatti = () => {
                     <Icon size={18} />
                   </span>
                   <div>
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/45">{label}</div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/75">{label}</div>
                     <div className="font-semibold text-tv-green-deep text-sm">{value}</div>
                   </div>
                 </a>
@@ -126,7 +141,7 @@ export const Contatti = () => {
             <div className="font-display font-black text-2xl md:text-3xl text-tv-green-deep leading-tight">
               Scrivici un messaggio.
             </div>
-            <div className="mt-1 text-sm text-tv-green-deep/55">
+            <div className="mt-1 text-sm text-tv-green-deep/75">
               Rispondiamo in breve tempo, promesso.
             </div>
             <div className="mt-6 space-y-3">
@@ -146,20 +161,30 @@ export const Contatti = () => {
               <textarea
                 data-testid="contact-message"
                 rows={5}
+                aria-label="Il tuo messaggio"
                 placeholder="Il tuo messaggio…"
                 value={form.message}
                 onChange={(e) => setForm({ ...form, message: e.target.value })}
-                className="w-full px-4 py-3 rounded-2xl bg-tv-sky/20 border border-tv-green-deep/12 focus:border-tv-green-deep/40 outline-none text-tv-green-deep placeholder:text-tv-green-deep/35 resize-none text-sm transition-colors"
+                className="w-full px-4 py-3 rounded-2xl bg-tv-sky/20 border border-tv-green-deep/12 focus:border-tv-green-deep/40 outline-none text-tv-green-deep placeholder:text-tv-green-deep/65 resize-none text-sm transition-colors"
               />
             </div>
+            <PrivacyCheckbox
+              id="contact-privacy"
+              className="mt-4"
+              checked={privacy}
+              onChange={(e) => { setPrivacy(e.target.checked); setPrivacyError(""); }}
+              purpose="rispondere al mio messaggio"
+              error={privacyError}
+            />
             <button
               type="submit"
               disabled={submitting}
               data-testid="contact-submit"
-              className="btn-tv w-full mt-5 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold inline-flex items-center justify-center gap-2 hover:bg-tv-green transition-colors disabled:opacity-60"
+              className="btn-tv w-full mt-5 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold inline-flex items-center justify-center gap-2 hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60"
             >
               {submitting ? "Invio…" : <>Invia messaggio <Send size={16} /></>}
             </button>
+            <RecaptchaNotice className="mt-3" />
           </form>
 
         </div>
@@ -171,12 +196,14 @@ export const Contatti = () => {
 const Field = ({ id, type = "text", placeholder, value, onChange }) => (
   <input
     data-testid={`contact-${id}`}
+    aria-label={placeholder}
+    autoComplete={type === "email" ? "email" : id === "name" ? "name" : undefined}
     required
     type={type}
     placeholder={placeholder}
     value={value}
     onChange={onChange}
-    className="w-full px-4 py-3 rounded-2xl bg-tv-sky/20 border border-tv-green-deep/12 focus:border-tv-green-deep/40 outline-none text-tv-green-deep placeholder:text-tv-green-deep/35 text-sm transition-colors"
+    className="w-full px-4 py-3 rounded-2xl bg-tv-sky/20 border border-tv-green-deep/12 focus:border-tv-green-deep/40 outline-none text-tv-green-deep placeholder:text-tv-green-deep/65 text-sm transition-colors"
   />
 );
 

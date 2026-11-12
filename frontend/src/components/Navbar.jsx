@@ -38,6 +38,15 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => {
+    const onKey = e => {
+      if (e.key !== "Escape") return;
+      setOpen(false); setClubsOpen(false); setUserMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const handleLogout = () => { logout(); navigate("/"); setUserMenuOpen(false); };
 
   useEffect(() => {
@@ -97,12 +106,12 @@ export const Navbar = () => {
               : "bg-tv-cream/50 border border-tv-green-deep/5"
           }`}
         >
-          <a href="/" onClick={scrollTo("#hero")} data-testid="navbar-logo-link">
+          <a href="/" onClick={scrollTo("#hero")} data-testid="navbar-logo-link" aria-label="Trama Viva, vai all'inizio della pagina">
             <Logo size={36} />
           </a>
 
           {/* ── Desktop nav ── */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Principale">
             {links.map((l) => (
               <a
                 key={l.href}
@@ -119,6 +128,8 @@ export const Navbar = () => {
             <div className="relative" ref={clubsRef}>
               <button
                 onClick={() => setClubsOpen(o => !o)}
+                aria-expanded={clubsOpen}
+                aria-controls="clubs-menu"
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                   clubsOpen
                     ? "bg-tv-mint/50 text-tv-green-deep"
@@ -126,11 +137,12 @@ export const Navbar = () => {
                 }`}
               >
                 I nostri Club
-                <ChevronDown size={13} className={`transition-transform duration-200 ${clubsOpen ? "rotate-180" : ""}`} />
+                <ChevronDown size={13} aria-hidden="true" className={`transition-transform duration-200 ${clubsOpen ? "rotate-180" : ""}`} />
               </button>
               <div
+                id="clubs-menu"
                 className={`absolute left-0 top-full mt-2 w-48 bg-white rounded-2xl border border-tv-green-deep/10 shadow-lg overflow-hidden z-50 transition-all duration-150 origin-top ${
-                  clubsOpen ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
+                  clubsOpen ? "opacity-100 scale-y-100 pointer-events-auto visible" : "opacity-0 scale-y-95 pointer-events-none invisible"
                 }`}
               >
                 {CLUBS.map(({ to, label, icon: Icon, color }) => (
@@ -140,7 +152,7 @@ export const Navbar = () => {
                     onClick={closeAll}
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-tv-green-deep hover:bg-tv-mint/30 transition-colors first:border-b first:border-tv-green-deep/8"
                   >
-                    <Icon size={15} className={color} />
+                    <Icon size={15} className={color} aria-hidden="true" />
                     {label}
                   </Link>
                 ))}
@@ -160,24 +172,26 @@ export const Navbar = () => {
               onClick={closeAll}
               className="px-4 py-2 rounded-full text-sm font-semibold text-tv-bordeaux/80 hover:text-tv-bordeaux hover:bg-tv-bordeaux/8 transition-colors flex items-center gap-1.5"
             >
-              <Heart size={12} fill="currentColor" /> Dona
+              <Heart size={12} fill="currentColor" aria-hidden="true" /> Dona
             </Link>
 
             {user ? (
               <div className="relative ml-2" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(o => !o)}
+                  aria-expanded={userMenuOpen}
+                  aria-label={`Menu di ${user.name || "account"}`}
                   className="flex items-center gap-2 px-3 py-2 rounded-full border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-mint/40 transition-colors"
                 >
                   {user.has_avatar ? (
-                    <img src={user.avatar_url || `${API}/api/users/${user.id}/avatar`} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
+                    <img src={user.avatar_url || `${API}/api/users/${user.id}/avatar`} alt="" className="w-6 h-6 rounded-full object-cover" />
                   ) : (
                     <div className="w-6 h-6 rounded-full bg-tv-green-deep text-tv-cream flex items-center justify-center text-xs font-black">
                       {user.name?.charAt(0)?.toUpperCase()}
                     </div>
                   )}
                   <span className="text-sm font-semibold max-w-[100px] truncate">{user.name?.split(" ")[0]}</span>
-                  <ChevronDown size={13} className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown size={13} aria-hidden="true" className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-2xl border border-tv-green-deep/10 shadow-lg overflow-hidden z-50">
@@ -194,7 +208,7 @@ export const Navbar = () => {
               </div>
             ) : (
               <Link to="/login"
-                className="btn-tv ml-2 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green">
+                className="btn-tv ml-2 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85">
                 Area soci
               </Link>
             )}
@@ -203,7 +217,7 @@ export const Navbar = () => {
                 href="#iscrizione"
                 onClick={scrollTo("#iscrizione")}
                 data-testid="nav-cta-iscrizione"
-                className="btn-tv ml-1 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green"
+                className="btn-tv ml-1 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85"
               >
                 Diventa socio: unisciti alla trama
               </a>
@@ -213,17 +227,21 @@ export const Navbar = () => {
           <button
             className="md:hidden p-2 rounded-full bg-tv-green-deep text-tv-cream"
             onClick={() => setOpen(!open)}
-            aria-label="Menu"
+            aria-label={open ? "Chiudi menu" : "Apri menu"}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
             data-testid="nav-mobile-toggle"
           >
-            {open ? <X size={20} /> : <Menu size={20} />}
+            {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
         </div>
 
         {/* ── Mobile menu — absolute per non estendere l'header e bloccare i click ── */}
-        <div
+        <nav
+          id="mobile-menu"
+          aria-label="Menu mobile"
           className={`md:hidden absolute top-full left-0 right-0 mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
-            open ? "opacity-100 scale-y-100 pointer-events-auto" : "opacity-0 scale-y-95 pointer-events-none"
+            open ? "opacity-100 scale-y-100 pointer-events-auto visible" : "opacity-0 scale-y-95 pointer-events-none invisible"
           }`}
           data-testid="nav-mobile-menu"
         >
@@ -242,10 +260,11 @@ export const Navbar = () => {
           {/* "I nostri Club" collapsibile mobile */}
           <button
             onClick={() => setMobileClubsOpen(o => !o)}
+            aria-expanded={mobileClubsOpen}
             className="flex items-center justify-between px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40 w-full text-left"
           >
             I nostri Club
-            <ChevronDown size={16} className={`transition-transform duration-200 ${mobileClubsOpen ? "rotate-180" : ""}`} />
+            <ChevronDown size={16} aria-hidden="true" className={`transition-transform duration-200 ${mobileClubsOpen ? "rotate-180" : ""}`} />
           </button>
           {mobileClubsOpen && (
             <div className="ml-3 flex flex-col gap-0.5 border-l-2 border-tv-green-deep/10 pl-3">
@@ -276,7 +295,7 @@ export const Navbar = () => {
             onClick={closeAll}
             className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-bordeaux hover:bg-tv-bordeaux/8 flex items-center gap-2"
           >
-            <Heart size={14} fill="currentColor" /> Dona
+            <Heart size={14} fill="currentColor" aria-hidden="true" /> Dona
           </Link>
           {user ? (
             <>
@@ -305,7 +324,7 @@ export const Navbar = () => {
               </a>
             </>
           )}
-        </div>
+        </nav>
       </div>
     </header>
   );

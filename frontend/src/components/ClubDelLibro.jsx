@@ -61,10 +61,10 @@ const SectionHeading = ({ dot, label, title, sub, labelSize = "text-xs" }) => (
   <div className="mb-8">
     <div className="flex items-center gap-2 mb-3">
       <span className={`w-2.5 h-2.5 rounded-full ${dot}`} />
-      <span className={`${labelSize} font-black uppercase tracking-widest text-tv-green-deep/50`}>{label}</span>
+      <span className={`${labelSize} font-black uppercase tracking-widest text-tv-green-deep/75`}>{label}</span>
     </div>
     <h2 className="font-display font-black text-3xl md:text-4xl text-tv-green-deep leading-tight">{title}</h2>
-    {sub && <p className="mt-2 text-tv-green-deep/60">{sub}</p>}
+    {sub && <p className="mt-2 text-tv-green-deep/75">{sub}</p>}
   </div>
 );
 
@@ -88,11 +88,11 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
           <Link to={`/club-del-libro/${book.id}`}>
             <h3 className="font-display font-black text-lg leading-tight text-tv-green-deep hover:text-tv-bordeaux transition-colors">{book.title}</h3>
           </Link>
-          <div className="text-sm text-tv-green-deep/55 mt-0.5">
+          <div className="text-sm text-tv-green-deep/75 mt-0.5">
             {book.author}{book.genre && <span className="italic"> · {book.genre}</span>}
           </div>
           {book.reading_month && (
-            <div className="mt-1 text-xs text-tv-green-deep/40 flex items-center gap-1">
+            <div className="mt-1 text-xs text-tv-green-deep/75 flex items-center gap-1">
               <Calendar size={10} /> {fmtMonthYear(book.reading_month)}
             </div>
           )}
@@ -104,7 +104,7 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
       </div>
       {book.recensione && (
         <div className="mx-5 mb-3 rounded-2xl bg-tv-mint/40 border-l-4 border-tv-green p-4">
-          <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-1">La nostra lettura</div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-1">La nostra lettura</div>
           <p className="text-sm text-tv-green-deep/80 leading-relaxed line-clamp-3">{book.recensione}</p>
         </div>
       )}
@@ -156,9 +156,9 @@ const PasswordModal = ({ club, onSuccess, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl p-6" onClick={e => e.stopPropagation()}>
         <div className="text-center mb-5">
-          <Lock size={28} className="mx-auto mb-2 text-tv-green-deep/40" />
+          <Lock size={28} className="mx-auto mb-2 text-tv-green-deep/75" />
           <h2 className="font-display font-black text-xl text-tv-green-deep">Area community</h2>
-          <p className="text-sm text-tv-green-deep/50 mt-1">Inserisci la password condivisa nel gruppo WhatsApp.</p>
+          <p className="text-sm text-tv-green-deep/75 mt-1">Inserisci la password condivisa nel gruppo WhatsApp.</p>
         </div>
         <form onSubmit={submit} className="grid gap-3">
           <input type="text" autoFocus placeholder="Password…" value={pwd} onChange={e => setPwd(e.target.value)}
@@ -246,14 +246,14 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
   };
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
-  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1.5";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
           <h2 className="font-display font-black text-xl text-tv-green-deep">{initialData ? "Riproponi libro" : "Proponi un libro"}</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
+          <button onClick={onClose} aria-label="Chiudi" className="p-2 rounded-full hover:bg-tv-green-deep/10"><X aria-hidden="true" size={18} /></button>
         </div>
         <form onSubmit={submit} className="p-6 grid gap-4">
           {/* Riproponi da precedenti */}
@@ -265,12 +265,12 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
             {pastProposals !== null && (
               <div className="mt-2 max-h-40 overflow-y-auto rounded-2xl border border-tv-green-deep/10 bg-white divide-y divide-tv-green-deep/6">
                 {pastProposals.length === 0
-                  ? <p className="text-xs text-tv-green-deep/40 p-3">Nessuna proposta trovata.</p>
+                  ? <p className="text-xs text-tv-green-deep/75 p-3">Nessuna proposta trovata.</p>
                   : pastProposals.map((p) => (
                     <button key={p.id} type="button" onClick={() => pickPast(p)}
                       className="w-full text-left px-4 py-2.5 hover:bg-tv-sky/20 transition-colors">
                       <div className="text-sm font-bold text-tv-green-deep line-clamp-1">{p.title}</div>
-                      <div className="text-xs text-tv-green-deep/45">{p.author}</div>
+                      <div className="text-xs text-tv-green-deep/75">{p.author}</div>
                     </button>
                   ))
                 }
@@ -369,14 +369,14 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
   };
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm";
-  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1.5";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-tv-green-deep/60 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-tv-green-deep/10">
           <span className="font-bold text-tv-green-deep text-base">Vota «{proposal.title}»</span>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-tv-green-deep/10"><X size={16} /></button>
+          <button onClick={onClose} aria-label="Chiudi" className="p-1.5 rounded-full hover:bg-tv-green-deep/10"><X aria-hidden="true" size={16} /></button>
         </div>
         <form onSubmit={submit} className="p-5 grid gap-3">
           {duplicateOf && (
@@ -404,7 +404,7 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
           )}
           {!duplicateOf && (
             <>
-              <p className="text-xs text-tv-green-deep/50">Lascia il tuo nome per registrare il voto.</p>
+              <p className="text-xs text-tv-green-deep/75">Lascia il tuo nome per registrare il voto.</p>
               <div className="grid grid-cols-2 gap-3">
                 <label>
                   <div className={labelClass}>Nome *</div>
@@ -437,8 +437,8 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
-          <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40">Proposta del mese</span>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
+          <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75">Proposta del mese</span>
+          <button onClick={onClose} aria-label="Chiudi" className="p-2 rounded-full hover:bg-tv-green-deep/10"><X aria-hidden="true" size={18} /></button>
         </div>
         <div className="p-6 flex gap-5">
           {proposal.cover_url ? (
@@ -450,13 +450,13 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
           )}
           <div className="flex-1 min-w-0">
             <h3 className="font-display font-black text-xl leading-tight text-tv-green-deep">{proposal.title}</h3>
-            <div className="text-sm text-tv-green-deep/55 mt-1">
+            <div className="text-sm text-tv-green-deep/75 mt-1">
               {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
             </div>
             {initials && (
               <div className="mt-2 flex items-center gap-1.5">
                 <div className="w-6 h-6 rounded-full bg-tv-bordeaux text-tv-cream flex items-center justify-center text-[10px] font-black shrink-0">{initials}</div>
-                <span className="text-xs text-tv-green-deep/50">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
+                <span className="text-xs text-tv-green-deep/75">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
             )}
             <div className="mt-4">
@@ -471,7 +471,7 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
         </div>
         {proposal.description && (
           <div className="px-6 pb-6">
-            <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
+            <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Trama</div>
             <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
           </div>
         )}
@@ -506,12 +506,12 @@ const VotingCountdown = ({ endsAt, onExpire }) => {
     : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
   return (
     <div className="flex flex-wrap items-center gap-3 mb-6 bg-tv-orange/8 border border-tv-orange/20 rounded-2xl px-5 py-3">
-      <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50">⏱ Fine votazioni</span>
+      <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75">⏱ Fine votazioni</span>
       <div className="flex gap-1.5">
         {units.map(({ v, l }) => (
           <div key={l} className="text-center bg-tv-green-deep/10 rounded-xl px-2.5 py-2 min-w-[44px]">
             <div className="font-display font-black text-xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
-            <div className="text-[9px] uppercase text-tv-green-deep/45 mt-0.5">{l}</div>
+            <div className="text-[9px] uppercase text-tv-green-deep/75 mt-0.5">{l}</div>
           </div>
         ))}
       </div>
@@ -557,7 +557,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, onVot
             <div className="font-display font-black text-base leading-tight text-tv-green-deep group-hover:text-tv-bordeaux transition-colors line-clamp-2">
               {proposal.title}
             </div>
-            <div className="text-sm text-tv-green-deep/55 mt-0.5 truncate">
+            <div className="text-sm text-tv-green-deep/75 mt-0.5 truncate">
               {proposal.author}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
             </div>
           </div>
@@ -566,13 +566,13 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, onVot
             {initials ? (
               <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                 <div className="w-5 h-5 rounded-full bg-tv-bordeaux/80 text-tv-cream flex items-center justify-center text-[9px] font-black shrink-0">{initials}</div>
-                <span className="text-xs text-tv-green-deep/35 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
+                <span className="text-xs text-tv-green-deep/75 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
             ) : <span />}
             {onReproponi && (
               <button
                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); onReproponi(proposal); }}
-                className="shrink-0 text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
+                className="shrink-0 text-[10px] font-bold text-tv-green-deep/75 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
                 style={disabled ? { pointerEvents: "auto", opacity: 1, filter: "none" } : {}}
               >
                 ↩ Riproponi
@@ -729,7 +729,7 @@ const ProposalsSection = () => {
                   <span className="text-lg">🗳️</span>
                   <div>
                     <div className="font-black text-sm text-tv-green-deep">Proposte chiuse — ora vota!</div>
-                    <div className="text-xs text-tv-green-deep/50">La raccolta proposte è terminata. Esprimi le tue preferenze tra i libri in lista.</div>
+                    <div className="text-xs text-tv-green-deep/75">La raccolta proposte è terminata. Esprimi le tue preferenze tra i libri in lista.</div>
                   </div>
                 </div>
               )}
@@ -745,7 +745,7 @@ const ProposalsSection = () => {
                 key={m}
                 onClick={() => setSelectedMonth(m)}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 transition-colors ${
-                  selectedMonth === m ? "bg-tv-green-deep text-tv-cream" : "bg-white border border-tv-green-deep/15 text-tv-green-deep/60 hover:bg-tv-green-deep/5"
+                  selectedMonth === m ? "bg-tv-green-deep text-tv-cream" : "bg-white border border-tv-green-deep/15 text-tv-green-deep/75 hover:bg-tv-green-deep/5"
                 }`}
               >
                 {fmtMonthYear(m)}
@@ -786,16 +786,16 @@ const ProposalsSection = () => {
             <span className="text-lg">🏁</span>
             <div>
               <div className="font-black text-sm text-tv-bordeaux">Rush Finale in corso</div>
-              <div className="text-xs text-tv-green-deep/50">I voti sono stati azzerati. Rivota solo tra i libri finalisti!</div>
+              <div className="text-xs text-tv-green-deep/75">I voti sono stati azzerati. Rivota solo tra i libri finalisti!</div>
             </div>
           </div>
         )}
 
         {/* Griglia proposte */}
         {loading ? (
-          <div className="text-tv-green-deep/30 text-sm py-8 text-center">Caricamento…</div>
+          <div className="text-tv-green-deep/75 text-sm py-8 text-center">Caricamento…</div>
         ) : proposals.length === 0 ? (
-          <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/40">
+          <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/75">
             <BookOpen size={36} className="mx-auto mb-3 opacity-20" />
             <p className="font-bold">Nessuna proposta per {fmtMonthYear(selectedMonth)}.</p>
             <p className="text-sm mt-1">Sii il primo a proporre un libro!</p>
@@ -998,7 +998,7 @@ const CommunityLibrary = () => {
           <div className="bg-tv-green-deep border border-tv-cream/15 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display font-black text-lg text-tv-cream">Aggiungi un libro</h3>
-              <button onClick={() => setShowAddForm(false)} className="p-1.5 rounded-full hover:bg-tv-cream/10"><X size={16} className="text-tv-cream/60" /></button>
+              <button aria-label="Chiudi" onClick={() => setShowAddForm(false)} aria-label="Chiudi" className="p-1.5 rounded-full hover:bg-tv-cream/10"><X aria-hidden="true" size={16} className="text-tv-cream/60" /></button>
             </div>
             <div className="grid gap-3">
               <label><div className={labelClass}>Titolo *</div><input className={fieldClass} value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))} placeholder="es. Il nome della rosa" /></label>
@@ -1021,7 +1021,7 @@ const CommunityLibrary = () => {
           <div className="bg-tv-green-deep border border-tv-cream/15 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-black text-lg text-tv-cream">📚 «{takeTarget.title}»</h3>
-              <button onClick={() => setTakeTarget(null)} className="p-1.5 rounded-full hover:bg-tv-cream/10"><X size={16} className="text-tv-cream/60" /></button>
+              <button aria-label="Chiudi" onClick={() => setTakeTarget(null)} aria-label="Chiudi" className="p-1.5 rounded-full hover:bg-tv-cream/10"><X aria-hidden="true" size={16} className="text-tv-cream/60" /></button>
             </div>
             <div className="rounded-2xl bg-tv-cream/8 border border-tv-cream/10 px-4 py-3 mb-4">
               <p className="text-sm text-tv-cream/75 leading-relaxed">Ti stai prenotando per prendere questo libro al prossimo incontro del Club. Inserisci il tuo nome così i lettori sapranno a chi è in prestito — e ricordati di segnarlo restituito quando lo riporti!</p>
@@ -1048,7 +1048,7 @@ const CommunityLibrary = () => {
           <div className="bg-tv-green-deep border border-tv-cream/15 rounded-[2rem] w-full max-w-sm p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-display font-black text-lg text-tv-cream">Restituisco «{returnTarget.title}»</h3>
-              <button onClick={() => setReturnTarget(null)} className="p-1.5 rounded-full hover:bg-tv-cream/10"><X size={16} className="text-tv-cream/60" /></button>
+              <button aria-label="Chiudi" onClick={() => setReturnTarget(null)} aria-label="Chiudi" className="p-1.5 rounded-full hover:bg-tv-cream/10"><X aria-hidden="true" size={16} className="text-tv-cream/60" /></button>
             </div>
             <p className="text-xs text-tv-cream/40 mb-4">Questo libro tornerà disponibile per tutti.</p>
             <div className="grid gap-3">
@@ -1140,16 +1140,16 @@ export const ClubDelLibro = () => {
           >
             <MessageCircle size={18} className="text-[#25D366] shrink-0" />
             <div className="min-w-0">
-              <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/50 mb-0.5">Community WhatsApp</div>
+              <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Community WhatsApp</div>
               <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Club del Libro</div>
             </div>
-            <ArrowRight size={14} className="text-tv-green-deep/30 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
+            <ArrowRight size={14} className="text-tv-green-deep/75 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
           </a>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center text-tv-green-deep/40 py-24">Caricamento…</div>
+        <div className="text-center text-tv-green-deep/75 py-24">Caricamento…</div>
       ) : (
         <>
           {/* Stiamo leggendo — on top */}
@@ -1231,10 +1231,10 @@ export const ClubDelLibroTeaser = () => {
 
       <div className="p-6 flex-1 flex flex-col gap-5">
         <div>
-          <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">
+          <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">
             <BookOpen size={11} /> Club del Libro
           </div>
-          <p className="text-sm text-tv-green-deep/55 leading-relaxed">
+          <p className="text-sm text-tv-green-deep/75 leading-relaxed">
             Ci ritroviamo ogni mese attorno a un libro. Si legge, si discute, si lascia qualcosa — una recensione, un voto, un consiglio.
           </p>
         </div>
@@ -1245,15 +1245,15 @@ export const ClubDelLibroTeaser = () => {
               <img src={current.cover_url} alt={current.title} className="w-10 h-14 object-cover rounded-xl shrink-0 shadow-sm" />
             ) : (
               <div className="w-10 h-14 rounded-xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
-                <BookOpen size={16} className="text-tv-green-deep/30" />
+                <BookOpen size={16} className="text-tv-green-deep/75" />
               </div>
             )}
             <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-0.5">Stiamo leggendo</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Stiamo leggendo</div>
               <div className="font-bold text-tv-green-deep text-sm leading-tight truncate">{current.title}</div>
-              <div className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{current.author}</div>
+              <div className="text-xs text-tv-green-deep/75 mt-0.5 truncate">{current.author}</div>
               {avgRating && (
-                <div className="mt-1.5 flex items-center gap-1 text-xs text-tv-green-deep/45">
+                <div className="mt-1.5 flex items-center gap-1 text-xs text-tv-green-deep/75">
                   <span className="text-tv-orange text-[11px]">{"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}</span>
                   <span className="font-bold">{avgRating}</span>
                   <span>· {bookReviews.length} rec.</span>
@@ -1262,13 +1262,13 @@ export const ClubDelLibroTeaser = () => {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl bg-tv-green-deep/[0.04] p-3 text-xs text-tv-green-deep/35 italic">
+          <div className="rounded-2xl bg-tv-green-deep/[0.04] p-3 text-xs text-tv-green-deep/75 italic">
             Nessuna lettura attiva al momento — le proposte del mese ti aspettano.
           </div>
         )}
 
         <div className="mt-auto pt-1 flex items-center justify-between">
-          <span className="text-xs text-tv-green-deep/35">Proposte · Recensioni · Biblioteca</span>
+          <span className="text-xs text-tv-green-deep/75">Proposte · Recensioni · Biblioteca</span>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-tv-green-deep group-hover:text-tv-green transition-colors">
             Entra nel club <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
           </span>

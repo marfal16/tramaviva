@@ -6,6 +6,8 @@ import {
   Copy, ExternalLink, Banknote, Landmark, Smartphone,
 } from "lucide-react";
 import ConsentModal from "./ConsentModal";
+import { RecaptchaNotice } from "./PrivacyCheckbox";
+import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -84,10 +86,11 @@ const initialForm = {
 
 const Field = ({ id, label, required, type = "text", value, onChange, placeholder = "", className = "" }) => (
   <div className={className}>
-    <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1.5">
-      {label}{required && <span className="text-tv-bordeaux ml-1">*</span>}
+    <label htmlFor={`iscrizione-${id}`} className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/80 mb-1.5">
+      {label}{required && <span className="text-tv-bordeaux ml-1" aria-hidden="true">*</span>}
     </label>
     <input
+      id={`iscrizione-${id}`}
       data-testid={`iscrizione-${id}`}
       required={required} type={type} value={value} onChange={onChange}
       placeholder={placeholder}
@@ -98,10 +101,11 @@ const Field = ({ id, label, required, type = "text", value, onChange, placeholde
 
 const SelectField = ({ id, label, required, value, onChange, options, className = "" }) => (
   <div className={className}>
-    <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1.5">
-      {label}{required && <span className="text-tv-bordeaux ml-1">*</span>}
+    <label htmlFor={`iscrizione-${id}`} className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/80 mb-1.5">
+      {label}{required && <span className="text-tv-bordeaux ml-1" aria-hidden="true">*</span>}
     </label>
     <select
+      id={`iscrizione-${id}`}
       data-testid={`iscrizione-${id}`} required={required} value={value} onChange={onChange}
       className="w-full h-[50px] px-4 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
     >
@@ -134,7 +138,7 @@ const Section = ({ step, title, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border border-tv-green-deep/10 rounded-2xl overflow-hidden">
-      <button type="button" onClick={() => setOpen(!open)}
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="w-full px-5 py-4 flex items-center justify-between bg-white hover:bg-tv-sky/20 transition-colors">
         <div className="flex items-center gap-3">
           <span className="w-7 h-7 rounded-full bg-tv-green-deep text-tv-cream text-xs font-black flex items-center justify-center shrink-0">
@@ -142,7 +146,7 @@ const Section = ({ step, title, children, defaultOpen = false }) => {
           </span>
           <span className="font-bold text-tv-green-deep text-sm uppercase tracking-wider">{title}</span>
         </div>
-        {open ? <ChevronUp size={18} className="text-tv-green-deep/50" /> : <ChevronDown size={18} className="text-tv-green-deep/50" />}
+        {open ? <ChevronUp size={18} className="text-tv-green-deep/70" aria-hidden="true" /> : <ChevronDown size={18} className="text-tv-green-deep/70" aria-hidden="true" />}
       </button>
       {open && <div className="px-5 pb-5 pt-4 bg-tv-cream/50 space-y-4">{children}</div>}
     </div>
@@ -170,16 +174,16 @@ const BonificoBox = ({ firstName, lastName }) => {
           { label: "Causale", value: causale },
         ].map(({ label, value, mono }) => (
           <div key={label} className="flex items-center justify-between gap-3">
-            <span className="text-tv-green-deep/60 shrink-0">{label}:</span>
+            <span className="text-tv-green-deep/75 shrink-0">{label}:</span>
             <span className={`font-bold text-tv-green-deep ${mono ? "font-mono text-xs" : ""} text-right`}>{value}</span>
-            <button type="button" onClick={() => copy(value)}
+            <button type="button" onClick={() => copy(value)} aria-label={`Copia ${label}`}
               className="shrink-0 p-1.5 rounded-lg bg-white border border-tv-green-deep/15 hover:bg-tv-sky/40 transition-colors">
-              <Copy size={13} className="text-tv-green-deep/60" />
+              <Copy size={13} className="text-tv-green-deep/70" aria-hidden="true" />
             </button>
           </div>
         ))}
       </div>
-      <p className="text-xs text-tv-green-deep/60 pt-1 border-t border-tv-green-deep/10">
+      <p className="text-xs text-tv-green-deep/75 pt-1 border-t border-tv-green-deep/10">
         Dopo il bonifico, invia la ricevuta a{" "}
         <a href="mailto:tramavivaaps@gmail.com" className="underline text-tv-bordeaux">tramavivaaps@gmail.com</a>
       </p>
@@ -204,9 +208,9 @@ const MetodoPagamento = ({ value, onChange }) => (
             ? "border-tv-green-deep bg-tv-green-deep/5"
             : "border-tv-green-deep/15 bg-white hover:border-tv-green-deep/40"
         }`}>
-        <Icon size={22} className={value === v ? "text-tv-green-deep" : "text-tv-green-deep/50"} />
+        <Icon size={22} className={value === v ? "text-tv-green-deep" : "text-tv-green-deep/75"} />
         <span className={`font-bold text-sm ${value === v ? "text-tv-green-deep" : "text-tv-green-deep/70"}`}>{label}</span>
-        <span className="text-[10px] text-tv-green-deep/50 leading-tight">{desc}</span>
+        <span className="text-[10px] text-tv-green-deep/75 leading-tight">{desc}</span>
       </button>
     ))}
   </div>
@@ -219,6 +223,7 @@ export const IscrizioneExpanded = () => {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
+  useRecaptcha();
 
   useEffect(() => {
     if (done) window.scrollTo(0, 0);
@@ -272,7 +277,7 @@ export const IscrizioneExpanded = () => {
     try {
       toast.info("Salvataggio dati e compilazione PDF...");
       const response = await axios.post(`${API}/registrations/create`, form, {
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await recaptchaHeaders("membership_register")) },
       });
       const registrationId = response.data.registration_id;
 
@@ -297,7 +302,7 @@ export const IscrizioneExpanded = () => {
     {/* setForm(initialForm); */}   
     } catch (error) {
       console.error(error);
-      toast.error("Errore durante l'iscrizione. Riprova.");
+      toast.error(antiSpamMessage(error) || "Errore durante l'iscrizione. Riprova.");
     } finally {
       setSubmitting(false);
     }
@@ -318,7 +323,7 @@ export const IscrizioneExpanded = () => {
             {form.metodo_pagamento === "bonifico" && " Ricordati di inviare la ricevuta del bonifico."}
             {form.metodo_pagamento === "contanti" && " Presentati in sede per completare l'iscrizione."}
           </p>
-          <p className="text-sm text-tv-green-deep/50">
+          <p className="text-sm text-tv-green-deep/75">
             Il Consiglio Direttivo esaminerà la tua domanda e ti darà il benvenuto.
           </p>
             <button onClick={() => { setForm(initialForm); setDone(false); }}
@@ -344,7 +349,7 @@ export const IscrizioneExpanded = () => {
               Entra a far parte<br />
               <span className="italic font-light text-tv-bordeaux">della trama.</span>
             </h1>
-            <p className="mt-4 text-tv-green-deep/60 text-sm">
+            <p className="mt-4 text-tv-green-deep/75 text-sm">
               Compila il modulo — ci vogliono circa 5 minuti.{" "}
               <a href={STATUTO_URL} target="_blank" rel="noopener noreferrer"
                 className="text-tv-bordeaux underline inline-flex items-center gap-1">
@@ -421,7 +426,7 @@ export const IscrizioneExpanded = () => {
 
             {/* 6. Consensi */}
             <Section step="6" title="Consensi Privacy">
-              <p className="text-xs text-tv-green-deep/60 leading-relaxed">
+              <p className="text-xs text-tv-green-deep/75 leading-relaxed">
                 Ai sensi degli artt. 13 e 14 del Reg. UE 2016/679 (GDPR), il titolare del trattamento è
                 Trama Viva APS — tramavivaaps@gmail.com
               </p>
@@ -441,6 +446,7 @@ export const IscrizioneExpanded = () => {
                 <div className="border-t border-tv-green-deep/10 pt-3 mt-2 space-y-1">
                   <CheckboxField id="consenso_privacy" required
                     label="Ho letto e accetto l'Informativa sulla Privacy"
+                    linkHref="/privacy-policy" linkLabel="Leggi l'informativa"
                     value={form.consenso_privacy} onChange={change("consenso_privacy")} />
                   <CheckboxField id="consenso_dati" required
                     label="Acconsento al trattamento dei dati personali per le finalità associative"
@@ -451,9 +457,9 @@ export const IscrizioneExpanded = () => {
 
             {/* 7. Pagamento */}
             <Section step="7" title="Metodo di Pagamento" defaultOpen={true}>
-              <p className="text-sm text-tv-green-deep/60 mb-3">
+              <p className="text-sm text-tv-green-deep/75 mb-3">
                 Quota associativa annuale: <strong className="text-tv-green-deep">15,00 €</strong>
-                <span className="ml-2 text-xs text-tv-green-deep/40">· valida per un anno solare</span>
+                <span className="ml-2 text-xs text-tv-green-deep/75">· valida per un anno solare</span>
               </p>
               <MetodoPagamento value={form.metodo_pagamento}
                 onChange={(v) => setForm(f => ({ ...f, metodo_pagamento: v }))} />
@@ -483,7 +489,7 @@ export const IscrizioneExpanded = () => {
 
             {/* Come ci hai conosciuti */}
             <div className="px-1">
-              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/60 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1.5">
                 Come ci hai conosciuti?
               </label>
               <input type="text" value={form.referral} onChange={change("referral")}
@@ -492,6 +498,7 @@ export const IscrizioneExpanded = () => {
             </div>
 
             {/* Submit */}
+            <RecaptchaNotice className="px-1" />
             <button type="submit"
               disabled={submitting || !form.dichiarazione_accettata || !form.metodo_pagamento}
               data-testid="iscrizione-submit"
@@ -505,7 +512,7 @@ export const IscrizioneExpanded = () => {
               )}
             </button>
 
-            <p className="text-xs text-tv-green-deep/40 text-center pb-4">
+            <p className="text-xs text-tv-green-deep/75 text-center pb-4">
               I tuoi dati sono protetti e utilizzati esclusivamente per gestire la tua iscrizione.
             </p>
           </form>

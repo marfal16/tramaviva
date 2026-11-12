@@ -108,7 +108,7 @@ const TrailerSection = ({ trailerUrl, coverUrl, title }) => {
       <div className="rounded-2xl overflow-hidden bg-black aspect-video">
         <iframe
           className="w-full h-full"
-          src={`https://www.youtube.com/embed/${ytId}?autoplay=1`}
+          src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`}
           allow="autoplay; encrypted-media; fullscreen"
           allowFullScreen
           title={title ? `Trailer — ${title}` : "Trailer"}
@@ -120,7 +120,7 @@ const TrailerSection = ({ trailerUrl, coverUrl, title }) => {
   if (showEmbed && !ytId) {
     return (
       <a href={trailerUrl} target="_blank" rel="noopener noreferrer"
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-tv-sky text-white text-sm font-black hover:bg-tv-sky/80 transition-colors">
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-tv-sky text-tv-green-deep text-sm font-black hover:bg-tv-sky/80 transition-colors">
         <ExternalLink size={14} /> Apri trailer
       </a>
     );
@@ -150,10 +150,10 @@ const SectionHeading = ({ dot, label, title, sub, labelSize = "text-xs" }) => (
   <div className="mb-8">
     <div className="flex items-center gap-2 mb-3">
       <span className={`w-2.5 h-2.5 rounded-full ${dot}`} />
-      <span className={`${labelSize} font-black uppercase tracking-widest text-tv-green-deep/50`}>{label}</span>
+      <span className={`${labelSize} font-black uppercase tracking-widest text-tv-green-deep/75`}>{label}</span>
     </div>
     <h2 className="font-display font-black text-3xl md:text-4xl text-tv-green-deep leading-tight">{title}</h2>
-    {sub && <p className="mt-2 text-tv-green-deep/60">{sub}</p>}
+    {sub && <p className="mt-2 text-tv-green-deep/75">{sub}</p>}
   </div>
 );
 
@@ -195,14 +195,14 @@ const FilmReviewForm = ({ film, onReviewAdded }) => {
 
   return (
     <form onSubmit={submit} className="rounded-2xl bg-tv-green-deep/[0.04] border border-tv-green-deep/8 p-4 grid gap-3">
-      <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40">La tua recensione</div>
+      <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75">La tua recensione</div>
       <StarInput value={rating} onChange={setRating} />
       <input className={fc} value={name} onChange={(e) => setName(e.target.value)} placeholder="Il tuo nome" required />
       <textarea className={`${fc} resize-none`} rows={3} value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={`Cosa ti ha colpito di «${film.title}»?`} required />
       <button type="submit" disabled={sending}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green transition-colors disabled:opacity-60 w-fit">
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60 w-fit">
         <Send size={13} /> {sending ? "Invio…" : "Pubblica"}
       </button>
     </form>
@@ -236,11 +236,11 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
             />
           )}
           <div className="relative z-10 p-6 pr-14">
-            <button
+            <button aria-label="Chiudi"
               onClick={onClose}
               className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
             >
-              <X size={18} />
+              <X aria-hidden="true" size={18} />
             </button>
             <div className="flex gap-5">
               {film.cover_url ? (
@@ -287,7 +287,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
           {/* Trama */}
           {film.description && (
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Trama</div>
               <p className="text-sm text-tv-green-deep/70 leading-relaxed">{film.description}</p>
             </div>
           )}
@@ -313,7 +313,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
           {/* Critica esterna */}
           {film.external_reviews?.length > 0 && (
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Cosa dice la critica</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Cosa dice la critica</div>
               <div className="flex flex-wrap gap-2">
                 {film.external_reviews.map((r, i) => (
                   r.url ? (
@@ -321,14 +321,14 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 hover:border-tv-sky/40 hover:bg-tv-sky/5 transition-colors group">
                       <Star size={10} className="text-tv-orange fill-tv-orange" />
                       <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
-                      <span className="text-[10px] text-tv-green-deep/50 group-hover:text-tv-sky transition-colors">— {r.source}</span>
-                      <ExternalLink size={9} className="text-tv-green-deep/30 group-hover:text-tv-sky transition-colors" />
+                      <span className="text-[10px] text-tv-green-deep/75 group-hover:text-tv-sky transition-colors">— {r.source}</span>
+                      <ExternalLink size={9} className="text-tv-green-deep/75 group-hover:text-tv-sky transition-colors" />
                     </a>
                   ) : (
                     <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10">
                       <Star size={10} className="text-tv-orange fill-tv-orange" />
                       <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
-                      <span className="text-[10px] text-tv-green-deep/50">— {r.source}</span>
+                      <span className="text-[10px] text-tv-green-deep/75">— {r.source}</span>
                     </span>
                   )
                 ))}
@@ -339,7 +339,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
           {/* La nostra visione */}
           {film.recensione && (
             <div className="rounded-2xl bg-tv-mint/40 border-l-4 border-tv-sky p-4">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">La nostra visione</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">La nostra visione</div>
               <p className="text-sm text-tv-green-deep/80 leading-relaxed">{film.recensione}</p>
             </div>
           )}
@@ -347,7 +347,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
           {/* Serata collegata */}
           {linked.length > 0 && (
             <div className="pt-1">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Serata collegata</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Serata collegata</div>
               {linked.map((ev) => (
                 <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`} onClick={onClose}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 text-xs font-bold text-tv-green-deep hover:border-tv-bordeaux/30 hover:text-tv-bordeaux transition-colors">
@@ -360,7 +360,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
           {/* Recensioni utenti (solo per film conclusi) */}
           {film.status === "concluso" && (
             <div className="pt-2 border-t border-tv-green-deep/10">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-3">
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-3">
                 Recensioni ({allReviews.length})
               </div>
               {allReviews.length > 0 && (
@@ -410,7 +410,7 @@ const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
           <h3 className="font-display font-black text-base leading-tight text-tv-green-deep group-hover:text-tv-bordeaux transition-colors line-clamp-2">
             {film.title}
           </h3>
-          <div className="text-sm text-tv-green-deep/55 mt-0.5 truncate">
+          <div className="text-sm text-tv-green-deep/75 mt-0.5 truncate">
             {film.director}{film.genre && <span className="italic"> · {film.genre}</span>}
           </div>
           {filmReviews.length > 0 && (
@@ -519,7 +519,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
   };
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
-  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1.5";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
@@ -527,7 +527,7 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
       <div className="max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-tv-green-deep/10">
           <h2 className="font-display font-black text-xl text-tv-green-deep">{initialData ? "Riproponi film" : "Proponi un film"}</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-tv-green-deep/10"><X size={18} /></button>
+          <button onClick={onClose} aria-label="Chiudi" className="p-2 rounded-full hover:bg-tv-green-deep/10"><X aria-hidden="true" size={18} /></button>
         </div>
         <form onSubmit={submit} className="p-6 grid gap-4">
           <div className="grid sm:grid-cols-2 gap-4">
@@ -549,12 +549,12 @@ const ProposalForm = ({ currentMonth, onSubmit, onClose, initialData }) => {
             {pastProposals !== null && (
               <div className="mt-2 max-h-40 overflow-y-auto rounded-2xl border border-tv-green-deep/10 bg-white divide-y divide-tv-green-deep/6">
                 {pastProposals.length === 0
-                  ? <p className="text-xs text-tv-green-deep/40 p-3">Nessuna proposta trovata.</p>
+                  ? <p className="text-xs text-tv-green-deep/75 p-3">Nessuna proposta trovata.</p>
                   : pastProposals.map((p) => (
                     <button key={p.id} type="button" onClick={() => pickPast(p)}
                       className="w-full text-left px-4 py-2.5 hover:bg-tv-sky/20 transition-colors">
                       <div className="text-sm font-bold text-tv-green-deep line-clamp-1">{p.title}</div>
-                      <div className="text-xs text-tv-green-deep/45">{p.director}</div>
+                      <div className="text-xs text-tv-green-deep/75">{p.director}</div>
                     </button>
                   ))
                 }
@@ -675,14 +675,14 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
   };
 
   const fieldClass = "w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 focus:border-tv-sky outline-none text-tv-green-deep text-sm";
-  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5";
+  const labelClass = "block text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1.5";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-tv-green-deep/60 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-tv-green-deep/10">
           <span className="font-bold text-tv-green-deep text-base">Vota «{proposal.title}»</span>
-          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-tv-green-deep/10"><X size={16} /></button>
+          <button onClick={onClose} aria-label="Chiudi" className="p-1.5 rounded-full hover:bg-tv-green-deep/10"><X aria-hidden="true" size={16} /></button>
         </div>
         <form onSubmit={submit} className="p-5 grid gap-3">
           {duplicateOf && (
@@ -710,7 +710,7 @@ const VoteModal = ({ proposal, onVote, onUnvote, onClose }) => {
           )}
           {!duplicateOf && (
             <>
-              <p className="text-xs text-tv-green-deep/50">Lascia il tuo nome per registrare il voto.</p>
+              <p className="text-xs text-tv-green-deep/75">Lascia il tuo nome per registrare il voto.</p>
               <div className="grid grid-cols-2 gap-3">
                 <label>
                   <div className={labelClass}>Nome *</div>
@@ -760,8 +760,8 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
             />
           )}
           <div className="relative z-10 p-6 pr-14">
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-              <X size={18} />
+            <button aria-label="Chiudi" onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+              <X aria-hidden="true" size={18} />
             </button>
             <div className="mb-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Proposta del mese</span>
@@ -807,7 +807,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
 
           {proposal.description && (
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Trama</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Trama</div>
               <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
             </div>
           )}
@@ -833,7 +833,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
           {/* Critica esterna */}
           {proposal.external_reviews?.length > 0 && (
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">Cosa dice la critica</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Cosa dice la critica</div>
               <div className="flex flex-wrap gap-2">
                 {proposal.external_reviews.map((r, i) => (
                   r.url ? (
@@ -841,14 +841,14 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10 hover:border-tv-sky/40 hover:bg-tv-sky/5 transition-colors group">
                       <Star size={10} className="text-tv-orange fill-tv-orange" />
                       <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
-                      <span className="text-[10px] text-tv-green-deep/50 group-hover:text-tv-sky transition-colors">— {r.source}</span>
-                      <ExternalLink size={9} className="text-tv-green-deep/30 group-hover:text-tv-sky transition-colors" />
+                      <span className="text-[10px] text-tv-green-deep/75 group-hover:text-tv-sky transition-colors">— {r.source}</span>
+                      <ExternalLink size={9} className="text-tv-green-deep/75 group-hover:text-tv-sky transition-colors" />
                     </a>
                   ) : (
                     <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tv-green-deep/5 border border-tv-green-deep/10">
                       <Star size={10} className="text-tv-orange fill-tv-orange" />
                       <span className="text-xs font-black text-tv-green-deep">{r.score}</span>
-                      <span className="text-[10px] text-tv-green-deep/50">— {r.source}</span>
+                      <span className="text-[10px] text-tv-green-deep/75">— {r.source}</span>
                     </span>
                   )
                 ))}
@@ -887,12 +887,12 @@ const VotingCountdown = ({ endsAt, onExpire }) => {
     : [{ v: days, l: "gg" }, { v: hours, l: "hh" }, { v: minutes, l: "mm" }, { v: seconds, l: "ss" }];
   return (
     <div className="flex flex-wrap items-center gap-3 mb-6 bg-tv-orange/8 border border-tv-orange/20 rounded-2xl px-5 py-3">
-      <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50">⏱ Fine votazioni</span>
+      <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75">⏱ Fine votazioni</span>
       <div className="flex gap-1.5">
         {units.map(({ v, l }) => (
           <div key={l} className="text-center bg-tv-green-deep/10 rounded-xl px-2.5 py-2 min-w-[44px]">
             <div className="font-display font-black text-xl leading-none tabular-nums text-tv-green-deep">{String(v).padStart(2, "0")}</div>
-            <div className="text-[9px] uppercase text-tv-green-deep/45 mt-0.5">{l}</div>
+            <div className="text-[9px] uppercase text-tv-green-deep/75 mt-0.5">{l}</div>
           </div>
         ))}
       </div>
@@ -939,7 +939,7 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, o
             <div className="font-display font-black text-base leading-tight text-tv-green-deep group-hover:text-tv-bordeaux transition-colors line-clamp-2">
               {proposal.title}
             </div>
-            <div className="text-sm text-tv-green-deep/55 mt-0.5 truncate">
+            <div className="text-sm text-tv-green-deep/75 mt-0.5 truncate">
               {proposal.director}{proposal.genre && <span className="italic"> · {proposal.genre}</span>}
             </div>
           </div>
@@ -948,13 +948,13 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, o
             {initials ? (
               <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                 <div className="w-5 h-5 rounded-full bg-tv-bordeaux/80 text-tv-cream flex items-center justify-center text-[9px] font-black shrink-0">{initials}</div>
-                <span className="text-xs text-tv-green-deep/35 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
+                <span className="text-xs text-tv-green-deep/75 truncate">{[proposal.nome, proposal.cognome].filter(Boolean).join(" ")}</span>
               </div>
             ) : <span />}
             {onReproponi && (
               <button
                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); onReproponi(proposal); }}
-                className="shrink-0 text-[10px] font-bold text-tv-green-deep/35 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
+                className="shrink-0 text-[10px] font-bold text-tv-green-deep/75 hover:text-tv-bordeaux transition-colors px-2 py-1 rounded-full hover:bg-tv-bordeaux/8"
                 style={disabled ? { pointerEvents: "auto", opacity: 1, filter: "none" } : {}}
               >
                 ↩ Riproponi
@@ -1008,9 +1008,9 @@ const CineforumPasswordModal = ({ onSuccess, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-tv-green-deep/50 p-4" onClick={onClose}>
       <div className="bg-tv-cream rounded-[2rem] w-full max-w-sm shadow-2xl p-6" onClick={e => e.stopPropagation()}>
         <div className="text-center mb-5">
-          <Lock size={28} className="mx-auto mb-2 text-tv-green-deep/40" />
+          <Lock size={28} className="mx-auto mb-2 text-tv-green-deep/75" />
           <h2 className="font-display font-black text-xl text-tv-green-deep">Area community</h2>
-          <p className="text-sm text-tv-green-deep/50 mt-1">Inserisci la password condivisa nel gruppo WhatsApp.</p>
+          <p className="text-sm text-tv-green-deep/75 mt-1">Inserisci la password condivisa nel gruppo WhatsApp.</p>
         </div>
         <form onSubmit={submit} className="grid gap-3">
           <input type="text" autoFocus placeholder="Password…" value={pwd} onChange={e => setPwd(e.target.value)}
@@ -1156,7 +1156,7 @@ const FilmProposalsSection = () => {
                   <span className="text-lg">🗳️</span>
                   <div>
                     <div className="font-black text-sm text-tv-green-deep">Proposte chiuse — ora vota!</div>
-                    <div className="text-xs text-tv-green-deep/50">La raccolta proposte è terminata. Esprimi le tue preferenze tra i film in lista.</div>
+                    <div className="text-xs text-tv-green-deep/75">La raccolta proposte è terminata. Esprimi le tue preferenze tra i film in lista.</div>
                   </div>
                 </div>
               )}
@@ -1172,7 +1172,7 @@ const FilmProposalsSection = () => {
                 key={m}
                 onClick={() => setSelectedMonth(m)}
                 className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 transition-colors ${
-                  selectedMonth === m ? "bg-tv-green-deep text-tv-cream" : "bg-white border border-tv-green-deep/15 text-tv-green-deep/60 hover:bg-tv-green-deep/5"
+                  selectedMonth === m ? "bg-tv-green-deep text-tv-cream" : "bg-white border border-tv-green-deep/15 text-tv-green-deep/75 hover:bg-tv-green-deep/5"
                 }`}
               >
                 {fmtMonthYear(m)}
@@ -1213,16 +1213,16 @@ const FilmProposalsSection = () => {
             <span className="text-lg">🏁</span>
             <div>
               <div className="font-black text-sm text-tv-bordeaux">Rush Finale in corso</div>
-              <div className="text-xs text-tv-green-deep/50">I voti sono stati azzerati. Rivota solo tra i film finalisti!</div>
+              <div className="text-xs text-tv-green-deep/75">I voti sono stati azzerati. Rivota solo tra i film finalisti!</div>
             </div>
           </div>
         )}
 
         {/* Griglia proposte */}
         {loading ? (
-          <div className="text-tv-green-deep/30 text-sm py-8 text-center">Caricamento…</div>
+          <div className="text-tv-green-deep/75 text-sm py-8 text-center">Caricamento…</div>
         ) : proposals.length === 0 ? (
-          <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/40">
+          <div className="rounded-[2rem] bg-white border border-tv-green-deep/8 p-10 text-center text-tv-green-deep/75">
             <Film size={36} className="mx-auto mb-3 opacity-20" />
             <p className="font-bold">Nessuna proposta per {fmtMonthYear(selectedMonth)}.</p>
             <p className="text-sm mt-1">Sii il primo a proporre un film!</p>
@@ -1301,7 +1301,7 @@ export const Cineforum = () => {
       {/* Hero */}
       <section className="pt-32 pb-6 md:pt-40 md:pb-8 px-6 md:px-10">
         <div className="mx-auto max-w-5xl">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-tv-sky/90 text-white text-xs font-bold uppercase tracking-wider mb-7">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-tv-sky/90 text-tv-green-deep text-xs font-bold uppercase tracking-wider mb-7">
             <Film size={13} /> Cineforum · Trama Viva APS
           </div>
           <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-[0.93] tracking-tight text-tv-green-deep">
@@ -1320,16 +1320,16 @@ export const Cineforum = () => {
              className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group">
             <MessageCircle size={18} className="text-[#25D366] shrink-0" />
             <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/50 mb-0.5">Community WhatsApp</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Community WhatsApp</div>
               <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Cineforum</div>
             </div>
-            <ArrowRight size={14} className="text-tv-green-deep/30 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
+            <ArrowRight size={14} className="text-tv-green-deep/75 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
           </a>
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center text-tv-green-deep/40 py-24">Caricamento…</div>
+        <div className="text-center text-tv-green-deep/75 py-24">Caricamento…</div>
       ) : (
         <>
           {/* Proposte del mese */}
@@ -1386,10 +1386,10 @@ export const CineforumTeaser = () => {
       <div className="h-1.5 bg-gradient-to-r from-tv-sky to-tv-sky/60" />
       <div className="p-6 flex-1 flex flex-col gap-5">
         <div>
-          <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-2">
+          <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">
             <Film size={11} /> Cineforum
           </div>
-          <p className="text-sm text-tv-green-deep/55 leading-relaxed">
+          <p className="text-sm text-tv-green-deep/75 leading-relaxed">
             Ogni mese un film, una serata insieme. Si guarda, si discute, si condivide — un frame alla volta.
           </p>
         </div>
@@ -1400,23 +1400,23 @@ export const CineforumTeaser = () => {
               <img src={current.cover_url} alt={current.title} className="w-10 h-14 object-cover rounded-xl shrink-0 shadow-sm" />
             ) : (
               <div className="w-10 h-14 rounded-xl bg-tv-green-deep/10 flex items-center justify-center shrink-0">
-                <Film size={16} className="text-tv-green-deep/30" />
+                <Film size={16} className="text-tv-green-deep/75" />
               </div>
             )}
             <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/35 mb-0.5">Stiamo guardando</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Stiamo guardando</div>
               <div className="font-bold text-tv-green-deep text-sm leading-tight truncate">{current.title}</div>
-              <div className="text-xs text-tv-green-deep/50 mt-0.5 truncate">{current.director}</div>
+              <div className="text-xs text-tv-green-deep/75 mt-0.5 truncate">{current.director}</div>
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl bg-tv-green-deep/[0.04] p-3 text-xs text-tv-green-deep/35 italic">
+          <div className="rounded-2xl bg-tv-green-deep/[0.04] p-3 text-xs text-tv-green-deep/75 italic">
             Nessuna proiezione attiva — vota i tuoi film del mese!
           </div>
         )}
 
         <div className="mt-auto pt-1 flex items-center justify-between">
-          <span className="text-xs text-tv-green-deep/35">Proposte · Recensioni · Proiezioni</span>
+          <span className="text-xs text-tv-green-deep/75">Proposte · Recensioni · Proiezioni</span>
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-tv-green-deep group-hover:text-tv-sky transition-colors">
             Entra nel cineforum <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
           </span>

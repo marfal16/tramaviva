@@ -4,6 +4,9 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { Heart, Leaf, BookOpen, Users, CheckCircle, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { PrivacyCheckbox, RecaptchaNotice } from "./PrivacyCheckbox";
+import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
+import { PRIVACY_VERSION } from "../lib/legal";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,7 +31,7 @@ const SuccessBonifico = ({ name, amount }) => {
         <CheckCircle size={32} className="text-tv-green-deep" />
       </div>
       <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Un ultimo passo!</h2>
-      <p className="text-tv-green-deep/60 mb-8 leading-relaxed">
+      <p className="text-tv-green-deep/75 mb-8 leading-relaxed">
         Per completare la donazione, effettua un bonifico con i dati qui sotto. Non appena lo riceveremo, ti contatteremo per ringraziarti.
       </p>
       <div className="bg-tv-cream rounded-2xl p-6 text-left space-y-4 mb-8">
@@ -39,17 +42,17 @@ const SuccessBonifico = ({ name, amount }) => {
           ...(amount ? [["Importo", `${amount} €`]] : []),
         ].map(([label, value]) => (
           <div key={label} className="flex items-start justify-between gap-4">
-            <span className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/40 pt-0.5 shrink-0">{label}</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/75 pt-0.5 shrink-0">{label}</span>
             <div className="flex items-center gap-2 text-right">
               <span className="font-mono text-sm font-bold text-tv-green-deep break-all">{value}</span>
-              <button onClick={() => copy(value)} className="p-1 rounded hover:bg-tv-green-deep/10 transition-colors shrink-0">
-                <Copy size={13} className="text-tv-green-deep/40" />
+              <button type="button" onClick={() => copy(value)} aria-label={`Copia ${label}`} className="p-1 rounded hover:bg-tv-green-deep/10 transition-colors shrink-0">
+                <Copy size={13} className="text-tv-green-deep/75" />
               </button>
             </div>
           </div>
         ))}
       </div>
-      <p className="text-xs text-tv-green-deep/35">Per qualsiasi domanda scrivici a <span className="font-bold">tramavivaaps@gmail.com</span></p>
+      <p className="text-xs text-tv-green-deep/75">Per qualsiasi domanda scrivici a <span className="font-bold">tramavivaaps@gmail.com</span></p>
     </div>
   );
 };
@@ -63,6 +66,8 @@ const DonationForm = ({ onSuccess }) => {
   const [metodo, setMetodo]     = useState("bonifico");
   const [loading, setLoading]   = useState(false);
   const [errors, setErrors]     = useState({});
+  const [privacy, setPrivacy]   = useState(false);
+  useRecaptcha();
 
   const finalAmount = useCustom ? parseFloat(custom) || null : amount;
 
@@ -73,6 +78,7 @@ const DonationForm = ({ onSuccess }) => {
     if (!form.email.trim())      e.email      = "Campo obbligatorio";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Email non valida";
     if (useCustom && (!custom || parseFloat(custom) <= 0)) e.amount = "Inserisci un importo valido";
+    if (!privacy) e.privacy = "Per donare devi accettare l'informativa sulla privacy.";
     return e;
   };
 
@@ -84,10 +90,14 @@ const DonationForm = ({ onSuccess }) => {
     try {
       const res = await fetch(`${API}/api/donations`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, amount: finalAmount, metodo_pagamento: metodo }),
+        headers: { "Content-Type": "application/json", ...(await recaptchaHeaders("donation")) },
+        body: JSON.stringify({ ...form, amount: finalAmount, metodo_pagamento: metodo, privacy_accepted: true, privacy_version: PRIVACY_VERSION }),
       });
-      if (!res.ok) throw new Error("Errore server");
+      if (!res.ok) {
+        const err = new Error("Errore server");
+        try { err.detail = (await res.json()).detail; } catch { /* risposta non JSON */ }
+        throw err;
+      }
       const data = await res.json();
       if (metodo === "sumup" && data.checkout_url) {
         window.location.href = data.checkout_url;
@@ -96,7 +106,7 @@ const DonationForm = ({ onSuccess }) => {
       }
     } catch (err) {
       console.error("Donation error:", err);
-      toast.error("Qualcosa è andato storto. Riprova o scrivici a tramavivaaps@gmail.com");
+      toast.error(antiSpamMessage(err) || "Qualcosa è andato storto. Riprova o scrivici a tramavivaaps@gmail.com");
     } finally {
       setLoading(false);
     }
@@ -104,13 +114,15 @@ const DonationForm = ({ onSuccess }) => {
 
   const field = (key, label, type = "text", required = true, placeholder = "") => (
     <div>
-      <label className="block text-xs font-bold uppercase tracking-widest text-tv-green-deep/50 mb-1.5">{label}{required && " *"}</label>
+      <label htmlFor={`donation-${key}`} className="block text-xs font-bold uppercase tracking-widest text-tv-green-deep/75 mb-1.5">{label}{required && " *"}</label>
       <input
+        id={`donation-${key}`} required={required} aria-invalid={errors[key] ? "true" : undefined} aria-describedby={errors[key] ? `donation-${key}-error` : undefined}
+        autoComplete={key === "email" ? "email" : key === "first_name" ? "given-name" : key === "last_name" ? "family-name" : key === "phone" ? "tel" : undefined}
         type={type} value={form[key]} placeholder={placeholder}
         onChange={e => { setForm(f => ({ ...f, [key]: e.target.value })); setErrors(er => ({ ...er, [key]: "" })); }}
         className={`w-full px-4 py-3 rounded-2xl bg-tv-cream border focus:outline-none transition-colors text-tv-green-deep text-sm ${errors[key] ? "border-tv-bordeaux" : "border-tv-green-deep/15 focus:border-tv-green"}`}
       />
-      {errors[key] && <p className="text-xs text-tv-bordeaux mt-1">{errors[key]}</p>}
+      {errors[key] && <p id={`donation-${key}-error`} role="alert" className="text-xs text-tv-bordeaux mt-1">{errors[key]}</p>}
     </div>
   );
 
@@ -119,16 +131,16 @@ const DonationForm = ({ onSuccess }) => {
 
       {/* Importo */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/50 mb-3">Quanto vuoi donare?</p>
+        <p id="donation-amount-label" className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/75 mb-3">Quanto vuoi donare?</p>
         <div className="flex flex-wrap gap-2 mb-3">
           {AMOUNTS.map(a => (
-            <button key={a} type="button"
+            <button key={a} type="button" aria-pressed={!useCustom && amount === a}
               onClick={() => { setAmount(a); setUseCustom(false); setErrors(er => ({ ...er, amount: "" })); }}
               className={`px-5 py-2.5 rounded-full font-bold text-sm transition-all ${!useCustom && amount === a ? "bg-tv-green-deep text-tv-cream shadow-[0_4px_14px_-4px_rgba(5,47,23,0.35)]" : "bg-tv-cream text-tv-green-deep hover:bg-tv-green-deep/10"}`}>
               {a} €
             </button>
           ))}
-          <button type="button"
+          <button type="button" aria-pressed={useCustom}
             onClick={() => setUseCustom(true)}
             className={`px-5 py-2.5 rounded-full font-bold text-sm transition-all ${useCustom ? "bg-tv-green-deep text-tv-cream shadow-[0_4px_14px_-4px_rgba(5,47,23,0.35)]" : "bg-tv-cream text-tv-green-deep hover:bg-tv-green-deep/10"}`}>
             Libero
@@ -136,15 +148,15 @@ const DonationForm = ({ onSuccess }) => {
         </div>
         {useCustom && (
           <div className="relative max-w-[160px]">
-            <input type="number" min="1" step="0.01" placeholder="0.00" value={custom}
+            <input type="number" min="1" step="0.01" placeholder="0.00" value={custom} aria-label="Importo libero in euro" aria-invalid={errors.amount ? "true" : undefined}
               onChange={e => { setCustom(e.target.value); setErrors(er => ({ ...er, amount: "" })); }}
               className={`w-full pl-4 pr-8 py-3 rounded-2xl bg-tv-cream border focus:outline-none text-tv-green-deep text-sm font-bold ${errors.amount ? "border-tv-bordeaux" : "border-tv-green-deep/15 focus:border-tv-green"}`}
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-tv-green-deep/40 font-bold text-sm">€</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-tv-green-deep/75 font-bold text-sm">€</span>
           </div>
         )}
-        {errors.amount && <p className="text-xs text-tv-bordeaux mt-1">{errors.amount}</p>}
-        <p className="text-xs text-tv-green-deep/35 mt-2">Anche una piccola somma fa la differenza. Puoi anche non specificare un importo per il bonifico.</p>
+        {errors.amount && <p role="alert" className="text-xs text-tv-bordeaux mt-1">{errors.amount}</p>}
+        <p className="text-xs text-tv-green-deep/75 mt-2">Anche una piccola somma fa la differenza. Puoi anche non specificare un importo per il bonifico.</p>
       </div>
 
       {/* Dati personali */}
@@ -157,8 +169,8 @@ const DonationForm = ({ onSuccess }) => {
 
       {/* Messaggio */}
       <div>
-        <label className="block text-xs font-bold uppercase tracking-widest text-tv-green-deep/50 mb-1.5">Un messaggio per noi <span className="normal-case text-tv-green-deep/30">(facoltativo)</span></label>
-        <textarea rows={3} value={form.message} placeholder="Cosa ti ha spinto a donarci? O semplicemente: grazie 💚"
+        <label htmlFor="donation-message" className="block text-xs font-bold uppercase tracking-widest text-tv-green-deep/75 mb-1.5">Un messaggio per noi <span className="normal-case text-tv-green-deep/75">(facoltativo)</span></label>
+        <textarea id="donation-message" rows={3} value={form.message} placeholder="Cosa ti ha spinto a donarci? O semplicemente: grazie 💚"
           onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
           className="w-full px-4 py-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15 focus:border-tv-green focus:outline-none resize-none text-tv-green-deep text-sm transition-colors"
         />
@@ -166,20 +178,29 @@ const DonationForm = ({ onSuccess }) => {
 
       {/* Metodo pagamento */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/50 mb-3">Come vuoi pagare?</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-tv-green-deep/75 mb-3">Come vuoi pagare?</p>
         <div className="grid sm:grid-cols-2 gap-3">
           {[
             { key: "bonifico", label: "Bonifico bancario", desc: "Riceverai i dati IBAN subito dopo" },
             { key: "sumup",    label: "Carta",              desc: "Pagamento online sicuro, subito" },
           ].map(({ key, label, desc }) => (
-            <button key={key} type="button" onClick={() => setMetodo(key)}
+            <button key={key} type="button" aria-pressed={metodo === key} onClick={() => setMetodo(key)}
               className={`text-left p-4 rounded-2xl border-2 transition-all ${metodo === key ? "border-tv-green-deep bg-tv-green-deep/5" : "border-tv-green-deep/12 hover:border-tv-green-deep/25"}`}>
               <div className={`font-bold text-sm mb-0.5 ${metodo === key ? "text-tv-green-deep" : "text-tv-green-deep/70"}`}>{label}</div>
-              <div className="text-xs text-tv-green-deep/40">{desc}</div>
+              <div className="text-xs text-tv-green-deep/75">{desc}</div>
             </button>
           ))}
         </div>
       </div>
+
+      {/* Consenso privacy */}
+      <PrivacyCheckbox
+        id="donation-privacy"
+        checked={privacy}
+        onChange={e => { setPrivacy(e.target.checked); setErrors(er => ({ ...er, privacy: "" })); }}
+        purpose="registrare la mia donazione e ricevere il ringraziamento"
+        error={errors.privacy}
+      />
 
       {/* Submit */}
       <button type="submit" disabled={loading}
@@ -188,9 +209,10 @@ const DonationForm = ({ onSuccess }) => {
         {loading ? "Un momento…" : metodo === "sumup" ? "Vai al pagamento →" : "Dona con bonifico →"}
       </button>
 
-      <p className="text-center text-xs text-tv-green-deep/30">
+      <p className="text-center text-xs text-tv-green-deep/75">
         I tuoi dati sono trattati con cura. Nessun abbonamento, nessun obbligo.
       </p>
+      <RecaptchaNotice className="text-center -mt-4" />
     </form>
   );
 };
@@ -229,6 +251,7 @@ export const Donazioni = () => {
   return (
     <div className="bg-tv-cream min-h-screen">
       <Navbar />
+      <main id="main">
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden px-6 md:px-10 pt-24 pb-4 md:pt-32 md:pb-6">
@@ -252,7 +275,7 @@ export const Donazioni = () => {
             Fai fiorire<br />
             <span className="italic font-light">qualcosa di bello.</span>
           </h1>
-          <p className="text-tv-green-deep/60 text-lg leading-relaxed max-w-xl mx-auto">
+          <p className="text-tv-green-deep/75 text-lg leading-relaxed max-w-xl mx-auto">
             Trama Viva vive grazie alle persone che ci credono. Se vuoi che queste esperienze continuino, puoi sostenerci con una donazione spontanea — grande o piccola, ogni gesto conta.
           </p>
         </div>
@@ -267,7 +290,7 @@ export const Donazioni = () => {
                 <Icon size={18} className="text-tv-green" />
               </div>
               <h3 className="font-display font-black text-lg text-tv-green-deep mb-2">{title}</h3>
-              <p className="text-sm text-tv-green-deep/55 leading-relaxed">{desc}</p>
+              <p className="text-sm text-tv-green-deep/75 leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
@@ -284,7 +307,7 @@ export const Donazioni = () => {
                     <CheckCircle size={32} className="text-tv-green" />
                   </div>
                   <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Grazie!</h2>
-                  <p className="text-tv-green-deep/60 leading-relaxed">Il tuo pagamento è stato ricevuto. Grazie di cuore per il tuo sostegno — significa molto per tutta la comunità di Trama Viva.</p>
+                  <p className="text-tv-green-deep/75 leading-relaxed">Il tuo pagamento è stato ricevuto. Grazie di cuore per il tuo sostegno — significa molto per tutta la comunità di Trama Viva.</p>
                 </div>
               ) : sumupState === "unpaid" ? (
                 <div className="bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(5,47,23,0.12)] p-8 md:p-12 text-center">
@@ -292,7 +315,7 @@ export const Donazioni = () => {
                     <Heart size={32} className="text-tv-orange" />
                   </div>
                   <h2 className="font-display font-black text-3xl text-tv-green-deep mb-3">Pagamento non completato</h2>
-                  <p className="text-tv-green-deep/60 leading-relaxed mb-6">Non risulta ancora nessun pagamento per questa donazione. Se hai interrotto l'operazione puoi riprovare quando vuoi; se invece hai pagato, scrivici a <span className="font-bold">tramavivaaps@gmail.com</span> e verificheremo subito.</p>
+                  <p className="text-tv-green-deep/75 leading-relaxed mb-6">Non risulta ancora nessun pagamento per questa donazione. Se hai interrotto l'operazione puoi riprovare quando vuoi; se invece hai pagato, scrivici a <span className="font-bold">tramavivaaps@gmail.com</span> e verificheremo subito.</p>
                   <button onClick={retryDonation} className="btn-tv px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold">
                     Riprova a donare
                   </button>
@@ -300,7 +323,7 @@ export const Donazioni = () => {
               ) : (
                 <div className="bg-white rounded-[2rem] shadow-[0_8px_40px_-12px_rgba(5,47,23,0.12)] p-8 md:p-12 text-center">
                   <Loader2 size={32} className="animate-spin text-tv-green mx-auto mb-4" />
-                  <p className="text-tv-green-deep/60">Stiamo verificando il tuo pagamento…</p>
+                  <p className="text-tv-green-deep/75">Stiamo verificando il tuo pagamento…</p>
                 </div>
               )
             ) : (
@@ -310,13 +333,14 @@ export const Donazioni = () => {
             <>
               <div className="text-center mb-8">
                 <h2 className="font-display font-black text-3xl md:text-4xl text-tv-green-deep mb-2">Dona ora</h2>
-                <p className="text-tv-green-deep/50 text-sm">Scegli liberamente quanto e come. Non c'è un importo giusto o sbagliato.</p>
+                <p className="text-tv-green-deep/75 text-sm">Scegli liberamente quanto e come. Non c'è un importo giusto o sbagliato.</p>
               </div>
               <DonationForm onSuccess={setSuccess} />
             </>
           )}
         </div>
       </section>
+      </main>
 
       <Footer />
     </div>

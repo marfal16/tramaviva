@@ -58,7 +58,7 @@ export const CancellaPrenotazione = () => {
           <div className="bg-white rounded-[2rem] border border-tv-green-deep/10 p-8 text-center">
             <div className="text-4xl mb-4">🔍</div>
             <h1 className="font-display font-black text-2xl text-tv-green-deep mb-2">Link non valido</h1>
-            <p className="text-sm text-tv-green-deep/55 leading-relaxed mb-6">
+            <p className="text-sm text-tv-green-deep/75 leading-relaxed mb-6">
               Il link di cancellazione non è valido o la prenotazione è già stata cancellata.
             </p>
             <Link to="/eventi" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/90 transition-colors">
@@ -69,7 +69,7 @@ export const CancellaPrenotazione = () => {
           <div className="bg-white rounded-[2rem] border border-tv-green-deep/10 p-8 text-center">
             <div className="text-4xl mb-4">✅</div>
             <h1 className="font-display font-black text-2xl text-tv-green-deep mb-2">Prenotazione cancellata</h1>
-            <p className="text-sm text-tv-green-deep/55 leading-relaxed mb-6">
+            <p className="text-sm text-tv-green-deep/75 leading-relaxed mb-6">
               La tua prenotazione per <strong>{info?.event_title}</strong> è stata cancellata con successo. Speriamo di vederti al prossimo evento!
             </p>
             <Link to="/#eventi" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/90 transition-colors">
@@ -81,7 +81,7 @@ export const CancellaPrenotazione = () => {
             <div className="text-center mb-6">
               <div className="text-4xl mb-3">🎟️</div>
               <h1 className="font-display font-black text-2xl text-tv-green-deep">Disdici prenotazione</h1>
-              <p className="mt-2 text-sm text-tv-green-deep/55">Stai per cancellare la tua prenotazione</p>
+              <p className="mt-2 text-sm text-tv-green-deep/75">Stai per cancellare la tua prenotazione</p>
             </div>
             <div className="bg-tv-cream/60 rounded-2xl p-5 mb-6 space-y-2 text-sm text-tv-green-deep">
               <div><span className="font-bold">Evento:</span> {info?.event_title}</div>
@@ -93,12 +93,12 @@ export const CancellaPrenotazione = () => {
               )}
               <div><span className="font-bold">Intestatario:</span> {info?.name}</div>
               {info?.is_waitlist && (
-                <div className="mt-2 px-3 py-1.5 bg-tv-orange/10 rounded-xl text-tv-orange text-xs font-bold">
+                <div className="mt-2 px-3 py-1.5 bg-tv-orange/10 rounded-xl text-tv-bordeaux text-xs font-bold">
                   ⏳ Sei in lista di attesa
                 </div>
               )}
             </div>
-            <p className="text-sm text-tv-green-deep/55 leading-relaxed mb-6">
+            <p className="text-sm text-tv-green-deep/75 leading-relaxed mb-6">
               Sei sicuro di voler cancellare? L'operazione non è reversibile.
               {info?.confirmed && !info?.is_waitlist && " Se cancelli, il posto tornerà disponibile per altri."}
             </p>
@@ -113,7 +113,7 @@ export const CancellaPrenotazione = () => {
                   : "Sì, cancella la mia prenotazione"}
               </button>
               <Link to="/#eventi"
-                className="w-full py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep/60 font-bold text-sm text-center hover:border-tv-green-deep/40 hover:text-tv-green-deep transition-all">
+                className="w-full py-3 rounded-full border border-tv-green-deep/20 text-tv-green-deep/75 font-bold text-sm text-center hover:border-tv-green-deep/40 hover:text-tv-green-deep transition-all">
                 Torna agli eventi
               </Link>
             </div>

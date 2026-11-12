@@ -40,7 +40,7 @@ export const Logo = ({ variant = "inline", size = 40, className = "", textColor 
     <div className={`flex items-center gap-3 ${className}`} data-testid="tv-logo">
       <img
         src="/tramaviva-mark.jpg"
-        alt="APS Trama Viva"
+        alt=""
         width={size}
         height={size}
         style={{ width: size, height: size, objectFit: "contain" }}

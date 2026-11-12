@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { Instagram, Mail, Facebook } from "lucide-react";
+import { openCookieSettings } from "../lib/consent";
 
 export const Footer = () => (
   <footer
@@ -161,7 +162,15 @@ export const Footer = () => (
         </div>
       </div>
 
-      <div className="mt-14 pt-6 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-4 text-xs opacity-70">
+      <nav aria-label="Informazioni legali" className="mt-14 pt-6 border-t border-tv-cream/15 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <Link to="/privacy-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Privacy Policy</Link>
+        <Link to="/cookie-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Cookie Policy</Link>
+        <button type="button" onClick={openCookieSettings} data-testid="footer-cookie-settings" className="underline underline-offset-2 hover:text-tv-mint transition-colors">
+          Gestisci cookie
+        </button>
+      </nav>
+
+      <div className="mt-6 pt-6 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-4 text-xs">
         <div>© {new Date().getFullYear()} APS Trama Viva — Ogni filo conta.</div>
         <div>Fatto con cura, amore e qualche caffè.</div>
       </div>

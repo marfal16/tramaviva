@@ -75,14 +75,14 @@ export const Iscrizione = () => {
         <div className="text-center">
           <Link
             to="/iscrizione"
-            className="btn-tv inline-flex items-center gap-2 px-8 py-5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-lg hover:bg-tv-green transition-colors"
+            className="btn-tv inline-flex items-center gap-2 px-8 py-5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-lg hover:bg-tv-green-deep/85 transition-colors"
           >
             Voglio far parte della trama <ArrowRight size={20} />
           </Link>
-          <p className="mt-4 text-sm text-tv-green-deep/50">
+          <p className="mt-4 text-sm text-tv-green-deep/75">
             Ci vogliono 5 minuti. Il resto viene da sé.
           </p>
-          <p className="mt-2 text-xs text-tv-green-deep/40">
+          <p className="mt-2 text-xs text-tv-green-deep/75">
             Quota annuale: 15 € · Il tesseramento ha validità un anno solare.
           </p>
         </div>

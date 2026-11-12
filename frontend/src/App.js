@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster, toast } from "sonner";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -21,6 +21,9 @@ import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "
 import { AreaSoci } from "./components/AreaSoci";
 import { Donazioni, DonazioniTeaser } from "./components/Donazioni";
 import { CancellaPrenotazione } from "./components/CancellaPrenotazione";
+import { PrivacyPolicy, CookiePolicy } from "./components/LegalPages";
+import CookieBanner from "./components/CookieBanner";
+import { initModalA11y } from "./lib/modalA11y";
 
 const ClubsSection = () => (
   <section className="pt-0 pb-14 md:pb-20 px-6 md:px-10">
@@ -28,12 +31,12 @@ const ClubsSection = () => (
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
           <span className="w-2.5 h-2.5 rounded-full bg-tv-bordeaux" />
-          <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/40">I nostri club</span>
+          <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75">I nostri club</span>
         </div>
         <h2 className="font-display font-black text-3xl md:text-4xl text-tv-green-deep leading-tight">
           Gruppi che si ritrovano, sempre.
         </h2>
-        <p className="mt-2 text-tv-green-deep/55 max-w-xl">
+        <p className="mt-2 text-tv-green-deep/75 max-w-xl">
           Non eventi isolati, ma comunità con un ritmo: incontri periodici, discussioni, un filo che lega ogni appuntamento al successivo.
         </p>
       </div>
@@ -62,14 +65,16 @@ const Home = () => {
   return (
     <div className="App bg-tv-cream min-h-screen">
       <Navbar />
-      <Hero />
-      <ChiSiamo />
-      <Attivita />
-      <Eventi />
-      <ClubsSection />
-      <DonazioniTeaser />
-      <Iscrizione />
-      <Contatti />
+      <main id="main">
+        <Hero />
+        <ChiSiamo />
+        <Attivita />
+        <Eventi />
+        <ClubsSection />
+        <DonazioniTeaser />
+        <Iscrizione />
+        <Contatti />
+      </main>
       <Footer />
     </div>
   );
@@ -122,7 +127,7 @@ const IscrizionePageWrapper = () => {
   return (
     <div className="App bg-tv-cream min-h-screen">
       <Navbar />
-      <IscrizioneExpanded />
+      <main id="main"><IscrizioneExpanded /></main>
       <Footer />
     </div>
   );
@@ -133,7 +138,7 @@ const ClubDelLibroPageWrapper = () => {
   return (
     <div className="App bg-tv-cream min-h-screen">
       <Navbar />
-      <ClubDelLibro />
+      <main id="main"><ClubDelLibro /></main>
       <Footer />
     </div>
   );
@@ -144,7 +149,7 @@ const CineforumPageWrapper = () => {
   return (
     <div className="App bg-tv-cream min-h-screen">
       <Navbar />
-      <Cineforum />
+      <main id="main"><Cineforum /></main>
       <Footer />
     </div>
   );
@@ -155,13 +160,34 @@ const LibroDettaglioPageWrapper = () => {
   return (
     <div className="App bg-tv-cream min-h-screen">
       <Navbar />
-      <LibroDettaglio />
+      <main id="main"><LibroDettaglio /></main>
       <Footer />
     </div>
   );
 };
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Titolo della scheda per ogni pagina: chi usa uno screen reader lo sente a ogni cambio di pagina.
+const DEFAULT_TITLE = document.title;
+const ROUTE_TITLES = {
+  "/donazioni": "Dona",
+  "/iscrizione": "Diventa socio",
+  "/club-del-libro": "Club del Libro",
+  "/cineforum": "Cineforum",
+  "/area-soci": "Area soci",
+  "/login": "Accedi",
+  "/registrati": "Crea il tuo account",
+  "/password-dimenticata": "Password dimenticata",
+};
+const RouteTitle = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (pathname === "/") document.title = DEFAULT_TITLE;
+    else if (ROUTE_TITLES[pathname]) document.title = `${ROUTE_TITLES[pathname]} — APS Trama Viva`;
+  }, [pathname]);
+  return null;
+};
 
 function useHeartbeat() {
   useEffect(() => {
@@ -185,11 +211,15 @@ function useHeartbeat() {
 
 function App() {
   useHeartbeat();
+  useEffect(() => initModalA11y(), []);
   return (
     <BrowserRouter>
       <AuthProvider>
+        <a href="#main" className="skip-link">Salta al contenuto</a>
         <Toaster position="top-center" richColors />
         <PaymentReturnHandler />
+        <RouteTitle />
+        <CookieBanner />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<Admin />} />
@@ -205,6 +235,8 @@ function App() {
           <Route path="/password-dimenticata" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/cancella/:token" element={<CancellaPrenotazione />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

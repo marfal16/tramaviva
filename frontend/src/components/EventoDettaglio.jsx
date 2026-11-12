@@ -8,6 +8,9 @@ import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { ThreadsBg } from "./ThreadsBg";
+import { PrivacyCheckbox, RecaptchaNotice } from "./PrivacyCheckbox";
+import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
+import { PRIVACY_VERSION } from "../lib/legal";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -22,10 +25,10 @@ const fmtDate = (iso) => {
 
 const categoryColor = {
   "Laboratori Artistici": { bg: "bg-tv-orange", text: "text-tv-green-deep" },
-  "Eventi Sociali": { bg: "bg-tv-green", text: "text-tv-cream" },
+  "Eventi Sociali": { bg: "bg-tv-green", text: "text-tv-green-deep" },
   "Passeggiate": { bg: "bg-tv-mint", text: "text-tv-green-deep" },
   "Screening Salute": { bg: "bg-tv-bordeaux", text: "text-tv-cream" },
-  "Corsi IT": { bg: "bg-tv-sky", text: "text-tv-cream" },
+  "Corsi IT": { bg: "bg-tv-sky", text: "text-tv-green-deep" },
 };
 
 const isPast = (dateStr) => {
@@ -54,6 +57,9 @@ export const EventoDettaglio = () => {
   const [doneWaitlist, setDoneWaitlist] = useState(false);
   const [waitlistForm, setWaitlistForm] = useState({ name: "", email: "", phone: "" });
   const [submittingWaitlist, setSubmittingWaitlist] = useState(false);
+  const [privacy, setPrivacy] = useState(false);
+  const [waitlistPrivacy, setWaitlistPrivacy] = useState(false);
+  useRecaptcha();
   const [signupCount, setSignupCount] = useState(null);
 
   const handleNumPersone = (n) => {
@@ -97,6 +103,10 @@ export const EventoDettaglio = () => {
     e.preventDefault();
     if (!form.name || !form.email) {
       toast.error("Nome ed email sono obbligatori.");
+      return;
+    }
+    if (!privacy) {
+      toast.error("Per inviare la richiesta devi accettare l'informativa sulla privacy.");
       return;
     }
     const pagaInLoco = event.contributo_note === "Da versare direttamente alla struttura";
@@ -161,7 +171,9 @@ export const EventoDettaglio = () => {
         ospiti: ospiti.slice(0, numPersone - 1),
         opzione_scelta: opzioneScelta || null,
         donazione_volontaria: donazioneVolontaria ? parseFloat(donazioneVolontaria) : null,
-      });
+        privacy_accepted: true,
+        privacy_version: PRIVACY_VERSION,
+      }, { headers: await recaptchaHeaders("event_signup") });
       const signupId = res.data.id;
 
       if (form.metodo_pagamento === "elettronico") {
@@ -216,6 +228,10 @@ export const EventoDettaglio = () => {
       toast.error("Nome ed email sono obbligatori.");
       return;
     }
+    if (!waitlistPrivacy) {
+      toast.error("Per iscriverti devi accettare l'informativa sulla privacy.");
+      return;
+    }
     setSubmittingWaitlist(true);
     try {
       await axios.post(`${API}/event-signup`, {
@@ -226,14 +242,16 @@ export const EventoDettaglio = () => {
         phone: waitlistForm.phone || null,
         num_persone: 1,
         ospiti: [],
-      });
+        privacy_accepted: true,
+        privacy_version: PRIVACY_VERSION,
+      }, { headers: await recaptchaHeaders("event_signup") });
       setDoneWaitlist(true);
       toast.success("Iscritto alla lista di attesa!");
     } catch (err) {
       if (err?.response?.status === 403) {
         setSoloSociError(true);
       } else {
-        toast.error("Errore nell'iscrizione. Riprova.");
+        toast.error(antiSpamMessage(err) || "Errore nell'iscrizione. Riprova.");
       }
     } finally {
       setSubmittingWaitlist(false);
@@ -284,7 +302,7 @@ export const EventoDettaglio = () => {
     return (
       <div className="min-h-screen bg-tv-cream flex items-center justify-center">
         <Navbar />
-        <div className="text-tv-green-deep/60">Caricamento…</div>
+        <div className="text-tv-green-deep/75">Caricamento…</div>
       </div>
     );
   }
@@ -363,13 +381,13 @@ export const EventoDettaglio = () => {
                     <BookOpen size={18} className="text-tv-cream" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/40 mb-0.5">Club del Libro · Trama Viva</div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Club del Libro · Trama Viva</div>
                     <div className="font-bold text-tv-green-deep text-sm leading-tight">
                       Questo è un evento del nostro club di lettura mensile.
                     </div>
-                    <div className="text-xs text-tv-green-deep/50 mt-0.5">Proposte, recensioni, biblioteca condivisa — scopri come funziona.</div>
+                    <div className="text-xs text-tv-green-deep/75 mt-0.5">Proposte, recensioni, biblioteca condivisa — scopri come funziona.</div>
                   </div>
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-tv-green-deep/50 group-hover:text-tv-green-deep transition-colors shrink-0">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-tv-green-deep/75 group-hover:text-tv-green-deep transition-colors shrink-0">
                     Scopri il club <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 </Link>
@@ -393,7 +411,7 @@ export const EventoDettaglio = () => {
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
                   data-testid="share-whatsapp"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green text-tv-cream text-sm font-bold"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-green text-tv-green-deep text-sm font-bold"
                 >
                   <MessageCircle size={14} /> WhatsApp
                 </a>
@@ -404,7 +422,7 @@ export const EventoDettaglio = () => {
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
                   data-testid="share-telegram"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-sky text-tv-cream text-sm font-bold"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-tv-sky text-tv-green-deep text-sm font-bold"
                 >
                   <Send size={14} /> Telegram
                 </a>
@@ -497,7 +515,7 @@ export const EventoDettaglio = () => {
                 <div className="bg-tv-green-deep/5 border border-tv-green-deep/15 rounded-[2rem] p-7 text-center" data-testid="event-detail-past">
                   <div className="text-4xl mb-3">📁</div>
                   <div className="font-display font-black text-2xl text-tv-green-deep">Evento concluso</div>
-                  <p className="mt-2 text-sm text-tv-green-deep/60 leading-relaxed">
+                  <p className="mt-2 text-sm text-tv-green-deep/75 leading-relaxed">
                     Questo evento si è già svolto. Resta aggiornato sui prossimi appuntamenti!
                   </p>
                   <Link
@@ -517,7 +535,7 @@ export const EventoDettaglio = () => {
                     <p className="mt-3 font-display font-black text-lg text-tv-green-deep leading-snug">
                       Tutti i posti sono stati prenotati.
                     </p>
-                    <p className="mt-1 text-sm text-tv-green-deep/60 leading-relaxed">
+                    <p className="mt-1 text-sm text-tv-green-deep/75 leading-relaxed">
                       Puoi comunque iscriverti alla lista di attesa.
                     </p>
                   </div>
@@ -527,7 +545,7 @@ export const EventoDettaglio = () => {
                       <div className="text-center py-4">
                         <div className="text-3xl mb-3">⏳</div>
                         <div className="font-display font-black text-lg text-tv-green-deep">Sei in lista di attesa!</div>
-                        <p className="mt-2 text-sm text-tv-green-deep/60">Ti contatteremo appena si libera un posto.</p>
+                        <p className="mt-2 text-sm text-tv-green-deep/75">Ti contatteremo appena si libera un posto.</p>
                       </div>
                     ) : (
                       <>
@@ -535,27 +553,33 @@ export const EventoDettaglio = () => {
                           <span className="text-lg">⏳</span>
                           <span className="font-display font-black text-base text-tv-green-deep">Lista di attesa</span>
                         </div>
-                        <p className="text-sm text-tv-green-deep/55 mb-4 leading-relaxed">
+                        <p className="text-sm text-tv-green-deep/75 mb-4 leading-relaxed">
                           Iscriviti alla lista di attesa: se si libera un posto, sarai tra i primi ad essere contattato.
                         </p>
                         <form onSubmit={submitWaitlist} className="flex flex-col gap-3">
                           <input
-                            type="text" required placeholder="Nome e cognome *"
+                            type="text" required aria-label="Nome e cognome" autoComplete="name" placeholder="Nome e cognome *"
                             value={waitlistForm.name}
                             onChange={e => setWaitlistForm(f => ({ ...f, name: e.target.value }))}
                             className="w-full px-4 py-3 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm focus:outline-none focus:border-tv-green-deep/40"
                           />
                           <input
-                            type="email" required placeholder="Email *"
+                            type="email" required aria-label="Email" autoComplete="email" placeholder="Email *"
                             value={waitlistForm.email}
                             onChange={e => setWaitlistForm(f => ({ ...f, email: e.target.value }))}
                             className="w-full px-4 py-3 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm focus:outline-none focus:border-tv-green-deep/40"
                           />
                           <input
-                            type="tel" placeholder="Telefono (opzionale)"
+                            type="tel" aria-label="Telefono (opzionale)" autoComplete="tel" placeholder="Telefono (opzionale)"
                             value={waitlistForm.phone}
                             onChange={e => setWaitlistForm(f => ({ ...f, phone: e.target.value }))}
                             className="w-full px-4 py-3 rounded-xl border border-tv-green-deep/15 bg-tv-cream/40 text-sm focus:outline-none focus:border-tv-green-deep/40"
+                          />
+                          <PrivacyCheckbox
+                            id="waitlist-privacy"
+                            checked={waitlistPrivacy}
+                            onChange={e => setWaitlistPrivacy(e.target.checked)}
+                            purpose="iscrivermi alla lista di attesa di questo evento"
                           />
                           <button type="submit" disabled={submittingWaitlist}
                             className="w-full py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm flex items-center justify-center gap-2 hover:bg-tv-green-deep/90 transition-colors disabled:opacity-50">
@@ -674,7 +698,7 @@ export const EventoDettaglio = () => {
                   <div className="font-display font-black text-2xl text-tv-green-deep">
                     Partecipa
                   </div>
-                  <p className="mt-1 text-sm text-tv-green-deep/60">
+                  <p className="mt-1 text-sm text-tv-green-deep/75">
                     Mandaci la tua richiesta, ti rispondiamo noi.
                   </p>
                   {event.solo_soci && (
@@ -687,6 +711,8 @@ export const EventoDettaglio = () => {
                     <input
                       data-testid="detail-form-name"
                       required
+                      aria-label="Nome e cognome"
+                      autoComplete="name"
                       placeholder="Nome e cognome"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -696,6 +722,8 @@ export const EventoDettaglio = () => {
                       data-testid="detail-form-email"
                       required
                       type="email"
+                      aria-label="Email"
+                      autoComplete="email"
                       placeholder="Email"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -703,6 +731,8 @@ export const EventoDettaglio = () => {
                     />
                     <input
                       data-testid="detail-form-phone"
+                      aria-label="Telefono (opzionale)"
+                      autoComplete="tel"
                       placeholder="Telefono (opzionale)"
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -710,6 +740,7 @@ export const EventoDettaglio = () => {
                     />
                     <textarea
                       data-testid="detail-form-message"
+                      aria-label="Una nota per noi (opzionale)"
                       placeholder="Una nota per noi (opzionale)"
                       rows={3}
                       value={form.message}
@@ -718,6 +749,7 @@ export const EventoDettaglio = () => {
                     />
                     <input
                       data-testid="detail-form-referral"
+                      aria-label="Come hai saputo dell'evento (opzionale)"
                       placeholder="Come hai saputo dell'evento/Chi ti ha consigliato? (opzionale)"
                       value={form.referral || ""}
                       onChange={(e) => setForm({ ...form, referral: e.target.value })}
@@ -762,7 +794,7 @@ export const EventoDettaglio = () => {
                           className={`w-10 h-10 rounded-2xl border-2 font-bold text-sm transition-all ${
                             numPersone === n
                               ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
-                              : "border-tv-green-deep/15 text-tv-green-deep/60 hover:border-tv-green-deep/30"
+                              : "border-tv-green-deep/15 text-tv-green-deep/75 hover:border-tv-green-deep/30"
                           }`}
                         >{n}</button>
                       ))}
@@ -781,7 +813,7 @@ export const EventoDettaglio = () => {
                           <input required placeholder="Cognome *" value={g.cognome} onChange={e => updateOspite(i, "cognome", e.target.value)} className="px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                         </div>
                         <div>
-                          <p className="text-[11px] text-tv-green-deep/45 mb-1.5 leading-snug">
+                          <p className="text-[11px] text-tv-green-deep/75 mb-1.5 leading-snug">
                             {event.solo_soci
                               ? "Evento riservato ai soci: l'email dell'accompagnatore è obbligatoria e deve essere quella con cui è registrato/a come socio/a (diversa dalla tua). Se non è ancora socio/a, deve prima iscriversi."
                               : "Inserisci l'email dell'accompagnatore — riceverà tutte le informazioni sull'evento e gli aggiornamenti direttamente nella sua casella. Facoltativa, ma consigliata."}
@@ -791,7 +823,7 @@ export const EventoDettaglio = () => {
                         <input placeholder="Telefono (opzionale)" value={g.phone} onChange={e => updateOspite(i, "phone", e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep text-sm" />
                         {event.opzioni_custom && (
                           <div>
-                            <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/50 mb-1.5">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1.5">
                               {(g.nome || g.cognome) ? `${g.nome} ${g.cognome}`.trim() : `Persona ${i + 2}`} — {event.opzioni_label || "Opzione"} *
                             </div>
                             <div className="flex flex-col gap-1.5">
@@ -817,7 +849,7 @@ export const EventoDettaglio = () => {
                   {event.contributo_volontario && (
                     <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
                       <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo volontario all'associazione</div>
-                      <p className="text-xs text-tv-green-deep/60 mb-2">Facoltativo — ogni cifra è benvenuta 💚</p>
+                      <p className="text-xs text-tv-green-deep/75 mb-2">Facoltativo — ogni cifra è benvenuta 💚</p>
                       <div className="relative">
                         <input
                           type="number"
@@ -828,7 +860,7 @@ export const EventoDettaglio = () => {
                           onChange={e => setDonazioneVolontaria(e.target.value)}
                           className="w-full px-4 py-3 pr-10 rounded-2xl bg-tv-cream/40 border border-tv-green-deep/15 focus:border-tv-green outline-none text-tv-green-deep"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tv-green-deep/50 font-bold">€</span>
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-tv-green-deep/75 font-bold">€</span>
                       </div>
                       {parseFloat(donazioneVolontaria) > 0 && (
                         <div className="mt-3">
@@ -845,7 +877,7 @@ export const EventoDettaglio = () => {
                                 className={`flex-1 px-2 py-2.5 rounded-2xl border-2 text-xs font-bold transition-all ${
                                   form.metodo_pagamento === v
                                     ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
-                                    : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/60 hover:border-tv-green-deep/30"
+                                    : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/75 hover:border-tv-green-deep/30"
                                 }`}
                               >
                                 {label}
@@ -854,21 +886,21 @@ export const EventoDettaglio = () => {
                           </div>
                           {form.metodo_pagamento === "bonifico" && (
                             <div className="mt-2 p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
-                              <div className="text-xs font-bold text-tv-green-deep/60 mb-1">IBAN Trama Viva APS</div>
+                              <div className="text-xs font-bold text-tv-green-deep/75 mb-1">IBAN Trama Viva APS</div>
                               <div className="flex items-center gap-2">
                                 <code className="text-xs font-mono text-tv-green-deep font-bold flex-1 break-all">IT48E3688801600100000059432</code>
                                 <button type="button" onClick={copyIban} className="flex-shrink-0 p-1.5 rounded-xl bg-tv-green-deep/10 hover:bg-tv-green-deep/20 text-tv-green-deep transition-colors" title="Copia IBAN">
                                   <Copy size={13} />
                                 </button>
                               </div>
-                              <div className="text-xs text-tv-green-deep/50 mt-1">
+                              <div className="text-xs text-tv-green-deep/75 mt-1">
                                 Causale: Donazione {event.title}{form.name ? ` — ${form.name}` : ""}
                               </div>
                             </div>
                           )}
                           {form.metodo_pagamento === "elettronico" && (
                             <div className="mt-2 p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
-                              <div className="text-xs font-bold text-tv-green-deep/60 mb-1">Pagamento sicuro via SumUp</div>
+                              <div className="text-xs font-bold text-tv-green-deep/75 mb-1">Pagamento sicuro via SumUp</div>
                               <div className="text-xs text-tv-green-deep/70">
                                 Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
                               </div>
@@ -914,7 +946,7 @@ export const EventoDettaglio = () => {
                                   className={`flex-1 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
                                     form.metodo_pagamento === v
                                       ? "border-tv-green bg-tv-green/10 text-tv-green-deep"
-                                      : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/60 hover:border-tv-green-deep/30"
+                                      : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/75 hover:border-tv-green-deep/30"
                                   }`}
                                 >
                                   {label}
@@ -925,7 +957,7 @@ export const EventoDettaglio = () => {
                         )}
                         {form.metodo_pagamento === "bonifico" && (
                           <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
-                            <div className="text-xs font-bold text-tv-green-deep/60 mb-1">IBAN Trama Viva APS</div>
+                            <div className="text-xs font-bold text-tv-green-deep/75 mb-1">IBAN Trama Viva APS</div>
                             <div className="flex items-center gap-2">
                               <code className="text-xs font-mono text-tv-green-deep font-bold flex-1 break-all">
                                 IT48E3688801600100000059432
@@ -939,14 +971,14 @@ export const EventoDettaglio = () => {
                                 <Copy size={13} />
                               </button>
                             </div>
-                            <div className="text-xs text-tv-green-deep/50 mt-1">
+                            <div className="text-xs text-tv-green-deep/75 mt-1">
                               Causale: {event.contributo_note || event.title}{form.name ? ` — ${form.name}` : ""}
                             </div>
                           </div>
                         )}
                         {form.metodo_pagamento === "elettronico" && (
                           <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
-                            <div className="text-xs font-bold text-tv-green-deep/60 mb-1">Pagamento sicuro via SumUp</div>
+                            <div className="text-xs font-bold text-tv-green-deep/75 mb-1">Pagamento sicuro via SumUp</div>
                             <div className="text-xs text-tv-green-deep/70">
                               Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
                             </div>
@@ -955,6 +987,13 @@ export const EventoDettaglio = () => {
                       </div>
                     );
                   })()}
+                  <PrivacyCheckbox
+                    id="detail-privacy"
+                    className="mt-5"
+                    checked={privacy}
+                    onChange={e => setPrivacy(e.target.checked)}
+                    purpose="gestire la mia prenotazione all'evento (e quella di eventuali accompagnatori, che ho informato)"
+                  />
                   <button
                     type="submit"
                     disabled={submitting}
@@ -963,6 +1002,7 @@ export const EventoDettaglio = () => {
                   >
                     {submitting ? "Invio…" : "Invia richiesta"}
                   </button>
+                  <RecaptchaNotice className="mt-3" />
                   {soloSociError && (
                     <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                       <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
