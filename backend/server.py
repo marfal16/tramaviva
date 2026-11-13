@@ -70,7 +70,7 @@ logger = logging.getLogger(__name__)
 
 # ========== PRIVACY, CONSENSI E ANTI-BOT ==========
 # Versione dell'informativa privacy mostrata agli utenti (tenere allineata a frontend/src/lib/legal.js)
-PRIVACY_POLICY_VERSION = "2026-11-13"
+PRIVACY_POLICY_VERSION = "2026-11-13.2"
 RECAPTCHA_MIN_SCORE = 0.5
 
 
@@ -1103,29 +1103,9 @@ async def create_contact(payload: ContactCreate):
         logger.warning(f"Notifica admin contatti non inviata: {e}")
     return obj
 
-# ========== ROUTES: CONSENSI COOKIE ==========
-class CookieConsentIn(BaseModel):
-    consent_id: str = Field(min_length=8, max_length=64)
-    analytics: bool
-    action: str = Field(max_length=20)  # accept_all | reject_all | custom
-    policy_version: str = Field(max_length=20)
-
-@api_router.post("/consents")
-async def log_cookie_consent(payload: CookieConsentIn, request: Request):
-    """Registra la scelta sui cookie (prova del consenso). L'IP non è salvato in chiaro, solo un hash non reversibile."""
-    ip = _client_ip(request)
-    ip_hash = hmac.new(JWT_SECRET.encode(), ip.encode(), hashlib.sha256).hexdigest()[:32] if ip else None
-    await db.cookie_consents.insert_one({
-        "id": str(uuid.uuid4()),
-        "consent_id": payload.consent_id,
-        "analytics": payload.analytics,
-        "action": payload.action if payload.action in ("accept_all", "reject_all", "custom") else "custom",
-        "policy_version": payload.policy_version,
-        "ip_hash": ip_hash,
-        "user_agent": (request.headers.get("user-agent") or "")[:300],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    })
-    return {"ok": True}
+# ========== CONSENSI COOKIE ==========
+# Il sito non usa più strumenti di statistica di terzi: nessuna scelta sui cookie da registrare, quindi niente POST /consents.
+# Le scelte già registrate restano consultabili in GET /admin/consents e si cancellano dopo 5 anni (RETENTION_DAYS).
 
 # ========== ROUTES: REGISTRATIONS ==========
 @api_router.post("/registrations/create", dependencies=[Depends(verify_recaptcha("membership_register"))])

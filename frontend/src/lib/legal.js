@@ -1,7 +1,7 @@
 // Dati dell'associazione e versione delle policy.
 // PRIVACY_VERSION va tenuta allineata a PRIVACY_POLICY_VERSION in backend/server.py:
 // va aggiornata ogni volta che cambiano i testi di privacy o cookie policy.
-export const PRIVACY_VERSION = "2026-11-13";
+export const PRIVACY_VERSION = "2026-11-13.2";
 
 export const ORG = {
   name: "TRAMA VIVA APS",

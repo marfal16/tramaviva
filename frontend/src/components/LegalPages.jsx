@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { ORG, LEGAL_UPDATED } from "../lib/legal";
-import { openCookieSettings, POSTHOG_IN_EU } from "../lib/consent";
 
 const Page = ({ title, intro, children }) => {
   useEffect(() => {
@@ -120,24 +119,12 @@ export const PrivacyPolicy = () => (
             <Td>Sapere in forma aggregata quante persone visitano il sito e da dove</Td>
             <Td>Legittimo interesse a conoscere l'uso del sito con dati anonimi (art. 6.1.f)</Td>
           </tr>
-          <tr>
-            <Td>Statistiche (solo se acconsenti)</Td>
-            <Td>Pagine visitate, dati tecnici del dispositivo, registrazione delle sessioni di navigazione, con testi e campi dei moduli oscurati</Td>
-            <Td>Capire come migliorare il sito</Td>
-            <Td>Tuo consenso (art. 6.1.a)</Td>
-          </tr>
-          <tr>
-            <Td>Scelta sui cookie</Td>
-            <Td>Identificativo casuale, scelta effettuata, data, versione dell'informativa, impronta non reversibile dell'IP</Td>
-            <Td>Dimostrare di aver rispettato la tua scelta</Td>
-            <Td>Obbligo di accountability (artt. 5.2 e 7.1 GDPR) e legittimo interesse</Td>
-          </tr>
         </tbody>
       </TableWrap>
       <p>
         Il conferimento dei dati contrassegnati come obbligatori nei moduli è necessario per dare seguito alla tua richiesta:
         senza di essi non possiamo completare l'iscrizione, la prenotazione o la donazione. I consensi facoltativi
-        e le statistiche non sono mai obbligatori e il loro rifiuto non ha conseguenze.
+        non sono mai obbligatori e il loro rifiuto non ha conseguenze.
       </p>
     </Sec>
 
@@ -162,7 +149,6 @@ export const PrivacyPolicy = () => (
           "MongoDB Atlas — archiviazione dei dati del sito.",
           "Cloudinary — archiviazione delle immagini caricate (eventi, foto profilo).",
           "Google — posta elettronica dell'associazione e servizio anti-spam reCAPTCHA.",
-          `PostHog — statistiche del sito, solo se hai dato il consenso (server ${POSTHOG_IN_EU ? "nell'Unione Europea" : "negli Stati Uniti"}).`,
         ]}
       />
       <p>
@@ -190,9 +176,8 @@ export const PrivacyPolicy = () => (
           "Prenotazioni agli eventi: 24 mesi dopo la data dell'evento; poi nome, email, telefono, messaggi e dati degli accompagnatori vengono cancellati e restano solo importi e numero di partecipanti, in forma anonima.",
           "Donazioni: 10 anni, per gli obblighi contabili e fiscali; poi restano solo importo e data, in forma anonima.",
           "Account area soci: finché l'account è attivo; puoi chiederne la chiusura in ogni momento.",
-          "Registro delle scelte sui cookie: 5 anni, per poter dimostrare il consenso.",
+          "Registro storico delle scelte sui cookie (raccolte fino a novembre 2026, quando abbiamo smesso di usare strumenti di statistica di terzi): 5 anni, per poter dimostrare il consenso dato.",
           "Conteggio visite anonimo: 13 mesi.",
-          "Statistiche del sito con PostHog (solo se acconsenti): non oltre 12 mesi.",
           "Consensi facoltativi: fino alla revoca.",
         ]}
       />
@@ -246,7 +231,7 @@ export const PrivacyPolicy = () => (
 export const CookiePolicy = () => (
   <Page
     title="Cookie policy"
-    intro="Questa pagina spiega quali cookie e strumenti simili (come il local storage del browser) usa il sito di Trama Viva APS, a cosa servono e come puoi scegliere."
+    intro="Questa pagina spiega quali cookie e strumenti simili (come il local storage del browser) usa il sito di Trama Viva APS, a cosa servono."
   >
     <Sec title="Cookie tecnici (sempre attivi)">
       <p>Servono al funzionamento del sito e alla sua sicurezza; non richiedono consenso.</p>
@@ -254,7 +239,7 @@ export const CookiePolicy = () => (
         <thead><tr><Th>Nome</Th><Th>Chi lo imposta</Th><Th>Scopo</Th><Th>Durata</Th></tr></thead>
         <tbody>
           <tr><Td>socio_token</Td><Td>Trama Viva (local storage)</Td><Td>Mantiene l'accesso all'area soci dopo il login</Td><Td>Fino al logout (la sessione scade dopo 7 giorni)</Td></tr>
-          <tr><Td>tv_cookie_consent</Td><Td>Trama Viva (local storage)</Td><Td>Ricorda la tua scelta sui cookie</Td><Td>6 mesi</Td></tr>
+          <tr><Td>tv_cookie_notice</Td><Td>Trama Viva (local storage)</Td><Td>Ricorda che hai letto l'avviso sui cookie, così non te lo mostriamo di nuovo</Td><Td>Finché non cancelli i dati del sito</Td></tr>
           <tr><Td>tv_session_id</Td><Td>Trama Viva (session storage)</Td><Td>Identificativo casuale e anonimo per contare in forma aggregata quante persone visitano il sito. Non contiene dati personali e non salviamo il tuo indirizzo IP.</Td><Td>Fino alla chiusura della scheda del browser</Td></tr>
           <tr><Td>Password della community (club)</Td><Td>Trama Viva (local storage)</Td><Td>Evita di reinserire la password dei club quando torni</Td><Td>Finché non cancelli i dati del sito</Td></tr>
           <tr><Td>_GRECAPTCHA e simili</Td><Td>Google reCAPTCHA</Td><Td>Distingue le persone dai programmi automatici nei moduli e nel login, per proteggerli da abusi</Td><Td>Fino a 6 mesi</Td></tr>
@@ -262,14 +247,12 @@ export const CookiePolicy = () => (
       </TableWrap>
     </Sec>
 
-    <Sec title="Cookie di statistica (solo con il tuo consenso)">
-      <TableWrap label="Cookie di statistica">
-        <thead><tr><Th>Nome</Th><Th>Chi lo imposta</Th><Th>Scopo</Th><Th>Durata</Th></tr></thead>
-        <tbody>
-          <tr><Td>ph_phc_… (cookie e local storage)</Td><Td>PostHog (server {POSTHOG_IN_EU ? "nell'Unione Europea" : "negli USA"})</Td><Td>Statistiche sulle visite e registrazione delle sessioni di navigazione, con testi e campi dei moduli oscurati.</Td><Td>Fino a 12 mesi</Td></tr>
-        </tbody>
-      </TableWrap>
-      <p>Finché non acconsenti, questi strumenti non vengono caricati. Nel pannello di amministrazione non sono mai attivi.</p>
+    <Sec title="Statistiche e pubblicità">
+      <p>
+        Non usiamo strumenti di statistica o di pubblicità di terzi e non tracciamo la tua navigazione: per questo non ti chiediamo
+        nessun consenso. Contiamo soltanto, in forma anonima e aggregata, quante persone visitano il sito e da quale paese o città
+        (vedi l'<a href="/privacy-policy" className="font-bold underline underline-offset-2">Informativa sulla privacy</a>).
+      </p>
     </Sec>
 
     <Sec title="Contenuti di terze parti">
@@ -284,21 +267,10 @@ export const CookiePolicy = () => (
       />
     </Sec>
 
-    <Sec title="Come cambiare la tua scelta">
+    <Sec title="Come cancellare i dati del sito dal tuo browser">
       <p>
-        Puoi modificare o revocare il consenso alle statistiche quando vuoi:{" "}
-        <button
-          type="button"
-          onClick={openCookieSettings}
-          className="font-bold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tv-green-deep"
-        >
-          apri le preferenze cookie
-        </button>
-        . Puoi anche cancellare i cookie dalle impostazioni del tuo browser.
-      </p>
-      <p>
-        Chiedendoti di nuovo il consenso ogni 6 mesi, o quando questa policy cambia, rispettiamo le indicazioni del Garante.
-        Per sapere come trattiamo i tuoi dati leggi l'<a href="/privacy-policy" className="font-bold underline underline-offset-2">Informativa sulla privacy</a>.
+        Puoi cancellare cookie e dati del sito in ogni momento dalle impostazioni del tuo browser: dovrai solo rifare il login
+        all'area soci. Per sapere come trattiamo i tuoi dati leggi l'<a href="/privacy-policy" className="font-bold underline underline-offset-2">Informativa sulla privacy</a>.
       </p>
       <p>Titolare: {ORG.name}, {ORG.address} — <Mail /></p>
     </Sec>

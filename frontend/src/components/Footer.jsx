@@ -2,7 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "./Logo";
 import { Instagram, Mail, Facebook } from "lucide-react";
-import { openCookieSettings } from "../lib/consent";
 
 export const Footer = () => (
   <footer
@@ -167,9 +166,6 @@ export const Footer = () => (
         <Link to="/cookie-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Cookie Policy</Link>
         <Link to="/condizioni" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Condizioni di iscrizione e rimborso</Link>
         <Link to="/accessibilita" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Accessibilità</Link>
-        <button type="button" onClick={openCookieSettings} data-testid="footer-cookie-settings" className="underline underline-offset-2 hover:text-tv-mint transition-colors">
-          Gestisci cookie
-        </button>
       </nav>
 
       {/* Attribuzione richiesta dai termini d'uso dell'API TMDB (locandine film del Cineforum) */}
