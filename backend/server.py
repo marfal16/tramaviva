@@ -1686,7 +1686,8 @@ async def admin_set_event_gallery(event_id: str, body: GalleryListIn):
 
 @api_router.get("/projects/{slug}/photos")
 async def get_project_photos(slug: str, limit: int = 60):
-    """Foto degli eventi delle categorie collegate al progetto: dagli eventi più recenti, una foto per evento alla volta
+    """Foto degli eventi passati delle categorie collegate al progetto. Per ogni evento c'è la foto di copertina (in
+    automatico) e, se caricate, le foto aggiuntive. Si parte dagli eventi più recenti, una foto per evento alla volta
     (così nelle prime righe compaiono eventi diversi)."""
     await _ensure_projects_seed()
     project = await db.projects.find_one({"slug": slug, "published": True}, {"_id": 0, "event_categories": 1})
@@ -1698,15 +1699,28 @@ async def get_project_photos(slug: str, limit: int = 60):
     limit = max(1, min(limit, 100))
     events = await db.events.find(
         {"category": {"$in": cats}, "is_draft": {"$ne": True}},
-        {"_id": 0, "id": 1, "slug": 1, "title": 1, "date": 1, "gallery": 1},
+        {"_id": 0, "id": 1, "slug": 1, "title": 1, "date": 1, "gallery": 1, "image_url": 1, "has_image": 1},
     ).sort("date", -1).to_list(500)
-    events = [e for e in events if e.get("gallery")]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    prepared = []
+    for e in events:
+        if not str(e.get("date", "")) < today:  # solo eventi già passati
+            continue
+        photos: list = []
+        if e.get("image_url"):
+            photos.append(e["image_url"])
+        elif e.get("has_image"):
+            photos.append(f"/api/events/{e['id']}/image")  # copertine vecchie, salvate nel database
+        photos += [u for u in (e.get("gallery") or []) if u not in photos]
+        if photos:
+            prepared.append({**e, "photos": photos})
+    events = prepared
     out: list = []
     rank = 0
     while len(out) < limit:
         added = False
         for e in events:
-            photos = e["gallery"]
+            photos = e["photos"]
             if rank < len(photos):
                 out.append({"url": photos[rank], "event_id": e.get("id"), "event_slug": e.get("slug"),
                             "event_title": e.get("title", ""), "event_date": e.get("date", "")})

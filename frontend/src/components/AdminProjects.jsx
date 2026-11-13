@@ -250,8 +250,8 @@ const ProjectEditor = ({ token, project, eventCategories, onBack, onSaved, onDel
           <div>
             <span className={label}>Eventi collegati</span>
             <p className="text-xs text-tv-green-deep/60 mb-2">
-              Nella pagina compaiono in automatico i prossimi eventi di queste categorie e le foto scattate agli eventi passati.
-              Le foto si aggiungono dalla scheda <strong>Eventi</strong>: apri un evento già svolto e usa «Foto dell'evento».
+              Nella pagina compaiono in automatico i prossimi eventi di queste categorie e le foto di copertina degli eventi passati.
+              Se vuoi aggiungere altre foto di un evento, apri l'evento nella scheda <strong>Eventi</strong> e usa «Foto dell'evento».
               {photoInfo && (
                 <> Ora ci sono <strong>{photoInfo.photos} foto</strong> da <strong>{photoInfo.events} eventi</strong>.</>
               )}

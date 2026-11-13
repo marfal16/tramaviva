@@ -58,8 +58,9 @@ export const EventGalleryEditor = ({ token, eventId, initial = [] }) => {
     <div data-testid="admin-event-gallery">
       <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Foto dell'evento</div>
       <p className="text-xs text-tv-green-deep/60 mb-3">
-        Foto scattate durante l'evento: compaiono nella pagina del progetto collegato, con titolo e data dell'evento.
-        Si salvano subito. Pubblica solo foto di persone che hanno dato il consenso.
+        Facoltativo. La foto di copertina dell'evento compare già da sola nella pagina del progetto collegato, quando l'evento è passato.
+        Qui puoi aggiungere altre foto scattate durante l'evento (titolo e data si vedono in ogni caso). Si salvano subito.
+        Pubblica solo foto di persone che hanno dato il consenso.
       </p>
       {photos.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-3">

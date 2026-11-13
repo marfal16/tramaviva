@@ -141,6 +141,10 @@ const tileClasses = (count, i) => {
   return `${mobileWide} ${TILE[PATTERNS[count][i]]}`;
 };
 
+// Le copertine più vecchie si servono dal server e arrivano come indirizzo relativo (/api/...)
+const photoSrc = (url, width) =>
+  cdnThumb(url.startsWith("/") ? `${process.env.REACT_APP_BACKEND_URL}${url}` : url, width);
+
 const shortDate = (iso) =>
   new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
 
@@ -207,7 +211,7 @@ const ProjectPhotos = ({ slug }) => {
                   className={`${tileClasses(group.length, i)} group relative overflow-hidden rounded-2xl bg-tv-green-deep/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-tv-orange`}
                 >
                   <img
-                    src={cdnThumb(p.url, group.length > 1 && i === 0 ? 1100 : 700)}
+                    src={photoSrc(p.url, group.length > 1 && i === 0 ? 1100 : 700)}
                     alt=""
                     loading="lazy"
                     decoding="async"
@@ -268,7 +272,7 @@ const ProjectPhotos = ({ slug }) => {
             </>
           )}
           <img
-            src={cdnThumb(current.url, 1800)}
+            src={photoSrc(current.url, 1800)}
             alt={`Foto dell'evento ${current.event_title}, ${shortDate(current.event_date)}`}
             onClick={(e) => e.stopPropagation()}
             className="max-h-[75vh] max-w-full rounded-2xl object-contain"
