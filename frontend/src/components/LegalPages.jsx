@@ -161,11 +161,14 @@ export const PrivacyPolicy = () => (
           "Vercel — hosting del sito e dei servizi applicativi.",
           "MongoDB Atlas — archiviazione dei dati del sito.",
           "Cloudinary — archiviazione delle immagini caricate (eventi, foto profilo).",
-          "SumUp — pagamenti con carta di donazioni e quote. Non vediamo né conserviamo i dati della tua carta.",
           "Google — posta elettronica dell'associazione e servizio anti-spam reCAPTCHA.",
           `PostHog — statistiche del sito, solo se hai dato il consenso (server ${POSTHOG_IN_EU ? "nell'Unione Europea" : "negli Stati Uniti"}).`,
         ]}
       />
+      <p>
+        I pagamenti con carta passano dalla pagina sicura di SumUp, che tratta i dati di pagamento come titolare autonomo secondo la propria informativa.
+        Noi non vediamo né conserviamo i dati della tua carta.
+      </p>
       <p>
         I dati non sono venduti né diffusi. Possono essere comunicati ad autorità pubbliche solo se la legge lo impone.
       </p>
@@ -335,7 +338,7 @@ export const ConditionsPage = () => (
           "Puoi pagare con carta (pagina sicura di SumUp), con bonifico o in contanti, secondo quanto previsto per l'evento.",
           "Se l'evento indica «da versare direttamente alla struttura», paghi al locale e non all'associazione.",
           "Dove previsto, puoi aggiungere una donazione volontaria: è facoltativa e separata dal contributo.",
-          "Quando il pulsante dice «Invia richiesta con obbligo di pagare», l'invio comporta l'obbligo di pagare il contributo indicato.",
+          "Quando il pulsante dice «Invia richiesta e paga», l'invio comporta l'obbligo di pagare il contributo indicato.",
         ]}
       />
     </Sec>

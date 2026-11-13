@@ -1000,7 +1000,7 @@ export const EventoDettaglio = () => {
                     data-testid="detail-form-submit"
                     className="btn-tv w-full mt-4 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60"
                   >
-                    {submitting ? "Invio…" : (event.contributo > 0 && event.contributo_note !== "Da versare direttamente alla struttura" ? "Invia richiesta con obbligo di pagare" : "Invia richiesta")}
+                    {submitting ? "Invio…" : (event.contributo > 0 && event.contributo_note !== "Da versare direttamente alla struttura" ? "Invia richiesta e paga" : "Invia richiesta")}
                   </button>
                   <RecaptchaNotice className="mt-3" />
                   {event.contributo > 0 && event.contributo_note !== "Da versare direttamente alla struttura" && (
