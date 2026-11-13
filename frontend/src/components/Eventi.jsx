@@ -19,7 +19,7 @@ const fmtDate = (iso) => {
   return d.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
 };
 
-const categoryColor = {
+export const categoryColor = {
   "Laboratori Artistici": "bg-tv-orange text-tv-green-deep",
   "Eventi Sociali": "bg-tv-green text-tv-green-deep",
   "Passeggiate": "bg-tv-sky text-tv-green-deep",
@@ -40,13 +40,22 @@ const sameDay = (a, b) =>
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
 
-const isPast = (dateStr) => {
+export const isPast = (dateStr) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const d = new Date(dateStr);
   d.setHours(0, 0, 0, 0);
   return d < today;
 };
+
+// Eventi passati dal più recente al più vecchio (a parità di data, quello con l'orario più tardi prima)
+export const sortPastDesc = (events) =>
+  events
+    .filter((e) => isPast(e.date))
+    .sort((a, b) => new Date(b.date) - new Date(a.date) || String(b.time || "").localeCompare(String(a.time || "")));
+
+// Quanti eventi passati mostrare in homepage; gli altri stanno nella pagina /eventi/archivio
+const PAST_PREVIEW = 4;
 
 export const Eventi = () => {
   const { user } = useAuth();
@@ -365,7 +374,7 @@ export const Eventi = () => {
 // ---------- List view ----------
 const ListView = ({ events, onParticipate }) => {
   const upcoming = events.filter((e) => !isPast(e.date));
-  const past = events.filter((e) => isPast(e.date));
+  const past = sortPastDesc(events);
   const featured = upcoming.find((e) => e.featured);
   const others = featured ? upcoming.filter((e) => e.id !== featured.id) : upcoming;
   return (
@@ -390,9 +399,21 @@ const ListView = ({ events, onParticipate }) => {
             <div className="flex-1 border-t border-tv-green-deep/10" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-            {past.map((ev) => (
+            {past.slice(0, PAST_PREVIEW).map((ev) => (
               <PastEventCard key={ev.id} ev={ev} />
             ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link
+              to="/eventi/archivio"
+              data-testid="eventi-archivio-link"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm bg-white text-tv-green-deep border border-tv-green-deep/15 hover:bg-tv-sky/30 transition-colors"
+            >
+              {past.length > PAST_PREVIEW
+                ? `Vedi tutti i ${past.length} eventi passati`
+                : "Vedi l'archivio degli eventi"}{" "}
+              <ArrowRight size={16} />
+            </Link>
           </div>
         </>
       )}
@@ -574,7 +595,7 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
   );
 };
 
-const PastEventCard = ({ ev }) => (
+export const PastEventCard = ({ ev }) => (
   <Link
     to={`/eventi/${ev.slug || ev.id}`}
     data-testid={`event-card-${ev.id}`}

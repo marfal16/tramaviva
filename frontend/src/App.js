@@ -13,6 +13,7 @@ import Contatti from "./components/Contatti";
 import Footer from "./components/Footer";
 import Admin from "./components/Admin";
 import EventoDettaglio from "./components/EventoDettaglio";
+import { EventiArchivio } from "./components/EventiArchivio";
 import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
 import { Cineforum, CineforumTeaser } from "./components/Cineforum";
 import { LibroDettaglio } from "./components/LibroDettaglio";
@@ -171,6 +172,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 // Titolo della scheda per ogni pagina: chi usa uno screen reader lo sente a ogni cambio di pagina.
 const DEFAULT_TITLE = document.title;
 const ROUTE_TITLES = {
+  "/eventi/archivio": "Archivio eventi",
   "/donazioni": "Dona",
   "/iscrizione": "Diventa socio",
   "/club-del-libro": "Club del Libro",
@@ -229,6 +231,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/eventi/archivio" element={<EventiArchivio />} />
           <Route path="/eventi/:slug" element={<EventoDettaglio />} />
           <Route path="/iscrizione" element={<IscrizionePageWrapper />} />
           <Route path="/club-del-libro" element={<ClubDelLibroPageWrapper />} />
