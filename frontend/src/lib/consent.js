@@ -9,8 +9,15 @@ export const CHANGE_EVENT = "tv:cookie-consent-changed";
 
 const SIX_MONTHS_MS = 182 * 24 * 60 * 60 * 1000;
 const API = process.env.REACT_APP_BACKEND_URL;
-const POSTHOG_KEY = "phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs";
-const POSTHOG_HOST = "https://us.i.posthog.com";
+// Chiave e server di PostHog (la chiave è pubblica per costruzione). Per usare il server europeo
+// si crea un progetto PostHog in regione UE e si impostano su Vercel (frontend) queste due variabili:
+//   REACT_APP_POSTHOG_KEY   = chiave 'phc_...' del progetto europeo
+//   REACT_APP_POSTHOG_HOST  = https://eu.i.posthog.com
+// La chiave è legata alla regione in cui è stato creato il progetto: non si può cambiare solo l'host.
+const POSTHOG_KEY = process.env.REACT_APP_POSTHOG_KEY || "phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs";
+const POSTHOG_HOST = process.env.REACT_APP_POSTHOG_HOST || "https://us.i.posthog.com";
+// Usato dalla Cookie Policy per dichiarare dove si trovano i server delle statistiche
+export const POSTHOG_IN_EU = /^https:\/\/eu\./.test(POSTHOG_HOST);
 
 const newId = () =>
   (window.crypto?.randomUUID?.() ||
@@ -86,6 +93,7 @@ const loadPostHog = () => {
       recordCrossOriginIframes: true,
       capturePerformance: false,
       maskAllInputs: true, // i campi dei form non vengono mai registrati
+      maskTextSelector: "*", // anche i testi a schermo (nomi, email, messaggi) vengono oscurati nelle registrazioni
     },
   });
 };

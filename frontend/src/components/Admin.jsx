@@ -3,8 +3,9 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film, Grid3x3, ChevronLeft, ChevronRight, Lightbulb } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film, Grid3x3, ChevronLeft, ChevronRight, Lightbulb, ShieldCheck } from "lucide-react";
 import CoverSearchWidget from "./CoverSearchWidget";
+import PrivacyManager from "./AdminPrivacy";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -124,6 +125,7 @@ const NAV_GROUPS = [
     ],
   },
   { single: true, key: "donations", label: "Donazioni", icon: Heart },
+  { single: true, key: "privacy", label: "Privacy e dati", icon: ShieldCheck },
 ];
 // flat list for compatibility (badge logic, etc.)
 const NAV = NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, icon: g.icon }] : (g.items || []));
@@ -2758,6 +2760,12 @@ const CineforumManager = ({ films, events, filmReviews, filmProposals, token, on
 };
 
 const FLAG_URL = (cc) => `https://flagcdn.com/16x12/${(cc || "").toLowerCase()}.png`;
+// Nome del paese in italiano a partire dal codice (i dati di posizione arrivano da Vercel come codice)
+const countryLabel = (code, fallback) => {
+  try {
+    return new Intl.DisplayNames(["it"], { type: "region" }).of(String(code || "").toUpperCase()) || fallback || code;
+  } catch { return fallback || code; }
+};
 
 const VisitorChart = ({ visitorStats, activeUsers, visitorGeo }) => {
   const [view, setView] = useState(30);
@@ -2819,7 +2827,7 @@ const VisitorChart = ({ visitorStats, activeUsers, visitorGeo }) => {
                 <img src={FLAG_URL(r.country_code)} alt={r.country} className="w-3 h-2 rounded-sm object-cover flex-shrink-0" />
               )}
               <span className="text-tv-green-deep/60 truncate flex-1">
-                {[r.city, r.region].filter(Boolean).join(", ") || r.country}
+                {[r.city, r.region].filter(Boolean).join(", ") || countryLabel(r.country_code, r.country)}
               </span>
               <span className="font-bold text-tv-green-deep flex-shrink-0">{r.count}</span>
             </div>
@@ -3981,6 +3989,8 @@ const Dashboard = ({ token, onLogout }) => {
               token={token}
               onReload={loadAll}
             />
+          ) : tab === "privacy" ? (
+            <PrivacyManager token={token} />
           ) : tab === "libro-soci" ? (
             <RegistrationsManager
               list={buildSociList(data.registrations || [], data.members || [])}

@@ -1000,9 +1000,18 @@ export const EventoDettaglio = () => {
                     data-testid="detail-form-submit"
                     className="btn-tv w-full mt-4 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60"
                   >
-                    {submitting ? "Invio…" : "Invia richiesta"}
+                    {submitting ? "Invio…" : (event.contributo > 0 && event.contributo_note !== "Da versare direttamente alla struttura" ? "Invia richiesta con obbligo di pagare" : "Invia richiesta")}
                   </button>
                   <RecaptchaNotice className="mt-3" />
+                  {event.contributo > 0 && event.contributo_note !== "Da versare direttamente alla struttura" && (
+                    <p className="mt-3 text-xs text-tv-green-deep/75 leading-relaxed">
+                      Importo: {event.contributo}€ a persona, senza costi aggiuntivi. Per gli eventi con data fissa non è previsto il diritto di recesso (art. 59, comma 1, lettera n, Codice del consumo).
+                      Prima di inviare leggi le{" "}
+                      <a href="/condizioni" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2">
+                        condizioni di iscrizione, cancellazione e rimborso<span className="sr-only"> (si apre in una nuova scheda)</span>
+                      </a>.
+                    </p>
+                  )}
                   {soloSociError && (
                     <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                       <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>

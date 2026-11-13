@@ -165,10 +165,32 @@ export const Footer = () => (
       <nav aria-label="Informazioni legali" className="mt-14 pt-6 border-t border-tv-cream/15 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <Link to="/privacy-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Privacy Policy</Link>
         <Link to="/cookie-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Cookie Policy</Link>
+        <Link to="/condizioni" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Condizioni di iscrizione e rimborso</Link>
+        <Link to="/accessibilita" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Accessibilità</Link>
         <button type="button" onClick={openCookieSettings} data-testid="footer-cookie-settings" className="underline underline-offset-2 hover:text-tv-mint transition-colors">
           Gestisci cookie
         </button>
       </nav>
+
+      {/* Attribuzione richiesta dai termini d'uso dell'API TMDB (locandine film del Cineforum) */}
+      <div className="mt-6 pt-6 border-t border-tv-cream/15 flex flex-col sm:flex-row sm:items-center gap-4 text-xs">
+        <a
+          href="https://www.themoviedb.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          referrerPolicy="no-referrer"
+          className="inline-block self-start bg-tv-cream rounded-lg px-3 py-2 shrink-0"
+        >
+          <img src="/tmdb-logo.svg" alt="The Movie Database (TMDB)" width="140" height="10" style={{ width: 140, height: "auto" }} className="block" />
+          <span className="sr-only"> (si apre in una nuova scheda)</span>
+        </a>
+        <p className="opacity-80 leading-relaxed">
+          <span lang="en">This product uses the TMDB API but is not endorsed or certified by TMDB.</span>{" "}
+          (Questo prodotto usa le API di TMDB ma non è approvato né certificato da TMDB.){" "}
+          Copertine e locandine appartengono ai rispettivi titolari e sono mostrate a scopo illustrativo: per segnalazioni o richieste di rimozione scrivi a{" "}
+          <a href="mailto:tramavivaaps@gmail.com" className="underline underline-offset-2 hover:text-tv-mint transition-colors">tramavivaaps@gmail.com</a>.
+        </p>
+      </div>
 
       <div className="mt-6 pt-6 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-4 text-xs">
         <div>© {new Date().getFullYear()} APS Trama Viva — Ogni filo conta.</div>

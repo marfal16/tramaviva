@@ -70,7 +70,7 @@ logger = logging.getLogger(__name__)
 
 # ========== PRIVACY, CONSENSI E ANTI-BOT ==========
 # Versione dell'informativa privacy mostrata agli utenti (tenere allineata a frontend/src/lib/legal.js)
-PRIVACY_POLICY_VERSION = "2026-11-12"
+PRIVACY_POLICY_VERSION = "2026-11-13"
 RECAPTCHA_MIN_SCORE = 0.5
 
 
@@ -1082,13 +1082,9 @@ async def perform_cancel_signup(token: str):
         logger.warning(f"Notifica admin cancellazione non inviata: {e}")
     return {"ok": True}
 
-@api_router.post("/membership", response_model=Membership, dependencies=[Depends(verify_recaptcha("membership"))])
-async def create_membership(payload: MembershipCreate):
-    obj = Membership(**payload.model_dump())
-    doc = obj.model_dump()
-    doc["created_at"] = doc["created_at"].isoformat()
-    await db.memberships.insert_one(doc)
-    return obj
+# Il vecchio modulo breve di adesione (POST /membership) è stato rimosso: il sito usa solo /registrations/create,
+# che richiede la presa visione dell'informativa. Le richieste già salvate restano visibili in /admin/memberships
+# e vengono cancellate dopo 24 mesi (vedi RETENTION_DAYS).
 
 @api_router.post("/contact", response_model=Contact, dependencies=[Depends(verify_recaptcha("contact"))])
 async def create_contact(payload: ContactCreate):
@@ -1462,6 +1458,149 @@ async def admin_list_consents(limit: int = 200):
     total = await db.cookie_consents.count_documents({})
     accepted = await db.cookie_consents.count_documents({"analytics": True})
     return {"total": total, "analytics_accepted": accepted, "analytics_rejected": total - accepted, "items": items}
+
+
+# ========== CONSERVAZIONE DEI DATI (privacy) ==========
+# Tempi dichiarati nell'informativa privacy (frontend/src/components/LegalPages.jsx, sezione
+# "Per quanto tempo conserviamo i dati"). Se si cambiano qui vanno cambiati anche lì, e viceversa.
+RETENTION_DAYS = {
+    "contacts": 730,               # messaggi dal form contatti: 24 mesi
+    "memberships": 730,            # richieste del modulo breve di adesione: 24 mesi
+    "event_signups": 730,          # prenotazioni: 24 mesi dalla data dell'evento
+    "registrations_pending": 365,  # iscrizioni online mai approvate: 12 mesi
+    "donations": 3652,             # donazioni: 10 anni (obblighi contabili e fiscali)
+    "cookie_consents": 1826,       # registro delle scelte sui cookie: 5 anni
+    "visitor_log": 395,            # conteggio visite anonimo: 13 mesi
+    "active_sessions": 2,          # visitatori online in questo momento: dato tecnico, 2 giorni
+}
+
+
+def _created_before(cutoff: datetime) -> dict:
+    """created_at è salvato a volte come testo ISO e a volte come data: si confrontano entrambi i formati."""
+    return {"$or": [{"created_at": {"$lt": cutoff}}, {"created_at": {"$lt": cutoff.isoformat()}}]}
+
+
+async def _retention_run(apply: bool, trigger: str = "preview") -> dict:
+    """Simula (apply=False) o applica (apply=True) la cancellazione dei dati scaduti.
+
+    - Messaggi, richieste brevi, iscrizioni mai approvate, scelte cookie vecchie, token scaduti: cancellati.
+    - Prenotazioni agli eventi e donazioni: resi anonimi (restano importi, date e conteggi per i conti e le statistiche).
+    - Le iscrizioni socio approvate NON vengono toccate: i dati del modulo si cancellano da "Pratica al 100%" nel Registro Soci.
+    """
+    now = datetime.now(timezone.utc)
+    cut = lambda days: now - timedelta(days=days)  # noqa: E731
+    items: dict = {}
+
+    async def _delete(key: str, coll, query: dict, label: str):
+        n = await coll.count_documents(query)
+        if apply and n:
+            await coll.delete_many(query)
+        items[key] = {"label": label, "action": "delete", "count": n}
+
+    async def _anonymize(key: str, coll, query: dict, changes: dict, label: str, unset: Optional[dict] = None):
+        n = await coll.count_documents(query)
+        if apply and n:
+            update = {"$set": changes}
+            if unset:
+                update["$unset"] = unset
+            await coll.update_many(query, update)
+        items[key] = {"label": label, "action": "anonymize", "count": n}
+
+    not_done = {"anonymized_at": {"$exists": False}}
+    stamp = now.isoformat()
+
+    await _delete("contacts", db.contacts, _created_before(cut(RETENTION_DAYS["contacts"])),
+                  "Messaggi dal form contatti (oltre 24 mesi)")
+    await _delete("memberships", db.memberships, _created_before(cut(RETENTION_DAYS["memberships"])),
+                  "Richieste del modulo breve di adesione (oltre 24 mesi)")
+    await _delete("registrations_pending", db.registrations,
+                  {"$and": [{"status": "pending"}, _created_before(cut(RETENTION_DAYS["registrations_pending"]))]},
+                  "Iscrizioni online mai approvate (oltre 12 mesi)")
+    await _delete("cookie_consents", db.cookie_consents, _created_before(cut(RETENTION_DAYS["cookie_consents"])),
+                  "Registro scelte cookie (oltre 5 anni)")
+    await _delete("password_reset_tokens", db.password_reset_tokens, {"expires_at": {"$lt": now}},
+                  "Link di recupero password scaduti")
+    await _delete("visitor_log", db.visitor_log, {"last_seen": {"$lt": cut(RETENTION_DAYS["visitor_log"])}},
+                  "Conteggio visite anonimo (oltre 13 mesi)")
+    await _delete("active_sessions", db.active_sessions, {"last_seen": {"$lt": cut(RETENTION_DAYS["active_sessions"])}},
+                  "Sessioni tecniche dei visitatori online (oltre 2 giorni)")
+
+    # Prenotazioni: 24 mesi dalla data dell'evento (o dalla data di invio se l'evento non esiste più)
+    ev_cutoff = cut(RETENTION_DAYS["event_signups"])
+    events = await db.events.find({}, {"_id": 0, "id": 1, "date": 1}).to_list(5000)
+    live_ids = [e["id"] for e in events if e.get("id")]
+    old_ids = [
+        e["id"] for e in events
+        if e.get("id") and isinstance(e.get("date"), str) and e["date"] < ev_cutoff.strftime("%Y-%m-%d")
+    ]
+    await _anonymize(
+        "event_signups", db.event_signups,
+        {"$and": [not_done, {"$or": [
+            {"event_id": {"$in": old_ids}},
+            {"$and": [{"event_id": {"$nin": live_ids}}, _created_before(ev_cutoff)]},
+        ]}]},
+        {"name": "Partecipante rimosso", "email": "", "phone": None, "message": None,
+         "referral": None, "ospiti": [], "anonymized_at": stamp},
+        "Prenotazioni a eventi passati da oltre 24 mesi (dati personali rimossi)",
+        unset={"cancel_token": ""},
+    )
+    await _anonymize(
+        "donations", db.donations,
+        {"$and": [not_done, _created_before(cut(RETENTION_DAYS["donations"]))]},
+        {"first_name": "Anonimo", "last_name": "", "email": "", "phone": None,
+         "message": None, "note": None, "anonymized_at": stamp},
+        "Donazioni di oltre 10 anni (dati personali rimossi, restano importi e date)",
+    )
+
+    warnings = []
+    stale = await db.registrations.count_documents(
+        {"$and": [{"status": "approved"}, _created_before(cut(365))]}
+    )
+    if stale:
+        warnings.append({
+            "key": "registrations_approved_open",
+            "count": stale,
+            "text": f"{stale} iscrizioni approvate da oltre 12 mesi hanno ancora i dati del modulo (documento, codice fiscale). "
+                    "Chiudi la pratica da Registro Soci con «Pratica al 100%» per cancellarli.",
+        })
+
+    report = {"applied": apply, "trigger": trigger, "run_at": stamp, "items": items, "warnings": warnings}
+    if apply:
+        await db.retention_log.insert_one({
+            "id": str(uuid.uuid4()), "run_at": stamp, "trigger": trigger,
+            "counts": {k: v["count"] for k, v in items.items()},
+        })
+        logger.info(f"Conservazione dati ({trigger}): " + ", ".join(f"{k}={v['count']}" for k, v in items.items()))
+    return report
+
+
+@api_router.get("/admin/retention", dependencies=[Depends(require_admin)])
+async def admin_retention_preview():
+    """Anteprima: cosa verrebbe cancellato adesso, ultime esecuzioni e stato della pianificazione automatica."""
+    report = await _retention_run(apply=False)
+    last_runs = await db.retention_log.find({}, {"_id": 0}).sort("run_at", -1).to_list(10)
+    report["last_runs"] = last_runs
+    report["cron_configured"] = bool(os.environ.get("CRON_SECRET"))
+    report["days"] = RETENTION_DAYS
+    return report
+
+
+@api_router.post("/admin/retention/run", dependencies=[Depends(require_admin)])
+async def admin_retention_run():
+    """Esegue subito la cancellazione dei dati scaduti."""
+    return await _retention_run(apply=True, trigger="admin")
+
+
+@api_router.get("/cron/retention")
+async def cron_retention(authorization: Optional[str] = Header(default=None)):
+    """Chiamata automatica settimanale di Vercel Cron. Vercel invia 'Authorization: Bearer <CRON_SECRET>'."""
+    secret = os.environ.get("CRON_SECRET")
+    if not secret:
+        raise HTTPException(status_code=503, detail="Pianificazione non attiva: manca CRON_SECRET")
+    expected = f"Bearer {secret}".encode()
+    if not authorization or not hmac.compare_digest(authorization.encode(), expected):
+        raise HTTPException(status_code=401, detail="Non autorizzato")
+    return await _retention_run(apply=True, trigger="cron")
 
 
 @api_router.put("/admin/donations/{donation_id}", dependencies=[Depends(require_admin)])
@@ -3626,53 +3765,29 @@ async def admin_delete_film(film_id: str):
         raise HTTPException(status_code=404, detail="Film non trovato")
     return {"ok": True}
 
-def _get_client_ip(request: Request) -> str:
-    xff = request.headers.get("x-forwarded-for", "")
-    if xff:
-        return xff.split(",")[0].strip()
-    return request.client.host if request.client else ""
-
 _BOT_UA_KEYWORDS = [
     "bot", "crawler", "spider", "scraper", "lighthouse", "pagespeed",
     "gtmetrix", "pingdom", "uptimerobot", "monitoring", "check_http",
     "python-requests", "curl/", "wget/", "java/", "go-http", "headless",
     "prerender", "selenium", "phantomjs", "puppeteer", "playwright",
 ]
-_BOT_ORG_KEYWORDS = [
-    "google llc", "googlebot", "amazon", "microsoft", "digitalocean",
-    "linode", "hetzner", "ovh", "cloudflare", "vultr", "oracle cloud",
-    "alibaba", "tencent", "datacenter", "hosting", "server",
-]
-
 def _is_bot_ua(ua: str) -> bool:
     ua_l = ua.lower()
     return any(kw in ua_l for kw in _BOT_UA_KEYWORDS)
 
-def _is_bot_org(org: str) -> bool:
-    org_l = org.lower()
-    return any(kw in org_l for kw in _BOT_ORG_KEYWORDS)
-
-async def _fetch_geo(ip: str) -> dict:
-    if not ip or ip in ("127.0.0.1", "::1", "localhost"):
+def _geo_from_headers(request: Request) -> dict:
+    """Paese e città del visitatore, ricavati dalle intestazioni che Vercel aggiunge a ogni richiesta.
+    Nessun indirizzo IP viene salvato né inviato a servizi esterni."""
+    from urllib.parse import unquote
+    code = (request.headers.get("x-vercel-ip-country") or "").strip().upper()
+    if not code:
         return {}
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            r = await client.get(
-                f"http://ip-api.com/json/{ip}",
-                params={"fields": "status,country,countryCode,regionName,city,org", "lang": "it"},
-            )
-            d = r.json()
-            if d.get("status") == "success":
-                return {
-                    "country": d.get("country", ""),
-                    "country_code": d.get("countryCode", ""),
-                    "region": d.get("regionName", ""),
-                    "city": d.get("city", ""),
-                    "org": d.get("org", ""),
-                }
-    except Exception:
-        pass
-    return {}
+    return {
+        "country": code,
+        "country_code": code,
+        "region": (request.headers.get("x-vercel-ip-country-region") or "").strip(),
+        "city": unquote(request.headers.get("x-vercel-ip-city") or "").strip(),
+    }
 
 # ========== BOOK CLUB CONFIG ==========
 @api_router.get("/book-club-config/{month}")
@@ -4235,7 +4350,7 @@ async def proclaim_film_winner(month: str):
 @api_router.post("/heartbeat")
 async def heartbeat(request: Request):
     body = await request.json()
-    session_id = body.get("session_id", "")
+    session_id = str(body.get("session_id", ""))[:64]
     if not session_id:
         return {"ok": True}
     # Filtra bot da User-Agent
@@ -4243,7 +4358,6 @@ async def heartbeat(request: Request):
     if _is_bot_ua(ua):
         return {"ok": True}
     now = datetime.now(timezone.utc)
-    ip = _get_client_ip(request)
     # Aggiorna lo stato corrente (per il contatore live)
     await db.active_sessions.update_one(
         {"session_id": session_id},
@@ -4256,10 +4370,7 @@ async def heartbeat(request: Request):
         {"session_id": session_id, "day": day_key}, {"country": 1}
     )
     if existing is None:
-        geo = await _fetch_geo(ip)
-        # Filtra bot da org (datacenter/cloud provider)
-        if _is_bot_org(geo.get("org", "")):
-            return {"ok": True}
+        geo = _geo_from_headers(request)
         await db.visitor_log.update_one(
             {"session_id": session_id, "day": day_key},
             {"$set": {"session_id": session_id, "day": day_key, "last_seen": now, **geo}},

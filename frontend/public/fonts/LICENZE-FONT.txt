@@ -1,0 +1,12 @@
+Caratteri tipografici ospitati su questo sito
+=============================================
+
+Manrope (manrope-latin.woff2, manrope-latin-ext.woff2)
+  Copyright 2018 The Manrope Project Authors (https://github.com/googlefonts/manrope)
+  Licenza: SIL Open Font License 1.1. Il testo completo è nel file OFL-Manrope.txt, nella stessa cartella.
+
+Cabinet Grotesk (cabinet-grotesk-*.woff2)
+  Indian Type Foundry / Fontshare.
+  Licenza: ITF Free Font License (https://www.fontshare.com/licenses/itf-ffl).
+  I file sono quelli originali scaricati da Fontshare e non devono essere modificati
+  (la licenza vieta subsetting, conversioni di formato e modifiche dei metadati).

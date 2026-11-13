@@ -265,6 +265,11 @@ export const Eventi = () => {
               <div className="mt-3 p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/30 text-xs text-tv-green-deep">
                 <div className="font-semibold">💶 Contributo: {selected.contributo}€{selected.non_rimborsabile ? " · ⚠️ non rimborsabile" : ""}</div>
                 {selected.contributo_note && <div className="mt-1 font-normal italic">{selected.contributo_note}</div>}
+                <div className="mt-1 font-normal">
+                  <a href="/condizioni" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-tv-bordeaux">
+                    Condizioni di iscrizione, cancellazione e rimborso<span className="sr-only"> (si apre in una nuova scheda)</span>
+                  </a>
+                </div>
               </div>
             )}
 

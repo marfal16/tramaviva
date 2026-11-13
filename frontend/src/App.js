@@ -21,7 +21,7 @@ import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "
 import { AreaSoci } from "./components/AreaSoci";
 import { Donazioni, DonazioniTeaser } from "./components/Donazioni";
 import { CancellaPrenotazione } from "./components/CancellaPrenotazione";
-import { PrivacyPolicy, CookiePolicy } from "./components/LegalPages";
+import { PrivacyPolicy, CookiePolicy, ConditionsPage, AccessibilityPage } from "./components/LegalPages";
 import CookieBanner from "./components/CookieBanner";
 import { initModalA11y } from "./lib/modalA11y";
 
@@ -179,6 +179,10 @@ const ROUTE_TITLES = {
   "/login": "Accedi",
   "/registrati": "Crea il tuo account",
   "/password-dimenticata": "Password dimenticata",
+  "/privacy-policy": "Informativa sulla privacy",
+  "/cookie-policy": "Cookie policy",
+  "/condizioni": "Condizioni di iscrizione e rimborso",
+  "/accessibilita": "Dichiarazione di accessibilità",
 };
 const RouteTitle = () => {
   const { pathname } = useLocation();
@@ -191,10 +195,12 @@ const RouteTitle = () => {
 
 function useHeartbeat() {
   useEffect(() => {
-    let sessionId = localStorage.getItem("tv_session_id");
+    // Identificativo casuale valido solo finché la scheda resta aperta (sessionStorage): non resta nel browser dopo la chiusura.
+    let sessionId = null;
+    try { sessionId = sessionStorage.getItem("tv_session_id"); } catch { /* storage non disponibile */ }
     if (!sessionId) {
       sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      localStorage.setItem("tv_session_id", sessionId);
+      try { sessionStorage.setItem("tv_session_id", sessionId); } catch { /* si usa solo in memoria */ }
     }
     const send = () => {
       fetch(`${BACKEND_URL}/api/heartbeat`, {
@@ -237,6 +243,8 @@ function App() {
           <Route path="/cancella/:token" element={<CancellaPrenotazione />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/condizioni" element={<ConditionsPage />} />
+          <Route path="/accessibilita" element={<AccessibilityPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
