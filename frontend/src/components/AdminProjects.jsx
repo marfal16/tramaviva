@@ -5,6 +5,7 @@ import {
   Loader2, FolderKanban, Plus, ArrowUp, ArrowDown, Trash2, ArrowLeft, ImagePlus, X, ExternalLink, Pencil, Save,
 } from "lucide-react";
 import { PROJECT_ICONS, PROJECT_COLORS } from "./Progetti";
+import { shrinkImage } from "../lib/imageTools";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -19,26 +20,6 @@ const EMPTY_PROJECT = {
   title: "", tag: "", summary: "", icon: "sparkles", color: "green", cover_url: "",
   intro_title: "", intro_text: "", event_categories: [], topics: [], published: true,
 };
-
-// Riduce la foto prima di inviarla (max 1600 px): le foto del telefono sono troppo pesanti per il server.
-const shrinkImage = (file, maxSide = 1600, quality = 0.85) => new Promise((resolve, reject) => {
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(img.width * scale));
-    canvas.height = Math.max(1, Math.round(img.height * scale));
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    URL.revokeObjectURL(url);
-    resolve(canvas.toDataURL("image/jpeg", quality));
-  };
-  img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Questo file non si può leggere come foto (usa JPG o PNG).")); };
-  img.src = url;
-});
 
 const errorText = (e, fallback) => {
   const d = e?.response?.data?.detail;
@@ -127,8 +108,16 @@ const ProjectEditor = ({ token, project, eventCategories, onBack, onSaved, onDel
     ? { ...EMPTY_PROJECT, ...project, cover_url: project.cover_url || "", topics: (project.topics || []).map((t) => ({ ...EMPTY_TOPIC(), ...t, image_url: t.image_url || "", link_url: t.link_url || "", link_label: t.link_label || "" })) }
     : { ...EMPTY_PROJECT }));
   const [saving, setSaving] = useState(false);
+  const [photoInfo, setPhotoInfo] = useState(null); // foto degli eventi già collegate a questo progetto
   const auth = { headers: { Authorization: `Bearer ${token}` } };
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  useEffect(() => {
+    if (!project || !project.published) return;
+    axios.get(`${API}/projects/${project.slug}/photos`, { params: { limit: 100 } })
+      .then((r) => setPhotoInfo({ photos: r.data.length, events: new Set(r.data.map((p) => p.event_id)).size }))
+      .catch(() => {});
+  }, [project]);
 
   const setTopic = (id, patch) => setForm((f) => ({ ...f, topics: f.topics.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
   const moveTopic = (i, d) => setForm((f) => {
@@ -260,7 +249,13 @@ const ProjectEditor = ({ token, project, eventCategories, onBack, onSaved, onDel
           <Field id="p-intro-text" title="Testo dell'introduzione" hint="Lascia una riga vuota per andare a capo con un nuovo paragrafo."><textarea id="p-intro-text" className={input} rows={8} value={form.intro_text} onChange={set("intro_text")} maxLength={8000} /></Field>
           <div>
             <span className={label}>Eventi collegati</span>
-            <p className="text-xs text-tv-green-deep/60 mb-2">Nella pagina compaiono in automatico i prossimi eventi di queste categorie.</p>
+            <p className="text-xs text-tv-green-deep/60 mb-2">
+              Nella pagina compaiono in automatico i prossimi eventi di queste categorie e le foto scattate agli eventi passati.
+              Le foto si aggiungono dalla scheda <strong>Eventi</strong>: apri un evento già svolto e usa «Foto dell'evento».
+              {photoInfo && (
+                <> Ora ci sono <strong>{photoInfo.photos} foto</strong> da <strong>{photoInfo.events} eventi</strong>.</>
+              )}
+            </p>
             <div className="flex flex-wrap gap-2">
               {eventCategories.map((c) => (
                 <label key={c} className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-bold cursor-pointer ${form.event_categories.includes(c) ? "bg-tv-green-deep text-tv-cream border-tv-green-deep" : "bg-white text-tv-green-deep border-tv-green-deep/15"}`}>

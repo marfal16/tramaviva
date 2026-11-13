@@ -1641,6 +1641,84 @@ async def admin_delete_project(project_id: str):
     return {"ok": True}
 
 
+# ----- Foto scattate durante gli eventi (si caricano dall'evento, compaiono nella pagina del progetto) -----
+MAX_EVENT_PHOTOS = 24
+
+
+class GalleryPhotoIn(BaseModel):
+    image_data: str = Field(max_length=8_000_000)
+
+
+class GalleryListIn(BaseModel):
+    photos: List[str] = Field(max_length=MAX_EVENT_PHOTOS)
+
+    @field_validator("photos")
+    @classmethod
+    def _check_photos(cls, v):
+        return [u for u in (_clean_http_url(x) for x in v) if u]
+
+
+@api_router.post("/admin/events/{event_id}/gallery", dependencies=[Depends(require_admin)])
+async def admin_add_event_photo(event_id: str, payload: GalleryPhotoIn):
+    ev = await db.events.find_one({"id": event_id}, {"_id": 0, "gallery": 1})
+    if ev is None:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    if len(ev.get("gallery") or []) >= MAX_EVENT_PHOTOS:
+        raise HTTPException(status_code=400, detail=f"Al massimo {MAX_EVENT_PHOTOS} foto per evento")
+    if not payload.image_data.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="Il file non è un'immagine")
+    url = await _upload_to_cloudinary(payload.image_data, folder="tramaviva/event-photos")
+    if not url:
+        raise HTTPException(status_code=503, detail="Caricamento foto non disponibile al momento: riprova tra poco.")
+    await db.events.update_one({"id": event_id}, {"$push": {"gallery": url}})
+    doc = await db.events.find_one({"id": event_id}, {"_id": 0, "gallery": 1})
+    return {"gallery": (doc or {}).get("gallery") or []}
+
+
+@api_router.put("/admin/events/{event_id}/gallery", dependencies=[Depends(require_admin)])
+async def admin_set_event_gallery(event_id: str, body: GalleryListIn):
+    """Sostituisce l'elenco delle foto (serve per toglierne una)."""
+    res = await db.events.update_one({"id": event_id}, {"$set": {"gallery": body.photos}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+    return {"gallery": body.photos}
+
+
+@api_router.get("/projects/{slug}/photos")
+async def get_project_photos(slug: str, limit: int = 60):
+    """Foto degli eventi delle categorie collegate al progetto: dagli eventi più recenti, una foto per evento alla volta
+    (così nelle prime righe compaiono eventi diversi)."""
+    await _ensure_projects_seed()
+    project = await db.projects.find_one({"slug": slug, "published": True}, {"_id": 0, "event_categories": 1})
+    if not project:
+        raise HTTPException(status_code=404, detail="Progetto non trovato")
+    cats = project.get("event_categories") or []
+    if not cats:
+        return []
+    limit = max(1, min(limit, 100))
+    events = await db.events.find(
+        {"category": {"$in": cats}, "is_draft": {"$ne": True}},
+        {"_id": 0, "id": 1, "slug": 1, "title": 1, "date": 1, "gallery": 1},
+    ).sort("date", -1).to_list(500)
+    events = [e for e in events if e.get("gallery")]
+    out: list = []
+    rank = 0
+    while len(out) < limit:
+        added = False
+        for e in events:
+            photos = e["gallery"]
+            if rank < len(photos):
+                out.append({"url": photos[rank], "event_id": e.get("id"), "event_slug": e.get("slug"),
+                            "event_title": e.get("title", ""), "event_date": e.get("date", "")})
+                added = True
+                if len(out) >= limit:
+                    break
+        if not added:
+            break
+        rank += 1
+    return out
+
+
 # ========== CONSERVAZIONE DEI DATI (privacy) ==========
 # Tempi dichiarati nell'informativa privacy (frontend/src/components/LegalPages.jsx, sezione
 # "Per quanto tempo conserviamo i dati"). Se si cambiano qui vanno cambiati anche lì, e viceversa.

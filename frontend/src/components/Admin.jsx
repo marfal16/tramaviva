@@ -7,6 +7,7 @@ import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, 
 import CoverSearchWidget from "./CoverSearchWidget";
 import PrivacyManager from "./AdminPrivacy";
 import ProjectsManager from "./AdminProjects";
+import EventGalleryEditor from "./AdminEventGallery";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -6098,6 +6099,11 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
             </div>
           )}
         </div>
+        {!isNew && (
+          <div className="mt-5 pt-5 border-t border-tv-green-deep/10">
+            <EventGalleryEditor token={token} eventId={initial.id} initial={initial.gallery || []} />
+          </div>
+        )}
         <div className="mt-5 flex gap-3">
           <button type="submit" disabled={saving} className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60">{saving ? "Salvo…" : "Salva"}</button>
           <button type="button" onClick={onClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>

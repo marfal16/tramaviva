@@ -3,11 +3,12 @@ import axios from "axios";
 import { Link, useParams } from "react-router-dom";
 import {
   Wine, Mountain, Stethoscope, Laptop, Heart, Palette, Users, Sparkles,
-  ArrowLeft, ArrowRight, ExternalLink, Calendar as CalendarIcon, MapPin,
+  ArrowLeft, ArrowRight, ExternalLink, Calendar as CalendarIcon, MapPin, X, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { isPast } from "./Eventi";
+import { cdnThumb } from "../lib/imageTools";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -112,6 +113,182 @@ export const ProgettiPage = () => {
         </div>
       )}
     </Shell>
+  );
+};
+
+// ---------- Foto degli eventi passati del progetto ----------
+// Mosaico a 4 colonne (2 su telefono) con tessere di misure diverse. Le foto arrivano a gruppi di 6: ogni gruppo
+// ha una composizione che riempie le righe senza buchi, anche se l'ultimo gruppo è incompleto.
+const PHOTOS_PER_STEP = 6;
+const TILE = {
+  big: "lg:col-span-2 lg:row-span-2",
+  one: "lg:col-span-1",
+  wide: "lg:col-span-2",
+  full: "lg:col-span-4",
+};
+const PATTERNS = {
+  1: ["full"],
+  2: ["wide", "wide"],
+  3: ["big", "wide", "wide"],
+  4: ["big", "one", "one", "wide"],
+  5: ["big", "one", "one", "wide", "full"],
+  6: ["big", "one", "one", "wide", "wide", "wide"],
+};
+
+// Classi di ogni foto: su telefono la prima del gruppo (e l'ultima, se resterebbe sola) occupa tutta la riga.
+const tileClasses = (count, i) => {
+  const mobileWide = i === 0 || (i === count - 1 && (count - 1) % 2 === 1) ? "col-span-2" : "";
+  return `${mobileWide} ${TILE[PATTERNS[count][i]]}`;
+};
+
+const shortDate = (iso) =>
+  new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
+
+const ProjectPhotos = ({ slug }) => {
+  const [photos, setPhotos] = useState([]);
+  const [shown, setShown] = useState(PHOTOS_PER_STEP);
+  const [open, setOpen] = useState(null); // posizione della foto ingrandita
+
+  useEffect(() => {
+    let alive = true;
+    setShown(PHOTOS_PER_STEP);
+    setOpen(null);
+    axios.get(`${API}/projects/${encodeURIComponent(slug)}/photos`)
+      .then((r) => { if (alive) setPhotos(r.data); })
+      .catch(() => { if (alive) setPhotos([]); });
+    return () => { alive = false; };
+  }, [slug]);
+
+  // Con la finestra aperta: frecce per scorrere, la pagina sotto non scorre
+  useEffect(() => {
+    if (open === null) return undefined;
+    const onKey = (e) => {
+      if (e.key === "ArrowRight") setOpen((i) => (i + 1) % photos.length);
+      if (e.key === "ArrowLeft") setOpen((i) => (i - 1 + photos.length) % photos.length);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, photos.length]);
+
+  if (photos.length === 0) return null;
+
+  const visible = photos.slice(0, shown);
+  const groups = [];
+  for (let i = 0; i < visible.length; i += PHOTOS_PER_STEP) groups.push(visible.slice(i, i + PHOTOS_PER_STEP));
+  const current = open !== null ? photos[open] : null;
+
+  return (
+    <section className="mt-16 md:mt-24" aria-labelledby="progetto-foto" data-testid="progetto-foto">
+      <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-3">Dai nostri eventi</div>
+      <h2 id="progetto-foto" className="font-display font-black text-2xl md:text-3xl text-tv-green-deep">
+        Momenti che abbiamo vissuto
+      </h2>
+
+      <div className="mt-6 space-y-3 md:space-y-4">
+        {groups.map((group, g) => (
+          <div
+            key={g}
+            className="grid grid-cols-2 lg:grid-cols-4 grid-flow-dense gap-3 md:gap-4 auto-rows-[140px] sm:auto-rows-[170px] lg:auto-rows-[190px]"
+          >
+            {group.map((p, i) => {
+              const index = g * PHOTOS_PER_STEP + i;
+              const label = `${p.event_title}, ${shortDate(p.event_date)}`;
+              return (
+                <button
+                  key={`${p.url}-${index}`}
+                  type="button"
+                  onClick={() => setOpen(index)}
+                  aria-label={`Ingrandisci la foto: ${label}`}
+                  className={`${tileClasses(group.length, i)} group relative overflow-hidden rounded-2xl bg-tv-green-deep/10 focus:outline-none focus-visible:ring-4 focus-visible:ring-tv-orange`}
+                >
+                  <img
+                    src={cdnThumb(p.url, group.length > 1 && i === 0 ? 1100 : 700)}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <span className="absolute inset-x-0 bottom-0 px-3 pt-8 pb-3 md:px-4 md:pb-4 text-left bg-gradient-to-t from-tv-green-deep/85 via-tv-green-deep/35 to-transparent text-tv-cream">
+                    <span className="block font-display font-black text-sm md:text-base leading-tight line-clamp-2">{p.event_title}</span>
+                    <span className="block mt-0.5 text-[11px] font-bold uppercase tracking-wider">{shortDate(p.event_date)}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {photos.length > shown && (
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setShown((s) => s + PHOTOS_PER_STEP)}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm bg-white text-tv-green-deep border border-tv-green-deep/15 hover:bg-tv-sky/30 transition-colors"
+          >
+            Mostra altre foto ({photos.length - shown})
+          </button>
+        </div>
+      )}
+
+      {current && (
+        <div className="fixed inset-0 z-[70] bg-tv-green-deep/90 backdrop-blur-sm flex flex-col items-center justify-center p-4" onClick={() => setOpen(null)}>
+          <h3 className="sr-only">Foto dell'evento {current.event_title}</h3>
+          <button
+            type="button"
+            aria-label="Chiudi"
+            onClick={(e) => { e.stopPropagation(); setOpen(null); }}
+            className="absolute top-4 right-4 p-3 rounded-full bg-tv-cream text-tv-green-deep hover:bg-white"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+          {photos.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label="Foto precedente"
+                onClick={(e) => { e.stopPropagation(); setOpen((i) => (i - 1 + photos.length) % photos.length); }}
+                className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-tv-cream/90 text-tv-green-deep hover:bg-white"
+              >
+                <ChevronLeft size={22} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Foto successiva"
+                onClick={(e) => { e.stopPropagation(); setOpen((i) => (i + 1) % photos.length); }}
+                className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-tv-cream/90 text-tv-green-deep hover:bg-white"
+              >
+                <ChevronRight size={22} aria-hidden="true" />
+              </button>
+            </>
+          )}
+          <img
+            src={cdnThumb(current.url, 1800)}
+            alt={`Foto dell'evento ${current.event_title}, ${shortDate(current.event_date)}`}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[75vh] max-w-full rounded-2xl object-contain"
+          />
+          <div className="mt-4 text-center text-tv-cream" onClick={(e) => e.stopPropagation()}>
+            <div className="font-display font-black text-lg md:text-xl">{current.event_title}</div>
+            <div className="text-xs font-bold uppercase tracking-wider">{shortDate(current.event_date)}</div>
+            {current.event_slug && (
+              <Link
+                to={`/eventi/${current.event_slug}`}
+                onClick={() => setOpen(null)}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold underline underline-offset-4 hover:text-tv-mint"
+              >
+                Vai alla pagina dell'evento <ArrowRight size={14} aria-hidden="true" />
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 
@@ -250,6 +427,9 @@ export const ProgettoDettaglio = () => {
           ))}
         </section>
       )}
+
+      {/* Foto degli eventi passati */}
+      <ProjectPhotos slug={project.slug} />
 
       {/* Prossimi appuntamenti */}
       <section className="mt-16 md:mt-24" data-testid="progetto-eventi">
