@@ -82,33 +82,33 @@ export const Contatti = () => {
     <section
       id="contatti"
       data-testid="contatti-section"
-      className="relative py-16 md:py-20 bg-tv-sky/30 overflow-hidden scroll-mt-20"
+      className="relative py-10 md:py-12 bg-tv-sky/30 overflow-hidden scroll-mt-20"
     >
       <div className="mx-auto max-w-6xl px-6 md:px-10">
 
         {/* Header centrato */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
+        <div className="text-center max-w-2xl mx-auto mb-6">
+          <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-2">
             Scrivici
           </div>
-          <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-green-deep">
-            Due righe,<br />
+          <h2 className="font-display font-black text-3xl md:text-4xl lg:text-5xl leading-[0.95] text-tv-green-deep">
+            Due righe,{" "}
             <span className="italic font-light text-tv-bordeaux">un nuovo filo</span>.
           </h2>
-          <p className="mt-4 text-lg text-tv-green-deep/70 leading-relaxed">
+          <p className="mt-3 text-base md:text-lg text-tv-green-deep/70 leading-relaxed">
             Una proposta, una collaborazione, un feedback? Scrivici qui o trovaci sui nostri canali.
           </p>
         </div>
 
         {/* Griglia: canali a sinistra, form a destra */}
-        <div className="grid md:grid-cols-5 gap-8 items-start max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-5 gap-5 md:gap-6 items-start max-w-5xl mx-auto">
 
           {/* Canali */}
           <div className="md:col-span-2">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-tv-green-deep/75 mb-4">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-tv-green-deep/75 mb-2">
               Trovaci anche qui
             </p>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {SOCIAL.map(({ icon: Icon, label, value, href, testId }) => (
                 <a
                   key={label}
@@ -117,10 +117,10 @@ export const Contatti = () => {
                   target={href.startsWith("http") ? "_blank" : undefined}
                   rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
                   referrerPolicy={href.startsWith("http") ? "no-referrer" : undefined}
-                  className="group flex items-center gap-4 px-5 py-3 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green-deep/30 hover:shadow-sm transition-all"
+                  className="group flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green-deep/30 hover:shadow-sm transition-all"
                 >
-                  <span className="flex-shrink-0 w-9 h-9 rounded-xl bg-tv-sky/50 flex items-center justify-center text-tv-bordeaux group-hover:bg-tv-bordeaux/10 transition-colors">
-                    <Icon size={18} />
+                  <span className="flex-shrink-0 w-8 h-8 rounded-xl bg-tv-sky/50 flex items-center justify-center text-tv-bordeaux group-hover:bg-tv-bordeaux/10 transition-colors">
+                    <Icon size={16} />
                   </span>
                   <div>
                     <div className="text-[11px] font-bold uppercase tracking-wider text-tv-green-deep/75">{label}</div>
@@ -135,31 +135,35 @@ export const Contatti = () => {
           <form
             onSubmit={submit}
             data-testid="contact-form"
-            className="md:col-span-3 bg-white rounded-[2rem] p-6 md:p-7 border border-tv-green-deep/10"
+            className="md:col-span-3 bg-white rounded-[2rem] p-5 md:p-6 border border-tv-green-deep/10"
           >
-            <div className="font-display font-black text-xl md:text-2xl text-tv-green-deep leading-tight">
-              Scrivici un messaggio.
+            <div className="flex items-baseline justify-between gap-3 flex-wrap">
+              <div className="font-display font-black text-lg md:text-xl text-tv-green-deep leading-tight">
+                Scrivici un messaggio.
+              </div>
+              <div className="text-xs text-tv-green-deep/75">
+                Rispondiamo in breve tempo, promesso.
+              </div>
             </div>
-            <div className="mt-1 text-sm text-tv-green-deep/75">
-              Rispondiamo in breve tempo, promesso.
-            </div>
-            <div className="mt-4 space-y-3">
-              <Field
-                id="name"
-                placeholder="Il tuo nome"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-              <Field
-                id="email"
-                type="email"
-                placeholder="La tua email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
+            <div className="mt-3 space-y-2.5">
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                <Field
+                  id="name"
+                  placeholder="Il tuo nome"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+                <Field
+                  id="email"
+                  type="email"
+                  placeholder="La tua email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
               <textarea
                 data-testid="contact-message"
-                rows={4}
+                rows={3}
                 aria-label="Il tuo messaggio"
                 placeholder="Il tuo messaggio…"
                 value={form.message}
@@ -169,7 +173,7 @@ export const Contatti = () => {
             </div>
             <PrivacyCheckbox
               id="contact-privacy"
-              className="mt-4"
+              className="mt-3"
               checked={privacy}
               onChange={(e) => { setPrivacy(e.target.checked); setPrivacyError(""); }}
               purpose="rispondere al mio messaggio"
@@ -179,11 +183,11 @@ export const Contatti = () => {
               type="submit"
               disabled={submitting}
               data-testid="contact-submit"
-              className="btn-tv w-full mt-4 px-5 py-3.5 rounded-full bg-tv-green-deep text-tv-cream font-bold inline-flex items-center justify-center gap-2 hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60"
+              className="btn-tv w-full mt-3 px-5 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold inline-flex items-center justify-center gap-2 hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60"
             >
               {submitting ? "Invio…" : <>Invia messaggio <Send size={16} /></>}
             </button>
-            <RecaptchaNotice className="mt-3" />
+            <RecaptchaNotice className="mt-2" />
           </form>
 
         </div>

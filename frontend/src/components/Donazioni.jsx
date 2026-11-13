@@ -254,7 +254,7 @@ export const Donazioni = () => {
       <main id="main">
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden px-6 md:px-10 pt-24 pb-2 md:pt-28 md:pb-4">
+      <section className="relative overflow-hidden px-6 md:px-10 pt-24 pb-0">
         {/* Filo decorativo */}
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
           <svg viewBox="0 0 1000 500" className="w-full h-full" preserveAspectRatio="none">
@@ -267,37 +267,39 @@ export const Donazioni = () => {
         </div>
 
         <div className="relative mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 bg-tv-green-deep/8 text-tv-green-deep text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-5">
+          <div className="inline-flex items-center gap-2 bg-tv-green-deep/8 text-tv-green-deep text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full mb-3">
             <Heart size={12} className="text-tv-bordeaux" fill="currentColor" style={{ color: "#5d1723" }} />
             Supportaci
           </div>
-          <h1 className="font-display font-black text-4xl md:text-6xl text-tv-green-deep leading-[0.92] mb-4">
-            Fai fiorire<br />
+          <h1 className="font-display font-black text-3xl md:text-5xl text-tv-green-deep leading-[0.95] mb-3">
+            Fai fiorire{" "}
             <span className="italic font-light">qualcosa di bello.</span>
           </h1>
-          <p className="text-tv-green-deep/75 text-lg leading-relaxed max-w-xl mx-auto">
+          <p className="text-tv-green-deep/75 text-base md:text-lg leading-relaxed max-w-xl mx-auto">
             Trama Viva vive grazie alle persone che ci credono. Se vuoi che queste esperienze continuino, puoi sostenerci con una donazione spontanea, grande o piccola.
           </p>
         </div>
       </section>
 
       {/* ── Perché donare ── */}
-      <section className="px-6 md:px-10 py-8">
-        <div className="mx-auto max-w-5xl grid sm:grid-cols-3 gap-4">
+      <section className="px-6 md:px-10 py-5">
+        <div className="mx-auto max-w-5xl grid sm:grid-cols-3 gap-3">
           {impact.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="bg-white rounded-[2rem] p-5 md:p-6 shadow-[0_4px_20px_-8px_rgba(5,47,23,0.1)]">
-              <div className="w-10 h-10 rounded-2xl bg-tv-mint/30 flex items-center justify-center mb-3">
-                <Icon size={18} className="text-tv-green" />
+            <div key={title} className="bg-white rounded-3xl p-4 flex items-start gap-3 shadow-[0_4px_20px_-8px_rgba(5,47,23,0.1)]">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-tv-mint/30 flex items-center justify-center">
+                <Icon size={16} className="text-tv-green" />
               </div>
-              <h3 className="font-display font-black text-lg text-tv-green-deep mb-1.5">{title}</h3>
-              <p className="text-sm text-tv-green-deep/75 leading-relaxed">{desc}</p>
+              <div>
+                <h3 className="font-display font-black text-base text-tv-green-deep mb-0.5">{title}</h3>
+                <p className="text-sm text-tv-green-deep/75 leading-snug">{desc}</p>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── Form / Successo ── */}
-      <section ref={formRef} className="px-6 md:px-10 py-8 md:py-12 scroll-mt-8">
+      <section ref={formRef} className="px-6 md:px-10 py-6 md:py-8 scroll-mt-8">
         <div className="mx-auto max-w-xl">
           {success ? (
             success.fromSumup ? (
@@ -331,8 +333,8 @@ export const Donazioni = () => {
             )
           ) : (
             <>
-              <div className="text-center mb-8">
-                <h2 className="font-display font-black text-3xl md:text-4xl text-tv-green-deep mb-2">Dona ora</h2>
+              <div className="text-center mb-5">
+                <h2 className="font-display font-black text-2xl md:text-3xl text-tv-green-deep mb-1">Dona ora</h2>
                 <p className="text-tv-green-deep/75 text-sm">Scegli liberamente quanto e come. Non c'è un importo giusto o sbagliato.</p>
               </div>
               <DonationForm onSuccess={setSuccess} />
@@ -349,9 +351,9 @@ export const Donazioni = () => {
 
 // ─── Teaser per homepage ──────────────────────────────────────────────────────
 export const DonazioniTeaser = () => (
-  <section className="px-6 md:px-10 py-8">
+  <section className="px-6 md:px-10 py-5">
     <div className="mx-auto max-w-7xl">
-      <div className="relative bg-tv-green-deep rounded-[2.5rem] overflow-hidden px-8 md:px-14 py-8 md:py-10 flex flex-col md:flex-row items-center justify-between gap-8">
+      <div className="relative bg-tv-green-deep rounded-[2.5rem] overflow-hidden px-8 md:px-12 py-6 md:py-7 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8">
         {/* Filo */}
         <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
           <svg viewBox="0 0 900 200" className="w-full h-full" preserveAspectRatio="none">
@@ -363,19 +365,19 @@ export const DonazioniTeaser = () => (
           </svg>
         </div>
         <div className="relative">
-          <div className="inline-flex items-center gap-2 bg-tv-cream/15 text-tv-cream text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full mb-4">
+          <div className="inline-flex items-center gap-2 bg-tv-cream/15 text-tv-cream text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-2">
             <Heart size={11} fill="currentColor" /> Supportaci
           </div>
-          <h2 className="font-display font-black text-3xl md:text-4xl text-tv-cream leading-tight">
-            Ogni filo tiene<br />
+          <h2 className="font-display font-black text-2xl md:text-3xl text-tv-cream leading-tight">
+            Ogni filo tiene{" "}
             <span className="italic font-light">insieme la trama.</span>
           </h2>
-          <p className="text-tv-cream/60 mt-3 max-w-md text-sm leading-relaxed">
+          <p className="text-tv-cream/60 mt-1.5 max-w-md text-sm leading-snug">
             Con una donazione spontanea aiuti Trama Viva a continuare a creare spazi di incontro, cultura e comunità.
           </p>
         </div>
         <a href="/donazioni"
-          className="relative shrink-0 bg-tv-cream text-tv-green-deep font-black px-8 py-4 rounded-full hover:bg-tv-mint transition-all shadow-[0_6px_20px_-6px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 flex items-center gap-2 text-sm whitespace-nowrap">
+          className="relative shrink-0 bg-tv-cream text-tv-green-deep font-black px-7 py-3 rounded-full hover:bg-tv-mint transition-all shadow-[0_6px_20px_-6px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 flex items-center gap-2 text-sm whitespace-nowrap">
           <Heart size={15} /> Dona ora
         </a>
       </div>

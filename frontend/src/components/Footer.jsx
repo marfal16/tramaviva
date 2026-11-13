@@ -20,23 +20,22 @@ export const Footer = () => (
         </g>
       </svg>
     </div>
-    <div className="relative mx-auto max-w-7xl px-6 md:px-10 py-10 md:py-12">
-      <div className="grid md:grid-cols-12 gap-8">
+    <div className="relative mx-auto max-w-7xl px-6 md:px-10 py-6 md:py-8">
+      <div className="grid md:grid-cols-12 gap-5 md:gap-6">
         <div className="md:col-span-6">
-          <div className="inline-block bg-tv-cream rounded-[2rem] p-3 md:p-4">
-            <Logo variant="full" size={170} />
+          <div className="inline-block bg-tv-cream rounded-3xl p-2 md:p-3">
+            <Logo variant="full" size={120} />
           </div>
-          <div className="mt-5 font-display font-black text-3xl md:text-5xl leading-[0.95]">
-            Intrecciamo<br />
-            storie, persone,<br />
+          <div className="mt-3 font-display font-black text-2xl md:text-3xl leading-[1]">
+            Intrecciamo storie, persone,{" "}
             <span className="italic font-light">opportunità.</span>
           </div>
         </div>
         <div className="md:col-span-3">
-          <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-4">
+          <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2">
             Esplora
           </div>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm md:text-base">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             {[
               ["/#chi-siamo", "Chi siamo"],
               ["/progetti", "Progetti"],
@@ -75,17 +74,17 @@ export const Footer = () => (
           </ul>
         </div>
         <div className="md:col-span-3">
-          <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-4">
+          <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-2">
             Seguici
           </div>
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             <a
               href="https://www.instagram.com/tramavivaaps/"
               target="_blank"
               rel="noopener noreferrer"
               referrerPolicy="no-referrer"
               data-testid="footer-instagram"
-              className="flex items-center gap-2 hover:text-tv-mint transition-colors"
+              className="flex items-center gap-2 hover:text-tv-mint transition-colors text-sm"
             >
               <Instagram size={18} /> @tramavivaaps
             </a>
@@ -120,7 +119,7 @@ export const Footer = () => (
             <a
               href="mailto:tramavivaaps@gmail.com"
               data-testid="footer-email"
-              className="flex items-center gap-2 hover:text-tv-mint transition-colors"
+              className="flex items-center gap-2 hover:text-tv-mint transition-colors text-sm"
             >
               <Mail size={18} /> tramavivaaps@gmail.com
             </a>
@@ -129,12 +128,12 @@ export const Footer = () => (
       </div>
 
       {/* Dati ufficiali dell'associazione */}
-      <div className="mt-8 pt-6 border-t border-tv-cream/15">
-        <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-3">
+      <div className="mt-5 pt-4 border-t border-tv-cream/15">
+        <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-1.5">
           Informazioni associative
         </div>
 
-        <div className="space-y-1 text-sm opacity-80">
+        <div className="space-y-0.5 text-xs md:text-sm opacity-80">
           <p>
             <span className="font-bold">TRAMA VIVA APS</span> · Associazione di Promozione Sociale senza scopo di lucro
           </p>
@@ -147,7 +146,7 @@ export const Footer = () => (
         </div>
       </div>
 
-      <nav aria-label="Informazioni legali" className="mt-8 pt-5 border-t border-tv-cream/15 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <nav aria-label="Informazioni legali" className="mt-4 pt-3 border-t border-tv-cream/15 flex flex-wrap gap-x-5 gap-y-1 text-sm">
         <Link to="/privacy-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Privacy Policy</Link>
         <Link to="/cookie-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Cookie Policy</Link>
         <Link to="/condizioni" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Condizioni di iscrizione e rimborso</Link>
@@ -155,15 +154,15 @@ export const Footer = () => (
       </nav>
 
       {/* Attribuzione richiesta dai termini d'uso dell'API TMDB (locandine film del Cineforum) */}
-      <div className="mt-5 pt-5 border-t border-tv-cream/15 flex flex-col sm:flex-row sm:items-center gap-4 text-xs">
+      <div className="mt-3 pt-3 border-t border-tv-cream/15 flex flex-col sm:flex-row sm:items-center gap-3 text-xs">
         <a
           href="https://www.themoviedb.org"
           target="_blank"
           rel="noopener noreferrer"
           referrerPolicy="no-referrer"
-          className="inline-block self-start bg-tv-cream rounded-lg px-3 py-2 shrink-0"
+          className="inline-block self-start bg-tv-cream rounded-lg px-2.5 py-1.5 shrink-0"
         >
-          <img src="/tmdb-logo.svg" alt="The Movie Database (TMDB)" width="140" height="10" style={{ width: 140, height: "auto" }} className="block" />
+          <img src="/tmdb-logo.svg" alt="The Movie Database (TMDB)" width="110" height="8" style={{ width: 110, height: "auto" }} className="block" />
           <span className="sr-only"> (si apre in una nuova scheda)</span>
         </a>
         <p className="opacity-80 leading-relaxed">
@@ -174,7 +173,7 @@ export const Footer = () => (
         </p>
       </div>
 
-      <div className="mt-5 pt-5 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-2 md:gap-4 text-xs">
+      <div className="mt-3 pt-3 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-1 md:gap-4 text-xs">
         <div>© {new Date().getFullYear()} APS Trama Viva — Ogni filo conta.</div>
         <div>Fatto con cura, amore e qualche caffè.</div>
       </div>

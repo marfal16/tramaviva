@@ -25,65 +25,67 @@ export const Iscrizione = () => {
     <section
       id="iscrizione"
       data-testid="iscrizione-section"
-      className="relative py-16 md:py-20 bg-tv-sky/50 overflow-hidden"
+      className="relative py-10 md:py-12 bg-tv-sky/50 overflow-hidden"
     >
       <div className="mx-auto max-w-7xl px-6 md:px-10">
 
         {/* Header centrato */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-6">
+          <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-2">
             Diventa socio
           </div>
-          <h2 className="font-display font-black text-4xl md:text-5xl lg:text-6xl leading-[0.95] text-tv-green-deep">
-            C'è un filo che aspetta<br />
+          <h2 className="font-display font-black text-3xl md:text-4xl lg:text-5xl leading-[0.95] text-tv-green-deep">
+            C'è un filo che aspetta{" "}
             <span className="italic font-light text-tv-bordeaux">solo te.</span>
           </h2>
-          <p className="mt-4 text-lg text-tv-green-deep/70 leading-relaxed">
+          <p className="mt-3 text-base md:text-lg text-tv-green-deep/70 leading-relaxed">
             Trama Viva non è un'associazione da tessera nel cassetto, ma una comunità che si muove,
             propone e si prende cura. Entra, e aggiungi il tuo filo alla trama.
           </p>
         </div>
 
         {/* Motivazioni */}
-        <div className="mb-10">
+        <div className="mb-6">
           {/* Mobile: lista verticale */}
-          <div className="flex flex-col gap-5 md:hidden">
+          <div className="flex flex-col gap-4 md:hidden">
             {REASONS.map(({ emoji, title, desc }) => (
-              <div key={title} className="flex items-start gap-4">
-                <span className="text-3xl leading-none flex-shrink-0">{emoji}</span>
+              <div key={title} className="flex items-start gap-3">
+                <span className="text-2xl leading-none flex-shrink-0">{emoji}</span>
                 <div>
-                  <div className="font-display font-black text-lg text-tv-green-deep mb-1">{title}</div>
-                  <div className="text-sm text-tv-green-deep/70 leading-relaxed">{desc}</div>
+                  <div className="font-display font-black text-base text-tv-green-deep">{title}</div>
+                  <div className="text-sm text-tv-green-deep/70 leading-snug">{desc}</div>
                 </div>
               </div>
             ))}
           </div>
           {/* Desktop: tre colonne centrate senza box */}
-          <div className="hidden md:grid md:grid-cols-3 gap-8 text-center">
+          <div className="hidden md:grid md:grid-cols-3 gap-6 text-center">
             {REASONS.map(({ emoji, title, desc }) => (
-              <div key={title} className="flex flex-col items-center gap-2">
-                <span className="text-4xl">{emoji}</span>
-                <div className="font-display font-black text-xl text-tv-green-deep">{title}</div>
-                <div className="text-sm text-tv-green-deep/70 leading-relaxed">{desc}</div>
+              <div key={title} className="flex flex-col items-center gap-1">
+                <span className="text-3xl">{emoji}</span>
+                <div className="font-display font-black text-lg text-tv-green-deep">{title}</div>
+                <div className="text-sm text-tv-green-deep/70 leading-snug">{desc}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* CTA centrato */}
-        <div className="text-center">
+        {/* CTA: pulsante e informazioni sulla stessa riga */}
+        <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
           <Link
             to="/iscrizione"
-            className="btn-tv inline-flex items-center gap-2 px-7 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold text-base md:text-lg hover:bg-tv-green-deep/85 transition-colors"
+            className="btn-tv inline-flex items-center gap-2 px-6 py-3 rounded-full bg-tv-green-deep text-tv-cream font-bold text-base hover:bg-tv-green-deep/85 transition-colors"
           >
-            Voglio far parte della trama <ArrowRight size={20} />
+            Voglio far parte della trama <ArrowRight size={18} />
           </Link>
-          <p className="mt-3 text-sm text-tv-green-deep/75">
-            Ci vogliono 5 minuti. Il resto viene da sé.
-          </p>
-          <p className="mt-1 text-xs text-tv-green-deep/75">
-            Quota annuale: 15 € · Il tesseramento ha validità un anno solare.
-          </p>
+          <div className="text-center md:text-left">
+            <p className="text-sm text-tv-green-deep/75">
+              Ci vogliono 5 minuti. Il resto viene da sé.
+            </p>
+            <p className="text-xs text-tv-green-deep/75">
+              Quota annuale: 15 € · Il tesseramento ha validità un anno solare.
+            </p>
+          </div>
         </div>
 
       </div>
