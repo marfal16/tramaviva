@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from pydantic import BaseModel, Field, EmailStr, ConfigDict, field_validator
 from typing import Dict, List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -1438,6 +1438,207 @@ async def admin_list_consents(limit: int = 200):
     total = await db.cookie_consents.count_documents({})
     accepted = await db.cookie_consents.count_documents({"analytics": True})
     return {"total": total, "analytics_accepted": accepted, "analytics_rejected": total - accepted, "items": items}
+
+
+# ========== PROGETTI (pagina pubblica /progetti, gestita dall'admin) ==========
+# Ogni progetto ha una scheda (titolo, colore, icona, foto) e una pagina con introduzione e "argomenti"
+# (titolo + testo + foto + link). Le foto sono su Cloudinary: nel database restano solo gli indirizzi.
+PROJECT_ICONS = ["wine", "mountain", "stethoscope", "laptop", "heart", "palette", "users", "sparkles"]
+PROJECT_COLORS = ["green", "bordeaux", "orange", "sky"]
+
+
+def _clean_http_url(v: Optional[str]) -> Optional[str]:
+    """Accetta solo indirizzi http(s): niente javascript: o data: nei link e nelle foto."""
+    v = (v or "").strip()
+    if not v:
+        return None
+    if not re.match(r"^https?://", v, flags=re.I):
+        raise ValueError("L'indirizzo deve iniziare con https://")
+    return v
+
+
+class ProjectTopic(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), max_length=64)
+    title: str = Field(default="", max_length=120)
+    text: str = Field(default="", max_length=4000)
+    image_url: Optional[str] = Field(default=None, max_length=600)
+    image_alt: str = Field(default="", max_length=200)  # descrizione della foto per chi usa lo screen reader
+    link_url: Optional[str] = Field(default=None, max_length=600)
+    link_label: Optional[str] = Field(default=None, max_length=60)
+
+    @field_validator("image_url", "link_url")
+    @classmethod
+    def _check_url(cls, v):
+        return _clean_http_url(v)
+
+
+class ProjectIn(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    tag: str = Field(default="", max_length=60)
+    summary: str = Field(default="", max_length=400)
+    icon: str = "sparkles"
+    color: str = "green"
+    cover_url: Optional[str] = Field(default=None, max_length=600)
+    intro_title: str = Field(default="", max_length=150)
+    intro_text: str = Field(default="", max_length=8000)
+    event_categories: List[str] = Field(default_factory=list, max_length=10)
+    topics: List[ProjectTopic] = Field(default_factory=list, max_length=30)
+    published: bool = True
+
+    @field_validator("cover_url")
+    @classmethod
+    def _check_cover(cls, v):
+        return _clean_http_url(v)
+
+    @field_validator("icon")
+    @classmethod
+    def _check_icon(cls, v):
+        return v if v in PROJECT_ICONS else "sparkles"
+
+    @field_validator("color")
+    @classmethod
+    def _check_color(cls, v):
+        return v if v in PROJECT_COLORS else "green"
+
+
+class ProjectOrder(BaseModel):
+    ids: List[str] = Field(max_length=100)
+
+
+class ProjectImageIn(BaseModel):
+    image_data: str = Field(max_length=8_000_000)
+
+
+# Progetti di partenza (sono quelli che prima stavano nella sezione "Attività" della homepage).
+# I testi di introduzione sono una bozza: si cambiano dall'admin, scheda Progetti.
+_DEFAULT_PROJECTS = [
+    {
+        "slug": "laboratori-eventi-sociali", "title": "Laboratori & Eventi Sociali", "tag": "4 chiacchiere",
+        "summary": "Hai trovato il posto perfetto per l'aperitivo dei tuoi sogni, ma cerchi amici che ti somiglino per andarci? Uniamo posti e persone belle per momenti di vera socialità.",
+        "icon": "wine", "color": "green",
+        "intro_title": "Stare insieme è un modo di prendersi cura",
+        "intro_text": "Un aperitivo, un laboratorio creativo, una serata a tema: sono pretesti semplici per conoscersi davvero. Organizziamo momenti pensati perché chi arriva da solo trovi subito un posto a tavola.\n\nNon servono competenze né presentazioni: basta la voglia di esserci.",
+        "event_categories": ["Eventi Sociali", "Laboratori Artistici"],
+    },
+    {
+        "slug": "passeggiate-di-gruppo", "title": "Passeggiate di Gruppo", "tag": "Passo dopo passo",
+        "summary": "Parchi, sentieri urbani, trekking brevi. Si parla meglio quando si cammina.",
+        "icon": "mountain", "color": "bordeaux",
+        "intro_title": "Si parla meglio quando si cammina",
+        "intro_text": "Parchi, sentieri urbani, trekking brevi. Camminare insieme toglie la fretta e rende le conversazioni più facili, anche tra persone che non si sono mai viste.\n\nOgni uscita è pensata con un ritmo tranquillo, per godersi il percorso e la compagnia.",
+        "event_categories": ["Passeggiate"],
+    },
+    {
+        "slug": "prevenzione-e-salute", "title": "Prevenzione e Salute", "tag": "Fili di benessere",
+        "summary": "Giornate con medici volontari. Prevenzione e benessere vicini alle persone.",
+        "icon": "stethoscope", "color": "orange",
+        "intro_title": "Pensiamo che la salute sia importante",
+        "intro_text": "Prendersi cura di sé non dovrebbe essere un lusso né un pensiero da rimandare. Per questo organizziamo giornate di prevenzione con medici volontari, vicino alle persone.\n\nInformarsi, fare un controllo, scambiare due parole con un professionista: sono piccoli passi che possono fare una grande differenza. Qui raccontiamo quello che abbiamo fatto e quello che stiamo preparando.",
+        "event_categories": ["Screening Salute"],
+    },
+    {
+        "slug": "intelligenza-artificiale", "title": "Intelligenza Artificiale", "tag": "Zero paura del click",
+        "summary": "Per chi vuole capire, senza sentirsi dire «ma come, non lo sai fare?» Ci siamo noi, con corsi e formazione sulle nuove tecnologie informatiche e non.",
+        "icon": "laptop", "color": "sky",
+        "intro_title": "Capire le nuove tecnologie, senza paura",
+        "intro_text": "Per chi vuole capire come funzionano gli strumenti di oggi, senza sentirsi dire «ma come, non lo sai fare?». Con corsi e momenti di formazione spieghiamo con calma, partendo dalle domande di chi partecipa.\n\nSi va al ritmo di chi c'è, senza dare nulla per scontato.",
+        "event_categories": ["Corsi IT"],
+    },
+]
+
+
+async def _ensure_projects_seed():
+    """Alla prima richiesta crea i 4 progetti di partenza. Si fa una volta sola: se poi li cancelli, non tornano."""
+    if await db.app_meta.find_one({"_id": "projects_seeded"}):
+        return
+    try:
+        await db.app_meta.insert_one({"_id": "projects_seeded", "at": datetime.now(timezone.utc).isoformat()})
+    except Exception:  # qualcun altro lo sta già facendo
+        return
+    try:
+        if await db.projects.count_documents({}) == 0:
+            now = datetime.now(timezone.utc).isoformat()
+            docs = []
+            for i, p in enumerate(_DEFAULT_PROJECTS):
+                docs.append({**p, "id": str(uuid.uuid4()), "order": i, "published": True,
+                             "cover_url": None, "topics": [], "created_at": now, "updated_at": now})
+            await db.projects.insert_many(docs)
+    except Exception:
+        await db.app_meta.delete_one({"_id": "projects_seeded"})
+        raise
+
+
+@api_router.get("/projects")
+async def list_projects():
+    await _ensure_projects_seed()
+    return await db.projects.find(
+        {"published": True}, {"_id": 0, "topics": 0, "intro_text": 0}
+    ).sort("order", 1).to_list(100)
+
+
+@api_router.get("/projects/{slug}")
+async def get_project(slug: str):
+    await _ensure_projects_seed()
+    doc = await db.projects.find_one({"slug": slug, "published": True}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Progetto non trovato")
+    return doc
+
+
+@api_router.get("/admin/projects", dependencies=[Depends(require_admin)])
+async def admin_list_projects():
+    await _ensure_projects_seed()
+    return await db.projects.find({}, {"_id": 0}).sort("order", 1).to_list(100)
+
+
+@api_router.post("/admin/projects/upload-image", dependencies=[Depends(require_admin)])
+async def admin_project_upload_image(payload: ProjectImageIn):
+    if not payload.image_data.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="Il file non è un'immagine")
+    url = await _upload_to_cloudinary(payload.image_data, folder="tramaviva/projects")
+    if not url:
+        raise HTTPException(status_code=503, detail="Caricamento foto non disponibile al momento: riprova, oppure incolla l'indirizzo di una foto già online.")
+    return {"url": url}
+
+
+@api_router.post("/admin/projects/reorder", dependencies=[Depends(require_admin)])
+async def admin_reorder_projects(body: ProjectOrder):
+    for i, pid in enumerate(body.ids):
+        await db.projects.update_one({"id": pid}, {"$set": {"order": i}})
+    return {"ok": True}
+
+
+@api_router.post("/admin/projects", dependencies=[Depends(require_admin)])
+async def admin_create_project(body: ProjectIn):
+    await _ensure_projects_seed()
+    base = make_slug(body.title)
+    slug, n = base, 2
+    while await db.projects.find_one({"slug": slug}, {"_id": 0, "id": 1}):
+        slug, n = f"{base}-{n}", n + 1
+    last = await db.projects.find({}, {"_id": 0, "order": 1}).sort("order", -1).to_list(1)
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {**body.model_dump(), "id": str(uuid.uuid4()), "slug": slug,
+           "order": (last[0].get("order", 0) + 1) if last else 0, "created_at": now, "updated_at": now}
+    await db.projects.insert_one(dict(doc))
+    return doc
+
+
+@api_router.put("/admin/projects/{project_id}", dependencies=[Depends(require_admin)])
+async def admin_update_project(project_id: str, body: ProjectIn):
+    # l'indirizzo (slug) resta quello iniziale, così i link già condivisi continuano a funzionare
+    update = {**body.model_dump(), "updated_at": datetime.now(timezone.utc).isoformat()}
+    res = await db.projects.update_one({"id": project_id}, {"$set": update})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Progetto non trovato")
+    return await db.projects.find_one({"id": project_id}, {"_id": 0})
+
+
+@api_router.delete("/admin/projects/{project_id}", dependencies=[Depends(require_admin)])
+async def admin_delete_project(project_id: str):
+    res = await db.projects.delete_one({"id": project_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Progetto non trovato")
+    return {"ok": True}
 
 
 # ========== CONSERVAZIONE DEI DATI (privacy) ==========

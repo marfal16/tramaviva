@@ -39,7 +39,7 @@ export const Footer = () => (
           <ul className="space-y-2">
             {[
               ["/#chi-siamo", "Chi siamo"],
-              ["/#attivita", "Attività"],
+              ["/progetti", "Progetti"],
               ["/#eventi", "Eventi"],
               ["/#contatti", "Contatti"],
             ].map(([h, l]) => (

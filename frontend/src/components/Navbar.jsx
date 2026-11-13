@@ -7,7 +7,7 @@ import { CLUBS_CONFIG } from "../clubsConfig";
 
 const links = [
   { href: "#chi-siamo", label: "Chi siamo" },
-  { href: "#attivita", label: "Attività" },
+  { to: "/progetti", label: "Progetti" },
   { href: "#eventi", label: "Eventi" },
 ];
 
@@ -112,7 +112,17 @@ export const Navbar = () => {
 
           {/* ── Desktop nav ── */}
           <nav className="hidden md:flex items-center gap-1" aria-label="Principale">
-            {links.map((l) => (
+            {links.map((l) => (l.to ? (
+              <Link
+                key={l.to}
+                to={l.to}
+                onClick={closeAll}
+                data-testid={`nav-link-${l.to.replace("/", "")}`}
+                className="px-4 py-2 rounded-full text-sm font-semibold text-tv-green-deep/80 hover:text-tv-green-deep hover:bg-tv-mint/40 transition-colors"
+              >
+                {l.label}
+              </Link>
+            ) : (
               <a
                 key={l.href}
                 href={l.href}
@@ -122,7 +132,7 @@ export const Navbar = () => {
               >
                 {l.label}
               </a>
-            ))}
+            )))}
 
             {/* Dropdown "I nostri Club" */}
             <div className="relative" ref={clubsRef}>
@@ -245,7 +255,17 @@ export const Navbar = () => {
           }`}
           data-testid="nav-mobile-menu"
         >
-          {links.map((l) => (
+          {links.map((l) => (l.to ? (
+            <Link
+              key={l.to}
+              to={l.to}
+              onClick={closeAll}
+              className="px-4 py-3 rounded-2xl text-base font-semibold text-tv-green-deep hover:bg-tv-mint/40"
+              data-testid={`nav-mobile-link-${l.to.replace("/", "")}`}
+            >
+              {l.label}
+            </Link>
+          ) : (
             <a
               key={l.href}
               href={l.href}
@@ -255,7 +275,7 @@ export const Navbar = () => {
             >
               {l.label}
             </a>
-          ))}
+          )))}
 
           {/* "I nostri Club" collapsibile mobile */}
           <button

@@ -3,9 +3,10 @@ import axios from "axios";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { Logo } from "./Logo";
-import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film, Grid3x3, ChevronLeft, ChevronRight, Lightbulb, ShieldCheck } from "lucide-react";
+import { LogOut, Trash2, Mail, Users, Calendar, MessageSquare, Lock, ArrowLeft, Plus, Pencil, X, CalendarPlus, IdCard, UserCheck, Sparkles, Download, Loader2, ShieldOff, ChevronDown, ChevronUp, Search, LayoutDashboard, RefreshCw, Menu, PanelLeftClose, BookOpen, Trophy, Check, Heart, Copy, Film, Grid3x3, ChevronLeft, ChevronRight, Lightbulb, ShieldCheck, FolderKanban } from "lucide-react";
 import CoverSearchWidget from "./CoverSearchWidget";
 import PrivacyManager from "./AdminPrivacy";
+import ProjectsManager from "./AdminProjects";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -125,10 +126,14 @@ const NAV_GROUPS = [
     ],
   },
   { single: true, key: "donations", label: "Donazioni", icon: Heart },
-  { single: true, key: "privacy", label: "Privacy e dati", icon: ShieldCheck },
+  { single: true, key: "projects", label: "Progetti", icon: FolderKanban },
 ];
 // flat list for compatibility (badge logic, etc.)
-const NAV = NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, icon: g.icon }] : (g.items || []));
+// "Privacy e dati" non è nel menu: si apre dal pulsante nella dashboard, ma serve qui per il titolo della pagina.
+const NAV = [
+  ...NAV_GROUPS.flatMap(g => g.single ? [{ key: g.key, label: g.label, icon: g.icon }] : (g.items || [])),
+  { key: "privacy", label: "Privacy e dati", icon: ShieldCheck },
+];
 
 const CATEGORIES = ["Laboratori Artistici", "Eventi Sociali", "Passeggiate", "Screening Salute", "Corsi IT"];
 
@@ -2873,6 +2878,13 @@ const DashboardHome = ({ data, onNavigate, activeUsers, visitorStats, visitorGeo
         { key: "cineforum", label: "Cineforum",       icon: Film,     iconBg: "bg-tv-sky/20",   iconColor: "text-tv-green-deep" },
       ],
     },
+    {
+      groupKey: "sito", label: "Sito e dati",
+      sections: [
+        { key: "projects", label: "Progetti",       icon: FolderKanban, iconBg: "bg-tv-orange/20", iconColor: "text-tv-orange" },
+        { key: "privacy",  label: "Privacy e dati", icon: ShieldCheck,  iconBg: "bg-tv-green/20",  iconColor: "text-tv-green" },
+      ],
+    },
   ];
 
   return (
@@ -3989,6 +4001,8 @@ const Dashboard = ({ token, onLogout }) => {
               token={token}
               onReload={loadAll}
             />
+          ) : tab === "projects" ? (
+            <ProjectsManager token={token} eventCategories={CATEGORIES} />
           ) : tab === "privacy" ? (
             <PrivacyManager token={token} />
           ) : tab === "libro-soci" ? (

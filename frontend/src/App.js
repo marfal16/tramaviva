@@ -5,7 +5,6 @@ import { Toaster, toast } from "sonner";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import ChiSiamo from "./components/ChiSiamo";
-import Attivita from "./components/Attivita";
 import Eventi from "./components/Eventi";
 import Iscrizione from "./components/Iscrizione";
 import { IscrizioneExpanded } from "./components/IscrizioneExpanded";
@@ -14,6 +13,7 @@ import Footer from "./components/Footer";
 import Admin from "./components/Admin";
 import EventoDettaglio from "./components/EventoDettaglio";
 import { EventiArchivio } from "./components/EventiArchivio";
+import { ProgettiPage, ProgettoDettaglio } from "./components/Progetti";
 import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
 import { Cineforum, CineforumTeaser } from "./components/Cineforum";
 import { LibroDettaglio } from "./components/LibroDettaglio";
@@ -69,7 +69,6 @@ const Home = () => {
       <main id="main">
         <Hero />
         <ChiSiamo />
-        <Attivita />
         <Eventi />
         <ClubsSection />
         <DonazioniTeaser />
@@ -173,6 +172,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const DEFAULT_TITLE = document.title;
 const ROUTE_TITLES = {
   "/eventi/archivio": "Archivio eventi",
+  "/progetti": "Progetti",
   "/donazioni": "Dona",
   "/iscrizione": "Diventa socio",
   "/club-del-libro": "Club del Libro",
@@ -231,6 +231,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/progetti" element={<ProgettiPage />} />
+          <Route path="/progetti/:slug" element={<ProgettoDettaglio />} />
           <Route path="/eventi/archivio" element={<EventiArchivio />} />
           <Route path="/eventi/:slug" element={<EventoDettaglio />} />
           <Route path="/iscrizione" element={<IscrizionePageWrapper />} />
