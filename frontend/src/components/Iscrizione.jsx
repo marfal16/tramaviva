@@ -6,17 +6,17 @@ const REASONS = [
   {
     emoji: "☀️",
     title: "Un antidoto all'algoritmo",
-    desc: "Siamo tutti chiusi nelle nostre bolle digitali. Qui incontri persone, storie e punti di vista che lo schermo del tuo telefono non ti mostrerebbe mai.",
+    desc: "Siamo tutti chiusi nelle nostre bolle digitali. Qui incontri persone, storie e punti di vista che lo schermo non ti mostrerebbe mai.",
   },
   {
     emoji: "🌱",
     title: "Spazio ai tuoi progetti",
-    desc: "Hai un'idea nel cassetto? Questo è uno spazio sicuro per testarla, sporcarti le mani e sperimentare, senza l'ansia di dover fare centro a tutti i costi.",
+    desc: "Hai un'idea nel cassetto? Questo è uno spazio sicuro per testarla e sperimentare, senza l'ansia di dover fare centro a tutti i costi.",
   },
   {
     emoji: "🗺️",
     title: "Micro-avventure fuori rotta",
-    desc: "Dai laboratori insoliti alle camminate curiose. Ogni attività è un pretesto per uscire dalla solita routine e guardare il territorio con occhi diversi.",
+    desc: "Dai laboratori insoliti alle camminate curiose: ogni attività è un pretesto per uscire dalla routine e guardare il territorio con occhi diversi.",
   },
 ];
 
@@ -25,12 +25,12 @@ export const Iscrizione = () => {
     <section
       id="iscrizione"
       data-testid="iscrizione-section"
-      className="relative py-24 md:py-32 bg-tv-sky/50 overflow-hidden"
+      className="relative py-16 md:py-20 bg-tv-sky/50 overflow-hidden"
     >
       <div className="mx-auto max-w-7xl px-6 md:px-10">
 
         {/* Header centrato */}
-        <div className="text-center max-w-2xl mx-auto mb-14">
+        <div className="text-center max-w-2xl mx-auto mb-10">
           <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
             Diventa socio
           </div>
@@ -38,20 +38,19 @@ export const Iscrizione = () => {
             C'è un filo che aspetta<br />
             <span className="italic font-light text-tv-bordeaux">solo te.</span>
           </h2>
-          <p className="mt-6 text-lg text-tv-green-deep/70 leading-relaxed">
-            Trama Viva non è un'associazione da tessera nel cassetto. 
-            È una comunità che si muove, che propone, che si prende cura. 
-            Entra, e aggiungi il tuo filo alla trama.
+          <p className="mt-4 text-lg text-tv-green-deep/70 leading-relaxed">
+            Trama Viva non è un'associazione da tessera nel cassetto, ma una comunità che si muove,
+            propone e si prende cura. Entra, e aggiungi il tuo filo alla trama.
           </p>
         </div>
 
         {/* Motivazioni */}
-        <div className="mb-14">
+        <div className="mb-10">
           {/* Mobile: lista verticale */}
-          <div className="flex flex-col gap-7 md:hidden">
+          <div className="flex flex-col gap-5 md:hidden">
             {REASONS.map(({ emoji, title, desc }) => (
-              <div key={title} className="flex items-start gap-5">
-                <span className="text-4xl leading-none flex-shrink-0">{emoji}</span>
+              <div key={title} className="flex items-start gap-4">
+                <span className="text-3xl leading-none flex-shrink-0">{emoji}</span>
                 <div>
                   <div className="font-display font-black text-lg text-tv-green-deep mb-1">{title}</div>
                   <div className="text-sm text-tv-green-deep/70 leading-relaxed">{desc}</div>
@@ -60,10 +59,10 @@ export const Iscrizione = () => {
             ))}
           </div>
           {/* Desktop: tre colonne centrate senza box */}
-          <div className="hidden md:grid md:grid-cols-3 gap-10 text-center">
+          <div className="hidden md:grid md:grid-cols-3 gap-8 text-center">
             {REASONS.map(({ emoji, title, desc }) => (
-              <div key={title} className="flex flex-col items-center gap-3">
-                <span className="text-5xl">{emoji}</span>
+              <div key={title} className="flex flex-col items-center gap-2">
+                <span className="text-4xl">{emoji}</span>
                 <div className="font-display font-black text-xl text-tv-green-deep">{title}</div>
                 <div className="text-sm text-tv-green-deep/70 leading-relaxed">{desc}</div>
               </div>
@@ -75,14 +74,14 @@ export const Iscrizione = () => {
         <div className="text-center">
           <Link
             to="/iscrizione"
-            className="btn-tv inline-flex items-center gap-2 px-8 py-5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-lg hover:bg-tv-green-deep/85 transition-colors"
+            className="btn-tv inline-flex items-center gap-2 px-7 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold text-base md:text-lg hover:bg-tv-green-deep/85 transition-colors"
           >
             Voglio far parte della trama <ArrowRight size={20} />
           </Link>
-          <p className="mt-4 text-sm text-tv-green-deep/75">
+          <p className="mt-3 text-sm text-tv-green-deep/75">
             Ci vogliono 5 minuti. Il resto viene da sé.
           </p>
-          <p className="mt-2 text-xs text-tv-green-deep/75">
+          <p className="mt-1 text-xs text-tv-green-deep/75">
             Quota annuale: 15 € · Il tesseramento ha validità un anno solare.
           </p>
         </div>

@@ -254,7 +254,7 @@ export const Donazioni = () => {
       <main id="main">
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden px-6 md:px-10 pt-24 pb-4 md:pt-32 md:pb-6">
+      <section className="relative overflow-hidden px-6 md:px-10 pt-24 pb-2 md:pt-28 md:pb-4">
         {/* Filo decorativo */}
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none">
           <svg viewBox="0 0 1000 500" className="w-full h-full" preserveAspectRatio="none">
@@ -267,29 +267,29 @@ export const Donazioni = () => {
         </div>
 
         <div className="relative mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 bg-tv-green-deep/8 text-tv-green-deep text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-8">
+          <div className="inline-flex items-center gap-2 bg-tv-green-deep/8 text-tv-green-deep text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-5">
             <Heart size={12} className="text-tv-bordeaux" fill="currentColor" style={{ color: "#5d1723" }} />
             Supportaci
           </div>
-          <h1 className="font-display font-black text-5xl md:text-7xl text-tv-green-deep leading-[0.92] mb-6">
+          <h1 className="font-display font-black text-4xl md:text-6xl text-tv-green-deep leading-[0.92] mb-4">
             Fai fiorire<br />
             <span className="italic font-light">qualcosa di bello.</span>
           </h1>
           <p className="text-tv-green-deep/75 text-lg leading-relaxed max-w-xl mx-auto">
-            Trama Viva vive grazie alle persone che ci credono. Se vuoi che queste esperienze continuino, puoi sostenerci con una donazione spontanea — grande o piccola, ogni gesto conta.
+            Trama Viva vive grazie alle persone che ci credono. Se vuoi che queste esperienze continuino, puoi sostenerci con una donazione spontanea, grande o piccola.
           </p>
         </div>
       </section>
 
       {/* ── Perché donare ── */}
-      <section className="px-6 md:px-10 py-12">
-        <div className="mx-auto max-w-5xl grid sm:grid-cols-3 gap-5">
+      <section className="px-6 md:px-10 py-8">
+        <div className="mx-auto max-w-5xl grid sm:grid-cols-3 gap-4">
           {impact.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_-8px_rgba(5,47,23,0.1)]">
-              <div className="w-10 h-10 rounded-2xl bg-tv-mint/30 flex items-center justify-center mb-4">
+            <div key={title} className="bg-white rounded-[2rem] p-5 md:p-6 shadow-[0_4px_20px_-8px_rgba(5,47,23,0.1)]">
+              <div className="w-10 h-10 rounded-2xl bg-tv-mint/30 flex items-center justify-center mb-3">
                 <Icon size={18} className="text-tv-green" />
               </div>
-              <h3 className="font-display font-black text-lg text-tv-green-deep mb-2">{title}</h3>
+              <h3 className="font-display font-black text-lg text-tv-green-deep mb-1.5">{title}</h3>
               <p className="text-sm text-tv-green-deep/75 leading-relaxed">{desc}</p>
             </div>
           ))}
@@ -297,7 +297,7 @@ export const Donazioni = () => {
       </section>
 
       {/* ── Form / Successo ── */}
-      <section ref={formRef} className="px-6 md:px-10 py-12 md:py-16 scroll-mt-8">
+      <section ref={formRef} className="px-6 md:px-10 py-8 md:py-12 scroll-mt-8">
         <div className="mx-auto max-w-xl">
           {success ? (
             success.fromSumup ? (
@@ -349,9 +349,9 @@ export const Donazioni = () => {
 
 // ─── Teaser per homepage ──────────────────────────────────────────────────────
 export const DonazioniTeaser = () => (
-  <section className="px-6 md:px-10 py-10">
+  <section className="px-6 md:px-10 py-8">
     <div className="mx-auto max-w-7xl">
-      <div className="relative bg-tv-green-deep rounded-[2.5rem] overflow-hidden px-8 md:px-14 py-10 md:py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+      <div className="relative bg-tv-green-deep rounded-[2.5rem] overflow-hidden px-8 md:px-14 py-8 md:py-10 flex flex-col md:flex-row items-center justify-between gap-8">
         {/* Filo */}
         <div className="absolute inset-0 opacity-[0.07] pointer-events-none">
           <svg viewBox="0 0 900 200" className="w-full h-full" preserveAspectRatio="none">

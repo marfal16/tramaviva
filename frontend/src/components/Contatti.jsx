@@ -82,12 +82,12 @@ export const Contatti = () => {
     <section
       id="contatti"
       data-testid="contatti-section"
-      className="relative py-24 md:py-32 bg-tv-sky/30 overflow-hidden scroll-mt-20"
+      className="relative py-16 md:py-20 bg-tv-sky/30 overflow-hidden scroll-mt-20"
     >
       <div className="mx-auto max-w-6xl px-6 md:px-10">
 
         {/* Header centrato */}
-        <div className="text-center max-w-2xl mx-auto mb-14">
+        <div className="text-center max-w-2xl mx-auto mb-10">
           <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
             Scrivici
           </div>
@@ -95,9 +95,8 @@ export const Contatti = () => {
             Due righe,<br />
             <span className="italic font-light text-tv-bordeaux">un nuovo filo</span>.
           </h2>
-          <p className="mt-6 text-lg text-tv-green-deep/70 leading-relaxed">
-            Hai una proposta? Vuoi collaborare? Vuoi lasciarci un feedback?
-            Scrivici qui o trovaci sui nostri canali.
+          <p className="mt-4 text-lg text-tv-green-deep/70 leading-relaxed">
+            Una proposta, una collaborazione, un feedback? Scrivici qui o trovaci sui nostri canali.
           </p>
         </div>
 
@@ -106,7 +105,7 @@ export const Contatti = () => {
 
           {/* Canali */}
           <div className="md:col-span-2">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-tv-green-deep/75 mb-5">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-tv-green-deep/75 mb-4">
               Trovaci anche qui
             </p>
             <div className="space-y-2">
@@ -118,7 +117,7 @@ export const Contatti = () => {
                   target={href.startsWith("http") ? "_blank" : undefined}
                   rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
                   referrerPolicy={href.startsWith("http") ? "no-referrer" : undefined}
-                  className="group flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green-deep/30 hover:shadow-sm transition-all"
+                  className="group flex items-center gap-4 px-5 py-3 rounded-2xl bg-white border border-tv-green-deep/10 hover:border-tv-green-deep/30 hover:shadow-sm transition-all"
                 >
                   <span className="flex-shrink-0 w-9 h-9 rounded-xl bg-tv-sky/50 flex items-center justify-center text-tv-bordeaux group-hover:bg-tv-bordeaux/10 transition-colors">
                     <Icon size={18} />
@@ -136,15 +135,15 @@ export const Contatti = () => {
           <form
             onSubmit={submit}
             data-testid="contact-form"
-            className="md:col-span-3 bg-white rounded-[2rem] p-7 md:p-9 border border-tv-green-deep/10"
+            className="md:col-span-3 bg-white rounded-[2rem] p-6 md:p-7 border border-tv-green-deep/10"
           >
-            <div className="font-display font-black text-2xl md:text-3xl text-tv-green-deep leading-tight">
+            <div className="font-display font-black text-xl md:text-2xl text-tv-green-deep leading-tight">
               Scrivici un messaggio.
             </div>
             <div className="mt-1 text-sm text-tv-green-deep/75">
               Rispondiamo in breve tempo, promesso.
             </div>
-            <div className="mt-6 space-y-3">
+            <div className="mt-4 space-y-3">
               <Field
                 id="name"
                 placeholder="Il tuo nome"
@@ -160,7 +159,7 @@ export const Contatti = () => {
               />
               <textarea
                 data-testid="contact-message"
-                rows={5}
+                rows={4}
                 aria-label="Il tuo messaggio"
                 placeholder="Il tuo messaggio…"
                 value={form.message}
@@ -180,7 +179,7 @@ export const Contatti = () => {
               type="submit"
               disabled={submitting}
               data-testid="contact-submit"
-              className="btn-tv w-full mt-5 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold inline-flex items-center justify-center gap-2 hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60"
+              className="btn-tv w-full mt-4 px-5 py-3.5 rounded-full bg-tv-green-deep text-tv-cream font-bold inline-flex items-center justify-center gap-2 hover:bg-tv-green-deep/85 transition-colors disabled:opacity-60"
             >
               {submitting ? "Invio…" : <>Invia messaggio <Send size={16} /></>}
             </button>

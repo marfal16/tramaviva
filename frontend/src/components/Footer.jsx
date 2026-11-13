@@ -20,13 +20,13 @@ export const Footer = () => (
         </g>
       </svg>
     </div>
-    <div className="relative mx-auto max-w-7xl px-6 md:px-10 py-16 md:py-20">
-      <div className="grid md:grid-cols-12 gap-10">
+    <div className="relative mx-auto max-w-7xl px-6 md:px-10 py-10 md:py-12">
+      <div className="grid md:grid-cols-12 gap-8">
         <div className="md:col-span-6">
-          <div className="inline-block bg-tv-cream rounded-[2rem] p-4 md:p-5">
-            <Logo variant="full" size={220} />
+          <div className="inline-block bg-tv-cream rounded-[2rem] p-3 md:p-4">
+            <Logo variant="full" size={170} />
           </div>
-          <div className="mt-8 font-display font-black text-4xl md:text-6xl leading-[0.95]">
+          <div className="mt-5 font-display font-black text-3xl md:text-5xl leading-[0.95]">
             Intrecciamo<br />
             storie, persone,<br />
             <span className="italic font-light">opportunità.</span>
@@ -36,7 +36,7 @@ export const Footer = () => (
           <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-4">
             Esplora
           </div>
-          <ul className="space-y-2">
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm md:text-base">
             {[
               ["/#chi-siamo", "Chi siamo"],
               ["/progetti", "Progetti"],
@@ -129,39 +129,25 @@ export const Footer = () => (
       </div>
 
       {/* Dati ufficiali dell'associazione */}
-      <div className="mt-12 pt-8 border-t border-tv-cream/15">
-        <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-4">
+      <div className="mt-8 pt-6 border-t border-tv-cream/15">
+        <div className="text-xs font-bold uppercase tracking-widest opacity-70 mb-3">
           Informazioni associative
         </div>
 
-        <div className="space-y-2 text-sm opacity-80">
-          <p className="font-bold">
-            TRAMA VIVA APS
+        <div className="space-y-1 text-sm opacity-80">
+          <p>
+            <span className="font-bold">TRAMA VIVA APS</span> · Associazione di Promozione Sociale senza scopo di lucro
           </p>
           <p>
-            Associazione di Promozione Sociale senza scopo di lucro
-          </p>
-          <p>
-            Sede legale: Via Pastrengo 36, 80042 Boscotrecase (NA)
-          </p>
-          <p>
-            C.F. 90117290636
+            Sede legale: Via Pastrengo 36, 80042 Boscotrecase (NA) · C.F. 90117290636
           </p>
           <p>
             Iscritta al RUNTS, sezione APS, rep. n. 181646
           </p>
-          <p>
-            <a
-              href="mailto:tramavivaaps@gmail.com"
-              className="hover:text-tv-mint transition-colors"
-            >
-              tramavivaaps@gmail.com
-            </a>
-          </p>
         </div>
       </div>
 
-      <nav aria-label="Informazioni legali" className="mt-14 pt-6 border-t border-tv-cream/15 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      <nav aria-label="Informazioni legali" className="mt-8 pt-5 border-t border-tv-cream/15 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <Link to="/privacy-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Privacy Policy</Link>
         <Link to="/cookie-policy" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Cookie Policy</Link>
         <Link to="/condizioni" className="underline underline-offset-2 hover:text-tv-mint transition-colors">Condizioni di iscrizione e rimborso</Link>
@@ -169,7 +155,7 @@ export const Footer = () => (
       </nav>
 
       {/* Attribuzione richiesta dai termini d'uso dell'API TMDB (locandine film del Cineforum) */}
-      <div className="mt-6 pt-6 border-t border-tv-cream/15 flex flex-col sm:flex-row sm:items-center gap-4 text-xs">
+      <div className="mt-5 pt-5 border-t border-tv-cream/15 flex flex-col sm:flex-row sm:items-center gap-4 text-xs">
         <a
           href="https://www.themoviedb.org"
           target="_blank"
@@ -188,7 +174,7 @@ export const Footer = () => (
         </p>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-4 text-xs">
+      <div className="mt-5 pt-5 border-t border-tv-cream/15 flex flex-col md:flex-row justify-between gap-2 md:gap-4 text-xs">
         <div>© {new Date().getFullYear()} APS Trama Viva — Ogni filo conta.</div>
         <div>Fatto con cura, amore e qualche caffè.</div>
       </div>
