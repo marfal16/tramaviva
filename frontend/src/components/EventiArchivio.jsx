@@ -40,7 +40,7 @@ export const EventiArchivio = () => {
     `px-4 py-2 rounded-full text-sm font-bold transition-all ${
       active
         ? "bg-tv-green-deep text-tv-cream"
-        : "bg-white text-tv-green-deep/70 hover:bg-tv-sky/30 border border-tv-green-deep/10"
+        : "bg-white text-tv-green-deep/75 hover:bg-tv-sky/30 border border-tv-green-deep/10"
     }`;
 
   return (
@@ -51,7 +51,7 @@ export const EventiArchivio = () => {
           <Link
             to="/#eventi"
             data-testid="archivio-back-link"
-            className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/70 hover:text-tv-green-deep mb-8"
+            className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/75 hover:text-tv-green-deep mb-8"
           >
             <ArrowLeft size={16} /> Torna agli eventi
           </Link>
@@ -71,7 +71,7 @@ export const EventiArchivio = () => {
             <p className="mt-10 text-tv-green-deep/75">Non ci sono ancora eventi passati.</p>
           ) : (
             <>
-              <p className="mt-4 text-tv-green-deep/70">
+              <p className="mt-4 text-tv-green-deep/75">
                 {past.length} eventi, dal più recente al più vecchio.
               </p>
 

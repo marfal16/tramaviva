@@ -27,8 +27,8 @@ import CookieBanner from "./components/CookieBanner";
 import { initModalA11y } from "./lib/modalA11y";
 
 const ClubsSection = () => (
-  <section className="pt-0 pb-14 md:pb-20 px-6 md:px-10">
-    <div className="mx-auto max-w-7xl">
+  <section className="pt-0 pb-14 md:pb-20">
+    <div className="mx-auto max-w-7xl px-6 md:px-10">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
           <span className="w-2.5 h-2.5 rounded-full bg-tv-bordeaux" />
@@ -41,7 +41,7 @@ const ClubsSection = () => (
           Non eventi isolati, ma comunità con un ritmo: incontri periodici, discussioni, un filo che lega ogni appuntamento al successivo.
         </p>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid sm:grid-cols-2 gap-5">
         <ClubDelLibroTeaser />
         <CineforumTeaser />
       </div>

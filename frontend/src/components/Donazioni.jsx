@@ -186,7 +186,7 @@ const DonationForm = ({ onSuccess }) => {
           ].map(({ key, label, desc }) => (
             <button key={key} type="button" aria-pressed={metodo === key} onClick={() => setMetodo(key)}
               className={`text-left p-4 rounded-2xl border-2 transition-all ${metodo === key ? "border-tv-green-deep bg-tv-green-deep/5" : "border-tv-green-deep/12 hover:border-tv-green-deep/25"}`}>
-              <div className={`font-bold text-sm mb-0.5 ${metodo === key ? "text-tv-green-deep" : "text-tv-green-deep/70"}`}>{label}</div>
+              <div className={`font-bold text-sm mb-0.5 ${metodo === key ? "text-tv-green-deep" : "text-tv-green-deep/75"}`}>{label}</div>
               <div className="text-xs text-tv-green-deep/75">{desc}</div>
             </button>
           ))}

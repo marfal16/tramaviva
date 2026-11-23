@@ -87,14 +87,14 @@ export const Hero = () => {
 
         <div className="md:col-span-4 md:pb-4">
           {/* Tagline card */}
-          <div className="relative rounded-[2rem] p-7 bg-tv-green text-tv-cream shadow-[0_20px_60px_-20px_rgba(5,47,23,0.4)] rotate-[-2deg]">
-            <div className="text-xs uppercase tracking-widest opacity-75 mb-2">
+          <div className="relative rounded-[2rem] p-7 bg-tv-green text-tv-green-deep shadow-[0_20px_60px_-20px_rgba(5,47,23,0.4)] rotate-[-2deg]">
+            <div className="text-xs font-bold uppercase tracking-widest mb-2">
               La nostra trama
             </div>
             <div className="font-display font-black text-3xl leading-tight">
               Ogni<br />filo<br />conta.
             </div>
-            <div className="mt-4 text-sm opacity-90">
+            <div className="mt-4 text-sm font-medium">
               Vogliamo intrecciare storie, passioni e persone per creare una community fatta di valori condivisi.
               Diamo vita ad esperienze e momenti di condivisione autentici, in cui sentirci liberi di creare legami veri. Diventa socio e prendi parte all’avventura.
             </div>
@@ -175,9 +175,9 @@ export const Hero = () => {
                       const d = Math.max(0, Math.floor((evDay - todayDay) / 86400000));
                       return (
                         <Link key={ev.id} to={`/eventi/${ev.slug || ev.id}`}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-tv-green-deep/8 hover:bg-tv-green-deep/15 transition-colors">
-                          <span className="text-[10px] font-black text-tv-orange shrink-0">{d === 0 ? "Oggi" : `${d}gg`}</span>
-                          <span className="text-xs text-tv-green-deep/70 font-medium leading-tight">{ev.title}</span>
+                          className="flex items-center gap-2 px-3 py-2 min-h-[36px] rounded-xl bg-tv-green-deep/8 hover:bg-tv-green-deep/15 transition-colors">
+                          <span className="text-[11px] font-black text-tv-bordeaux shrink-0 tabular-nums">{d === 0 ? "Oggi" : `${d}gg`}</span>
+                          <span className="text-xs text-tv-green-deep/75 font-medium leading-tight">{ev.title}</span>
                         </Link>
                       );
                     })}

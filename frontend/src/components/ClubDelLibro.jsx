@@ -98,7 +98,7 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
           )}
           {bookReviews.length > 0 && <div className="mt-2"><AvgStars reviews={bookReviews} /></div>}
           {book.description && (
-            <p className="mt-2 text-sm text-tv-green-deep/65 leading-relaxed line-clamp-3">{book.description}</p>
+            <p className="mt-2 text-sm text-tv-green-deep/75 leading-relaxed line-clamp-3">{book.description}</p>
           )}
         </div>
       </div>
@@ -472,7 +472,7 @@ const ProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
         {proposal.description && (
           <div className="px-6 pb-6">
             <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Trama</div>
-            <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
+            <p className="text-sm text-tv-green-deep/75 leading-relaxed">{proposal.description}</p>
           </div>
         )}
       </div>
@@ -546,7 +546,7 @@ const ProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, onVot
             </div>
           )}
           {/* Vote badge */}
-          <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black shadow-sm bg-white/90 text-tv-green-deep/70">
+          <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black shadow-sm bg-white/90 text-tv-green-deep/75">
             <ThumbsUp size={11} /> {proposal.votes}
           </div>
         </div>
@@ -1123,7 +1123,7 @@ export const ClubDelLibro = () => {
           <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-[0.93] tracking-tight text-tv-green-deep">
             Leggiamo <span className="italic font-light text-tv-bordeaux">insieme</span>,<br />cresciamo insieme.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/65">
+          <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/75">
             Ogni mese scegliamo un libro, lo discutiamo e condividiamo impressioni, voti e recensioni. Puoi proporre titoli, votare quelli degli altri e prendere libri in prestito dalla nostra community.
           </p>
         </div>

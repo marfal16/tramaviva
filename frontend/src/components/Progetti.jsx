@@ -361,7 +361,7 @@ export const ProgettoDettaglio = () => {
       <Link
         to="/progetti"
         data-testid="progetto-back-link"
-        className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/70 hover:text-tv-green-deep mb-8"
+        className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/75 hover:text-tv-green-deep mb-8"
       >
         <ArrowLeft size={16} aria-hidden="true" /> Tutti i progetti
       </Link>

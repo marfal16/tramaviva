@@ -44,7 +44,7 @@ const Field = ({ label, type = "text", value, onChange, placeholder, required, a
         {isPassword && (
           <button type="button" onClick={() => setShow(s => !s)}
             aria-label={show ? "Nascondi password" : "Mostra password"} aria-pressed={show}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-tv-green-deep/70 hover:text-tv-green-deep transition-colors">
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-tv-green-deep/75 hover:text-tv-green-deep transition-colors">
             {show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
           </button>
         )}

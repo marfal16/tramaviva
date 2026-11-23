@@ -7,7 +7,7 @@ import React from "react";
  *  - "full"  → logo completo con testo "Trama Viva -Aps-" (per footer, hero, firma grande)
  *  - "inline"→ mark piccolo + testo custom react (navbar con tagline sotto)
  */
-export const Logo = ({ variant = "inline", size = 40, className = "", textColor = "#052F17" }) => {
+export const Logo = ({ variant = "inline", size = 40, className = "", textColor = "#052F17", accentColor = "#5F6D1A" }) => {
   if (variant === "full") {
     return (
       <img
@@ -51,7 +51,7 @@ export const Logo = ({ variant = "inline", size = 40, className = "", textColor 
           className="font-display font-black text-[15px] tracking-tight"
           style={{ color: textColor }}
         >
-          APS <span style={{ color: "#A7B94C" }}>Trama</span>{" "}
+          APS <span style={{ color: accentColor }}>Trama</span>{" "}
           <span style={{ color: "#5D1723" }}>Viva</span>
         </div>
         <div

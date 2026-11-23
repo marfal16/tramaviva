@@ -38,7 +38,7 @@ export const Iscrizione = () => {
             C'è un filo che aspetta{" "}
             <span className="italic font-light text-tv-bordeaux">solo te.</span>
           </h2>
-          <p className="mt-3 text-base md:text-lg text-tv-green-deep/70 leading-relaxed">
+          <p className="mt-3 text-base md:text-lg text-tv-green-deep/75 leading-relaxed">
             Trama Viva non è un'associazione da tessera nel cassetto, ma una comunità che si muove,
             propone e si prende cura. Entra, e aggiungi il tuo filo alla trama.
           </p>
@@ -53,7 +53,7 @@ export const Iscrizione = () => {
                 <span className="text-2xl leading-none flex-shrink-0">{emoji}</span>
                 <div>
                   <div className="font-display font-black text-base text-tv-green-deep">{title}</div>
-                  <div className="text-sm text-tv-green-deep/70 leading-snug">{desc}</div>
+                  <div className="text-sm text-tv-green-deep/75 leading-snug">{desc}</div>
                 </div>
               </div>
             ))}
@@ -64,7 +64,7 @@ export const Iscrizione = () => {
               <div key={title} className="flex flex-col items-center gap-1">
                 <span className="text-3xl">{emoji}</span>
                 <div className="font-display font-black text-lg text-tv-green-deep">{title}</div>
-                <div className="text-sm text-tv-green-deep/70 leading-snug">{desc}</div>
+                <div className="text-sm text-tv-green-deep/75 leading-snug">{desc}</div>
               </div>
             ))}
           </div>

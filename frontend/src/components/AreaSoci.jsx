@@ -124,7 +124,7 @@ const EditableField = ({ label, value, onSave, multiline = false }) => {
           </button>
         </div>
       ) : (
-        <p className="text-sm text-tv-green-deep/70">{value || <span className="italic text-tv-green-deep/75">Non specificato</span>}</p>
+        <p className="text-sm text-tv-green-deep/75">{value || <span className="italic text-tv-green-deep/75">Non specificato</span>}</p>
       )}
     </div>
   );
@@ -460,7 +460,7 @@ const PostCard = ({ post, currentUserId, token, onDelete, onLikeToggle }) => {
               <UserBubble userId={c.user_id} userName={c.user_name} size={26} />
               <div className="flex-1 bg-white rounded-2xl px-3 py-2 min-w-0">
                 <p className="text-xs font-bold text-tv-green-deep">{c.user_name}</p>
-                <p className="text-xs text-tv-green-deep/70 mt-0.5">{c.content}</p>
+                <p className="text-xs text-tv-green-deep/75 mt-0.5">{c.content}</p>
               </div>
               {c.user_id === currentUserId && (
                 <button aria-label="Elimina commento" onClick={() => handleDeleteComment(c.id)}
@@ -1301,7 +1301,7 @@ export const AreaSoci = () => {
                   )}
                   <div className="flex justify-between items-center">
                     <span className="text-tv-green-deep/75">Email account</span>
-                    <span className="text-tv-green-deep/70 text-xs">{user.email}</span>
+                    <span className="text-tv-green-deep/75 text-xs">{user.email}</span>
                   </div>
                 </div>
               </div>

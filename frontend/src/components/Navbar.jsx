@@ -111,7 +111,7 @@ export const Navbar = () => {
           </a>
 
           {/* ── Desktop nav ── */}
-          <nav className="hidden md:flex items-center gap-1" aria-label="Principale">
+          <nav className="hidden xl:flex items-center gap-1 whitespace-nowrap" aria-label="Principale">
             {links.map((l) => (l.to ? (
               <Link
                 key={l.to}
@@ -235,7 +235,7 @@ export const Navbar = () => {
           </nav>
 
           <button
-            className="md:hidden p-2 rounded-full bg-tv-green-deep text-tv-cream"
+            className="xl:hidden p-2 rounded-full bg-tv-green-deep text-tv-cream"
             onClick={() => setOpen(!open)}
             aria-label={open ? "Chiudi menu" : "Apri menu"}
             aria-expanded={open}
@@ -250,7 +250,7 @@ export const Navbar = () => {
         <nav
           id="mobile-menu"
           aria-label="Menu mobile"
-          className={`md:hidden absolute top-full left-0 right-0 mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
+          className={`xl:hidden absolute top-full left-0 right-0 md:left-auto md:right-8 md:w-80 mt-2 rounded-3xl bg-tv-cream border border-tv-green-deep/10 p-4 flex flex-col gap-1 transition-all duration-200 origin-top ${
             open ? "opacity-100 scale-y-100 pointer-events-auto visible" : "opacity-0 scale-y-95 pointer-events-none invisible"
           }`}
           data-testid="nav-mobile-menu"

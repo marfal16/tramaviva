@@ -146,7 +146,7 @@ const Section = ({ step, title, children, defaultOpen = false }) => {
           </span>
           <span className="font-bold text-tv-green-deep text-sm uppercase tracking-wider">{title}</span>
         </div>
-        {open ? <ChevronUp size={18} className="text-tv-green-deep/70" aria-hidden="true" /> : <ChevronDown size={18} className="text-tv-green-deep/70" aria-hidden="true" />}
+        {open ? <ChevronUp size={18} className="text-tv-green-deep/75" aria-hidden="true" /> : <ChevronDown size={18} className="text-tv-green-deep/75" aria-hidden="true" />}
       </button>
       {open && <div className="px-5 pb-5 pt-4 bg-tv-cream/50 space-y-4">{children}</div>}
     </div>
@@ -178,7 +178,7 @@ const BonificoBox = ({ firstName, lastName }) => {
             <span className={`font-bold text-tv-green-deep ${mono ? "font-mono text-xs" : ""} text-right`}>{value}</span>
             <button type="button" onClick={() => copy(value)} aria-label={`Copia ${label}`}
               className="shrink-0 p-1.5 rounded-lg bg-white border border-tv-green-deep/15 hover:bg-tv-sky/40 transition-colors">
-              <Copy size={13} className="text-tv-green-deep/70" aria-hidden="true" />
+              <Copy size={13} className="text-tv-green-deep/75" aria-hidden="true" />
             </button>
           </div>
         ))}
@@ -209,7 +209,7 @@ const MetodoPagamento = ({ value, onChange }) => (
             : "border-tv-green-deep/15 bg-white hover:border-tv-green-deep/40"
         }`}>
         <Icon size={22} className={value === v ? "text-tv-green-deep" : "text-tv-green-deep/75"} />
-        <span className={`font-bold text-sm ${value === v ? "text-tv-green-deep" : "text-tv-green-deep/70"}`}>{label}</span>
+        <span className={`font-bold text-sm ${value === v ? "text-tv-green-deep" : "text-tv-green-deep/75"}`}>{label}</span>
         <span className="text-[10px] text-tv-green-deep/75 leading-tight">{desc}</span>
       </button>
     ))}
@@ -318,7 +318,7 @@ export const IscrizioneExpanded = () => {
           <h2 className="font-display font-black text-4xl text-tv-green-deep mb-4">
             Richiesta ricevuta!
           </h2>
-          <p className="text-tv-green-deep/70 text-lg leading-relaxed mb-3">
+          <p className="text-tv-green-deep/75 text-lg leading-relaxed mb-3">
             La tua richiesta di iscrizione è stata presa in carico.
             {form.metodo_pagamento === "bonifico" && " Ricordati di inviare la ricevuta del bonifico."}
             {form.metodo_pagamento === "contanti" && " Presentati in sede per completare l'iscrizione."}

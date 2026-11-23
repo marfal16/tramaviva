@@ -95,7 +95,7 @@ export const Contatti = () => {
             Due righe,{" "}
             <span className="italic font-light text-tv-bordeaux">un nuovo filo</span>.
           </h2>
-          <p className="mt-3 text-base md:text-lg text-tv-green-deep/70 leading-relaxed">
+          <p className="mt-3 text-base md:text-lg text-tv-green-deep/75 leading-relaxed">
             Una proposta, una collaborazione, un feedback? Scrivici qui o trovaci sui nostri canali.
           </p>
         </div>

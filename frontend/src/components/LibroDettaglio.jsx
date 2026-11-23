@@ -278,7 +278,7 @@ export const LibroDettaglio = () => {
             )}
 
             {book.description && (
-              <p className="mt-5 text-tv-green-deep/70 leading-relaxed text-base">{book.description}</p>
+              <p className="mt-5 text-tv-green-deep/75 leading-relaxed text-base">{book.description}</p>
             )}
 
             {linkedEvents.length > 0 && (

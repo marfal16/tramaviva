@@ -142,7 +142,7 @@ export const Eventi = () => {
               <span className="italic font-light text-tv-bordeaux">ci sei per il </span> prossimo evento?
             </h2>
           </div>
-          <div className="text-tv-green-deep/70 max-w-sm">
+          <div className="text-tv-green-deep/75 max-w-sm">
             Clicca su un evento per mandare la tua richiesta di partecipazione. Ti
             confermiamo noi entro 24h.
           </div>
@@ -160,7 +160,7 @@ export const Eventi = () => {
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-all ${
                   view === "list"
                     ? "bg-tv-green-deep text-tv-cream"
-                    : "bg-white text-tv-green-deep/70 hover:bg-tv-sky/30 border border-tv-green-deep/10"
+                    : "bg-white text-tv-green-deep/75 hover:bg-tv-sky/30 border border-tv-green-deep/10"
                 }`}
               >
                 <LayoutGrid size={16} /> Lista
@@ -171,7 +171,7 @@ export const Eventi = () => {
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-bold text-sm transition-all ${
                   view === "calendar"
                     ? "bg-tv-green-deep text-tv-cream"
-                    : "bg-white text-tv-green-deep/70 hover:bg-tv-sky/30 border border-tv-green-deep/10"
+                    : "bg-white text-tv-green-deep/75 hover:bg-tv-sky/30 border border-tv-green-deep/10"
                 }`}
               >
                 <CalendarDays size={16} /> Calendario
@@ -200,7 +200,7 @@ export const Eventi = () => {
           data-testid="event-modal"
         >
           {doneEvent ? (
-            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-tv-green text-tv-cream rounded-[2rem] p-7 md:p-9 relative my-4">
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-tv-green-deep text-tv-cream rounded-[2rem] p-7 md:p-9 relative my-4">
               <button aria-label="Chiudi" type="button" onClick={() => { setSelected(null); setDoneEvent(null); }}
                 className="absolute top-5 right-5 p-2 rounded-full bg-tv-cream/20 hover:bg-tv-cream/30">
                 <X aria-hidden="true" size={16} />
@@ -359,7 +359,7 @@ export const Eventi = () => {
             {soloSociError && (
               <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                 <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
-                <p className="text-xs text-tv-green-deep/70 mb-3">
+                <p className="text-xs text-tv-green-deep/75 mb-3">
                   La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio.
                 </p>
                 <a
@@ -741,7 +741,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
         {/* Legend */}
         <div className="mt-4 flex flex-wrap items-center gap-3 justify-center">
           {Object.entries(categoryDot).map(([cat, color]) => (
-            <div key={cat} className="flex items-center gap-1.5 text-xs text-tv-green-deep/70">
+            <div key={cat} className="flex items-center gap-1.5 text-xs text-tv-green-deep/75">
               <span className="block w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
               {cat}
             </div>
@@ -759,7 +759,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             <div className="font-display font-black text-2xl leading-tight">
               Scegli un giorno.
             </div>
-            <div className="mt-2 text-sm text-tv-green-deep/70">
+            <div className="mt-2 text-sm text-tv-green-deep/75">
               Tocca una data sul calendario per vedere cosa succede quel giorno.
               I puntini sotto i numeri segnalano gli eventi in programma.
             </div>

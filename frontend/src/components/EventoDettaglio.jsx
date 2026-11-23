@@ -13,6 +13,7 @@ import { ThreadsBg } from "./ThreadsBg";
 import { PrivacyCheckbox, RecaptchaNotice } from "./PrivacyCheckbox";
 import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
 import { PRIVACY_VERSION } from "../lib/legal";
+import { renderInlineFormat } from "../lib/inlineFormat";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -315,7 +316,7 @@ export const EventoDettaglio = () => {
         <div className="mx-auto max-w-3xl px-6 py-32 text-center">
           <div className="text-6xl mb-4">🕸️</div>
           <h1 className="font-display font-black text-4xl text-tv-green-deep">Evento non trovato</h1>
-          <p className="mt-3 text-tv-green-deep/70">
+          <p className="mt-3 text-tv-green-deep/75">
             Forse è stato annullato o l'URL è sbagliato. Torna agli eventi attivi.
           </p>
           <Link
@@ -341,7 +342,7 @@ export const EventoDettaglio = () => {
           <Link
             to="/#eventi"
             data-testid="event-back-link"
-            className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/70 hover:text-tv-green-deep mb-8"
+            className="inline-flex items-center gap-2 text-sm font-bold text-tv-green-deep/75 hover:text-tv-green-deep mb-8"
           >
             <ArrowLeft size={16} /> Torna agli eventi
           </Link>
@@ -371,7 +372,7 @@ export const EventoDettaglio = () => {
               </h1>
               {/* <div className="mt-8 text-7xl md:text-8xl">{event.emoji}</div> */}
               <p className="mt-8 text-lg md:text-xl text-tv-green-deep/80 leading-relaxed whitespace-pre-wrap">
-                {event.description}
+                {renderInlineFormat(event.description)}
               </p>
 
               {/* Club del Libro banner */}
@@ -601,7 +602,7 @@ export const EventoDettaglio = () => {
                           {soloSociError && (
                             <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                               <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
-                              <p className="text-xs text-tv-green-deep/70 mb-3">
+                              <p className="text-xs text-tv-green-deep/75 mb-3">
                                 {typeof soloSociError === "string" ? soloSociError : "La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio."}
                               </p>
                               <a
@@ -621,7 +622,7 @@ export const EventoDettaglio = () => {
                 </div>
               ) : doneParziale ? (
                 <div className="flex flex-col gap-4" data-testid="event-detail-partial">
-                  <div className="bg-tv-green text-tv-cream rounded-[2rem] p-7">
+                  <div className="bg-tv-green-deep text-tv-cream rounded-[2rem] p-7">
                     <div className="flex justify-center mb-5">
                       <div className="w-16 h-16 rounded-full bg-tv-cream/20 flex items-center justify-center text-4xl">✅</div>
                     </div>
@@ -644,7 +645,7 @@ export const EventoDettaglio = () => {
                   </div>
                 </div>
               ) : done ? (
-                <div className="bg-tv-green text-tv-cream rounded-[2rem] p-7" data-testid="event-detail-success">
+                <div className="bg-tv-green-deep text-tv-cream rounded-[2rem] p-7" data-testid="event-detail-success">
                   <div className="flex justify-center mb-5">
                     <div className="w-16 h-16 rounded-full bg-tv-cream/20 flex items-center justify-center text-4xl">
                       ✅
@@ -773,7 +774,7 @@ export const EventoDettaglio = () => {
                   {/* Opzione personalizzata evento — persona principale */}
                   {event.opzioni_custom && (
                     <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
-                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-2">
                         {form.name ? `${form.name} — ` : ""}{event.opzioni_label || "Seleziona un'opzione"} *
                       </div>
                       <div className="flex flex-col gap-2">
@@ -785,7 +786,7 @@ export const EventoDettaglio = () => {
                             className={`px-4 py-3 rounded-2xl border-2 text-sm text-left transition-all ${
                               opzioneScelta === opt
                                 ? "border-tv-green bg-tv-green/10 text-tv-green-deep font-bold"
-                                : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/70 hover:border-tv-green-deep/30"
+                                : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/75 hover:border-tv-green-deep/30"
                             }`}
                           >
                             {opzioneScelta === opt ? "✓ " : ""}{opt}
@@ -797,7 +798,7 @@ export const EventoDettaglio = () => {
 
                   {/* Quante persone */}
                   <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
-                    <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Quante persone partecipano?</div>
+                    <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-2">Quante persone partecipano?</div>
                     <div className="flex gap-2 flex-wrap">
                       {[1,2,3,4,5,6].map(n => (
                         <button
@@ -817,7 +818,7 @@ export const EventoDettaglio = () => {
                   {/* Dati ospiti */}
                   {ospiti.map((g, i) => (
                     <div key={i} className="mt-4 pt-4 border-t border-tv-green-deep/10">
-                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-2">
                         {(g.nome || g.cognome) ? `${g.nome} ${g.cognome}`.trim() : `Persona ${i + 2}`}
                       </div>
                       <div className="space-y-2">
@@ -846,7 +847,7 @@ export const EventoDettaglio = () => {
                                   className={`px-3 py-2 rounded-xl border-2 text-sm text-left transition-all ${
                                     g.opzione_scelta === opt
                                       ? "border-tv-green bg-tv-green/10 text-tv-green-deep font-bold"
-                                      : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/70 hover:border-tv-green-deep/30"
+                                      : "border-tv-green-deep/15 bg-tv-cream/40 text-tv-green-deep/75 hover:border-tv-green-deep/30"
                                   }`}>
                                   {g.opzione_scelta === opt ? "✓ " : ""}{opt}
                                 </button>
@@ -861,7 +862,7 @@ export const EventoDettaglio = () => {
                   {/* Contributo volontario */}
                   {event.contributo_volontario && (
                     <div className="mt-4 pt-4 border-t border-tv-green-deep/10">
-                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo volontario all'associazione</div>
+                      <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-1">Contributo volontario all'associazione</div>
                       <p className="text-xs text-tv-green-deep/75 mb-2">Facoltativo — ogni cifra è benvenuta 💚</p>
                       <div className="relative">
                         <input
@@ -877,7 +878,7 @@ export const EventoDettaglio = () => {
                       </div>
                       {parseFloat(donazioneVolontaria) > 0 && (
                         <div className="mt-3">
-                          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Come vuoi pagare? *</div>
+                          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-2">Come vuoi pagare? *</div>
                           <div className="flex gap-2">
                             {[
                               { v: "bonifico", label: "🏦 Bonifico" },
@@ -914,7 +915,7 @@ export const EventoDettaglio = () => {
                           {form.metodo_pagamento === "elettronico" && (
                             <div className="mt-2 p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
                               <div className="text-xs font-bold text-tv-green-deep/75 mb-1">Pagamento sicuro via SumUp</div>
-                              <div className="text-xs text-tv-green-deep/70">
+                              <div className="text-xs text-tv-green-deep/75">
                                 Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
                               </div>
                             </div>
@@ -929,12 +930,12 @@ export const EventoDettaglio = () => {
                     return (
                       <div className="pt-3 border-t border-tv-green-deep/10 space-y-3">
                         {inLoco ? (
-                          <div className="flex items-center gap-2 text-sm text-tv-green-deep/70">
+                          <div className="flex items-center gap-2 text-sm text-tv-green-deep/75">
                             <span className="font-black text-tv-green-deep">💶 {event.contributo}€</span>
                             <span>· da versare direttamente alla struttura</span>
                           </div>
                         ) : event.contributo_note ? (
-                          <p className="text-xs text-tv-green-deep/70 italic">📝 {event.contributo_note}</p>
+                          <p className="text-xs text-tv-green-deep/75 italic">📝 {event.contributo_note}</p>
                         ) : null}
                         {event.non_rimborsabile && (
                           <div className="p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/40 text-xs text-tv-green-deep font-semibold">
@@ -943,7 +944,7 @@ export const EventoDettaglio = () => {
                         )}
                         {!inLoco && (
                           <div>
-                            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">
+                            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/75 mb-2">
                               Metodo di pagamento *
                             </div>
                             <div className="flex gap-2">
@@ -992,7 +993,7 @@ export const EventoDettaglio = () => {
                         {form.metodo_pagamento === "elettronico" && (
                           <div className="p-3 rounded-2xl bg-tv-cream border border-tv-green-deep/15">
                             <div className="text-xs font-bold text-tv-green-deep/75 mb-1">Pagamento sicuro via SumUp</div>
-                            <div className="text-xs text-tv-green-deep/70">
+                            <div className="text-xs text-tv-green-deep/75">
                               Dopo aver inviato la richiesta, sarai reindirizzato al pagamento online.
                             </div>
                           </div>
@@ -1028,7 +1029,7 @@ export const EventoDettaglio = () => {
                   {soloSociError && (
                     <div className="mt-3 p-4 rounded-2xl bg-tv-bordeaux/8 border border-tv-bordeaux/20 text-sm text-tv-green-deep leading-relaxed">
                       <div className="font-bold text-tv-bordeaux mb-1">Evento riservato ai soci</div>
-                      <p className="text-xs text-tv-green-deep/70 mb-3">
+                      <p className="text-xs text-tv-green-deep/75 mb-3">
                         {typeof soloSociError === "string" ? soloSociError : "La tua email non risulta tra i soci di Trama Viva. Per partecipare devi prima diventare socio."}
                       </p>
                       <a

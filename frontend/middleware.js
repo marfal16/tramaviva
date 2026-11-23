@@ -86,7 +86,7 @@ export default async function middleware(request) {
     if (res.ok) {
       const ev = await res.json();
       title = `${ev.title || 'Evento'} — Trama Viva APS`;
-      description = (ev.description || description).slice(0, 250);
+      description = (ev.description || description).replace(/\*{1,3}([^*\n]+?)\*{1,3}/g, '$1').slice(0, 250);
       if (ev.has_image) imageUrl = `${BACKEND}/api/events/${ev.id || slug}/image`;
     }
   } catch (_) { /* usa defaults */ }

@@ -93,7 +93,7 @@ const FilmReviewCard = ({ review }) => {
           <StarDisplay rating={review.rating} />
         </div>
       </div>
-      <p className="text-sm text-tv-green-deep/70 leading-relaxed">{review.content}</p>
+      <p className="text-sm text-tv-green-deep/75 leading-relaxed">{review.content}</p>
     </div>
   );
 };
@@ -288,7 +288,7 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
           {film.description && (
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Trama</div>
-              <p className="text-sm text-tv-green-deep/70 leading-relaxed">{film.description}</p>
+              <p className="text-sm text-tv-green-deep/75 leading-relaxed">{film.description}</p>
             </div>
           )}
 
@@ -808,7 +808,7 @@ const FilmProposalDetailModal = ({ proposal, onVoteRequest, onClose }) => {
           {proposal.description && (
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-2">Trama</div>
-              <p className="text-sm text-tv-green-deep/70 leading-relaxed">{proposal.description}</p>
+              <p className="text-sm text-tv-green-deep/75 leading-relaxed">{proposal.description}</p>
             </div>
           )}
 
@@ -928,7 +928,7 @@ const FilmProposalCard = ({ proposal, onVote, onUnvote, onReproponi, disabled, o
             </div>
           )}
           {/* Vote badge */}
-          <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black shadow-sm bg-white/90 text-tv-green-deep/70">
+          <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black shadow-sm bg-white/90 text-tv-green-deep/75">
             <ThumbsUp size={11} /> {proposal.votes}
           </div>
         </div>
@@ -1307,7 +1307,7 @@ export const Cineforum = () => {
           <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl leading-[0.93] tracking-tight text-tv-green-deep">
             Stessa sala, <span className="italic font-light text-tv-sky">sguardi diversi</span>.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/65">
+          <p className="mt-6 max-w-2xl text-lg text-tv-green-deep/75">
             Scegliamo un film, lo guardiamo, lo discutiamo. Dal voto dei titoli alla discussione finale, ogni proiezione è un pretesto per guardarsi — e guardare il mondo — con occhi nuovi.
           </p>
         </div>

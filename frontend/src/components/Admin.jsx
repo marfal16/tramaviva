@@ -3760,7 +3760,7 @@ const Dashboard = ({ token, onLogout }) => {
             onClick={() => { setTab("home"); setMobileMenuOpen(false); setNavDropdown(null); }}
             className="flex items-center gap-3 flex-shrink-0 hover:opacity-80 transition-opacity"
           >
-            <Logo variant="inline" size={28} textColor="#e8d5a3" />
+            <Logo variant="inline" size={28} textColor="#e8d5a3" accentColor="#A7B94C" />
             <span className="hidden sm:block text-[8px] font-bold text-tv-cream/40 uppercase tracking-[0.2em]">Amm.</span>
           </button>
 
