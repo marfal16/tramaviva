@@ -7,6 +7,8 @@ import { icsUrl, googleCalendarUrl } from "../utils/calendarUtils";
 import { Calendar as CalendarIcon, Clock, MapPin, Users, ArrowLeft, Share2, Send, Copy, MessageCircle, BookOpen, ArrowRight } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { eventImgStyle, eventImgFit } from "../lib/eventImage";
+import PlaceLink from "./PlaceLink";
 import { ThreadsBg } from "./ThreadsBg";
 import { PrivacyCheckbox, RecaptchaNotice } from "./PrivacyCheckbox";
 import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
@@ -351,7 +353,8 @@ export const EventoDettaglio = () => {
                   src={event.image_url || `${API}/events/${event.id}/image`}
                   alt={event.title}
                   loading="lazy"
-                  className="w-full h-64 md:h-80 object-cover rounded-[2rem] mb-6"
+                  style={eventImgStyle(event)}
+                  className={`w-full h-64 md:h-80 ${eventImgFit(event)} rounded-[2rem] mb-6`}
                 />
               )}
               <span
@@ -438,12 +441,16 @@ export const EventoDettaglio = () => {
                   {fmtDate(event.date)}
                 </div>
                 <div className="mt-4 grid gap-2.5 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Clock size={15} /> {event.time}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin size={15} /> {event.location}
-                  </div>
+                  {event.time && (
+                    <div className="flex items-center gap-2">
+                      <Clock size={15} /> {event.time}
+                    </div>
+                  )}
+                  {(event.location || event.maps_url) && (
+                    <div className="flex items-center gap-2">
+                      <MapPin size={15} /> <PlaceLink place={event.location} url={event.maps_url} />
+                    </div>
+                  )}
                   {event.spots != null && (
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
@@ -657,10 +664,10 @@ export const EventoDettaglio = () => {
                         </span>
                       </div>
                     )}
-                    {event.location && (
+                    {(event.location || event.maps_url) && (
                       <div className="flex items-start gap-2">
                         <span>📍</span>
-                        <span>{event.location}</span>
+                        <PlaceLink place={event.location} url={event.maps_url} />
                       </div>
                     )}
                   </div>

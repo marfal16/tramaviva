@@ -10,6 +10,8 @@ import { icsUrl, googleCalendarUrl } from "../utils/calendarUtils";
 import { PrivacyCheckbox, RecaptchaNotice } from "./PrivacyCheckbox";
 import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptcha";
 import { PRIVACY_VERSION } from "../lib/legal";
+import { eventImgStyle, eventImgFit } from "../lib/eventImage";
+import PlaceLink from "./PlaceLink";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -440,8 +442,8 @@ const FeaturedCard = ({ ev, onParticipate }) => (
       </p> */}
       <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <div className="flex items-center gap-2"><CalendarIcon size={15} /> {fmtDate(ev.date)}</div>
-        <div className="flex items-center gap-2"><Clock size={15} /> {ev.time}</div>
-        <div className="flex items-center gap-2"><MapPin size={15} /> {ev.location}</div>
+        {ev.time && <div className="flex items-center gap-2"><Clock size={15} /> {ev.time}</div>}
+        {(ev.location || ev.maps_url) && <div className="flex items-center gap-2"><MapPin size={15} /> <PlaceLink place={ev.location} url={ev.maps_url} /></div>}
         {ev.spots <= 5 && (
           <div className="flex items-center gap-2">
             <Users size={15} />
@@ -486,7 +488,7 @@ const FeaturedCard = ({ ev, onParticipate }) => (
     </div>
     <div className="relative md:col-span-5 flex items-center justify-center">
       {ev.has_image ? (
-        <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt={ev.title} loading="lazy" className={`w-full max-w-xs rounded-2xl object-cover aspect-square ${ev.spots <= 0 ? "opacity-60 grayscale-[20%]" : ""}`} />
+        <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt={ev.title} loading="lazy" style={eventImgStyle(ev)} className={`w-full max-w-xs rounded-2xl ${eventImgFit(ev)} aspect-square ${ev.spots <= 0 ? "opacity-60 grayscale-[20%]" : ""}`} />
       ) : (
         <span className={`text-[10rem] md:text-[12rem] leading-none ${ev.spots <= 0 ? "opacity-50 grayscale" : ""}`}>{ev.emoji}</span>
       )}
@@ -511,7 +513,7 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
     >
       {!compact && ev.has_image && (
         <div className="-mx-6 -mt-6 mb-4 relative">
-          <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt={ev.title} loading="lazy" className={`w-full h-44 object-cover ${soldOut ? "opacity-60 grayscale-[30%]" : ""}`} />
+          <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt={ev.title} loading="lazy" style={eventImgStyle(ev)} className={`w-full h-44 ${eventImgFit(ev)} ${soldOut ? "opacity-60 grayscale-[30%]" : ""}`} />
         </div>
       )}
       <div className="flex items-center justify-between mb-4">
@@ -542,12 +544,16 @@ const EventCard = ({ ev, onParticipate, compact = false, past = false }) => {
         <div className="flex items-center gap-2">
           <CalendarIcon size={14} /> {fmtDate(ev.date)}
         </div>
-        <div className="flex items-center gap-2">
-          <Clock size={14} /> {ev.time}
-        </div>
-        <div className="flex items-center gap-2">
-          <MapPin size={14} /> {ev.location}
-        </div>
+        {ev.time && (
+          <div className="flex items-center gap-2">
+            <Clock size={14} /> {ev.time}
+          </div>
+        )}
+        {(ev.location || ev.maps_url) && (
+          <div className="flex items-center gap-2">
+            <MapPin size={14} /> <PlaceLink place={ev.location} url={ev.maps_url} />
+          </div>
+        )}
         {!compact && !past && ev.spots <= 5 && (
           <div className="flex items-center gap-2">
             <Users size={14} />
@@ -607,7 +613,8 @@ export const PastEventCard = ({ ev }) => (
           src={ev.image_url || `${API}/events/${ev.id}/image`}
           alt={ev.title}
           loading="lazy"
-          className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+          style={eventImgStyle(ev)}
+          className={`w-full h-full ${eventImgFit(ev)} transition-all duration-500 group-hover:scale-105`}
         />
       </div>
     ) : (

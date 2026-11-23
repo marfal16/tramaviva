@@ -236,9 +236,32 @@ class Event(BaseModel):
     solo_soci: bool = False
     has_image: bool = False
     image_url: Optional[str] = None
+    image_pos_x: float = 50.0   # quale parte della locandina mostrare (0-100), 50 = centro
+    image_pos_y: float = 50.0
+    image_fit: str = "cover"    # "cover" riempie lo spazio (può tagliare), "contain" mostra tutta la locandina
+    maps_url: Optional[str] = None  # link di Google Maps del luogo
     contributo_volontario: bool = False
     opzioni_label: Optional[str] = None
     opzioni_custom: Optional[str] = None
+
+
+def _clean_maps_url(v):
+    """Link di Maps: solo http(s). None = non cambiare, stringa vuota = togli il link."""
+    if v is None:
+        return None
+    v = v.strip()
+    if not v:
+        return ""
+    if len(v) > 600:
+        raise ValueError("Il link è troppo lungo")
+    if not re.match(r"^https?://", v, flags=re.I):
+        raise ValueError("Il link deve iniziare con https://")
+    return v
+
+
+def _clean_image_fit(v):
+    return v if v in ("cover", "contain") else ("cover" if v is not None else None)
+
 
 class EventCreate(BaseModel):
     title: str
@@ -259,6 +282,20 @@ class EventCreate(BaseModel):
     contributo_volontario: bool = False
     opzioni_label: Optional[str] = None
     opzioni_custom: Optional[str] = None
+    maps_url: Optional[str] = None
+    image_pos_x: float = Field(default=50.0, ge=0, le=100)
+    image_pos_y: float = Field(default=50.0, ge=0, le=100)
+    image_fit: str = "cover"
+
+    @field_validator("maps_url")
+    @classmethod
+    def _check_maps(cls, v):
+        return _clean_maps_url(v) or None
+
+    @field_validator("image_fit")
+    @classmethod
+    def _check_fit(cls, v):
+        return _clean_image_fit(v)
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -278,6 +315,20 @@ class EventUpdate(BaseModel):
     contributo_volontario: Optional[bool] = None
     opzioni_label: Optional[str] = None
     opzioni_custom: Optional[str] = None
+    maps_url: Optional[str] = None
+    image_pos_x: Optional[float] = Field(default=None, ge=0, le=100)
+    image_pos_y: Optional[float] = Field(default=None, ge=0, le=100)
+    image_fit: Optional[str] = None
+
+    @field_validator("maps_url")
+    @classmethod
+    def _check_maps(cls, v):
+        return _clean_maps_url(v)
+
+    @field_validator("image_fit")
+    @classmethod
+    def _check_fit(cls, v):
+        return _clean_image_fit(v)
 
 class ImageUpload(BaseModel):
     image_data: Optional[str] = None
@@ -1699,7 +1750,8 @@ async def get_project_photos(slug: str, limit: int = 60):
     limit = max(1, min(limit, 100))
     events = await db.events.find(
         {"category": {"$in": cats}, "is_draft": {"$ne": True}},
-        {"_id": 0, "id": 1, "slug": 1, "title": 1, "date": 1, "gallery": 1, "image_url": 1, "has_image": 1},
+        {"_id": 0, "id": 1, "slug": 1, "title": 1, "date": 1, "gallery": 1, "image_url": 1, "has_image": 1,
+         "image_pos_x": 1, "image_pos_y": 1},
     ).sort("date", -1).to_list(500)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     prepared = []
@@ -1711,9 +1763,10 @@ async def get_project_photos(slug: str, limit: int = 60):
             photos.append(e["image_url"])
         elif e.get("has_image"):
             photos.append(f"/api/events/{e['id']}/image")  # copertine vecchie, salvate nel database
+        has_cover = bool(photos)
         photos += [u for u in (e.get("gallery") or []) if u not in photos]
         if photos:
-            prepared.append({**e, "photos": photos})
+            prepared.append({**e, "photos": photos, "has_cover": has_cover})
     events = prepared
     out: list = []
     rank = 0
@@ -1722,8 +1775,11 @@ async def get_project_photos(slug: str, limit: int = 60):
         for e in events:
             photos = e["photos"]
             if rank < len(photos):
+                is_cover = rank == 0 and e["has_cover"]  # l'inquadratura scelta vale solo per la copertina
                 out.append({"url": photos[rank], "event_id": e.get("id"), "event_slug": e.get("slug"),
-                            "event_title": e.get("title", ""), "event_date": e.get("date", "")})
+                            "event_title": e.get("title", ""), "event_date": e.get("date", ""),
+                            "pos_x": e.get("image_pos_x", 50.0) if is_cover else 50.0,
+                            "pos_y": e.get("image_pos_y", 50.0) if is_cover else 50.0})
                 added = True
                 if len(out) >= limit:
                     break

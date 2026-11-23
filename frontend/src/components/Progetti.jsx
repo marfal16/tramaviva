@@ -215,6 +215,7 @@ const ProjectPhotos = ({ slug }) => {
                     alt=""
                     loading="lazy"
                     decoding="async"
+                    style={{ objectPosition: `${p.pos_x ?? 50}% ${p.pos_y ?? 50}%` }}
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <span className="absolute inset-x-0 bottom-0 px-3 pt-8 pb-3 md:px-4 md:pb-4 text-left bg-gradient-to-t from-tv-green-deep/85 via-tv-green-deep/35 to-transparent text-tv-cream">

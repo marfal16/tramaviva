@@ -8,6 +8,8 @@ import CoverSearchWidget from "./CoverSearchWidget";
 import PrivacyManager from "./AdminPrivacy";
 import ProjectsManager from "./AdminProjects";
 import EventGalleryEditor from "./AdminEventGallery";
+import EventImageFraming from "./EventImageFraming";
+import { eventImgStyle, eventImgFit } from "../lib/eventImage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -5687,7 +5689,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) 
       {/* Cover — mobile: piccola, desktop: full-width in cima */}
       <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 md:w-full md:h-32 md:rounded-none">
         {ev.has_image
-          ? <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt="" className="w-full h-full object-cover" />
+          ? <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt="" style={eventImgStyle(ev)} className={`w-full h-full ${eventImgFit(ev)}`} />
           : <div className="w-full h-full bg-gradient-to-br from-tv-green/20 to-tv-sky/20 flex items-center justify-center text-3xl md:text-5xl">{ev.emoji}</div>
         }
       </div>
@@ -5726,7 +5728,7 @@ const EventsManager = ({ events, onCreate, onEdit, onDelete, token, onReload }) 
     >
       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 md:w-full md:h-20 md:rounded-none">
         {ev.has_image
-          ? <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt="" className="w-full h-full object-cover" />
+          ? <img src={ev.image_url || `${API}/events/${ev.id}/image`} alt="" style={eventImgStyle(ev)} className={`w-full h-full ${eventImgFit(ev)}`} />
           : <div className="w-full h-full bg-gradient-to-br from-tv-green/20 to-tv-sky/20 flex items-center justify-center text-2xl">{ev.emoji}</div>
         }
       </div>
@@ -5826,14 +5828,25 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
     .reduce((sum, s) => sum + (s.num_persone || 1), 0);
   const [form, setForm] = useState(
     initial
-      ? { ...initial, max_participants: initial.max_participants ?? ((initial.spots ?? 0) + confirmedForEvent) }
+      ? {
+          ...initial,
+          category: initial.category || "",
+          maps_url: initial.maps_url || "",
+          image_pos_x: initial.image_pos_x ?? 50,
+          image_pos_y: initial.image_pos_y ?? 50,
+          image_fit: initial.image_fit || "cover",
+          max_participants: initial.max_participants ?? ((initial.spots ?? 0) + confirmedForEvent),
+        }
       : {
           title: "", category: CATEGORIES[0], date: "", time: "19:00",
-          location: "", description: "", emoji: "✨", spots: 20, max_participants: 20, featured: false, contributo: 0,
+          location: "", maps_url: "", description: "", emoji: "✨", spots: 20, max_participants: 20, featured: false, contributo: 0,
           contributo_note: "", non_rimborsabile: false, solo_soci: false,
           contributo_volontario: false, opzioni_label: "", opzioni_custom: "",
+          image_pos_x: 50, image_pos_y: 50, image_fit: "cover",
         }
   );
+  const startForm = useRef(JSON.stringify(form)); // com'era all'apertura: serve a capire se ci sono modifiche non salvate
+  const downOnBackdrop = useRef(false);
   const [saving, setSaving] = useState(false);
   const [imageData, setImageData] = useState(null);
   const [imageRemoved, setImageRemoved] = useState(false);
@@ -5844,6 +5857,18 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
   const [coverResults, setCoverResults] = useState([]);
   const [coverSearching, setCoverSearching] = useState(false);
   const change = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  // Chiudere per sbaglio non deve far perdere il lavoro: se ci sono modifiche, prima si chiede conferma
+  const dirty = JSON.stringify(form) !== startForm.current || !!imageData || !!selectedCoverUrl || imageRemoved;
+  const requestClose = () => {
+    if (!dirty || window.confirm("Hai modifiche non salvate. Chiudere senza salvare?")) onClose();
+  };
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (e) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const currentImageSrc = imageData || selectedCoverUrl || (!imageRemoved && initial?.has_image ? (initial?.image_url || `${API}/events/${initial?.id}/image`) : null);
 
@@ -5868,14 +5893,20 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.category || !form.date || !form.time || !form.location || !form.description) {
-      toast.error("Compila tutti i campi obbligatori.");
+    if (!String(form.title || "").trim() || !form.date) {
+      toast.error("Servono almeno il titolo e la data.");
       return;
     }
     setSaving(true);
     try {
       const maxP = Number(form.max_participants) >= 0 ? Number(form.max_participants) : 20;
-      const payload = { ...form, max_participants: maxP, spots: isNew ? maxP : form.spots };
+      const maps = String(form.maps_url || "").trim();
+      const payload = {
+        ...form,
+        maps_url: maps && !/^https?:\/\//i.test(maps) ? `https://${maps}` : maps,
+        max_participants: maxP,
+        spots: isNew ? maxP : form.spots,
+      };
       const headers = { Authorization: `Bearer ${token}` };
       let eventId;
       if (isNew) {
@@ -5902,31 +5933,81 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
     }
   };
   return (
-    <div className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[60] bg-tv-green-deep/70 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto"
+      onMouseDown={(e) => { downOnBackdrop.current = e.target === e.currentTarget; }}
+      onClick={(e) => { if (e.target === e.currentTarget && downOnBackdrop.current) requestClose(); }}
+    >
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="w-full max-w-2xl bg-tv-cream rounded-[2rem] p-5 md:p-9 my-4 md:my-8 relative">
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">{isNew ? "Nuovo evento" : "Modifica evento"}</div>
             <h3 className="mt-1 font-display font-black text-xl md:text-3xl text-tv-green-deep">{isNew ? "Crea evento" : form.title}</h3>
           </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"><X size={16} /></button>
+          <button type="button" onClick={requestClose} aria-label="Chiudi" className="p-2 rounded-full bg-tv-green-deep text-tv-cream hover:bg-tv-green"><X size={16} /></button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Titolo *" value={form.title} onChange={change("title")} required />
           <label className="block">
-            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Categoria *</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Categoria</div>
             <select value={form.category} onChange={change("category")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none">
+              <option value="">— Scegli —</option>
+              {form.category && !CATEGORIES.includes(form.category) && <option value={form.category}>{form.category}</option>}
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
           <Field label="Data *" type="date" value={form.date} onChange={change("date")} required />
-          <Field label="Ora *" type="time" value={form.time} onChange={change("time")} required />
-          <Field label="Luogo *" value={form.location} onChange={change("location")} required />
+          <Field label="Ora" type="time" value={form.time} onChange={change("time")} />
+          <Field label="Luogo (nome del locale)" value={form.location} onChange={change("location")} />
           <Field label="Posti massimi" type="number" value={form.max_participants ?? form.spots ?? 20} onChange={change("max_participants")} />
-          <label className="block">
-            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo (€)</div>
-            <input type="number" min="0" step="0.01" value={form.contributo ?? 0} onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none" />
+          <label className="block sm:col-span-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Indirizzo (link di Google Maps)</div>
+            <input
+              type="text"
+              inputMode="url"
+              autoComplete="off"
+              value={form.maps_url ?? ""}
+              onChange={change("maps_url")}
+              placeholder="https://maps.app.goo.gl/…"
+              data-testid="event-maps-url"
+              className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none"
+            />
+            <p className="mt-1 text-xs text-tv-green-deep/60">
+              Su Google Maps premi «Condividi», copia il link e incollalo qui. Sul sito il nome del locale diventa cliccabile e porta alla mappa.
+            </p>
           </label>
+          <div className="sm:col-span-2">
+            <label htmlFor="ev-contributo" className="block text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Contributo (€)</label>
+            <div className="flex items-center gap-3 flex-wrap">
+              <input
+                id="ev-contributo"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                value={form.contributo ?? 0}
+                onChange={(e) => setForm({ ...form, contributo: parseFloat(e.target.value) || 0 })}
+                className="w-28 px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none"
+              />
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Importi rapidi">
+                {[0, 5, 10, 15, 20, 25, 30, 40, 50].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    aria-pressed={Number(form.contributo) === v}
+                    onClick={() => setForm((f) => ({ ...f, contributo: v }))}
+                    className={`px-3 py-1.5 rounded-full text-sm font-bold border transition-colors ${
+                      Number(form.contributo) === v
+                        ? "bg-tv-green-deep text-tv-cream border-tv-green-deep"
+                        : "bg-white text-tv-green-deep/75 border-tv-green-deep/20 hover:border-tv-green-deep/50"
+                    }`}
+                  >
+                    {v === 0 ? "Gratis" : `${v} €`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
           <label className="block sm:col-span-2">
             <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Nota contributo</div>
             <input type="text" value={form.contributo_note ?? ""} onChange={change("contributo_note")} placeholder="Es. per prenotazione tavolo pic-nic" className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep outline-none" />
@@ -5946,8 +6027,8 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
           </label>
         </div>
         <label className="block mt-4">
-          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Descrizione *</div>
-          <textarea rows={4} value={form.description} onChange={change("description")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep resize-none outline-none" />
+          <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-1">Descrizione</div>
+          <textarea rows={4} value={form.description ?? ""} onChange={change("description")} className="w-full px-4 py-3 rounded-2xl bg-white border border-tv-green-deep/15 text-tv-green-deep resize-none outline-none" />
         </label>
         <button
           type="button"
@@ -6033,16 +6114,15 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
         <div className="mt-4">
           <div className="text-xs font-bold uppercase tracking-wider text-tv-green-deep/70 mb-2">Immagine evento</div>
           {currentImageSrc && (
-            <div className="relative mb-3">
-              <img src={currentImageSrc} alt="Preview" className="w-full h-44 object-cover rounded-2xl" />
-              <button
-                type="button"
-                onClick={() => { setImageData(null); setImageRemoved(true); }}
-                className="absolute top-2 right-2 p-1.5 rounded-xl bg-white/90 text-tv-bordeaux hover:bg-tv-bordeaux hover:text-tv-cream transition-colors"
-                title="Rimuovi immagine"
-              >
-                <X size={14} />
-              </button>
+            <div className="mb-3">
+              <EventImageFraming
+                src={currentImageSrc}
+                x={form.image_pos_x}
+                y={form.image_pos_y}
+                fit={form.image_fit}
+                onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
+                onRemove={() => { setImageData(null); setSelectedCoverUrl(null); setImageRemoved(true); }}
+              />
             </div>
           )}
           <div className="flex gap-2">
@@ -6106,7 +6186,7 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
         )}
         <div className="mt-5 flex gap-3">
           <button type="submit" disabled={saving} className="btn-tv flex-1 px-5 py-4 rounded-full bg-tv-green-deep text-tv-cream font-bold disabled:opacity-60">{saving ? "Salvo…" : "Salva"}</button>
-          <button type="button" onClick={onClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>
+          <button type="button" onClick={requestClose} className="px-5 py-4 rounded-full bg-white border border-tv-green-deep/15 text-tv-green-deep font-bold">Annulla</button>
         </div>
       </form>
     </div>
