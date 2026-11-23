@@ -35,8 +35,8 @@ const fmtDay = (iso) => {
 
 const fmtMonthYear = (iso) => {
   if (!iso) return "";
-  try { return new Date(iso + "-01").toLocaleDateString("it-IT", { month: "long", year: "numeric" }); }
-  catch { return iso; }
+  const d = new Date(String(iso).slice(0, 7) + "-01");
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
 };
 
 const getUpcomingMonths = (count = 7) => {
@@ -129,6 +129,61 @@ const BookCard = ({ book, reviewsByBook, events = [] }) => {
     </article>
   );
 };
+
+// Archivio compatto: solo copertine in griglia (desktop, accanto a "Stiamo leggendo")
+const COVERS_PREVIEW = 12;
+const ReadCoversGrid = ({ books }) => {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? books : books.slice(0, COVERS_PREVIEW);
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-x-3 gap-y-4">
+        {visible.map((b) => (
+          <Link key={b.id} to={`/club-del-libro/${b.id}`} className="group block" title={`${b.title}${b.author ? ` — ${b.author}` : ""}`}>
+            <div className="aspect-[2/3] rounded-xl overflow-hidden bg-tv-green-deep/[0.06] shadow-[0_6px_18px_-8px_rgba(5,47,23,0.35)] transition-transform duration-300 group-hover:-translate-y-1">
+              {b.cover_url ? (
+                <img src={b.cover_url} alt={b.title} loading="lazy" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-2 text-center">
+                  <BookOpen size={22} className="text-tv-green-deep/25" aria-hidden="true" />
+                  <span className="text-[11px] font-bold leading-tight text-tv-green-deep/75 line-clamp-3">{b.title}</span>
+                </div>
+              )}
+            </div>
+            <div className="mt-1.5 text-[11px] font-bold leading-tight text-tv-green-deep line-clamp-2 group-hover:text-tv-bordeaux transition-colors">{b.title}</div>
+          </Link>
+        ))}
+      </div>
+      {books.length > COVERS_PREVIEW && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          aria-expanded={showAll}
+          className="mt-5 text-sm font-bold text-tv-green-deep underline underline-offset-4 hover:text-tv-bordeaux"
+        >
+          {showAll ? "Mostra meno" : `Mostra tutti i ${books.length} libri letti`}
+        </button>
+      )}
+    </>
+  );
+};
+
+// Link al gruppo WhatsApp del club
+const WhatsAppCommunityLink = ({ className = "inline-flex" }) => (
+    <a
+      href={WHATSAPP_COMMUNITY}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${className} items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group`}
+    >
+      <MessageCircle size={18} className="text-[#25D366] shrink-0" />
+      <div className="min-w-0">
+        <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Community WhatsApp</div>
+        <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Club del Libro</div>
+      </div>
+      <ArrowRight size={14} className="text-tv-green-deep/75 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
+    </a>
+);
 
 // ── Form proposta libro ──────────────────────────────────────────────────────
 const CLUB_PWD_KEY = "tv_club_pwd";
@@ -1104,7 +1159,9 @@ export const ClubDelLibro = () => {
   }, [reviews]);
 
   const inLettura   = books.filter((b) => b.status === "in_lettura" && !b.is_lent && !b.is_library_book);
-  const conclusi    = books.filter((b) => b.status === "concluso" && !b.is_library_book);
+  const conclusi    = books
+    .filter((b) => b.status === "concluso" && !b.is_library_book)
+    .sort((a, b) => String(b.reading_month || "").localeCompare(String(a.reading_month || "")));
   const prossimi    = books.filter((b) => b.status === "prossimamente" && !b.is_library_book);
   const disponibili = books.filter((b) => b.in_biblioteca && !b.is_lent && !b.is_to_find);
   const inPrestito  = books.filter((b) => b.is_lent);
@@ -1129,37 +1186,39 @@ export const ClubDelLibro = () => {
         </div>
       </section>
 
-      {/* WhatsApp community strip */}
-      <div className="px-6 md:px-10 pb-6 md:pb-8">
-        <div className="mx-auto max-w-5xl">
-          <a
-            href={WHATSAPP_COMMUNITY}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group"
-          >
-            <MessageCircle size={18} className="text-[#25D366] shrink-0" />
-            <div className="min-w-0">
-              <div className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Community WhatsApp</div>
-              <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Club del Libro</div>
-            </div>
-            <ArrowRight size={14} className="text-tv-green-deep/75 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
-          </a>
+      {/* WhatsApp community: in cima solo se non c'è una lettura in corso, altrimenti sotto il libro del mese */}
+      {(loading || books.every((b) => !(b.status === "in_lettura" && !b.is_lent && !b.is_library_book))) && (
+        <div className="px-6 md:px-10 pb-6 md:pb-8">
+          <div className="mx-auto max-w-5xl">
+            <WhatsAppCommunityLink />
+          </div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="text-center text-tv-green-deep/75 py-24">Caricamento…</div>
       ) : (
         <>
           {/* Stiamo leggendo — on top */}
-          {inLettura.length > 0 && (
-            <section className="pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10">
-              <div className="mx-auto max-w-5xl">
-                <SectionHeading dot="bg-tv-green" label="Ora in corso" title="Stiamo leggendo" labelSize="text-sm" />
-                <div className="grid md:grid-cols-2 gap-5">
-                  {inLettura.map((b) => <BookCard key={b.id} book={b} {...cardProps} />)}
-                </div>
+          {/* Su desktop l'archivio (solo copertine) sta accanto alla lettura in corso */}
+          {(inLettura.length > 0 || conclusi.length > 0) && (
+            <section className={`pt-4 pb-14 md:pt-6 md:pb-20 px-6 md:px-10 ${inLettura.length === 0 ? "hidden lg:block" : ""}`}>
+              <div className="mx-auto max-w-5xl grid lg:grid-cols-12 gap-x-10 gap-y-12">
+                {inLettura.length > 0 && (
+                  <div className={conclusi.length > 0 ? "lg:col-span-7" : "lg:col-span-12"}>
+                    <SectionHeading dot="bg-tv-green" label="Ora in corso" title="Stiamo leggendo" labelSize="text-sm" />
+                    <div className={`grid gap-5 ${conclusi.length > 0 ? "" : "md:grid-cols-2"}`}>
+                      {inLettura.map((b) => <BookCard key={b.id} book={b} {...cardProps} />)}
+                    </div>
+                    <WhatsAppCommunityLink className="mt-5 flex w-full" />
+                  </div>
+                )}
+                {conclusi.length > 0 && (
+                  <div className={`hidden lg:block ${inLettura.length > 0 ? "lg:col-span-5" : "lg:col-span-12"}`}>
+                    <SectionHeading dot="bg-tv-sky" label="Archivio" title="Libri letti" sub={`${conclusi.length} letture condivise finora.`} />
+                    <ReadCoversGrid books={conclusi} />
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -1169,7 +1228,7 @@ export const ClubDelLibro = () => {
 
           {/* Archivio */}
           {conclusi.length > 0 && (
-            <section className="py-14 md:py-20 px-6 md:px-10">
+            <section className="py-14 md:py-20 px-6 md:px-10 lg:hidden">
               <div className="mx-auto max-w-5xl">
                 <SectionHeading dot="bg-tv-sky" label="Archivio" title="Libri letti" sub="La nostra storia di letture condivise." />
                 <div className="grid md:grid-cols-2 gap-5">

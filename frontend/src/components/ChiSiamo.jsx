@@ -79,7 +79,7 @@ export const ChiSiamo = () => (
           Momenti in cui due persone che prima non si conoscevano possano ritrovarsi, a fine serata, a dirsi:
         </p>
         <p className="mt-3 font-display font-black italic text-3xl md:text-4xl leading-tight text-tv-bordeaux">
-          «Ci risentiamo la prossima settimana?»
+          «Ci vediamo settimana prossima?»
         </p>
       </div>
 

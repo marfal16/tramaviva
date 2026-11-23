@@ -379,12 +379,32 @@ const FilmDetailModal = ({ film, filmReviews, events = [], onClose }) => {
 };
 
 // ── Card film semplificata (click per aprire dettaglio) ─────────────────────
-const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
+const FilmCard = ({ film, reviewsByFilm, events = [], poster = false }) => {
   const [showDetail, setShowDetail] = useState(false);
   const filmReviews = reviewsByFilm[film.id] || [];
 
   return (
     <>
+      {poster ? (
+        <button
+          type="button"
+          onClick={() => setShowDetail(true)}
+          className="group block w-full text-left"
+          title={`${film.title}${film.director ? ` — ${film.director}` : ""}`}
+        >
+          <div className="aspect-[2/3] rounded-xl overflow-hidden bg-tv-green-deep/[0.06] shadow-[0_6px_18px_-8px_rgba(5,47,23,0.35)] transition-transform duration-300 group-hover:-translate-y-1">
+            {film.cover_url ? (
+              <img src={film.cover_url} alt={film.title} loading="lazy" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-2 text-center">
+                <Film size={22} className="text-tv-green-deep/25" aria-hidden="true" />
+                <span className="text-[11px] font-bold leading-tight text-tv-green-deep/75 line-clamp-3">{film.title}</span>
+              </div>
+            )}
+          </div>
+          <div className="mt-1.5 text-[11px] font-bold leading-tight text-tv-green-deep line-clamp-2 group-hover:text-tv-bordeaux transition-colors">{film.title}</div>
+        </button>
+      ) : (
       <article
         onClick={() => setShowDetail(true)}
         className="bg-white rounded-[2rem] border border-tv-green-deep/8 flex items-center gap-4 p-4 hover:shadow-[0_6px_24px_-8px_rgba(5,47,23,0.14)] transition-all cursor-pointer group"
@@ -420,6 +440,7 @@ const FilmCard = ({ film, reviewsByFilm, events = [] }) => {
 
         <ArrowRight size={15} className="text-tv-green-deep/20 group-hover:text-tv-bordeaux transition-colors shrink-0" />
       </article>
+      )}
 
       {showDetail && (
         <FilmDetailModal
@@ -1125,7 +1146,7 @@ const FilmProposalsSection = () => {
   })();
 
   return (
-    <section className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03]">
+    <section id="proposte" className="py-14 md:py-20 px-6 md:px-10 bg-tv-green-deep/[0.03] scroll-mt-24">
       <div className="mx-auto max-w-5xl">
         {(() => {
           const proposalsClosed = cineforumConfig?.proposals_ends_at && new Date(cineforumConfig.proposals_ends_at) <= new Date();
@@ -1265,6 +1286,39 @@ const FilmProposalsSection = () => {
 };
 
 // ── Pagina principale ────────────────────────────────────────────────────────
+// Link al gruppo WhatsApp del cineforum
+const WhatsAppCineforumLink = ({ className = "inline-flex" }) => (
+  <a href={WHATSAPP_CINEFORUM} target="_blank" rel="noopener noreferrer"
+     className={`${className} items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group`}>
+    <MessageCircle size={18} className="text-[#25D366] shrink-0" />
+    <div className="min-w-0">
+      <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Community WhatsApp</div>
+      <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Cineforum</div>
+    </div>
+    <ArrowRight size={14} className="text-tv-green-deep/75 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
+  </a>
+);
+
+// Archivio compatto: locandine in griglia (desktop)
+const POSTERS_PREVIEW = 12;
+const WatchedPostersGrid = ({ films, reviewsByFilm, events }) => {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? films : films.slice(0, POSTERS_PREVIEW);
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-x-3 gap-y-4">
+        {visible.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} poster />)}
+      </div>
+      {films.length > POSTERS_PREVIEW && (
+        <button type="button" onClick={() => setShowAll(v => !v)} aria-expanded={showAll}
+          className="mt-5 text-sm font-bold text-tv-green-deep underline underline-offset-4 hover:text-tv-bordeaux">
+          {showAll ? "Mostra meno" : `Mostra tutti i ${films.length} film visti`}
+        </button>
+      )}
+    </>
+  );
+};
+
 export const Cineforum = () => {
   const [films, setFilms] = useState([]);
   const [events, setEvents] = useState([]);
@@ -1313,31 +1367,65 @@ export const Cineforum = () => {
         </div>
       </section>
 
-      {/* WhatsApp strip */}
-      <div className="px-6 md:px-10 pb-6 md:pb-8">
-        <div className="mx-auto max-w-5xl">
-          <a href={WHATSAPP_CINEFORUM} target="_blank" rel="noopener noreferrer"
-             className="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/25 hover:bg-[#25D366]/15 transition-colors group">
-            <MessageCircle size={18} className="text-[#25D366] shrink-0" />
-            <div className="min-w-0">
-              <div className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75 mb-0.5">Community WhatsApp</div>
-              <div className="text-sm font-bold text-tv-green-deep leading-tight">Unisciti al gruppo del Cineforum</div>
-            </div>
-            <ArrowRight size={14} className="text-tv-green-deep/75 group-hover:translate-x-0.5 transition-transform shrink-0 ml-auto" />
-          </a>
+      {/* WhatsApp: in cima solo se non c'è niente da mettergli accanto */}
+      {(loading || films.every(f => f.status !== "in_visione" && f.status !== "concluso")) && (
+        <div className="px-6 md:px-10 pb-6 md:pb-8">
+          <div className="mx-auto max-w-5xl">
+            <WhatsAppCineforumLink />
+          </div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="text-center text-tv-green-deep/75 py-24">Caricamento…</div>
       ) : (
         <>
+          {/* In visione + WhatsApp a sinistra, archivio a locandine a destra (desktop) */}
+          {(inVisione.length > 0 || conclusi.length > 0) && (
+            <section className="pt-2 pb-14 md:pb-20 px-6 md:px-10">
+              <div className="mx-auto max-w-5xl grid lg:grid-cols-12 gap-x-10 gap-y-10">
+                <div className={conclusi.length > 0 ? "lg:col-span-7" : "lg:col-span-12"}>
+                  {inVisione.length > 0 ? (
+                    <>
+                      <SectionHeading dot="bg-tv-sky" label="Ora in corso" title="Stiamo guardando" />
+                      <div className="grid gap-4 mb-5">
+                        {inVisione.map(f => <FilmCard key={f.id} film={f} reviewsByFilm={reviewsByFilm} events={events} />)}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <SectionHeading dot="bg-tv-sky" label="Ora in corso" title="Il prossimo film lo scegliete voi" />
+                      <div className="rounded-[2rem] bg-white border border-tv-green-deep/10 p-6 mb-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-tv-sky/30 flex items-center justify-center shrink-0">
+                          <Film size={22} className="text-tv-green-deep" aria-hidden="true" />
+                        </div>
+                        <p className="flex-1 text-sm text-tv-green-deep/80 leading-relaxed">
+                          Al momento non c'è una proiezione in corso. Proponi un titolo o vota quelli degli altri: i più votati diventano la prossima visione.
+                        </p>
+                        <a href="#proposte" className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-tv-green-deep text-tv-cream font-bold text-sm hover:bg-tv-green-deep/85 transition-colors">
+                          Vota i film del mese <ArrowRight size={14} aria-hidden="true" />
+                        </a>
+                      </div>
+                    </>
+                  )}
+                  <WhatsAppCineforumLink className="flex w-full" />
+                </div>
+                {conclusi.length > 0 && (
+                  <div className="hidden lg:block lg:col-span-5">
+                    <SectionHeading dot="bg-tv-bordeaux" label="Archivio" title="Film visti" sub={`${conclusi.length} film guardati e discussi insieme.`} />
+                    <WatchedPostersGrid films={conclusi} reviewsByFilm={reviewsByFilm} events={events} />
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* Proposte del mese */}
           <FilmProposalsSection />
 
           {/* Archivio */}
           {conclusi.length > 0 && (
-            <section className="py-14 md:py-20 px-6 md:px-10">
+            <section className="py-14 md:py-20 px-6 md:px-10 lg:hidden">
               <div className="mx-auto max-w-5xl">
                 <SectionHeading dot="bg-tv-bordeaux" label="Archivio" title="Film visti" sub="I film che abbiamo guardato e discusso insieme." />
                 <div className="grid md:grid-cols-2 gap-4">
