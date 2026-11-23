@@ -482,7 +482,13 @@ export const EventoDettaglio = () => {
                       💚 Evento gratuito
                     </div>
                   )}
-                  
+                  {event.consumazione_struttura && (
+                    <div className="flex items-start gap-2">
+                      <span>☕</span>
+                      <span>Consumazione da pagare direttamente alla struttura</span>
+                    </div>
+                  )}
+
                 </div>
                 {typeof signupCount === "number" && signupCount >= 3 && (() => {
                   const pool = ["M","F","G","A","R","L","S","C","E","P","V","D","N","B","T","I","O","U"];

@@ -241,6 +241,7 @@ class Event(BaseModel):
     image_fit: str = "cover"    # "cover" riempie lo spazio (può tagliare), "contain" mostra tutta la locandina
     maps_url: Optional[str] = None  # link di Google Maps del luogo
     contributo_volontario: bool = False
+    consumazione_struttura: bool = False  # i partecipanti pagano una consumazione direttamente al locale
     opzioni_label: Optional[str] = None
     opzioni_custom: Optional[str] = None
 
@@ -280,6 +281,7 @@ class EventCreate(BaseModel):
     non_rimborsabile: bool = False
     solo_soci: bool = False
     contributo_volontario: bool = False
+    consumazione_struttura: bool = False
     opzioni_label: Optional[str] = None
     opzioni_custom: Optional[str] = None
     maps_url: Optional[str] = None
@@ -313,6 +315,7 @@ class EventUpdate(BaseModel):
     non_rimborsabile: Optional[bool] = None
     solo_soci: Optional[bool] = None
     contributo_volontario: Optional[bool] = None
+    consumazione_struttura: Optional[bool] = None
     opzioni_label: Optional[str] = None
     opzioni_custom: Optional[str] = None
     maps_url: Optional[str] = None

@@ -271,6 +271,13 @@ export const Eventi = () => {
               </div>
             )}
 
+            {/* Consumazione al locale */}
+            {selected.consumazione_struttura && (
+              <div className="mt-3 p-3 rounded-2xl bg-tv-mint/30 border border-tv-green-deep/10 text-xs text-tv-green-deep font-semibold">
+                ☕ Consumazione da pagare direttamente alla struttura
+              </div>
+            )}
+
             {/* Contributo info */}
             {selected.contributo > 0 && (
               <div className="mt-3 p-3 rounded-2xl bg-tv-orange/20 border border-tv-orange/30 text-xs text-tv-green-deep">

@@ -5841,7 +5841,7 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
           title: "", category: CATEGORIES[0], date: "", time: "19:00",
           location: "", maps_url: "", description: "", emoji: "✨", spots: 20, max_participants: 20, featured: false, contributo: 0,
           contributo_note: "", non_rimborsabile: false, solo_soci: false,
-          contributo_volontario: false, opzioni_label: "", opzioni_custom: "",
+          contributo_volontario: false, consumazione_struttura: false, opzioni_label: "", opzioni_custom: "",
           image_pos_x: 50, image_pos_y: 50, image_fit: "cover",
         }
   );
@@ -6092,6 +6092,22 @@ const EventEditor = ({ token, initial, signups = [], onClose, onSaved }) => {
             form.contributo_volontario ? "bg-tv-green text-tv-cream" : "bg-tv-green-deep/10 text-tv-green-deep/50"
           }`}>
             {form.contributo_volontario ? "Attivo" : "Non attivo"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setForm({ ...form, consumazione_struttura: !form.consumazione_struttura })}
+          className={`mt-3 w-full flex items-center justify-between px-5 py-3 rounded-2xl border-2 transition-all ${
+            form.consumazione_struttura
+              ? "border-tv-mint bg-tv-mint/20 text-tv-green-deep"
+              : "border-tv-green-deep/15 bg-white text-tv-green-deep/50 hover:border-tv-green-deep/30"
+          }`}
+        >
+          <span className="font-bold text-sm">☕ Consumazione alla struttura</span>
+          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+            form.consumazione_struttura ? "bg-tv-mint text-tv-green-deep" : "bg-tv-green-deep/10 text-tv-green-deep/50"
+          }`}>
+            {form.consumazione_struttura ? "Attivo" : "Non attivo"}
           </span>
         </button>
         <div className="mt-4 p-4 rounded-2xl border border-tv-green-deep/15 bg-white space-y-3">
