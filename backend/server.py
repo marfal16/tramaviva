@@ -180,6 +180,7 @@ class EventSignup(PrivacyFields):
     ospiti: List[GuestInfo] = []
     donazione_volontaria: Optional[float] = None
     opzione_scelta: Optional[str] = None
+    is_collaboratore: bool = False  # lo imposta solo l'admin: persona a cui chiedere aiuto per l'evento
 
 class MembershipCreate(BaseModel):
     first_name: str
@@ -3446,6 +3447,20 @@ async def admin_update_event_signup_payment(signup_id: str, payload: PaymentStat
     res = await db.event_signups.update_one(
         {"id": signup_id},
         {"$set": {"payment_completed": payload.payment_completed}}
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Richiesta non trovata")
+    return {"ok": True}
+
+class CollaboratoreUpdate(BaseModel):
+    is_collaboratore: bool
+
+@api_router.patch("/admin/event-signups/{signup_id}/collaboratore", dependencies=[Depends(require_admin)])
+async def admin_update_event_signup_collaboratore(signup_id: str, payload: CollaboratoreUpdate):
+    """Segna (o toglie) un partecipante come collaboratore dell'evento: in Gestione richieste compare in cima alla lista."""
+    res = await db.event_signups.update_one(
+        {"id": signup_id},
+        {"$set": {"is_collaboratore": payload.is_collaboratore}}
     )
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Richiesta non trovata")

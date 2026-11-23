@@ -4638,7 +4638,7 @@ const BulkNotifyModal = ({ signupIds, allItems, event, token, onClose }) => {
 
 // ─── Event signups — master-detail con tabella compatta ──────────────────────
 
-const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onPromote, onTogglePayment, onDelete, onDeleteWaitlist, onNotify, isPastEvent, token, onReload }) => {
+const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, onPromote, onTogglePayment, onToggleCollaboratore, onDelete, onDeleteWaitlist, onNotify, isPastEvent, token, onReload }) => {
   const [showGuests, setShowGuests] = useState(false);
   const [removingGuest, setRemovingGuest] = useState(null);
   const hasGuests = (row.ospiti || []).length > 0;
@@ -4659,6 +4659,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
     <>
       <tr className={`group border-b border-tv-green-deep/5 transition-colors ${
         isSelected ? "bg-tv-green/5"
+        : row.is_collaboratore ? "bg-violet-50 hover:bg-violet-100/70 shadow-[inset_4px_0_0_0_#a78bfa]"
         : row.is_waitlist ? "bg-sky-50/70 hover:bg-sky-50"
         : !row.confirmed ? "bg-amber-50/50 hover:bg-amber-50/80"
         : "hover:bg-tv-cream/60"
@@ -4675,6 +4676,7 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-semibold text-sm text-tv-green-deep truncate">{row.name}</span>
+                {row.is_collaboratore && <span className="text-[9px] font-bold uppercase bg-violet-500 text-white px-1.5 py-0.5 rounded-full">🤝 Collaboratore</span>}
                 {row.is_waitlist && <span className="text-[9px] font-bold uppercase bg-sky-100 text-sky-700 border border-sky-200 px-1.5 py-0.5 rounded-full">Lista attesa</span>}
                 {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fond.</span>}
                 {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
@@ -4715,7 +4717,17 @@ const SignupRow = ({ row, founderEmails, isSelected, onToggleSelect, onConfirm, 
             : <span title="In attesa" className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-tv-orange/15 text-tv-bordeaux text-xs">⏳</span>}
         </td>
         <td className="py-3 pr-4 text-right">
-          <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:transition-opacity">
+          <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 sm:transition-opacity">
+            <button onClick={() => onToggleCollaboratore(row)}
+              title={row.is_collaboratore ? "Togli da collaboratori" : "Segna come collaboratore"}
+              aria-pressed={!!row.is_collaboratore}
+              className={`p-1.5 rounded-lg transition-colors text-xs ${
+                row.is_collaboratore
+                  ? "bg-violet-500 text-white hover:bg-violet-600"
+                  : "bg-violet-100 text-violet-700 hover:bg-violet-500 hover:text-white"
+              }`}>
+              🤝
+            </button>
             {row.is_waitlist && !isPastEvent && (
               <button onClick={() => onPromote && onPromote(row)} title="Promuovi dalla lista di attesa"
                 className="p-1.5 rounded-lg bg-tv-sky/20 text-tv-sky hover:bg-tv-sky hover:text-tv-cream transition-colors text-[10px] font-bold px-2">
@@ -4862,6 +4874,8 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
         )
       : afterFilter;
     return [...result].sort((a, b) => {
+      // i collaboratori stanno sempre in cima: sono le persone a cui chiedere aiuto
+      if (!!a.is_collaboratore !== !!b.is_collaboratore) return a.is_collaboratore ? -1 : 1;
       if (a.confirmed !== b.confirmed) return a.confirmed ? 1 : -1;
       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
     });
@@ -4870,6 +4884,15 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
   const toggleSelect = (id) => setSelectedIds(prev => {
     const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
   });
+
+  const toggleCollaboratore = async (row) => {
+    const newValue = !row.is_collaboratore;
+    try {
+      await axios.patch(`${API}/admin/event-signups/${row.id}/collaboratore`, { is_collaboratore: newValue }, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(newValue ? `${row.name} è tra i collaboratori.` : `${row.name} non è più tra i collaboratori.`);
+      if (typeof onReload === "function") onReload();
+    } catch { toast.error("Errore nell'aggiornamento."); }
+  };
 
   const selectAll = () => setSelectedIds(new Set(filteredItems.filter(r => !r.is_waitlist && !r.confirmed).map(r => r.id)));
 
@@ -4880,12 +4903,12 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
         "N. Persone": s.num_persone || 1, "Opzione": s.opzione_scelta || "",
         "Donazione (€)": s.donazione_volontaria || "",
         "Pagamento": s.metodo_pagamento || "", "Pagato": s.payment_completed ? "Sì" : "No",
-        "Confermato": s.confirmed ? "Sì" : "No", "Note": s.message || "",
+        "Confermato": s.confirmed ? "Sì" : "No", "Collaboratore": s.is_collaboratore ? "Sì" : "", "Note": s.message || "",
       };
       const guests = (s.ospiti || []).map(g => ({
         "Nome": `${g.nome} ${g.cognome}`, "Email": g.email || "", "Telefono": g.phone || "",
         "N. Persone": "(ospite)", "Opzione": "", "Donazione (€)": "", "Pagamento": "",
-        "Pagato": "", "Confermato": "", "Note": "",
+        "Pagato": "", "Confermato": "", "Collaboratore": "", "Note": "",
       }));
       return [main, ...guests];
     });
@@ -5057,6 +5080,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
           const paidCount = allItemsNotWaitlist.filter(r => r.payment_completed).length;
           const unpaidCount = allItemsNotWaitlist.filter(r => r.metodo_pagamento && !r.payment_completed).length;
           const pendingCount = allItemsNotWaitlist.filter(r => !r.confirmed).length;
+          const collaboratori = allItems.filter(r => r.is_collaboratore);
           return (
             <>
               {/* Header */}
@@ -5081,6 +5105,15 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                     </button>
                   )}
                 </div>
+                {collaboratori.length > 0 && (
+                  <div className="mb-2 flex items-start gap-2 rounded-xl bg-violet-50 border border-violet-200 px-3 py-2 text-xs text-violet-900">
+                    <span>🤝</span>
+                    <span>
+                      <span className="font-bold">{collaboratori.length === 1 ? "Collaboratore" : `${collaboratori.length} collaboratori`}:</span>{" "}
+                      {collaboratori.map(r => r.name).join(", ")}
+                    </span>
+                  </div>
+                )}
                 {/* Mobile: stats grid 2x2 */}
                 <div className="grid grid-cols-2 gap-2 mt-2 md:hidden">
                   {[
@@ -5239,6 +5272,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                               onConfirm={onConfirm}
                               onPromote={onPromote}
                               onTogglePayment={onTogglePayment}
+                              onToggleCollaboratore={toggleCollaboratore}
                               onDelete={onDelete}
                               onDeleteWaitlist={onDeleteWaitlist}
                               onNotify={(row) => setNotifyTarget({ signup: row, event: selectedGroup.ev })}
@@ -5258,6 +5292,7 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                         return (
                           <div key={row.id} className={`rounded-2xl border p-4 ${
                             selectedIds.has(row.id) ? "border-tv-green/50 bg-tv-green/5"
+                            : row.is_collaboratore ? "bg-violet-50 border-violet-300 border-l-4 border-l-violet-400"
                             : row.is_waitlist ? "bg-sky-50/80 border-sky-200"
                             : row.confirmed ? "bg-white border-tv-green-deep/10"
                             : "bg-amber-50/60 border-tv-orange/20"
@@ -5275,7 +5310,8 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-semibold text-sm text-tv-green-deep">{row.name}</span>
-                                    {isFounder && <span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fondatore</span>}
+                                    {row.is_collaboratore && <span className="text-[9px] font-bold uppercase bg-violet-500 text-white px-1.5 py-0.5 rounded-full">🤝 Collaboratore</span>}
+                                    {isFounder &&<span className="text-[9px] font-bold uppercase bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded-full">Fondatore</span>}
                                     {row.is_member && !isFounder && <span className="text-[9px] font-bold uppercase bg-tv-green text-tv-cream px-1.5 py-0.5 rounded-full">Socio</span>}
                                   </div>
                                   <div className="flex items-center gap-2 text-[11px] text-tv-green-deep/50 mt-0.5">
@@ -5321,6 +5357,14 @@ const EventSignupsManager = ({ signups, members, events, onConfirm, onPromote, o
                             </div>
                             {/* Azioni */}
                             <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-tv-green-deep/8">
+                              <button onClick={() => toggleCollaboratore(row)} aria-pressed={!!row.is_collaboratore}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-full transition-colors ${
+                                  row.is_collaboratore
+                                    ? "bg-violet-500 text-white hover:bg-violet-600"
+                                    : "bg-violet-100 text-violet-700 hover:bg-violet-500 hover:text-white"
+                                }`}>
+                                🤝 {row.is_collaboratore ? "Collaboratore" : "Collab."}
+                              </button>
                               {row.is_waitlist && !isPastEvent && (
                                 <button onClick={() => onPromote && onPromote(row)}
                                   className="flex items-center gap-1 px-2.5 py-1.5 bg-tv-sky/20 text-tv-sky text-[11px] font-bold rounded-full hover:bg-tv-sky hover:text-tv-cream transition-colors">
