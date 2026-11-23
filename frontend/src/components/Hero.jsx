@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ThreadsBg } from "./ThreadsBg";
-import { ArrowDownRight, Sparkles } from "lucide-react";
+import { ArrowDownRight, ArrowRight, Sparkles } from "lucide-react";
+import { PastEventCard, sortPastDesc } from "./Eventi";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -28,6 +29,8 @@ export const Hero = () => {
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [events]);
 
+  const pastEvents = useMemo(() => sortPastDesc(events), [events]);
+
   // Timer live — aggiorna ogni secondo per il countdown
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -39,7 +42,7 @@ export const Hero = () => {
     <section
       id="hero"
       data-testid="hero-section"
-      className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-28 bg-tv-cream"
+      className="relative overflow-hidden pt-32 pb-8 md:pt-40 md:pb-10 bg-tv-cream"
     >
       <ThreadsBg className="absolute inset-0 w-full h-full" opacity={0.25} />
       {/* Decorative color blobs */}
@@ -83,6 +86,36 @@ export const Hero = () => {
               Diventa socio: unisciti alla trama
             </a>
           </div>
+
+          {/* Storico eventi: su desktop riempie la colonna sotto i pulsanti
+              (su mobile resta nella sezione eventi, per non allontanare i prossimi) */}
+          {pastEvents.length > 0 && (
+            <div className="hidden md:block mt-16" data-testid="hero-past-events">
+              <div className="flex items-end justify-between gap-4 mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-2 h-2 rounded-full bg-tv-bordeaux" />
+                    <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75">Già intrecciato</span>
+                  </div>
+                  <div className="font-display font-black text-2xl text-tv-green-deep leading-tight">
+                    {pastEvents.length} {pastEvents.length === 1 ? "evento fatto" : "eventi fatti"} insieme,{" "}
+                    <span className="italic font-light text-tv-bordeaux">e siamo appena partiti.</span>
+                  </div>
+                </div>
+                <Link
+                  to="/eventi/archivio"
+                  className="shrink-0 inline-flex items-center gap-1.5 text-sm font-bold text-tv-green-deep underline underline-offset-4 hover:text-tv-bordeaux"
+                >
+                  Vedi tutti <ArrowRight size={14} aria-hidden="true" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {pastEvents.slice(0, 4).map((ev) => (
+                  <PastEventCard key={ev.id} ev={ev} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="md:col-span-4 md:pb-4">
@@ -169,7 +202,7 @@ export const Hero = () => {
                 {others.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-tv-green-deep/15 flex flex-col gap-1.5">
                     <span className="text-[10px] font-black uppercase tracking-widest text-tv-green-deep/75">Anche in arrivo</span>
-                    {others.map(ev => {
+                    {others.slice(0, 3).map(ev => {
                       const evDay = new Date(ev.date); evDay.setHours(0,0,0,0);
                       const todayDay = new Date(now); todayDay.setHours(0,0,0,0);
                       const d = Math.max(0, Math.floor((evDay - todayDay) / 86400000));
@@ -181,6 +214,15 @@ export const Hero = () => {
                         </Link>
                       );
                     })}
+                    {others.length > 3 && (
+                      <a
+                        href="#eventi"
+                        onClick={scrollTo("#eventi")}
+                        className="mt-1 px-3 py-2 text-xs font-bold text-tv-green-deep underline underline-offset-2 hover:text-tv-bordeaux"
+                      >
+                        Tutti i {upcomingEvents.length} eventi in programma →
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
@@ -190,7 +232,7 @@ export const Hero = () => {
       </div>
 
       {/* Marquee */}
-      <div className="relative mt-20 border-y border-tv-green-deep/15 py-3 overflow-hidden bg-tv-green-deep">
+      <div className="relative mt-14 md:mt-16 border-y border-tv-green-deep/15 py-3 overflow-hidden bg-tv-green-deep">
         <div aria-hidden="true" className="flex marquee-track whitespace-nowrap text-tv-cream font-display font-black text-xl md:text-2xl lg:text-3xl tracking-tight">
           {[...Array(2)].map((_, i) => (
             <div key={i} className="flex items-center gap-10 px-6">

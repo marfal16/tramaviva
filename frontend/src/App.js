@@ -27,7 +27,7 @@ import CookieBanner from "./components/CookieBanner";
 import { initModalA11y } from "./lib/modalA11y";
 
 const ClubsSection = () => (
-  <section className="pt-0 pb-14 md:pb-20">
+  <section className="pt-0 pb-10 md:pb-14">
     <div className="mx-auto max-w-7xl px-6 md:px-10">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">

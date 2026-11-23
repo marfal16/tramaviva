@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, X, LayoutGrid, CalendarDays, Star } from "lucide-react";
+import { Calendar as CalendarIcon, MapPin, Clock, Users, ArrowRight, ChevronDown, X, LayoutGrid, CalendarDays, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Calendar as DayCalendar } from "./ui/calendar";
 import { it } from "date-fns/locale";
@@ -29,13 +29,16 @@ export const categoryColor = {
   "Corsi IT": "bg-tv-sky text-tv-green-deep",
 };
 
+// Colori del calendario: stessa palette delle etichette categoria sulle card
 const categoryDot = {
-  "Laboratori Artistici": "#F59E0B",
-  "Eventi Sociali": "#5CB176",
+  "Laboratori Artistici": "#F99C2C",
+  "Eventi Sociali": "#A7B94C",
   "Passeggiate": "#92C8B9",
-  "Screening Salute": "#551118",
-  "Corsi IT": "#429DD0",
+  "Screening Salute": "#5D1723",
+  "Corsi IT": "#8FC2E5",
 };
+// Categorie su fondo scuro: numero del giorno in crema invece che verde scuro
+const darkCategories = new Set(["Screening Salute"]);
 
 const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
@@ -58,6 +61,8 @@ export const sortPastDesc = (events) =>
 
 // Quanti eventi passati mostrare in homepage; gli altri stanno nella pagina /eventi/archivio
 const PAST_PREVIEW = 4;
+// Quanti prossimi eventi mostrare prima del pulsante "Mostra tutti"
+const UPCOMING_PREVIEW = 6;
 
 export const Eventi = () => {
   const { user } = useAuth();
@@ -129,10 +134,10 @@ export const Eventi = () => {
     <section
       id="eventi"
       data-testid="eventi-section"
-      className="relative py-24 md:py-32 bg-tv-cream scroll-mt-20"
+      className="relative py-12 md:py-16 bg-tv-cream scroll-mt-20"
     >
       <div className="mx-auto max-w-7xl px-6 md:px-10">
-        <div className="flex items-end justify-between flex-wrap gap-6 mb-14">
+        <div className="flex items-end justify-between flex-wrap gap-6 mb-8 md:mb-10">
           <div>
             <div className="text-xs font-bold uppercase tracking-[0.3em] text-tv-bordeaux mb-4">
                 Prossimi eventi
@@ -188,6 +193,7 @@ export const Eventi = () => {
                 onParticipate={setSelected}
               />
             )}
+            <MobilePastEvents events={events} />
           </>
         )}
       </div>
@@ -380,28 +386,12 @@ export const Eventi = () => {
   );
 };
 
-// ---------- List view ----------
-const ListView = ({ events, onParticipate }) => {
-  const upcoming = events.filter((e) => !isPast(e.date));
+// Storico eventi su mobile (su desktop sta nell'hero), sotto sia Lista sia Calendario
+const MobilePastEvents = ({ events }) => {
   const past = sortPastDesc(events);
-  const featured = upcoming.find((e) => e.featured);
-  const others = featured ? upcoming.filter((e) => e.id !== featured.id) : upcoming;
+  if (past.length === 0) return null;
   return (
-    <>
-      {featured && <FeaturedCard ev={featured} onParticipate={onParticipate} />}
-      {others.length > 0 ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-          {others.map((ev) => (
-            <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} />
-          ))}
-        </div>
-      ) : !featured && (
-        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/75">
-          Nessun evento in programma al momento. Torna presto!
-        </div>
-      )}
-      {past.length > 0 && (
-        <>
+    <div className="md:hidden">
           <div className="mt-16 mb-6 flex items-center gap-4">
             <div className="flex-1 border-t border-tv-green-deep/10" />
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-tv-green-deep/75">Storico eventi</span>
@@ -424,7 +414,50 @@ const ListView = ({ events, onParticipate }) => {
               <ArrowRight size={16} />
             </Link>
           </div>
+        </div>
+  );
+};
+
+// ---------- List view ----------
+const ListView = ({ events, onParticipate }) => {
+  const upcoming = events.filter((e) => !isPast(e.date));
+  const featured = upcoming.find((e) => e.featured);
+  const others = featured ? upcoming.filter((e) => e.id !== featured.id) : upcoming;
+  const [showAll, setShowAll] = useState(false);
+  const hiddenCount = Math.max(0, others.length - UPCOMING_PREVIEW);
+  const visible = showAll ? others : others.slice(0, UPCOMING_PREVIEW);
+  return (
+    <>
+      {featured && <FeaturedCard ev={featured} onParticipate={onParticipate} />}
+      {others.length > 0 ? (
+        <>
+          <div id="eventi-grid" className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            {visible.map((ev) => (
+              <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} />
+            ))}
+          </div>
+          {hiddenCount > 0 && (
+            <div className="mt-8 text-center">
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                aria-expanded={showAll}
+                aria-controls="eventi-grid"
+                data-testid="eventi-show-all"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85 transition-colors"
+              >
+                {showAll
+                  ? "Mostra meno eventi"
+                  : `Mostra tutti i prossimi eventi (altri ${hiddenCount})`}
+                <ChevronDown size={16} aria-hidden="true" className={`transition-transform ${showAll ? "rotate-180" : ""}`} />
+              </button>
+            </div>
+          )}
         </>
+      ) : !featured && (
+        <div className="rounded-[2rem] p-10 bg-white border border-tv-green-deep/10 text-center text-tv-green-deep/75">
+          Nessun evento in programma al momento. Torna presto!
+        </div>
       )}
     </>
   );
@@ -648,6 +681,77 @@ export const PastEventCard = ({ ev }) => (
 );
 
 // ---------- Calendar view ----------
+// Anteprima evento grande per la vista calendario: foto a sinistra, dettagli a destra
+const CalendarPreviewCard = ({ ev }) => {
+  const past = isPast(ev.date);
+  const soldOut = !past && ev.spots <= 0;
+  const excerpt = (ev.description || "").replace(/\*{1,3}([^*\n]+?)\*{1,3}/g, "$1").trim();
+  return (
+    <article
+      data-testid={`calendar-preview-${ev.id}`}
+      className="group bg-white border border-tv-green-deep/10 rounded-[2rem] overflow-hidden flex flex-col sm:flex-row transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-20px_rgba(5,47,23,0.25)]"
+    >
+      <Link to={`/eventi/${ev.slug || ev.id}`} className="sm:w-[42%] shrink-0 relative block bg-tv-green-deep/[0.05]" tabIndex={-1} aria-hidden="true">
+        {ev.has_image ? (
+          <img
+            src={ev.image_url || `${API}/events/${ev.id}/image`}
+            alt=""
+            loading="lazy"
+            style={eventImgStyle(ev)}
+            className={`w-full h-52 sm:h-full sm:min-h-[240px] ${eventImgFit(ev)} ${past || soldOut ? "opacity-70 grayscale-[30%]" : ""}`}
+          />
+        ) : (
+          <div className="w-full h-40 sm:h-full flex items-center justify-center text-6xl opacity-40">{ev.emoji}</div>
+        )}
+      </Link>
+      <div className="flex-1 p-6 flex flex-col">
+        <div className="flex items-center gap-2 flex-wrap mb-3">
+          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${categoryColor[ev.category] || "bg-tv-sky text-tv-green-deep"}`}>
+            {ev.category}
+          </span>
+          {past && (
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-green-deep/10 text-tv-green-deep/75">Concluso</span>
+          )}
+          {soldOut && (
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-tv-bordeaux/10 text-tv-bordeaux">Sold out</span>
+          )}
+        </div>
+        <h3 className="font-display font-black text-2xl text-tv-green-deep leading-tight">
+          <Link to={`/eventi/${ev.slug || ev.id}`} className="hover:underline underline-offset-4">{ev.title}</Link>
+        </h3>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-tv-green-deep/80">
+          <span className="flex items-center gap-1.5"><CalendarIcon size={14} aria-hidden="true" /> {fmtDate(ev.date)}</span>
+          {ev.time && <span className="flex items-center gap-1.5"><Clock size={14} aria-hidden="true" /> {ev.time}</span>}
+          {(ev.location || ev.maps_url) && (
+            <span className="flex items-center gap-1.5"><MapPin size={14} aria-hidden="true" /> <PlaceLink place={ev.location} url={ev.maps_url} /></span>
+          )}
+        </div>
+        {excerpt && (
+          <p className="mt-3 text-sm text-tv-green-deep/75 leading-relaxed line-clamp-3">{excerpt}</p>
+        )}
+        {!past && ev.spots > 0 && ev.spots <= 5 && (
+          <div className="mt-3 flex items-center gap-1.5 text-sm font-bold text-tv-bordeaux">
+            <Users size={14} aria-hidden="true" /> {ev.spots === 1 ? "Ultimo posto disponibile!" : `Ultimi ${ev.spots} posti!`}
+          </div>
+        )}
+        <div className="mt-auto pt-5">
+          <Link
+            to={`/eventi/${ev.slug || ev.id}`}
+            data-testid={`calendar-preview-detail-${ev.id}`}
+            className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold text-sm transition-colors ${
+              past || soldOut
+                ? "bg-tv-green-deep/5 border border-tv-green-deep/15 text-tv-green-deep hover:bg-tv-green-deep hover:text-tv-cream"
+                : "bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85"
+            }`}
+          >
+            {past ? "Vedi dettagli" : soldOut ? "Vedi dettagli e lista d'attesa" : "Vedi dettagli e Partecipa"} <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+};
+
 const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
   const eventDates = useMemo(
     () => events.map((e) => ({ date: new Date(e.date), category: e.category })),
@@ -667,6 +771,11 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
   const eventsForPicked = pickedDate
     ? events.filter((e) => sameDay(new Date(e.date), pickedDate))
     : [];
+  // Senza giorno scelto: anteprima dei prossimi eventi
+  const nextEvents = useMemo(
+    () => events.filter((e) => !isPast(e.date)).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 3),
+    [events]
+  );
 
   // Modifiers for react-day-picker: one per category
   const modifiers = useMemo(() => {
@@ -677,29 +786,44 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
     return m;
   }, [eventDates]);
 
-  const renderDay = (day) => {
+  // Giorno con eventi: casella piena col colore della categoria.
+  // Più categorie nello stesso giorno → casella divisa in diagonale.
+  const renderDay = (day, activeModifiers = {}) => {
     const dayEvents = events.filter((e) => sameDay(new Date(e.date), day));
+    if (dayEvents.length === 0) return <span>{day.getDate()}</span>;
+
+    const cats = [...new Set(dayEvents.map((e) => e.category))].slice(0, 3);
+    const colors = cats.map((c) => categoryDot[c] || categoryDot["Eventi Sociali"]);
+    const step = 100 / colors.length;
+    const background = colors.length === 1
+      ? colors[0]
+      : `linear-gradient(135deg, ${colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(", ")})`;
+    const past = isPast(dayEvents[0].date);
+    // Giorni passati: colore attenuato ma numero ben leggibile
+    const darkText = !past && cats.length === 1 && darkCategories.has(cats[0]);
+
     return (
-      <div className="relative w-full h-full flex flex-col items-center justify-center">
-        <span>{day.getDate()}</span>
-        {dayEvents.length > 0 && (
-          <div className="absolute bottom-0.5 flex gap-0.5">
-            {dayEvents.slice(0, 3).map((e, i) => (
-              <span
-                key={i}
-                className="block w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: categoryDot[e.category] || "#5CB176" }}
-              />
-            ))}
-          </div>
+      <span
+        className="absolute inset-0 flex items-center justify-center rounded-xl overflow-hidden transition group-hover:brightness-95"
+      >
+        <span aria-hidden="true" className="absolute inset-0" style={{ background, opacity: past ? 0.35 : 1 }} />
+        {activeModifiers.selected && (
+          <span aria-hidden="true" className="absolute inset-0 rounded-xl shadow-[inset_0_0_0_3px_#2D3A18,inset_0_0_0_5px_#fff]" />
         )}
-      </div>
+        <span
+          className={`relative font-black ${darkText ? "text-tv-cream" : past ? "text-tv-green-deep/75" : "text-tv-green-deep"} ${
+            activeModifiers.today ? "underline underline-offset-4 decoration-2" : ""
+          }`}
+        >
+          {day.getDate()}
+        </span>
+      </span>
     );
   };
 
   return (
     <div className="grid md:grid-cols-12 gap-6 md:gap-8" data-testid="eventi-calendar">
-      <div className="md:col-span-7 lg:col-span-7 bg-white rounded-[2rem] p-4 md:p-8 border border-tv-green-deep/10">
+      <div className="md:col-span-5 lg:col-span-4 self-start md:sticky md:top-28 bg-white rounded-[2rem] p-4 md:p-5 border border-tv-green-deep/10">
         <DayCalendar
           mode="single"
           locale={it}
@@ -711,7 +835,7 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
           modifiersClassNames={{
             hasEvent: "font-bold text-tv-green-deep",
           }}
-          components={{ DayContent: ({ date }) => renderDay(date) }}
+          components={{ DayContent: ({ date, activeModifiers }) => renderDay(date, activeModifiers) }}
           className="tv-calendar mx-auto"
           classNames={{
             months: "flex flex-col items-center w-full",
@@ -728,8 +852,8 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
             head_cell:
               "flex-1 text-tv-green-deep/75 font-bold text-[11px] uppercase tracking-wider py-2",
             row: "flex w-full mt-1",
-            cell: "flex-1 aspect-square text-center text-sm relative p-0",
-            day: "h-full w-full inline-flex items-center justify-center rounded-2xl text-tv-green-deep hover:bg-tv-sky/40 transition-colors aria-selected:opacity-100",
+            cell: "flex-1 aspect-square text-center text-[13px] relative p-0.5",
+            day: "group relative h-full w-full inline-flex items-center justify-center rounded-xl text-tv-green-deep hover:bg-tv-sky/40 transition-colors aria-selected:opacity-100",
             day_selected:
               "bg-tv-green-deep !text-tv-cream font-bold hover:bg-tv-green-deep hover:!text-tv-cream",
             day_today: "bg-tv-green-deep/10 font-bold",
@@ -739,55 +863,60 @@ const CalendarView = ({ events, pickedDate, setPickedDate, onParticipate }) => {
           }}
         />
         {/* Legend */}
-        <div className="mt-4 flex flex-wrap items-center gap-3 justify-center">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 justify-center">
           {Object.entries(categoryDot).map(([cat, color]) => (
             <div key={cat} className="flex items-center gap-1.5 text-xs text-tv-green-deep/75">
-              <span className="block w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+              <span className="block w-3 h-3 rounded" style={{ backgroundColor: color }} />
               {cat}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="md:col-span-5 lg:col-span-5">
+      <div className="md:col-span-7 lg:col-span-8 space-y-4" aria-live="polite">
         {!pickedDate ? (
-          <div
-            className="rounded-[2rem] p-8 bg-tv-sky/30 border border-tv-green-deep/10 text-tv-green-deep"
-            data-testid="calendar-no-selection"
-          >
-            <CalendarDays size={28} className="mb-3" />
-            <div className="font-display font-black text-2xl leading-tight">
-              Scegli un giorno.
+          <>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">In arrivo</div>
+              <div className="text-xs text-tv-green-deep/75" data-testid="calendar-no-selection">
+                Tocca un giorno colorato per vedere i suoi eventi.
+              </div>
             </div>
-            <div className="mt-2 text-sm text-tv-green-deep/75">
-              Tocca una data sul calendario per vedere cosa succede quel giorno.
-              I puntini sotto i numeri segnalano gli eventi in programma.
-            </div>
-          </div>
-        ) : eventsForPicked.length === 0 ? (
-          <div
-            className="rounded-[2rem] p-8 bg-white border border-tv-green-deep/10 text-tv-green-deep"
-            data-testid="calendar-no-events"
-          >
-            <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux mb-2">
-              {pickedDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
-            </div>
-            <div className="font-display font-black text-2xl leading-tight">
-              Niente eventi questo giorno.
-            </div>
-            <div className="mt-2 text-sm text-tv-green-deep/75">
-              Ma se hai un'idea, proponicela: la prossima trama la tessiamo insieme.
-            </div>
-          </div>
+            {nextEvents.length > 0 ? (
+              nextEvents.map((ev) => <CalendarPreviewCard key={ev.id} ev={ev} />)
+            ) : (
+              <div className="rounded-[2rem] p-8 bg-white border border-tv-green-deep/10 text-tv-green-deep/75">
+                Nessun evento in programma al momento. Torna presto!
+              </div>
+            )}
+          </>
         ) : (
-          <div className="space-y-4" data-testid="calendar-events-list">
-            <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
-              {pickedDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+          <>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="text-xs font-bold uppercase tracking-widest text-tv-bordeaux">
+                {pickedDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPickedDate(undefined)}
+                className="text-xs font-bold text-tv-green-deep underline underline-offset-4 hover:text-tv-bordeaux"
+              >
+                Mostra i prossimi eventi
+              </button>
             </div>
-            {eventsForPicked.map((ev) => (
-              <EventCard key={ev.id} ev={ev} onParticipate={onParticipate} compact past={isPast(ev.date)} />
-            ))}
-          </div>
+            {eventsForPicked.length === 0 ? (
+              <div className="rounded-[2rem] p-8 bg-white border border-tv-green-deep/10 text-tv-green-deep" data-testid="calendar-no-events">
+                <div className="font-display font-black text-2xl leading-tight">Niente eventi questo giorno.</div>
+                <div className="mt-2 text-sm text-tv-green-deep/75">
+                  Ma se hai un'idea, proponicela: la prossima trama la tessiamo insieme.
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4" data-testid="calendar-events-list">
+                {eventsForPicked.map((ev) => <CalendarPreviewCard key={ev.id} ev={ev} />)}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -49,7 +49,7 @@ export const ChiSiamo = () => (
   <section
     id="chi-siamo"
     data-testid="chi-siamo-section"
-    className="relative py-24 md:py-32 bg-tv-cream scroll-mt-20"
+    className="relative py-12 md:py-16 bg-tv-cream scroll-mt-20"
   >
     <div className="mx-auto max-w-7xl px-6 md:px-10">
       {/* Titolo e punto di partenza */}
@@ -73,7 +73,7 @@ export const ChiSiamo = () => (
       </div>
 
       {/* Il nostro modo di fare eventi */}
-      <div className="mt-12 md:mt-16 border-l-4 border-tv-bordeaux pl-6 md:pl-10 max-w-4xl">
+      <div className="mt-10 md:mt-12 border-l-4 border-tv-bordeaux pl-6 md:pl-10 max-w-4xl">
         <p className="text-lg md:text-xl text-tv-green-deep/80 leading-relaxed">
           Non organizziamo eventi per riempire una sala, ma per creare occasioni reali d'incontro.
           Momenti in cui due persone che prima non si conoscevano possano ritrovarsi, a fine serata, a dirsi:
@@ -84,7 +84,7 @@ export const ChiSiamo = () => (
       </div>
 
       {/* Valori */}
-      <div className="mt-14 md:mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      <div className="mt-10 md:mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {values.map((v, i) => (
           <div
             key={v.title}
@@ -101,7 +101,7 @@ export const ChiSiamo = () => (
       </div>
 
       {/* Missione e rimando ai progetti */}
-      <div className="mt-14 md:mt-20 bg-tv-green-deep text-tv-cream rounded-[2.5rem] p-8 md:p-12 grid md:grid-cols-12 gap-8 md:gap-12">
+      <div className="mt-10 md:mt-12 bg-tv-green-deep text-tv-cream rounded-[2.5rem] p-8 md:p-12 grid md:grid-cols-12 gap-8 md:gap-12">
         <div className="md:col-span-7">
           <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-tv-orange mb-4">La nostra missione</h3>
           <p className="text-lg md:text-xl leading-relaxed">

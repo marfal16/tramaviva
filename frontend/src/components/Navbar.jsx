@@ -229,7 +229,7 @@ export const Navbar = () => {
                 data-testid="nav-cta-iscrizione"
                 className="btn-tv ml-1 px-5 py-2.5 rounded-full text-sm font-bold bg-tv-green-deep text-tv-cream hover:bg-tv-green-deep/85"
               >
-                Diventa socio: unisciti alla trama
+                Unisciti alla trama
               </a>
             )}
           </nav>
@@ -340,7 +340,7 @@ export const Navbar = () => {
                 className="mt-2 text-center px-4 py-3 rounded-2xl text-base font-bold bg-tv-green-deep text-tv-cream"
                 data-testid="nav-mobile-cta"
               >
-                Diventa socio: unisciti alla trama
+                Unisciti alla trama
               </a>
             </>
           )}
