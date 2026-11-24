@@ -194,7 +194,7 @@ export const Eventi = () => {
                 onParticipate={setSelected}
               />
             )}
-            <MobilePastEvents events={events} />
+            <PastEvents events={events} />
           </>
         )}
       </div>
@@ -387,12 +387,12 @@ export const Eventi = () => {
   );
 };
 
-// Storico eventi su mobile (su desktop sta nell'hero), sotto sia Lista sia Calendario
-const MobilePastEvents = ({ events }) => {
+// Storico eventi in fondo alla sezione, sotto sia Lista sia Calendario (mobile e desktop)
+const PastEvents = ({ events }) => {
   const past = sortPastDesc(events);
   if (past.length === 0) return null;
   return (
-    <div className="md:hidden">
+    <div data-testid="past-events">
           <div className="mt-16 mb-6 flex items-center gap-4">
             <div className="flex-1 border-t border-tv-green-deep/10" />
             <span className="text-xs font-bold uppercase tracking-[0.3em] text-tv-green-deep/75">Storico eventi</span>

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ThreadsBg } from "./ThreadsBg";
-import { ArrowDownRight, ArrowRight, Sparkles } from "lucide-react";
-import { PastEventCard, sortPastDesc } from "./Eventi";
+import { ArrowDownRight, Sparkles } from "lucide-react";
+import { ClubDelLibroTeaser } from "./ClubDelLibro";
+import { CineforumTeaser } from "./Cineforum";
+import { useIsDesktop } from "../lib/useMediaQuery";
 import { fetchEvents } from "../lib/eventsApi";
 
 export const Hero = () => {
@@ -27,7 +29,7 @@ export const Hero = () => {
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [events]);
 
-  const pastEvents = useMemo(() => sortPastDesc(events), [events]);
+  const isDesktop = useIsDesktop();
 
   // Timer live — aggiorna ogni secondo per il countdown
   const [now, setNow] = useState(() => new Date());
@@ -85,32 +87,23 @@ export const Hero = () => {
             </a>
           </div>
 
-          {/* Storico eventi: su desktop riempie la colonna sotto i pulsanti
-              (su mobile resta nella sezione eventi, per non allontanare i prossimi) */}
-          {pastEvents.length > 0 && (
-            <div className="hidden md:block mt-16" data-testid="hero-past-events">
-              <div className="flex items-end justify-between gap-4 mb-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="w-2 h-2 rounded-full bg-tv-bordeaux" />
-                    <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75">Già intrecciato</span>
-                  </div>
-                  <div className="font-display font-black text-2xl text-tv-green-deep leading-tight">
-                    {pastEvents.length} {pastEvents.length === 1 ? "evento fatto" : "eventi fatti"} insieme,{" "}
-                    <span className="italic font-light text-tv-bordeaux">e siamo appena partiti.</span>
-                  </div>
+          {/* I nostri club: su desktop riempiono la colonna sotto i pulsanti
+              (su mobile hanno una sezione subito dopo l'hero, vedi ClubsSection in App.js) */}
+          {isDesktop && (
+            <div className="mt-14" data-testid="hero-clubs">
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-2 h-2 rounded-full bg-tv-bordeaux" />
+                  <span className="text-xs font-black uppercase tracking-widest text-tv-green-deep/75">I nostri club</span>
                 </div>
-                <Link
-                  to="/eventi/archivio"
-                  className="shrink-0 inline-flex items-center gap-1.5 text-sm font-bold text-tv-green-deep underline underline-offset-4 hover:text-tv-bordeaux"
-                >
-                  Vedi tutti <ArrowRight size={14} aria-hidden="true" />
-                </Link>
+                <div className="font-display font-black text-2xl text-tv-green-deep leading-tight">
+                  Gruppi che si ritrovano, sempre:{" "}
+                  <span className="italic font-light text-tv-bordeaux">un libro e un film ogni mese.</span>
+                </div>
               </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {pastEvents.slice(0, 4).map((ev) => (
-                  <PastEventCard key={ev.id} ev={ev} />
-                ))}
+              <div className="grid grid-cols-2 gap-4">
+                <ClubDelLibroTeaser />
+                <CineforumTeaser />
               </div>
             </div>
           )}

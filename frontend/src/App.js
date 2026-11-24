@@ -17,6 +17,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { Donazioni, DonazioniTeaser } from "./components/Donazioni";
 import CookieBanner from "./components/CookieBanner";
 import { initModalA11y } from "./lib/modalA11y";
+import { useIsDesktop } from "./lib/useMediaQuery";
 
 // Pagine caricate solo quando servono: chi apre la home non scarica Admin (con la
 // libreria Excel), Area Soci, login, pagine legali e dettagli. Restano nel bundle
@@ -42,8 +43,13 @@ const PageFallback = () => (
   <div className="min-h-screen bg-tv-cream" aria-busy="true" aria-label="Caricamento pagina" />
 );
 
-const ClubsSection = () => (
-  <section className="pt-0 pb-10 md:pb-14">
+// Su desktop i club stanno nell'hero (sotto i pulsanti); su mobile hanno questa sezione
+// subito dopo l'hero. Si monta solo in uno dei due punti, così le chiamate API partono una volta.
+const ClubsSection = () => {
+  const isDesktop = useIsDesktop();
+  if (isDesktop) return null;
+  return (
+  <section className="pt-10 pb-2">
     <div className="mx-auto max-w-7xl px-6 md:px-10">
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
@@ -63,7 +69,8 @@ const ClubsSection = () => (
       </div>
     </div>
   </section>
-);
+  );
+};
 
 const Home = () => {
   useEffect(() => {
@@ -84,9 +91,9 @@ const Home = () => {
       <Navbar />
       <main id="main">
         <Hero />
+        <ClubsSection />
         <ChiSiamo />
         <Eventi />
-        <ClubsSection />
         <DonazioniTeaser />
         <Iscrizione />
         <Contatti />
