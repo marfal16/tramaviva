@@ -4776,6 +4776,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Cache sulla rete Vercel per i dati pubblici che cambiano di rado: con più visite nello
+# stesso minuto la funzione parte una volta sola e le altre ricevono la copia in cache.
+# Esclusi di proposito: voti e proposte, recensioni (pubblicate subito, senza moderazione),
+# configurazioni di Club/Cineforum (countdown e proclamazione del vincitore), conteggi
+# iscritti e tutto ciò che richiede login o l'area admin.
+_EDGE_CACHE_RULES = [
+    (re.compile(r"^/api/(events|projects|books|films)$"), 60),
+    (re.compile(r"^/api/(events|projects|books|films)/[^/]+$"), 60),
+    (re.compile(r"^/api/projects/[^/]+/photos$"), 300),
+    (re.compile(r"^/api/events/[^/]+/(image|calendar\.ics)$"), 300),
+]
+
+@app.middleware("http")
+async def edge_cache_public_get(request: Request, call_next):
+    response = await call_next(request)
+    if request.method != "GET" or response.status_code not in (200, 302):
+        return response
+    if request.headers.get("authorization"):
+        return response
+    path = request.url.path
+    for pattern, seconds in _EDGE_CACHE_RULES:
+        if pattern.match(path):
+            response.headers["Cache-Control"] = (
+                f"public, max-age=0, s-maxage={seconds}, stale-while-revalidate={seconds * 10}"
+            )
+            # Una copia in cache vale per tutti: niente intestazione CORS che dipende
+            # dall'origine della singola richiesta (sono dati pubblici, senza credenziali).
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            if "vary" in response.headers:
+                del response.headers["vary"]
+            break
+    return response
+
 @app.on_event("startup")
 async def seed_events_on_startup():
     try:

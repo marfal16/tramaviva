@@ -11,7 +11,7 @@ export const Logo = ({ variant = "inline", size = 40, className = "", textColor 
   if (variant === "full") {
     return (
       <img
-        src="/tramaviva-full.jpg"
+        src="/tramaviva-full-320.webp"
         alt="APS Trama Viva — Ogni filo conta"
         width={size}
         style={{ width: size, height: "auto" }}
@@ -24,7 +24,7 @@ export const Logo = ({ variant = "inline", size = 40, className = "", textColor 
   if (variant === "mark") {
     return (
       <img
-        src="/tramaviva-mark.jpg"
+        src="/tramaviva-mark-128.webp"
         alt="APS Trama Viva"
         width={size}
         height={size}
@@ -39,7 +39,7 @@ export const Logo = ({ variant = "inline", size = 40, className = "", textColor 
   return (
     <div className={`flex items-center gap-3 ${className}`} data-testid="tv-logo">
       <img
-        src="/tramaviva-mark.jpg"
+        src="/tramaviva-mark-128.webp"
         alt=""
         width={size}
         height={size}

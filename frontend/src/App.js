@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster, toast } from "sonner";
@@ -10,21 +10,37 @@ import Iscrizione from "./components/Iscrizione";
 import { IscrizioneExpanded } from "./components/IscrizioneExpanded";
 import Contatti from "./components/Contatti";
 import Footer from "./components/Footer";
-import Admin from "./components/Admin";
-import EventoDettaglio from "./components/EventoDettaglio";
-import { EventiArchivio } from "./components/EventiArchivio";
-import { ProgettiPage, ProgettoDettaglio } from "./components/Progetti";
 import { ClubDelLibro, ClubDelLibroTeaser } from "./components/ClubDelLibro";
 import { Cineforum, CineforumTeaser } from "./components/Cineforum";
 import { LibroDettaglio } from "./components/LibroDettaglio";
 import { AuthProvider } from "./context/AuthContext";
-import { LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage } from "./components/Auth";
-import { AreaSoci } from "./components/AreaSoci";
 import { Donazioni, DonazioniTeaser } from "./components/Donazioni";
-import { CancellaPrenotazione } from "./components/CancellaPrenotazione";
-import { PrivacyPolicy, CookiePolicy, ConditionsPage, AccessibilityPage } from "./components/LegalPages";
 import CookieBanner from "./components/CookieBanner";
 import { initModalA11y } from "./lib/modalA11y";
+
+// Pagine caricate solo quando servono: chi apre la home non scarica Admin (con la
+// libreria Excel), Area Soci, login, pagine legali e dettagli. Restano nel bundle
+// principale solo la home e ciò che la home usa.
+const named = (loader, name) => lazy(() => loader().then((m) => ({ default: m[name] })));
+const Admin = lazy(() => import("./components/Admin"));
+const EventoDettaglio = lazy(() => import("./components/EventoDettaglio"));
+const EventiArchivio = named(() => import("./components/EventiArchivio"), "EventiArchivio");
+const ProgettiPage = named(() => import("./components/Progetti"), "ProgettiPage");
+const ProgettoDettaglio = named(() => import("./components/Progetti"), "ProgettoDettaglio");
+const LoginPage = named(() => import("./components/Auth"), "LoginPage");
+const RegisterPage = named(() => import("./components/Auth"), "RegisterPage");
+const ForgotPasswordPage = named(() => import("./components/Auth"), "ForgotPasswordPage");
+const ResetPasswordPage = named(() => import("./components/Auth"), "ResetPasswordPage");
+const AreaSoci = named(() => import("./components/AreaSoci"), "AreaSoci");
+const CancellaPrenotazione = named(() => import("./components/CancellaPrenotazione"), "CancellaPrenotazione");
+const PrivacyPolicy = named(() => import("./components/LegalPages"), "PrivacyPolicy");
+const CookiePolicy = named(() => import("./components/LegalPages"), "CookiePolicy");
+const ConditionsPage = named(() => import("./components/LegalPages"), "ConditionsPage");
+const AccessibilityPage = named(() => import("./components/LegalPages"), "AccessibilityPage");
+
+const PageFallback = () => (
+  <div className="min-h-screen bg-tv-cream" aria-busy="true" aria-label="Caricamento pagina" />
+);
 
 const ClubsSection = () => (
   <section className="pt-0 pb-10 md:pb-14">
@@ -261,6 +277,7 @@ function App() {
         <PaymentReturnHandler />
         <RouteTitle />
         <CookieBanner />
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<Admin />} />
@@ -284,6 +301,7 @@ function App() {
           <Route path="/condizioni" element={<ConditionsPage />} />
           <Route path="/accessibilita" element={<AccessibilityPage />} />
         </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );

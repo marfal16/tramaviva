@@ -114,7 +114,7 @@ const ProjectEditor = ({ token, project, eventCategories, onBack, onSaved, onDel
 
   useEffect(() => {
     if (!project || !project.published) return;
-    axios.get(`${API}/projects/${project.slug}/photos`, { params: { limit: 100 } })
+    axios.get(`${API}/projects/${project.slug}/photos`, { params: { limit: 100, _t: Date.now() } })
       .then((r) => setPhotoInfo({ photos: r.data.length, events: new Set(r.data.map((p) => p.event_id)).size }))
       .catch(() => {});
   }, [project]);
