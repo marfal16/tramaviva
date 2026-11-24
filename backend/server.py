@@ -4711,28 +4711,24 @@ async def heartbeat(request: Request):
         {"$set": {"session_id": session_id, "last_seen": now}},
         upsert=True,
     )
-    # Log giornaliero: geo solo al primo ping del giorno per questa sessione
+    # Log giornaliero in una sola operazione: la geo si scrive solo quando la riga
+    # del giorno viene creata ($setOnInsert), poi si aggiorna soltanto last_seen.
     day_key = now.strftime("%Y-%m-%d")
-    existing = await db.visitor_log.find_one(
-        {"session_id": session_id, "day": day_key}, {"country": 1}
+    update = {"$set": {"last_seen": now}}
+    geo = _geo_from_headers(request)
+    if geo:
+        update["$setOnInsert"] = geo
+    await db.visitor_log.update_one(
+        {"session_id": session_id, "day": day_key},
+        update,
+        upsert=True,
     )
-    if existing is None:
-        geo = _geo_from_headers(request)
-        await db.visitor_log.update_one(
-            {"session_id": session_id, "day": day_key},
-            {"$set": {"session_id": session_id, "day": day_key, "last_seen": now, **geo}},
-            upsert=True,
-        )
-    else:
-        await db.visitor_log.update_one(
-            {"session_id": session_id, "day": day_key},
-            {"$set": {"last_seen": now}},
-        )
     return {"ok": True}
 
 @api_router.get("/admin/active-users", dependencies=[Depends(require_admin)])
 async def get_active_users():
-    threshold = datetime.now(timezone.utc) - timedelta(seconds=90)
+    # Il sito manda un heartbeat ogni 2 minuti (solo a scheda visibile): margine di 30 s.
+    threshold = datetime.now(timezone.utc) - timedelta(seconds=150)
     count = await db.active_sessions.count_documents({"last_seen": {"$gte": threshold}})
     return {"count": count}
 

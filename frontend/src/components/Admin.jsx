@@ -3332,9 +3332,21 @@ const Dashboard = ({ token, onLogout }) => {
         .then(r => setActiveUsers(r.data.count))
         .catch(() => {});
     };
-    fetchActive();
-    const id = setInterval(fetchActive, 30000);
-    return () => clearInterval(id);
+    // Contatore "online ora": aggiornato ogni minuto e solo con la scheda visibile.
+    let id = null;
+    const start = () => {
+      if (id || document.visibilityState !== "visible") return;
+      fetchActive();
+      id = setInterval(fetchActive, 60000);
+    };
+    const stop = () => { clearInterval(id); id = null; };
+    const onVisibility = () => (document.visibilityState === "visible" ? start() : stop());
+    document.addEventListener("visibilitychange", onVisibility);
+    start();
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [token]);
 
   useEffect(() => {

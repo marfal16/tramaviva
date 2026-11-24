@@ -12,6 +12,7 @@ import { recaptchaHeaders, useRecaptcha, antiSpamMessage } from "../lib/recaptch
 import { PRIVACY_VERSION } from "../lib/legal";
 import { eventImgStyle, eventImgFit } from "../lib/eventImage";
 import PlaceLink from "./PlaceLink";
+import { fetchEvents } from "../lib/eventsApi";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -81,8 +82,8 @@ export const Eventi = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get(`${API}/events`);
-        setEvents(res.data);
+        const data = await fetchEvents(); // condivisa con l'Hero: una sola chiamata in home
+        setEvents(Array.isArray(data) ? data : []);
       } catch (e) {
         toast.error("Non siamo riusciti a caricare gli eventi.");
       } finally {

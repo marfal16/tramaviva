@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { ThreadsBg } from "./ThreadsBg";
 import { ArrowDownRight, ArrowRight, Sparkles } from "lucide-react";
 import { PastEventCard, sortPastDesc } from "./Eventi";
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+import { fetchEvents } from "../lib/eventsApi";
 
 export const Hero = () => {
   const scrollTo = (href) => (e) => {
@@ -15,8 +14,7 @@ export const Hero = () => {
 
   const [events, setEvents] = useState([]);
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/events`)
-      .then(r => r.json())
+    fetchEvents()
       .then(data => setEvents(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);

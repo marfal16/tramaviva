@@ -204,16 +204,49 @@ function useHeartbeat() {
       sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
       try { sessionStorage.setItem("tv_session_id", sessionId); } catch { /* si usa solo in memoria */ }
     }
+    // Ogni ping è un'invocazione della funzione serverless: si manda solo mentre la scheda
+    // è visibile e qualcuno la sta usando, e al massimo ogni 2 minuti.
+    const PING_MS = 120000;
+    const IDLE_MS = 30 * 60 * 1000; // dopo 30 min senza interazioni la visita si considera finita
+    let lastActivity = Date.now();
+    let lastPing = 0;
+    let timer = null;
+
+    const isVisible = () => document.visibilityState === "visible";
     const send = () => {
+      if (!isVisible() || Date.now() - lastActivity > IDLE_MS) return;
+      lastPing = Date.now();
       fetch(`${BACKEND_URL}/api/heartbeat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId }),
       }).catch(() => {});
     };
-    send();
-    const id = setInterval(send, 30000);
-    return () => clearInterval(id);
+    const start = () => {
+      if (timer || !isVisible()) return;
+      if (Date.now() - lastPing >= PING_MS) send();
+      timer = setInterval(send, PING_MS);
+    };
+    const stop = () => {
+      clearInterval(timer);
+      timer = null;
+    };
+    const onVisibility = () => (isVisible() ? start() : stop());
+    const onActivity = () => {
+      const wasIdle = Date.now() - lastActivity > IDLE_MS;
+      lastActivity = Date.now();
+      if (wasIdle && Date.now() - lastPing >= PING_MS) send();
+    };
+
+    const activityEvents = ["pointerdown", "keydown", "scroll", "touchstart"];
+    document.addEventListener("visibilitychange", onVisibility);
+    activityEvents.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
+    start();
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+      activityEvents.forEach((e) => window.removeEventListener(e, onActivity));
+    };
   }, []);
 }
 
